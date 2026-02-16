@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Navigator - Project Finland-Jedi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: #FFFFFF;
+            overflow-x: hidden;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1a1a3e 0%, #2d1b4e 50%, #4a2c5e 100%);
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(180deg, 
+                    rgba(26, 26, 62, 0.9) 0%, 
+                    rgba(45, 27, 78, 0.7) 40%,
+                    rgba(74, 44, 94, 0.6) 70%,
+                    rgba(139, 69, 19, 0.5) 85%,
+                    rgba(255, 140, 0, 0.4) 100%
+                );
+            z-index: -1;
+        }
+
+        header {
+            text-align: center;
+            padding: 120px 20px 80px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 8vw, 4.5rem);
+            letter-spacing: 0.3em;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .bio {
+            max-width: 800px;
+            margin: 0 auto 60px;
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+            padding: 0 20px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 20px 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #FFFFFF;
+            border-radius: 50px;
+            color: #FFFFFF;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            letter-spacing: 0.2em;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .cta-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a3e;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .carousel-section {
+            padding: 80px 20px;
+            position: relative;
+        }
+
+        .carousel-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .carousel-wrapper {
+            overflow: hidden;
+            position: relative;
+            touch-action: pan-y;
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.3s ease;
+        }
+
+        .bias-card {
+            min-width: 100%;
+            min-height: 500px;
+            padding: 80px 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bias-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+        }
+
+        .bias-image {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 30px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            object-fit: cover;
+            transition: all 0.3s ease;
+        }
+
+        .bias-card:hover .bias-image {
+            border-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .bias-title {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            letter-spacing: 0.15em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .bias-content {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        .carousel-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+            padding: 0 20px;
+        }
+
+        .nav-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #FFFFFF;
+            color: #FFFFFF;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a3e;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            transform: scale(1.1);
+        }
+
+        .carousel-indicator {
+            font-size: 1.2rem;
+            letter-spacing: 0.1em;
+        }
+
+        footer {
+            text-align: center;
+            padding: 80px 20px 40px;
+        }
+
+        .motto {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            letter-spacing: 0.2em;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .contact-link {
+            display: inline-block;
+            padding: 15px 30px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .contact-link:hover {
+            color: #FFFFFF;
+            border-color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2d1b4e 0%, #1a1a3e 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #FFFFFF;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            transform: scale(1.2);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .modal h2 {
+            font-size: 2rem;
+            letter-spacing: 0.15em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            letter-spacing: 0.1em;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: #FFFFFF;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #FFFFFF;
+            border-radius: 50px;
+            color: #FFFFFF;
+            font-size: 1.2rem;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .submit-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a3e;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 80px 20px 60px;
+            }
+
+            .bias-card {
+                padding: 60px 35px;
+                min-height: 450px;
+            }
+
+            .bias-image {
+                width: 150px;
+                height: 150px;
+            }
+
+            .carousel-nav {
+                padding: 0 10px;
+            }
+
+            .nav-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>TEST YOUR DECISION SKILLS</h1>
+        <p class="bio">
+            In an era of Artificial Intelligence, clear judgment you must have. To navigate the waters of GenAI, understand your own mind you must. Dangerous are the biases. Test your skills, and balance bring to your decisions.
+        </p>
+        <button class="cta-button" id="startButton">START TRIALS</button>
+    </header>
+
+    <section class="carousel-section">
+        <div class="carousel-container">
+            <div class="carousel-wrapper" id="carouselWrapper">
+                <div class="carousel-track" id="carouselTrack">
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad1'%3E%3Cstop offset='0%25' style='stop-color:rgb(100,100,150);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(30,30,60);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad1)'/%3E%3Cpath d='M 60 80 Q 80 60 100 80 Q 120 60 140 80' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3Ccircle cx='75' cy='85' r='8' fill='%23FFD700'/%3E%3Ccircle cx='125' cy='85' r='8' fill='%23FFD700'/%3E%3Cpath d='M 80 120 Q 100 140 120 120' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3Ctext x='100' y='170' font-family='Arial' font-size='24' fill='%23FFD700' text-anchor='middle'%3E✓✓✓%3C/text%3E%3C/svg%3E" alt="Confirmation Bias" class="bias-image">
+                        <h2 class="bias-title">CONFIRMATION BIAS</h2>
+                        <p class="bias-content">Seeking confirmation you are. Ignoring the errors of the AI you must not.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad2'%3E%3Cstop offset='0%25' style='stop-color:rgb(120,120,140);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(40,40,60);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad2)'/%3E%3Crect x='70' y='60' width='60' height='70' rx='10' fill='%23999' stroke='%23666' stroke-width='2'/%3E%3Ccircle cx='100' cy='95' r='15' fill='%23FF0000' opacity='0.8'/%3E%3Cpath d='M 100 95 L 100 65' stroke='%23FF0000' stroke-width='2'/%3E%3Cpath d='M 100 95 L 115 105' stroke='%23FF0000' stroke-width='2'/%3E%3Crect x='85' y='140' width='10' height='20' fill='%23666'/%3E%3Crect x='105' y='140' width='10' height='20' fill='%23666'/%3E%3C/svg%3E" alt="Automation Bias" class="bias-image">
+                        <h2 class="bias-title">AUTOMATION BIAS</h2>
+                        <p class="bias-content">Trusting the machine too much leads to the Dark Side. Verify, you must.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad3'%3E%3Cstop offset='0%25' style='stop-color:rgb(100,120,150);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(30,40,70);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad3)'/%3E%3Cpath d='M 100 50 L 100 150 M 50 100 L 150 100' stroke='%2300BFFF' stroke-width='4' opacity='0.6'/%3E%3Ccircle cx='100' cy='100' r='35' fill='none' stroke='%2300BFFF' stroke-width='3'/%3E%3Cpath d='M 100 80 L 90 100 L 100 90 L 110 100 Z' fill='%23FFD700'/%3E%3Ctext x='100' y='165' font-family='Arial' font-size='16' fill='%2300BFFF' text-anchor='middle'%3E1st%3C/text%3E%3C/svg%3E" alt="Anchoring Bias" class="bias-image">
+                        <h2 class="bias-title">ANCHORING BIAS</h2>
+                        <p class="bias-content">The first answer is not always the chosen one. Look deeper.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad4'%3E%3Cstop offset='0%25' style='stop-color:rgb(140,100,140);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(50,30,50);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad4)'/%3E%3Cpath d='M 70 90 Q 100 60 130 90' fill='none' stroke='%23DDA0DD' stroke-width='3'/%3E%3Ccircle cx='85' cy='85' r='6' fill='%23DDA0DD'/%3E%3Ccircle cx='115' cy='85' r='6' fill='%23DDA0DD'/%3E%3Cpath d='M 100 95 L 100 145' stroke='%23DDA0DD' stroke-width='2'/%3E%3Ccircle cx='100' cy='150' r='8' fill='%23DDA0DD'/%3E%3Cpath d='M 60 120 Q 100 110 140 120' fill='none' stroke='%23DDA0DD' stroke-width='2' stroke-dasharray='5,5'/%3E%3C/svg%3E" alt="Availability Heuristic" class="bias-image">
+                        <h2 class="bias-title">AVAILABILITY HEURISTIC</h2>
+                        <p class="bias-content">Ease of memory does not equal truth. Rare are the failures, but deadly.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad5'%3E%3Cstop offset='0%25' style='stop-color:rgb(180,140,100);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(80,60,40);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad5)'/%3E%3Ccircle cx='100' cy='100' r='50' fill='none' stroke='%23FFD700' stroke-width='4'/%3E%3Cpath d='M 75 85 L 85 95 L 95 75' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3Cpath d='M 105 85 L 115 95 L 125 75' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3Cpath d='M 70 120 L 100 110 L 130 120' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3Cpath d='M 80 55 L 90 45 L 100 55 L 110 45 L 120 55' stroke='%23FFD700' stroke-width='2' fill='none'/%3E%3C/svg%3E" alt="Dunning-Kruger Effect" class="bias-image">
+                        <h2 class="bias-title">DUNNING-KRUGER EFFECT</h2>
+                        <p class="bias-content">Confidence is not mastery. The AI sounds wise, but foolish it may be.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad6'%3E%3Cstop offset='0%25' style='stop-color:rgb(100,150,180);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(30,60,80);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad6)'/%3E%3Ccircle cx='100' cy='100' r='60' fill='none' stroke='%2387CEEB' stroke-width='3'/%3E%3Cpath d='M 100 100 L 100 50' stroke='%2387CEEB' stroke-width='4'/%3E%3Cpath d='M 100 100 L 130 120' stroke='%23FFD700' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='8' fill='%2387CEEB'/%3E%3Ctext x='140' y='130' font-family='Arial' font-size='20' fill='%23FFD700'%3ENOW%3C/text%3E%3C/svg%3E" alt="Recency Bias" class="bias-image">
+                        <h2 class="bias-title">RECENCY BIAS</h2>
+                        <p class="bias-content">Yesterday's success guarantees not today's victory. Judge every output anew.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad7'%3E%3Cstop offset='0%25' style='stop-color:rgb(150,50,50);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(60,20,20);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad7)'/%3E%3Cpath d='M 60 80 Q 70 70 80 80' stroke='%23FF4444' stroke-width='3' fill='none'/%3E%3Cpath d='M 120 80 Q 130 70 140 80' stroke='%23FF4444' stroke-width='3' fill='none'/%3E%3Ccircle cx='75' cy='85' r='7' fill='%23FF4444'/%3E%3Ccircle cx='125' cy='85' r='7' fill='%23FF4444'/%3E%3Cpath d='M 70 120 L 130 120' stroke='%23FF4444' stroke-width='4'/%3E%3Cpath d='M 85 50 L 100 35 L 115 50' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3C/svg%3E" alt="Overconfidence Bias" class="bias-image">
+                        <h2 class="bias-title">OVERCONFIDENCE BIAS</h2>
+                        <p class="bias-content">Arrogance blinds the Jedi. The AI's fluency is not fact.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad8'%3E%3Cstop offset='0%25' style='stop-color:rgb(150,150,150);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(50,50,50);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad8)'/%3E%3Crect x='60' y='60' width='80' height='80' rx='15' fill='%23AAA' stroke='%23666' stroke-width='3'/%3E%3Ccircle cx='85' cy='90' r='8' fill='%2300FF00' opacity='0.7'/%3E%3Ccircle cx='115' cy='90' r='8' fill='%2300FF00' opacity='0.7'/%3E%3Crect x='90' y='115' width='20' height='10' rx='3' fill='%23666'/%3E%3Cpath d='M 75 50 L 75 40 M 100 45 L 100 35 M 125 50 L 125 40' stroke='%2300FF00' stroke-width='2'/%3E%3C/svg%3E" alt="Anthropomorphization" class="bias-image">
+                        <h2 class="bias-title">ANTHROPOMORPHIZATION</h2>
+                        <p class="bias-content">A mind it has not. Patterns it mimics. Trust not the 'soul' of the machine.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad9'%3E%3Cstop offset='0%25' style='stop-color:rgb(120,100,80);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(50,40,30);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad9)'/%3E%3Cpath d='M 60 120 L 60 80 Q 60 60 80 60 L 120 60 Q 140 60 140 80 L 140 120 Q 140 140 120 140 L 80 140 Q 60 140 60 120 Z' fill='%23D2691E' stroke='%23A0522D' stroke-width='3'/%3E%3Crect x='70' y='70' width='15' height='25' fill='%238B4513'/%3E%3Crect x='95' y='85' width='15' height='10' fill='%23CD853F'/%3E%3Crect x='115' y='75' width='20' height='20' fill='%23DEB887'/%3E%3Cpath d='M 80 150 L 100 165 L 120 150' stroke='%23FFD700' stroke-width='3' fill='none'/%3E%3C/svg%3E" alt="Sunk Cost Fallacy" class="bias-image">
+                        <h2 class="bias-title">SUNK COST FALLACY</h2>
+                        <p class="bias-content">Let go of the bad prompt, you must. Start fresh, do not cling to the past.</p>
+                    </div>
+                    <div class="bias-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CradialGradient id='grad10'%3E%3Cstop offset='0%25' style='stop-color:rgb(100,100,150);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(40,40,70);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='100' fill='url(%23grad10)'/%3E%3Crect x='50' y='60' width='100' height='80' rx='10' fill='none' stroke='%239370DB' stroke-width='3' stroke-dasharray='8,4'/%3E%3Ccircle cx='75' cy='85' r='8' fill='%239370DB'/%3E%3Ccircle cx='100' cy='100' r='8' fill='%239370DB'/%3E%3Ccircle cx='125' cy='115' r='8' fill='%239370DB'/%3E%3Cpath d='M 155 75 L 165 85 M 155 85 L 165 75' stroke='%23FF6347' stroke-width='3'/%3E%3Cpath d='M 155 105 L 165 115 M 155 115 L 165 105' stroke='%23FF6347' stroke-width='3'/%3E%3C/svg%3E" alt="Selection Bias" class="bias-image">
+                        <h2 class="bias-title">SELECTION BIAS</h2>
+                        <p class="bias-content">Incomplete data leads to incomplete truth. See what is missing, you must.</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="carousel-nav">
+                <button class="nav-button" id="prevButton">&lt;</button>
+                <span class="carousel-indicator" id="indicator">1 / 10</span>
+                <button class="nav-button" id="nextButton">&gt;</button>
+            </nav>
+        </div>
+    </section>
+
+    <footer>
+        <p class="motto">MAY THE FORCE BE WITH YOU</p>
+        <a href="#" class="contact-link">Disturbance in the Force? (Contact Support)</a>
+    </footer>
+
+    <div class="modal" id="signupModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2>BEGIN YOUR TRIALS</h2>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="email">EMAIL</label>
+                    <input type="email" id="email" placeholder="your.email@domain.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input type="password" id="password" placeholder="Choose a strong password" required>
+                </div>
+                <button type="submit" class="submit-button">CREATE ACCOUNT</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 10;
+        const track = document.getElementById('carouselTrack');
+        const indicator = document.getElementById('indicator');
+        const modal = document.getElementById('signupModal');
+        const wrapper = document.getElementById('carouselWrapper');
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function updateCarousel() {
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            indicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateCarousel();
+        }
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+                nextSlide();
+            }
+            if (touchEndX > touchStartX + 50) {
+                prevSlide();
+            }
+        }
+
+        document.getElementById('nextButton').addEventListener('click', nextSlide);
+        document.getElementById('prevButton').addEventListener('click', prevSlide);
+
+        wrapper.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        wrapper.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Account creation initiated. May the Force be with you!');
+            modal.classList.remove('active');
+        });
+    </script>
+</body>
+</html>

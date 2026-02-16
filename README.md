@@ -142,7 +142,7 @@ my-first-agent/ ├── specs/ # 📋 Specifications (read-only for agent) ├
 
 
 
-🌐 **[View Live Site]** - [URL added after deployment]
+🌐 **[View Live Site]** - https://github.com/Norolansultan/Test-your-thinking/settings/pages
 
 
 

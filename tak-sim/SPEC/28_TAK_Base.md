@@ -63,7 +63,7 @@ One `CotEvent` per object per view step, following the public CoT 2.0 base schem
 | Spread-rate mark | `b-m-p-s-m` | — | spot marker with bearing and rate in remarks |
 | Report / radio traffic (bubble, message log) | `b-t-f` | — | GeoChat; room by source (§5) |
 
-The mapping is **DRAFT pending the domain reviewers** (`11` §7.22). It changes only symbols, never content.
+The mapping is **DRAFT pending the domain reviewers** (`11` §7.29). It changes only symbols, never content.
 
 ## 5. The TAK shell (participant screen)
 
@@ -106,9 +106,9 @@ From the researcher's August design (the white cell's map, "continuous realistic
 - it is a separate Vite entry that the participant bundle never imports (import-boundary test);
 - `npm run build:prod` excludes it, and the production server never serves it.
 
-**Public repository.** The researcher chose to keep this build, with the full content and answer keys, in the public `Test-your-thinking` repository (13 Oct 2026), knowing participants could in principle find the keys. Before data collection, either make the repository private or move the build to the private `Fire-rescue-simulation` repository (`11` §7.22).
+**Public repository.** The researcher chose to keep this build, with the full content and answer keys, in the public `Test-your-thinking` repository (13 Oct 2026), knowing participants could in principle find the keys. Before data collection, either make the repository private or move the build to the private `Fire-rescue-simulation` repository (`11` §7.29).
 
-## 9. Open items (registered in `11` §7.22)
+## 9. Open items (registered in `11` §7.29)
 
 1. Domain review of the 2525 / CoT type mapping (§4) and the GeoChat room grouping (§5).
 2. Whether the TAK shell is the study's shell or a parallel demonstration; the pilot so far ran the classic shell (`?klassinen`). A switch is a major change (`00` §6).

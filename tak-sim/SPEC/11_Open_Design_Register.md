@@ -942,3 +942,12 @@ V13 is keyed as a **fit view** (`27` view table, about line 400; the keyed fit s
 Changing P2 after pilot 1 is a new revision and a new hash (§7.27).
 
 **Decided, 11 Oct 2026 (lead, after the (at) probe): no further tuning toward V13.** The (at) wording is kept because it is the more defensible premise (a condition the method assumes, no claim that every fire is contained, no place names from the aim). Changing the unforeseen definition until V13 answers "fits" would fit the Thinker to the answer key, while `27` states that the verdict's accuracy is not manipulated and depends on the model. The V13 verdicts are logged with their premise ids and statuses (`aiPremises`, `unforeseen_p1_supported`), so Paper 2 reports the Thinker's false-positive rate in the fit views next to H14/H15 and, for H3, applies the nested-cell rule (`27` §1.4) as pre-registered. The instructors' check of the premise text (§7.27) stays open.
+
+### 7.29 The TAK base (13 Oct 2026, `28`, open for the researcher and the domain reviewers)
+
+The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how objects are encoded, never the scenario, the probes or the conditions. Open:
+
+1. **Symbol mapping.** The CoT / MIL-STD-2525C mapping of `28` §4 (rescue units as ground vehicles, drones as UAVs, the participant as the command post) and the GeoChat rooms by source (`28` §5) are DRAFT; the domain reviewers check them.
+2. **Which shell the study runs.** The TAK shell is this build's default; the pilot material so far is from the classic shell (`?klassinen`). The header logs `uiShell`. Switching the study's shell is a major change (`00` §6): data from the two shells are not pooled.
+3. **Public repository.** By the researcher's choice (13 Oct 2026) this build, with the answer keys, lives in the public `Test-your-thinking` repository. Before collection: make it private or move it to the private repository.
+4. **Haku and Thinker in GeoChat.** Not posted there (they would look like people and change the manipulation); revisit only with the supervisors.

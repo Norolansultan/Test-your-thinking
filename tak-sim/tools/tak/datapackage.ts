@@ -2,15 +2,21 @@
  * SPEC/28 §6: the TAK data package (the "mission package" ATAK, WinTAK and iTAK import): a ZIP holding
  * `MANIFEST/manifest.xml` and the content files.
  *
+ * The CoT layout a TAK client imports as map items: one event per entry, `<uid>/<uid>.cot` (the XML
+ * declaration and a single `<event>`), each listed in the manifest as
+ * `<Content ignore="false" zipEntry="<uid>/<uid>.cot"><Parameter name="uid" value="<uid>"/></Content>`,
+ * with the package's own `uid`, `name` and `onReceiveDelete` (false: keep the package after import).
+ *
  * A minimal, deterministic ZIP writer: STORE only (no compression), CRC-32, one fixed DOS timestamp
  * (the incident's start, 26 July 2030 13:20), entries in the order given, no extra fields, no
- * comments — so the same files always give the same bytes (I1). No dependency.
+ * comments — so the same files always give the same bytes (I1). Entry names are UTF-8 (general-purpose
+ * flag bit 11 set when a name is not plain ASCII: some GeoChat uids hold "Ä"). No dependency.
  */
 
 import { createHash } from "node:crypto";
 
 export interface ZipEntry {
-  /** The entry's path inside the archive, `/`-separated, ASCII. */
+  /** The entry's path inside the archive, `/`-separated, UTF-8. */
   readonly name: string;
   readonly data: Uint8Array;
 }
@@ -47,8 +53,16 @@ const SIG_LOCAL = 0x04034b50;
 const SIG_CENTRAL = 0x02014b50;
 const SIG_END = 0x06054b50;
 const VERSION = 20; // 2.0, MS-DOS host
+/** General-purpose flag bit 11: the entry name is UTF-8 (APPNOTE 4.4.4). */
+const FLAG_UTF8 = 0x0800;
 
-/** A STORE-only ZIP of `entries`, in the order given. Refuses duplicate or non-ASCII names and anything that would need ZIP64. */
+/** A relative `/`-separated path with no control characters, backslashes, empty, `.` or `..` segments. */
+function validEntryName(name: string): boolean {
+  if (name === "" || /[\u0000-\u001f\u007f\\]/.test(name) || name.startsWith("/")) return false;
+  return name.split("/").every((seg, i, all) => seg !== "." && seg !== ".." && (seg !== "" || i === all.length - 1));
+}
+
+/** A STORE-only ZIP of `entries`, in the order given. Refuses duplicate or unsafe names and anything that would need ZIP64. */
 export function writeStoredZip(entries: readonly ZipEntry[], when: DosDateTime = FIXED_DOS_TIME): Uint8Array {
   if (entries.length > 0xffff) throw new RangeError("too many entries for a ZIP without ZIP64");
   const seen = new Set<string>();
@@ -56,10 +70,11 @@ export function writeStoredZip(entries: readonly ZipEntry[], when: DosDateTime =
   const centrals: Uint8Array[] = [];
   let offset = 0;
   for (const entry of entries) {
-    if (!/^[\x21-\x7e][\x20-\x7e]*$/.test(entry.name) || entry.name.includes("\\") || entry.name.startsWith("/")) throw new RangeError(`bad ZIP entry name ${JSON.stringify(entry.name)}`);
+    if (!validEntryName(entry.name) || entry.name !== entry.name.trim()) throw new RangeError(`bad ZIP entry name ${JSON.stringify(entry.name)}`);
     if (seen.has(entry.name)) throw new RangeError(`duplicate ZIP entry ${entry.name}`);
     seen.add(entry.name);
     const name = new TextEncoder().encode(entry.name);
+    const flags = /^[\x20-\x7e]*$/.test(entry.name) ? 0 : FLAG_UTF8;
     const size = entry.data.length;
     if (size > 0xfffffffe || offset > 0xfffffffe) throw new RangeError("archive too large for a ZIP without ZIP64");
     const crc = crc32(entry.data);
@@ -68,7 +83,7 @@ export function writeStoredZip(entries: readonly ZipEntry[], when: DosDateTime =
     const lv = new DataView(local.buffer);
     lv.setUint32(0, SIG_LOCAL, true);
     lv.setUint16(4, VERSION, true); // version needed to extract
-    lv.setUint16(6, 0, true); // flags
+    lv.setUint16(6, flags, true); // flags
     lv.setUint16(8, 0, true); // method: stored
     lv.setUint16(10, when.time, true);
     lv.setUint16(12, when.date, true);
@@ -86,8 +101,8 @@ export function writeStoredZip(entries: readonly ZipEntry[], when: DosDateTime =
     cv.setUint32(0, SIG_CENTRAL, true);
     cv.setUint16(4, VERSION, true); // version made by
     cv.setUint16(6, VERSION, true); // version needed to extract
-    cv.setUint16(8, 0, true);
-    cv.setUint16(10, 0, true);
+    cv.setUint16(8, flags, true); // flags
+    cv.setUint16(10, 0, true); // method: stored
     cv.setUint16(12, when.time, true);
     cv.setUint16(14, when.date, true);
     cv.setUint32(16, crc, true);
@@ -133,20 +148,45 @@ function escapeAttr(s: string): string {
 /** The ZIP entry the manifest lives at. */
 export const MANIFEST_ENTRY = "MANIFEST/manifest.xml";
 
-/** `MANIFEST/manifest.xml` in the TAK data-package format (MissionPackageManifest version 2). */
-export function missionPackageManifest(options: { readonly uid: string; readonly name: string; readonly entries: readonly string[] }): string {
+/** The manifest's `Content` for one CoT event: its entry and the event's uid. */
+export interface ManifestContent {
+  readonly zipEntry: string;
+  readonly uid: string;
+}
+
+/**
+ * `MANIFEST/manifest.xml` in the TAK data-package format (MissionPackageManifest version 2): the
+ * package's `uid`, `name` and `onReceiveDelete`, then one `Content` per CoT event with its `uid`
+ * parameter, which is what makes a client dispatch the entry as a map item.
+ */
+export function missionPackageManifest(options: { readonly uid: string; readonly name: string; readonly onReceiveDelete?: boolean; readonly contents: readonly ManifestContent[] }): string {
   return [
     '<MissionPackageManifest version="2">',
     "  <Configuration>",
     `    <Parameter name="uid" value="${escapeAttr(options.uid)}"/>`,
     `    <Parameter name="name" value="${escapeAttr(options.name)}"/>`,
+    `    <Parameter name="onReceiveDelete" value="${(options.onReceiveDelete ?? false) ? "true" : "false"}"/>`,
     "  </Configuration>",
     "  <Contents>",
-    ...options.entries.map((e) => `    <Content ignore="false" zipEntry="${escapeAttr(e)}"/>`),
+    ...options.contents.flatMap((c) => [
+      `    <Content ignore="false" zipEntry="${escapeAttr(c.zipEntry)}">`,
+      `      <Parameter name="uid" value="${escapeAttr(c.uid)}"/>`,
+      "    </Content>",
+    ]),
     "  </Contents>",
     "</MissionPackageManifest>",
     "",
   ].join("\n");
+}
+
+/** Where a CoT event goes in a data package: `<uid>/<uid>.cot`. */
+export function cotEntryName(uid: string): string {
+  if (uid === "" || uid === "." || uid === ".." || /[/\\\u0000-\u001f\u007f]/.test(uid) || uid !== uid.trim()) throw new RangeError(`uid ${JSON.stringify(uid)} cannot name a package entry`);
+  return `${uid}/${uid}.cot`;
+}
+
+function compareStrings(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** The RFC 4122 URL namespace, for {@link nameBasedUuid}. */
@@ -162,16 +202,28 @@ export function nameBasedUuid(name: string, namespace: string = URL_NAMESPACE): 
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+/** One CoT event for a package: its uid and its stand-alone document (the XML declaration and one `<event>`). */
+export interface CotPackageItem {
+  readonly uid: string;
+  readonly document: string;
+}
+
 /**
- * The data package: the manifest first, then the files in the order given. The package uid is
- * derived from the files' content (`nameBasedUuid` over their SHA-256), so a changed export is a new
- * package to a TAK client and an unchanged one is the same package.
+ * A CoT data package: the manifest first, then one `<uid>/<uid>.cot` entry per event, sorted by entry
+ * name (the manifest lists them in the same order). A uid twice is refused. The package uid is derived
+ * from the package's name and content (`nameBasedUuid` over their SHA-256), so a changed export is a
+ * new package to a TAK client and an unchanged one the same package.
  */
-export function buildDataPackage(options: { readonly name: string; readonly files: readonly ZipEntry[]; readonly uid?: string }): { readonly zip: Uint8Array; readonly manifest: string; readonly uid: string } {
+export function buildCotDataPackage(options: { readonly name: string; readonly items: readonly CotPackageItem[]; readonly uid?: string }): { readonly zip: Uint8Array; readonly manifest: string; readonly uid: string; readonly entries: readonly string[] } {
+  const encoder = new TextEncoder();
+  const files = options.items
+    .map((item) => ({ uid: item.uid, name: cotEntryName(item.uid), data: encoder.encode(item.document) }))
+    .sort((a, b) => compareStrings(a.name, b.name));
+  for (let i = 1; i < files.length; i++) if (files[i]!.uid === files[i - 1]!.uid) throw new RangeError(`uid ${files[i]!.uid} twice in package ${options.name}`);
   const digest = createHash("sha256");
-  for (const f of options.files) digest.update(`${f.name}\n${f.data.length}\n`).update(f.data);
+  for (const f of files) digest.update(`${f.name}\n${f.data.length}\n`).update(f.data);
   const uid = options.uid ?? nameBasedUuid(`tak-sim:datapackage:${options.name}:${digest.digest("hex")}`);
-  const manifest = missionPackageManifest({ uid, name: options.name, entries: options.files.map((f) => f.name) });
-  const zip = writeStoredZip([{ name: MANIFEST_ENTRY, data: new TextEncoder().encode(manifest) }, ...options.files]);
-  return { zip, manifest, uid };
+  const manifest = missionPackageManifest({ uid, name: options.name, onReceiveDelete: false, contents: files.map((f) => ({ zipEntry: f.name, uid: f.uid })) });
+  const zip = writeStoredZip([{ name: MANIFEST_ENTRY, data: encoder.encode(manifest) }, ...files.map((f) => ({ name: f.name, data: f.data }))]);
+  return { zip, manifest, uid, entries: files.map((f) => f.name) };
 }

@@ -84,7 +84,7 @@ Every tool interaction is logged through `logMapUse` with a `tak_*` kind (opened
 
 ## 6. Exports and TAK interoperability (outside study runs)
 
-- `npm run tak:export` writes `dist-tak/`: one CoT XML file per view (`V00.cot.xml` … `V14.cot.xml`), a timed stream `scenario.cot.jsonl` (virtual-time offset + XML per line) and a TAK **data package** `tak-sim-datapackage.zip` (`MANIFEST/manifest.xml` + the CoT files) that ATAK, WinTAK or iTAK can import. Two runs are byte-identical.
+- `npm run tak:export` writes `dist-tak/`: one CoT XML file per view (`V00.cot.xml` … `V14.cot.xml`), a timed stream `scenario.cot.jsonl` (virtual-time offset + XML per line) and **one TAK data package per view** `packages/tak-sim-V00.zip` … `V14.zip`: the view's picture at its last step plus all of the view's GeoChat, one event per entry `<uid>/<uid>.cot`, `MANIFEST/manifest.xml` with a `uid` parameter per content, in the layout ATAK, WinTAK or iTAK import as map items (not yet tried in a real client). Two runs are byte-identical.
 - `npm run tak:replay -- --host <h> --port <p> [--proto tcp|udp] [--speed N]` streams the timed CoT to a TAK Server (TCP 8087 default) or to the SA multicast (`239.2.3.1:6969`, UDP) so a real TAK client can follow the scenario — for demonstrations, reviewers and the domain experts. It lives in `tools/` and nothing under `app/` may import it or `node:net`/`node:dgram` (I3, test).
 
 ## 7. Invariants

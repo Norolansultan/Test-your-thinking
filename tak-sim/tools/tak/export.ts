@@ -6,7 +6,15 @@
  *   steps of a merged view, sorted by (`time`, `uid`);
  * - `scenario.cot.jsonl`: the timed stream, one event per line: `{"t": virtual seconds (0 = 13:20),
  *   "view", "uid", "xml"}`, sorted as above (what `tak:replay` sends);
- * - `tak-sim-datapackage.zip`: a TAK data package, `MANIFEST/manifest.xml` + the fifteen view files.
+ * - `packages/tak-sim-V00.zip` … `packages/tak-sim-V14.zip`: one TAK data package per view that ATAK,
+ *   WinTAK or iTAK import as map items — the view's picture at its last step (a merged view's second
+ *   step: units, aircraft, fire, projection, footprints, rate marks, the self marker) plus every
+ *   GeoChat message of the view (both steps), one event per entry `<uid>/<uid>.cot` with a manifest
+ *   `Content` and `uid` parameter for each (`datapackage.ts` `buildCotDataPackage`).
+ *
+ * The earlier single `tak-sim-datapackage.zip` (the fifteen `<events>` documents as plain contents) is
+ * no longer written: TAK clients dispatch only one-event `.cot` entries with a `uid` parameter as map
+ * items, so it did not import. A stale copy from an earlier export is removed.
  *
  * Two runs are byte-identical (I1; `test/tak/export.spec.ts`).
  *
@@ -16,7 +24,7 @@
  * the compiler only what the tree holds: `Renderable*` values, never the scenario's truth.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { RenderableAtom } from "../../app/boundary/render-boundary.js";
@@ -24,14 +32,27 @@ import { applyRenderEvent, EMPTY_RENDER_TREE, type RenderTree } from "../../app/
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { batteryTimeline, DRONE_BATTERY } from "../../app/scenario/drone-battery.js";
 import type { InfoAtom, ScenarioContract, ViewEnvelope, ViewSpec } from "../../app/scenario/types.js";
-import { serializeCot, serializeCotEvents, type CotEvent } from "../../app/tak/cot.js";
+import { serializeCot, serializeCotDocument, serializeCotEvents, type CotEvent } from "../../app/tak/cot.js";
 import { compileSessionCot, COT_STEP_SECONDS, viewLabel, type CotChatLine, type DeliveredBubble, type ViewCotInput } from "../../app/tak/compile.js";
 import { virtualOfIso } from "../../app/tak/time.js";
-import { buildDataPackage } from "./datapackage.js";
+import { buildCotDataPackage } from "./datapackage.js";
 
 export const DEFAULT_OUT_DIR = "dist-tak";
-export const DATA_PACKAGE_FILE = "tak-sim-datapackage.zip";
 export const STREAM_FILE = "scenario.cot.jsonl";
+/** The per-view data packages' directory inside the output directory. */
+export const PACKAGES_DIR = "packages";
+/** The single package of the first export layout; removed if found (see the header). */
+export const LEGACY_DATA_PACKAGE_FILE = "tak-sim-datapackage.zip";
+
+/** `packages/tak-sim-V07.zip`. */
+export function viewPackageFile(view: string): string {
+  return `${PACKAGES_DIR}/tak-sim-${view}.zip`;
+}
+
+/** A view package's name in the manifest and in a TAK client's list: `TAK-SIM V07`. */
+export function viewPackageName(view: string): string {
+  return `TAK-SIM ${view}`;
+}
 
 /** Who the duty officer's messages are from (`app/session/orchestrator.ts` DUTY_OFFICER_ID). */
 const DUTY_OFFICER_ID = "P2";
@@ -117,46 +138,59 @@ export function cotJsonLines(events: readonly CotEvent[]): string {
   return events.map((e) => `${JSON.stringify({ t: virtualOfIso(e.time), view: e.detail.taksim.view, uid: e.uid, xml: serializeCot(e) })}\n`).join("");
 }
 
-export interface TakExport {
-  readonly dir: string;
-  /** Written file names, in write order. */
-  readonly files: readonly string[];
-  readonly events: number;
-  readonly packageUid: string;
+/**
+ * A view's package content: its picture at its last step (every map object's event of that step) and
+ * every GeoChat message of the view, both steps. One event per uid (a uid twice is refused when packed).
+ */
+export function viewSnapshotEvents(events: readonly CotEvent[], view: string): CotEvent[] {
+  const ofView = events.filter((e) => e.detail.taksim.view === view);
+  const mapObjects = ofView.filter((e) => e.detail.taksim.kind !== "chat");
+  const lastStep = mapObjects.reduce((max, e) => Math.max(max, e.detail.taksim.step), 0);
+  return ofView.filter((e) => e.detail.taksim.kind === "chat" || e.detail.taksim.step === lastStep);
 }
 
-/** Writes the export into `outDir` (created if missing; other files in it are left alone). */
+export interface TakExport {
+  readonly dir: string;
+  /** Written file paths relative to `dir`, in write order. */
+  readonly files: readonly string[];
+  readonly events: number;
+  /** Each view's package: its file, manifest uid and number of events. */
+  readonly packages: readonly { readonly view: string; readonly file: string; readonly uid: string; readonly events: number }[];
+}
+
+/** Writes the export into `outDir` (created if missing; other files in it are left alone, except the legacy single package). */
 export function exportTak(outDir: string = DEFAULT_OUT_DIR, scenario: ScenarioContract = buildDemoScenario()): TakExport {
   const dir = resolve(outDir);
-  mkdirSync(dir, { recursive: true });
+  mkdirSync(join(dir, PACKAGES_DIR), { recursive: true });
+  rmSync(join(dir, LEGACY_DATA_PACKAGE_FILE), { force: true });
   const events = compileScenarioCot(scenario);
-  const encoder = new TextEncoder();
 
-  const viewIndices = [scenario.practice.cycle.index, ...scenario.cycles.map((c) => c.index)].sort((a, b) => a - b);
-  const viewFiles = viewIndices.map((index) => {
-    const label = viewLabel(index);
-    return { name: `${label}.cot.xml`, text: serializeCotEvents(events.filter((e) => e.detail.taksim.view === label)) };
-  });
+  const views = [scenario.practice.cycle.index, ...scenario.cycles.map((c) => c.index)].sort((a, b) => a - b).map(viewLabel);
   const written: string[] = [];
-  for (const f of viewFiles) {
-    writeFileSync(join(dir, f.name), f.text);
-    written.push(f.name);
+  for (const view of views) {
+    const name = `${view}.cot.xml`;
+    writeFileSync(join(dir, name), serializeCotEvents(events.filter((e) => e.detail.taksim.view === view)));
+    written.push(name);
   }
   writeFileSync(join(dir, STREAM_FILE), cotJsonLines(events));
   written.push(STREAM_FILE);
 
-  const pkg = buildDataPackage({
-    name: `tak-sim ${scenario.id} ${scenario.version}`,
-    files: viewFiles.map((f) => ({ name: f.name, data: encoder.encode(f.text) })),
+  const packages = views.map((view) => {
+    const snapshot = viewSnapshotEvents(events, view);
+    const pkg = buildCotDataPackage({ name: viewPackageName(view), items: snapshot.map((e) => ({ uid: e.uid, document: serializeCotDocument(e) })) });
+    const file = viewPackageFile(view);
+    writeFileSync(join(dir, file), pkg.zip);
+    written.push(file);
+    return { view, file, uid: pkg.uid, events: snapshot.length };
   });
-  writeFileSync(join(dir, DATA_PACKAGE_FILE), pkg.zip);
-  written.push(DATA_PACKAGE_FILE);
-  return { dir, files: written, events: events.length, packageUid: pkg.uid };
+  return { dir, files: written, events: events.length, packages };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const out = exportTak(process.argv[2] ?? DEFAULT_OUT_DIR);
   console.log(`tak:export: ${out.events} CoT events, ${out.files.length} files -> ${out.dir}`);
-  for (const f of out.files) console.log(`  ${f}`);
-  console.log(`  data package uid ${out.packageUid}`);
+  for (const f of out.files) {
+    const pkg = out.packages.find((p) => p.file === f);
+    console.log(pkg ? `  ${f}  (${pkg.events} events, uid ${pkg.uid})` : `  ${f}`);
+  }
 }

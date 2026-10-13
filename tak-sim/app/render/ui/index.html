@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wildfire</title>
+    <script>
+      window.addEventListener("error", function(e) { document.body.innerHTML += "<div style='color:red;font-size:16px;position:relative;z-index:9999;background:black;padding:20px;border:1px solid red;word-wrap:break-word;'>" + e.message + " " + e.filename + ":" + e.lineno + "</div>"; });
+      window.addEventListener("unhandledrejection", function(e) { document.body.innerHTML += "<div style='color:red;font-size:16px;position:relative;z-index:9999;background:black;padding:20px;border:1px solid red;word-wrap:break-word;'>Unhandled Promise Rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason) + "</div>"; });
+    </script>
+    <style>
+      html, body, #app { height: 100%; margin: 0; }
+      body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #1b1f23; color: #e8eaed; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+coverage/
+
+# Local secrets
+.env
+.env.local
+.env.*.local
+
+# Development tooling (Claude Code, ruflo / claude-flow): kept on the developer's machine, not part of the
+# project. The repository holds only the simulator, its content, tests and SPEC.
+.claude/
+.claude-flow/
+.swarm/
+.agents/
+.hive-mind/
+CLAUDE.md
+**/.claude-flow/
+
+# Thinker (SPEC/14 revision (q)): per-session proxy logs and the local embedding-model cache
+logs/
+.cache/
+
+# The review packet (npm run review:export): contains answer keys, for reviewers only
+review-packet/
+
+# Ruflo local secrets and runtime data
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/

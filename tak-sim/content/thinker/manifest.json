@@ -1,0 +1,302 @@
+{
+  "manifestVersion": 1,
+  "model": {
+    "id": "gemini-3.5-flash",
+    "maxTokens": 2000,
+    "openMaxTokens": 1536,
+    "timeoutMs": 20000,
+    "maxRetries": 1,
+    "openParseRetries": 1,
+    "seed": 20261010,
+    "samplingParameters": "none: temperature 0 is used for Google GenAI",
+    "output": "Haku (/api/thinker): structured JSON vastaus, perusteet, varmuus, muuttaisi (a fifth field, linjaus, was withdrawn 8 Oct 2026; old logs may carry it). Open Thinker (/api/thinker-open): structured JSON since revision (aq), 11 Oct 2026 (kind, facts, premises, options, inference, questionsForYou), rendered to text by the proxy; plain text before"
+  },
+  "prompt": {
+    "file": "server/thinker/prompt.fi.md",
+    "sha256": "3628a27766d7975b3f40ec3ea6431a0eb94e11fccd6b6184b6b1b9181acf36df",
+    "newlineNormalisation": "LF"
+  },
+  "promptEn": {
+    "file": "server/thinker/prompt.en.md",
+    "sha256": "8161cf75d6d8ca7d53b3dfee8ac47916fce5408e699932b8e93d47f9cc242e82",
+    "newlineNormalisation": "LF"
+  },
+  "promptIntent": {
+    "file": "server/thinker/prompt.intent.fi.md",
+    "sha256": "9c271cf318b42fea5a849a559215b25963b710f340a048dda81781316036592d",
+    "newlineNormalisation": "LF",
+    "usedFor": "cell reasoning_intent, views V8-V14 (phase B round 2, D2)",
+    "directive": "appended by the server from the scenario's hinge.intentStatement (English from labels.en.json), not part of the hash",
+    "status": "DRAFT, for native and domain review"
+  },
+  "promptIntentEn": {
+    "file": "server/thinker/prompt.intent.en.md",
+    "sha256": "25065a65726297423c6df7e5598d36c4c2695f77847d65e66ca3f7ee479d1914",
+    "newlineNormalisation": "LF",
+    "usedFor": "cell reasoning_intent, views V8-V14 (phase B round 2, D2)",
+    "directive": "appended by the server from the scenario's hinge.intentStatement (English from labels.en.json), not part of the hash",
+    "status": "DRAFT, for native and domain review"
+  },
+  "promptOpen": {
+    "file": "server/thinker/prompt-open.fi.md",
+    "sha256": "ebb1a65ed21b81456999099e1ff5ba8d899624608e9857ebd12047f57f6356c8",
+    "newlineNormalisation": "LF",
+    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8) — revision (al)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, premises, options with verdicts, inference, questionsForYou; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
+  },
+  "promptOpenEn": {
+    "file": "server/thinker/prompt-open.en.md",
+    "sha256": "8a9f0a34d5f8b179a03174c44965033d151d8bf83722c0559e0c1168fd2dc9ca",
+    "newlineNormalisation": "LF",
+    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8) — revision (al)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, premises, options with verdicts, inference, questionsForYou; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
+  },
+  "promptOpenOnce": {
+    "file": "server/thinker/prompt-open.once.fi.md",
+    "sha256": "297b576201af83c77d6bf86d63bdd4fb7d49c8872cc33782e21dca269f625e26",
+    "newlineNormalisation": "LF",
+    "usedFor": "the Open Thinker of cell reasoning_once (Thinker tab, main views) and of both Thinker cells in VP (revision (am)): free chat with history; no order block; rule 5 points to the message log (and, once a directive is issued, the banner) and gives a first-person sentence — revisions (al), (an)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: as the reasoning_intent cell's but no premises and no verdicts); history of at most 10 alternating turns starting with the participant's"
+  },
+  "promptOpenOnceEn": {
+    "file": "server/thinker/prompt-open.once.en.md",
+    "sha256": "36973b1691cbb190be6dbf6e3e6f99583c1c32e06ecea3cbbec02c5581be0429",
+    "newlineNormalisation": "LF",
+    "usedFor": "the Open Thinker of cell reasoning_once (Thinker tab, main views) and of both Thinker cells in VP (revision (am)): free chat with history; no order block; rule 5 points to the message log (and, once a directive is issued, the banner) and gives a first-person sentence — revisions (al), (an)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: as the reasoning_intent cell's but no premises and no verdicts); history of at most 10 alternating turns starting with the participant's"
+  },
+  "embedder": {
+    "id": "Xenova/multilingual-e5-small@761b726/q8/mean/l2",
+    "model": "Xenova/multilingual-e5-small",
+    "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+    "dtype": "q8",
+    "dim": 384,
+    "licence": "MIT (weights: intfloat/multilingual-e5-small); runtime @huggingface/transformers Apache-2.0",
+    "prefixes": {
+      "query": "query: ",
+      "passage": "passage: "
+    },
+    "batchSize": 1
+  },
+  "retrieval": {
+    "candidates": "atoms of every step reached (the Haku time gate, app/retrieval/time-gate.ts)",
+    "passage": "source id + ': ' + record text (retrievalKeys not used)",
+    "routineCollapse": {
+      "minDistinctSteps": 3,
+      "maxHeaderLength": 48,
+      "rule": "retrieval-only, before scoring: a gated record of tier T2/T3 (not lateral traffic) whose text opens with a header (before the first ': ', at most 48 chars) carrying a label word (no digit, not the record's source id) belongs to the family (source id, tier, header with digit runs masked to '#'); a family spanning at least minDistinctSteps distinct gated steps keeps only its newest member (observedAt, then step, then id). Haku is unchanged."
+    },
+    "lexical": {
+      "method": "BM25",
+      "k1": 1.2,
+      "b": 0.75,
+      "prefixStem": 5
+    },
+    "vector": {
+      "method": "exact cosine (brute force)",
+      "precision": 6
+    },
+    "fusion": {
+      "normalisation": "min-max over candidates",
+      "lexicalWeight": 0.5,
+      "vectorWeight": 0.5,
+      "scoreDecimals": 6,
+      "dropZero": true
+    },
+    "topK": 8,
+    "maxPerSource": null,
+    "tieBreak": "newer observation first, then atom id",
+    "neutralEval": {
+      "file": "content/thinker/neutral-eval.json",
+      "date": "2026-10-01",
+      "status": "frozen",
+      "mode": "hybrid",
+      "questions": 34,
+      "needs": 52,
+      "metric": "mean per-question recall@8 (share of needs met) and MRR@8, at each view's start gate",
+      "selectionRule": "highest recall@k, then highest MRR@k, then the earlier (simpler) candidate; candidates declared before the run",
+      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 110 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
+      "results": [
+        {
+          "name": "baseline",
+          "recallAtK": 0.6176,
+          "mrrAtK": 0.4971
+        },
+        {
+          "name": "collapse3",
+          "recallAtK": 0.6765,
+          "mrrAtK": 0.5187
+        },
+        {
+          "name": "cap2",
+          "recallAtK": 0.5196,
+          "mrrAtK": 0.4765
+        },
+        {
+          "name": "cap3",
+          "recallAtK": 0.5931,
+          "mrrAtK": 0.4936
+        },
+        {
+          "name": "collapse3+cap2",
+          "recallAtK": 0.5784,
+          "mrrAtK": 0.5059
+        },
+        {
+          "name": "collapse3+cap3",
+          "recallAtK": 0.652,
+          "mrrAtK": 0.5223
+        }
+      ],
+      "selected": "collapse3",
+      "declared": "collapse3"
+    }
+  },
+  "retrievalEn": {
+    "language": "en",
+    "candidates": "atoms of every step reached (the Haku time gate, app/retrieval/time-gate.ts)",
+    "passage": "source id + ': ' + the record's English text (app/i18n/text.ts recordIn; the Finnish where a record has none); retrievalKeys not used",
+    "routineCollapse": {
+      "minDistinctSteps": 3,
+      "maxHeaderLength": 48,
+      "rule": "retrieval-only, before scoring: a gated record of tier T2/T3 (not lateral traffic) whose text opens with a header (before the first ': ', at most 48 chars) carrying a label word (no digit, not the record's source id) belongs to the family (source id, tier, header with digit runs masked to '#'); a family spanning at least minDistinctSteps distinct gated steps keeps only its newest member (observedAt, then step, then id). Haku is unchanged.",
+      "language": "computed on the Finnish source text (the record's structure), so the same records are collapsed as in Finnish"
+    },
+    "lexical": {
+      "method": "BM25",
+      "k1": 1.2,
+      "b": 0.75,
+      "prefixStem": 5,
+      "tokeniser": "en-sstem-prefix5-v1",
+      "rule": "lowercase; an English possessive ('s or ’s, or a bare apostrophe after s) is dropped; a code's case ending after a colon is dropped (as in Finnish); tokens are runs of letters and digits joined by inner hyphens; a token with a digit (EK11, L3, TOIMINTA-2, 110) is kept whole; every other word is reduced by Harman's S-stemmer (ies->y unless eies/aies; es->e unless aes/ees/oes; s->'' unless us/ss) and then cut to its first 5 characters (the Finnish prefix rule)"
+    },
+    "vector": {
+      "method": "exact cosine (brute force)",
+      "precision": 6
+    },
+    "fusion": {
+      "normalisation": "min-max over candidates",
+      "lexicalWeight": 0.5,
+      "vectorWeight": 0.5,
+      "scoreDecimals": 6,
+      "dropZero": true
+    },
+    "topK": 8,
+    "maxPerSource": null,
+    "tieBreak": "newer observation first, then atom id",
+    "index": "content/thinker/index.en.json",
+    "status": "provisional (THINKER_RETRIEVAL_CONFIG_EN) until neutralEval.status is frozen",
+    "neutralEval": {
+      "file": "content/thinker/neutral-eval.en.json",
+      "needsFrom": "content/thinker/neutral-eval.json",
+      "language": "en",
+      "date": "2026-10-07",
+      "status": "frozen",
+      "mode": "hybrid",
+      "questions": 34,
+      "needs": 52,
+      "metric": "mean per-question recall@8 (share of needs met) and MRR@8, at each view's start gate",
+      "selectionRule": "highest recall@k, then highest MRR@k, then the earlier (simpler) candidate; candidates declared before the run",
+      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 110 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
+      "results": [
+        {
+          "name": "baseline",
+          "recallAtK": 0.701,
+          "mrrAtK": 0.4938
+        },
+        {
+          "name": "collapse3",
+          "recallAtK": 0.7157,
+          "mrrAtK": 0.504
+        },
+        {
+          "name": "cap2",
+          "recallAtK": 0.6078,
+          "mrrAtK": 0.4736
+        },
+        {
+          "name": "cap3",
+          "recallAtK": 0.6667,
+          "mrrAtK": 0.4888
+        },
+        {
+          "name": "collapse3+cap2",
+          "recallAtK": 0.6373,
+          "mrrAtK": 0.4841
+        },
+        {
+          "name": "collapse3+cap3",
+          "recallAtK": 0.6961,
+          "mrrAtK": 0.4993
+        }
+      ],
+      "selected": "collapse3",
+      "declared": "collapse3",
+      "postFreezeCheck": {
+        "date": "2026-10-07",
+        "corpus": "fix pass 3 regeneration (974 records)",
+        "results": [
+          {
+            "name": "baseline",
+            "recallAtK": 0.5588,
+            "mrrAtK": 0.4642
+          },
+          {
+            "name": "collapse3",
+            "recallAtK": 0.5735,
+            "mrrAtK": 0.4716
+          },
+          {
+            "name": "cap2",
+            "recallAtK": 0.549,
+            "mrrAtK": 0.4603
+          },
+          {
+            "name": "cap3",
+            "recallAtK": 0.5784,
+            "mrrAtK": 0.4669
+          },
+          {
+            "name": "collapse3+cap2",
+            "recallAtK": 0.5784,
+            "mrrAtK": 0.4799
+          },
+          {
+            "name": "collapse3+cap3",
+            "recallAtK": 0.6225,
+            "mrrAtK": 0.4853
+          }
+        ],
+        "selectedByRule": "collapse3+cap3",
+        "note": "Not re-selected: the English configuration stays frozen at the declared collapse3 (researcher decision, fix pass 3, 7 Oct 2026). Reported only; no tuning on it. The Finnish run on the same corpus selects the declared collapse3."
+      }
+    }
+  },
+  "latency": {
+    "floorMs": 2500,
+    "clientTimeoutMs": 25000
+  },
+  "index": {
+    "file": "content/thinker/index.json",
+    "sha256": "ae5287d13d2e4394b1c44332fdaa70eefde0bc70a966752c650fe528be8ebfc2",
+    "atomCount": 1005,
+    "scenarioId": "demo-scenario",
+    "scenarioVersion": "0.1.0-demo"
+  },
+  "indexEn": {
+    "file": "content/thinker/index.en.json",
+    "sha256": "debb75f67bd5771e371a2c8fec31032951b301623680c81eada62e4cfbfbf08e",
+    "atomCount": 1005,
+    "language": "en",
+    "scenarioId": "demo-scenario",
+    "scenarioVersion": "0.1.0-demo",
+    "authoredQueries": "content/thinker/authored-queries.en.json"
+  },
+  "directivePremises": {
+    "file": "content/thinker/directive-premises.json",
+    "sha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
+    "newlineNormalisation": "LF",
+    "directiveSha256": "1b7d98662d52909b69e7bd99dc62b632ce9091afb6c0693020e577ee941fb48d",
+    "usedFor": "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; the model rates them by id and cannot add or reword them"
+  }
+}

@@ -1,0 +1,4 @@
+Koordinaatisto: etrs-tm35fin 
+Tiedostomuoto: PNG 
+Päivitetty: 2026-09-17T06:24:35.083057Z 
+Karttalehtitunnus: L521 

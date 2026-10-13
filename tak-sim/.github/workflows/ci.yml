@@ -1,0 +1,72 @@
+name: CI
+
+# Mirrors SPEC/10_Build_Plan_and_Acceptance.md §4: "Every push runs, in
+# order: type check with strict settings; lint including the determinism
+# bans and the module boundary rules; licence scan against the allowlist,
+# transitively; unit tests; the golden-run determinism test; the
+# truth-boundary integration test; the scenario validator against all
+# fixture scenarios; the telemetry coverage and derived-measure tests. Any
+# failure blocks merge."
+#
+# Steps wired so far, through M1 (engine and determinism), M2 (scenario
+# contract and validator), the logic-layer portion of M3 (render boundary
+# and render tree), M4 (telemetry), and the content-independent slice of
+# M5 (routing and retrieval): type check, the determinism lint (covering
+# app/ and tools/), and the unit test suite (vitest runs everything under
+# test/, which includes the golden-run determinism test, the render- and
+# scenario-boundary truth-leak tests including test/boundary/no-truth.spec,
+# the scenario contract/validator tests, the envelope-single /
+# no-recommendation measure guards from SPEC/12 §11, the telemetry
+# record-kind coverage test, the derived-measures tests, the
+# IndexedDB-sink and resume tests, the upload-queue test, the
+# capability-matrix and route-reachability tests, and the retrieval
+# closure test).
+#
+# A visual preview UI now exists under app/render/ui/ (Vite + Preact +
+# MapLibre), driven by app/session/orchestrator.ts and synthetic demo
+# content under content/demo/ + app/scenario/demo-scenario.ts (see both
+# READMEs for what this is and is not). It is covered here by the same
+# type check and determinism lint as the rest of app/ — it has no
+# dedicated tests of its own (no browser/WebGL harness is set up; see the
+# M3 scope note above), and is explicitly a preview, not the compliant
+# instrument (network-dependent tiles, no offline bundle — I3 does not
+# hold for this build).
+#
+# M3's remaining pieces — an actual MapLibre/PMTiles map and the
+# CVD-simulation / pixel-accuracy tests — need real geographic tile data
+# through tools/bundle/ (not built) and a browser/WebGL test harness not
+# set up here; see the scope note in test/boundary/no-truth.spec.ts. Most
+# of M5 beyond routing/retrieval closure — the radio panel's authored
+# responder, the real hybrid retrieval engine, drawers — needs authored
+# corpus content and an embedding-model choice that SPEC/11 lists as
+# open. Licence scan and module-boundary lint are added when a milestone
+# actually needs multiple licensed dependencies or cross-module import
+# rules to enforce — see SPEC/10 §3 for the dependency order.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check (strict)
+        run: npm run typecheck
+
+      - name: Determinism lint (invariant I1, SPEC/05 §3)
+        run: npm run lint:determinism
+
+      - name: Unit tests, including the golden-run determinism test (SPEC/10 M1)
+        run: npm test

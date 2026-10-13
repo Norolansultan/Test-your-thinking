@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interaction log event (SPEC/18 revision (n))",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "cycle",
+    "session_view",
+    "sim_time_s",
+    "timestamp",
+    "actor",
+    "actor_type",
+    "addressee",
+    "location",
+    "place",
+    "lat",
+    "lon",
+    "event_type",
+    "task",
+    "content",
+    "tier",
+    "channel",
+    "nav",
+    "lang"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable id; equals the corpus atom id"
+    },
+    "cycle": {
+      "type": "integer",
+      "minimum": -4,
+      "maximum": 20,
+      "description": "World-state step: 1-20, W1-W5 as -4..0 (SPEC/26 §2)"
+    },
+    "session_view": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 14,
+      "description": "Map view (SPEC/26 §3): 0 = practice view VP (step W5), 1-14 = V1-V14; null = prologue history W1-W4"
+    },
+    "sim_time_s": {
+      "type": "integer",
+      "description": "Seconds from the start of step 1 (13:20)"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "actor_type": {
+      "enum": [
+        "fire_team",
+        "volunteer_brigade",
+        "forest_fire_unit",
+        "robot",
+        "drone",
+        "water_drone",
+        "helicopter",
+        "spotter_aircraft",
+        "weather_station",
+        "command"
+      ]
+    },
+    "addressee": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "JOHTO for reports up, a unit id for lateral traffic, null for feeds"
+    },
+    "location": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Sector, e.g. L2-Kärki"
+    },
+    "place": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A unit's place of deployment (its current sector edge or point); for others the nearest named place within 700 m"
+    },
+    "lat": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "lon": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "event_type": {
+      "enum": [
+        "size_up",
+        "observation",
+        "report",
+        "warning",
+        "coordination",
+        "request",
+        "status",
+        "detection",
+        "water_drop",
+        "weather",
+        "task_update"
+      ]
+    },
+    "task": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "description": "Finnish; the text to embed"
+    },
+    "tier": {
+      "enum": [
+        "T1_pushed",
+        "T2_system",
+        "T3_person",
+        "T4_lateral"
+      ]
+    },
+    "channel": {
+      "enum": [
+        "radio_command",
+        "radio_lateral",
+        "sensor_feed",
+        "ask_unit",
+        "system_log"
+      ]
+    },
+    "nav": {
+      "type": "string"
+    },
+    "lang": {
+      "const": "fi"
+    }
+  }
+}

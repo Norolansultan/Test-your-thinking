@@ -1,0 +1,68 @@
+{
+ "name": "Generated site (fictional terrain, SPEC/23 §11)",
+ "ignitionTm35": {
+  "eastM": 519000,
+  "northM": 6746000
+ },
+ "commandPointTm35": {
+  "eastM": 518000,
+  "northM": 6746400
+ },
+ "truthFuel": "fuel_truth.asc",
+ "machineFuel": "fuel_machine.asc",
+ "elevation": "elevation.asc",
+ "legend": [
+  {
+   "code": 0,
+   "fuelId": "water"
+  },
+  {
+   "code": 1,
+   "fuelId": "road_gravel"
+  },
+  {
+   "code": 2,
+   "fuelId": "field"
+  },
+  {
+   "code": 3,
+   "fuelId": "pine_heath"
+  },
+  {
+   "code": 4,
+   "fuelId": "spruce_mature"
+  },
+  {
+   "code": 5,
+   "fuelId": "spruce_thinned"
+  },
+  {
+   "code": 6,
+   "fuelId": "birch_aspen"
+  },
+  {
+   "code": 7,
+   "fuelId": "drained_peat"
+  },
+  {
+   "code": 8,
+   "fuelId": "cleared_corridor"
+  },
+  {
+   "code": 9,
+   "fuelId": "built"
+  },
+  {
+   "code": 10,
+   "fuelId": "open_bog"
+  },
+  {
+   "code": 11,
+   "fuelId": "road_forest"
+  },
+  {
+   "code": 12,
+   "fuelId": "brook"
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "fire-rescue-simulation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Verification of machine-generated projections in wildfire incident command — research instrument (see SPEC/00_README.md).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint:determinism": "tsx tools/validate/determinism-lint.ts app && tsx tools/validate/determinism-lint.ts tools",
+    "validate:scenario": "tsx tools/validate/scenario.ts tools/validate/demo-scenario-export.ts && tsx tools/validate/crew-safety.ts",
+    "ci": "npm run typecheck && npm run lint:determinism && npm test",
+    "fire:ca": "tsx tools/fire-ca/cli.ts",
+    "map:build": "tsx tools/topo-map/build.ts",
+    "map:render": "python tools/topo-map/render.py",
+    "map": "npm run map:build && npm run map:render",
+    "corpus:export": "tsx tools/corpus/export.ts",
+    "thinker:index": "tsx tools/thinker/build-index.ts",
+    "thinker:eval": "tsx tools/thinker/eval-neutral.ts",
+    "thinker:server": "tsx server/thinker/main.ts",
+    "thinker:live-check": "tsx server/thinker/live-check.ts",
+    "assignment:generate": "tsx tools/assignment/generate.ts",
+    "session-log:server": "tsx server/session-log/main.ts",
+    "bundle:hash": "tsx tools/deploy/bundle-hash.ts",
+    "build:prod": "tsx tools/deploy/build.ts",
+    "serve": "tsx server/production/main.ts",
+    "sessions:export": "tsx tools/deploy/export-sessions.ts",
+    "review:export": "tsx tools/review/export.ts"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/howler": "^2.2.13",
+    "@types/node": "^22.10.0",
+    "fake-indexeddb": "^6.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "@huggingface/transformers": "^4.3.0",
+    "howler": "^2.2.4",
+    "maplibre-gl": "^6.10.0",
+    "preact": "^10.29.8"
+  }
+}

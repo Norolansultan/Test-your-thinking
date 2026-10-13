@@ -1,0 +1,11 @@
+- [Participant role decision](project_participant_role.md) — DECIDED 1 Oct: commander orchestrating human + drone teams
+- [Scenario open decisions](project_scenario_open_decisions.md) — 3 Oct: audits + evening wind event + review fixes pushed (origin/main 9823bf7); researcher accepted V4 15:20, V5 R1 "open"
+- [Ruflo every step](feedback_ruflo_every_step.md) — ruflo routing+memory always; MetaHarness/daemon only when [RUFLO GATE] indicates
+- [Repo tooling untracked](project_repo_tooling_untracked.md) — 3 Oct: .claude/.claude-flow/CLAUDE.md local-only, gitignored; worktree junction gotcha
+- [Ruflo hooks fix](project_ruflo_hooks_fix.md) — hooks never ran (cmd /c under Git Bash, ESM helpers); re-check after ruflo re-init
+- [Identical stimulus](feedback_identical_stimulus.md) — all content pre-planned & identical per participant; seeds only at build time, frozen
+- [Core research question](project_core_research_question.md) — LLM facilitator vs Haku; design decided 25 Sep (SPEC revision (o)); planted record, primary H2 on SA; open items in SPEC/11 §7.7
+- [Fifteen views + rekindle](project_fifteen_views_rekindle.md) — 1 practice + 14 merged views, rekindle arc (SPEC/26); nothing blocks the build
+- [Build status rev o/p/q](project_build_status_rev_opq.md) — T1–T6 built and verified 26 Sep; pilot blockers (retrieval misses, probes UI, allocation, telemetry, key)
+- [English session language](project_i18n_english.md) — fi/en dropdown 1 Oct; where texts live; L(fi,en) no-double-draw rule; English questions vs Finnish index open
+- [Session flow redesign](project_session_flow_redesign.md) — done 2 Oct (f356016); ?tuotanto hides level tag — flip before pilot; correction = direction+reach (77e84e1); sector plan + outlook + 180 s cap (85d7cbe)

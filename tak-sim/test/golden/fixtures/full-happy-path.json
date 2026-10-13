@@ -1,0 +1,826 @@
+{
+  "header": {
+    "appVersion": "0.1.0",
+    "bundleHash": "golden-fixture-bundle",
+    "cell": "radio",
+    "condition": "directed",
+    "counterbalance": {
+      "expectationOrder": "A"
+    },
+    "echelon": "command",
+    "formatVersion": "0.1.0",
+    "participantCode": "golden-participant",
+    "scenarioId": "golden-scenario-full",
+    "scenarioVersion": "0.1.0",
+    "seed": "1234567890123",
+    "sessionId": "golden-golden-scenario-full",
+    "startedAtIso": "2026-01-01T00:00:00.000Z",
+    "userAgent": "golden-run-harness",
+    "viewport": {
+      "dpr": 1,
+      "h": 800,
+      "w": 1280
+    }
+  },
+  "records": [
+    {
+      "detail": {
+        "from": "BOOT",
+        "to": "PREFLIGHT",
+        "trigger": "start"
+      },
+      "kind": "state_transition",
+      "seq": 0,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PREFLIGHT",
+        "to": "BRIEFING",
+        "trigger": "preflight_passed"
+      },
+      "kind": "state_transition",
+      "seq": 1,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "BRIEFING",
+        "to": "WARMUP",
+        "trigger": "briefing_complete"
+      },
+      "kind": "state_transition",
+      "seq": 2,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "WARMUP",
+        "to": "TUTORIAL",
+        "trigger": "warmup_complete"
+      },
+      "kind": "state_transition",
+      "seq": 3,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "TUTORIAL",
+        "to": "RUNNING",
+        "trigger": "tutorial_complete"
+      },
+      "kind": "state_transition",
+      "seq": 4,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "label": "session-init",
+        "value": "10697399487587447344"
+      },
+      "kind": "rng_draw_u64",
+      "seq": 5,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-1",
+        "value": 4
+      },
+      "kind": "rng_draw_int",
+      "seq": 6,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 7,
+      "tVirtual": 90,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 1
+      },
+      "kind": "cycle_end",
+      "seq": 8,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-2",
+        "value": 4
+      },
+      "kind": "rng_draw_int",
+      "seq": 9,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 10,
+      "tVirtual": 1290,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 2
+      },
+      "kind": "cycle_end",
+      "seq": 11,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-3",
+        "value": 0
+      },
+      "kind": "rng_draw_int",
+      "seq": 12,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 13,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_VISIBLE",
+        "trigger": "enter_probing_visible"
+      },
+      "kind": "state_transition",
+      "seq": 14,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_VISIBLE",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 15,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 16,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 17,
+      "tVirtual": 3690,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 3
+      },
+      "kind": "cycle_end",
+      "seq": 18,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-4",
+        "value": 0
+      },
+      "kind": "rng_draw_int",
+      "seq": 19,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 20,
+      "tVirtual": 4890,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 4
+      },
+      "kind": "cycle_end",
+      "seq": 21,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-5",
+        "value": 4
+      },
+      "kind": "rng_draw_int",
+      "seq": 22,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 23,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_BLANKED",
+        "trigger": "enter_probing_blanked"
+      },
+      "kind": "state_transition",
+      "seq": 24,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_BLANKED",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 25,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 26,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 27,
+      "tVirtual": 7290,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 5
+      },
+      "kind": "cycle_end",
+      "seq": 28,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-6",
+        "value": 5
+      },
+      "kind": "rng_draw_int",
+      "seq": 29,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 30,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_VISIBLE",
+        "trigger": "enter_probing_visible"
+      },
+      "kind": "state_transition",
+      "seq": 31,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_VISIBLE",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 32,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 33,
+      "tVirtual": 8400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 34,
+      "tVirtual": 8490,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 6
+      },
+      "kind": "cycle_end",
+      "seq": 35,
+      "tVirtual": 10800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-7",
+        "value": 4
+      },
+      "kind": "rng_draw_int",
+      "seq": 36,
+      "tVirtual": 10800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "PROBING_ONLINE",
+        "trigger": "online_probe"
+      },
+      "kind": "state_transition",
+      "seq": 37,
+      "tVirtual": 10800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_ONLINE",
+        "to": "RUNNING",
+        "trigger": "online_probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 38,
+      "tVirtual": 10800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 39,
+      "tVirtual": 10890,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 7
+      },
+      "kind": "cycle_end",
+      "seq": 40,
+      "tVirtual": 12000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 8
+      },
+      "kind": "hinge_dismissed",
+      "seq": 41,
+      "tVirtual": 12000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-8",
+        "value": 5
+      },
+      "kind": "rng_draw_int",
+      "seq": 42,
+      "tVirtual": 12000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 43,
+      "tVirtual": 12090,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 8
+      },
+      "kind": "cycle_end",
+      "seq": 44,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-9",
+        "value": 0
+      },
+      "kind": "rng_draw_int",
+      "seq": 45,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 46,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_VISIBLE",
+        "trigger": "enter_probing_visible"
+      },
+      "kind": "state_transition",
+      "seq": 47,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_VISIBLE",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 48,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 49,
+      "tVirtual": 13200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 50,
+      "tVirtual": 13290,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 9
+      },
+      "kind": "cycle_end",
+      "seq": 51,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-10",
+        "value": 1
+      },
+      "kind": "rng_draw_int",
+      "seq": 52,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 53,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_BLANKED",
+        "trigger": "enter_probing_blanked"
+      },
+      "kind": "state_transition",
+      "seq": 54,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_BLANKED",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 55,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 56,
+      "tVirtual": 14400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 57,
+      "tVirtual": 14490,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 10
+      },
+      "kind": "cycle_end",
+      "seq": 58,
+      "tVirtual": 15600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-11",
+        "value": 5
+      },
+      "kind": "rng_draw_int",
+      "seq": 59,
+      "tVirtual": 15600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 60,
+      "tVirtual": 15690,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 11
+      },
+      "kind": "cycle_end",
+      "seq": 61,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-12",
+        "value": 2
+      },
+      "kind": "rng_draw_int",
+      "seq": 62,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 63,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_VISIBLE",
+        "trigger": "enter_probing_visible"
+      },
+      "kind": "state_transition",
+      "seq": 64,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_VISIBLE",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 65,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 66,
+      "tVirtual": 18000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 67,
+      "tVirtual": 18090,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 12
+      },
+      "kind": "cycle_end",
+      "seq": 68,
+      "tVirtual": 20400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-13",
+        "value": 4
+      },
+      "kind": "rng_draw_int",
+      "seq": 69,
+      "tVirtual": 20400,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 70,
+      "tVirtual": 20490,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 13
+      },
+      "kind": "cycle_end",
+      "seq": 71,
+      "tVirtual": 21600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 6,
+        "label": "probe-order-cycle-14",
+        "value": 2
+      },
+      "kind": "rng_draw_int",
+      "seq": 72,
+      "tVirtual": 21600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "PROBING_ONLINE",
+        "trigger": "online_probe"
+      },
+      "kind": "state_transition",
+      "seq": 73,
+      "tVirtual": 21600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_ONLINE",
+        "to": "RUNNING",
+        "trigger": "online_probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 74,
+      "tVirtual": 21600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 90
+      },
+      "kind": "clock_advanced",
+      "seq": 75,
+      "tVirtual": 21690,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 14
+      },
+      "kind": "cycle_end",
+      "seq": 76,
+      "tVirtual": 24000,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "DEBRIEF_HANDOFF",
+        "to": "COMPLETE",
+        "trigger": "handoff_complete"
+      },
+      "kind": "state_transition",
+      "seq": 77,
+      "tVirtual": 24000,
+      "tWallOffsetMs": 0
+    }
+  ]
+}

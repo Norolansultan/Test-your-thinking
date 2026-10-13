@@ -1,0 +1,17 @@
+# Generated, hashed or byte-compared files keep LF on every checkout (core.autocrlf=true on
+# Windows would otherwise turn them CRLF): the Thinker manifest pins the index's and the
+# prompt's sha256, the golden engine test compares fixtures byte for byte, and the generators
+# (fire:ca, corpus:export, thinker:index) must re-run byte-identically.
+content/thinker/*.json         text eol=lf
+server/thinker/prompt*.md      text eol=lf
+test/golden/fixtures/*.json    text eol=lf
+content/corpus/*               text eol=lf
+content/site/build/*.json      text eol=lf
+content/site/build/*.geojson   text eol=lf
+content/demo/fire-ca/*.json    text eol=lf
+content/demo/fire-ca/*.geojson text eol=lf
+app/scenario/*.json            text eol=lf
+content/assignment/*.json      text eol=lf
+# The container build reads these on Linux: LF, whatever the checkout machine.
+Dockerfile                     text eol=lf
+.dockerignore                  text eol=lf

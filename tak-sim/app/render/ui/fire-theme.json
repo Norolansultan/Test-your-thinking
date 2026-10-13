@@ -1,0 +1,140 @@
+{
+  "//": "SPEC/12 revision 24 Sep (c): every colour, width, opacity and label of the fire and projection layers. Tune after pilot testing here, not in code. Solid = observed, dashed = predicted; grey = past, red = now, light red dashed = AI projection. No blue or purple in these layers.",
+  "past": {
+    "color": "#CFC6BA",
+    "widthPx": 1,
+    "opacityNewest": 0.9,
+    "opacityMin": 0.35,
+    "maxCount": 3,
+    "labelColor": "#5E5750",
+    "colorNote": "Lighter than the spec's #8A8178: earlier perimeters always lie inside the fire, over the #3A322D burnt fill, where #8A8178 was nearly invisible."
+  },
+  "burnt": {
+    "color": "#3A322D",
+    "opacity": 0.85
+  },
+  "burningZone": {
+    "color": "#6E3A24",
+    "opacity": 0.7
+  },
+  "uncontained": {
+    "color": "#D62828",
+    "widthPx": 2.5,
+    "tickSpacingPx": 12,
+    "tickLengthPx": 5,
+    "tickWidthPx": 1.5,
+    "tickSide": "outside",
+    "tickSideNote": "NWCG reference could not be retrieved (nwcg.gov refused automated access); confirm against PMS 936 and set to \"outside\" (unburned) or \"inside\" (burned)."
+  },
+  "contained": {
+    "color": "#1C1B19",
+    "widthPx": 2.5,
+    "casingColor": "#F4F1EC",
+    "casingWidthPx": 5,
+    "casingNote": "SPEC/12 revision (ah), 9 Oct 2026: a light casing under the black line, which was invisible over the #3A322D burnt fill."
+  },
+  "inactive": {
+    "color": "#8C857C",
+    "widthPx": 2,
+    "casingColor": "#F4F1EC",
+    "casingWidthPx": 4.5,
+    "note": "SPEC/12 revision (ah), 9 Oct 2026: a quiet edge (perimeter_current status \"inactive\": not spreading, no crew on it). Solid (observed), mid grey: neither red (spreading) nor black (contained); lighter than the contained edge and darker than the earlier perimeters (#CFC6BA, 1 px), with the same light casing so it holds over the burnt fill. No ticks, no glow."
+  },
+  "headGlow": {
+    "color": "#FF9F1C",
+    "widthPx": 13,
+    "blurPx": 4,
+    "opacity": 0.95,
+    "note": "SPEC/12 revision (ah), 9 Oct 2026: wider, lighter and less blurred (was #FF7A1A, 9 px, blur 5, 85 %); over the red-orange projection band the old glow could not be seen."
+  },
+  "spotFire": {
+    "color": "#D62828",
+    "diameterPx": 8,
+    "ringColor": "#FFFFFF",
+    "ringWidthPx": 2,
+    "labelColor": "#D62828"
+  },
+  "detections": {
+    "radiusPx": 2.5,
+    "bands": [
+      {
+        "maxAgeMin": 10,
+        "color": "#D62828"
+      },
+      {
+        "maxAgeMin": 20,
+        "color": "#F77F00"
+      },
+      {
+        "maxAgeMin": 30,
+        "color": "#FCBF49"
+      }
+    ],
+    "hollow": true,
+    "strokePx": 1.6,
+    "note": "Hollow rings, so a detection is never read as the red edge or as a (filled) spot fire."
+  },
+  "projection": {
+    "color": "#9E3A22",
+    "dashPx": 8,
+    "gapPx": 6,
+    "widthPxByMinutes": {
+      "10": 2.5,
+      "20": 2
+    },
+    "certaintyOpacity": {
+      "likely": 1,
+      "moderate": 0.85,
+      "uncertain": 0.65
+    },
+    "labelOuter": "LEVIÄMISENNUSTE · T+{m} MIN",
+    "labelOuterEn": "SPREAD FORECAST · T+{m} MIN",
+    "labelInner": "",
+    "growthMinHa": 0.1,
+    "labelColor": "#7A2616",
+    "haloColor": "#FFFFFF",
+    "haloExtraPx": 2,
+    "haloOpacity": 0,
+    "bandsNote": "Sequential ramp, one hue, even lightness steps toward the fire (seen over the basemap ≈ #CB735F, #E4AF9C, #EDD0C3). The colour carries direction and speed; only the outermost boundary is drawn as a line, so the dashed 'predicted' cue stays without stacking three dashed lines onto the ticked fire edge (FARSITE / Spark arrival-time shading).",
+    "bands": [
+      {
+        "toMinutes": 10,
+        "color": "#BE4A32",
+        "opacity": 0.75
+      },
+      {
+        "toMinutes": 20,
+        "color": "#DB8A6E",
+        "opacity": 0.45
+      }
+    ],
+    "lineMinutes": [
+      20
+    ],
+    "labelNote": "Only the outermost horizon (the next situation) is labelled; the colour ramp and the legend carry the inner band. An empty labelInner hides the inner labels. Lines, bands and the label are drawn only for parts of the projection that grow (more than growthMinHa beyond the fire inside them), so a held or contained fire gets no dashed line on its edge; the label goes on the part that grows most. When nothing grows anywhere (V9, the omission) everything is drawn as before, so that view has no form of its own (2 Oct 2026 projection audit P1-a, P3-a; review 3 Oct 2026)."
+  },
+  "legend": {
+    "title": "Selite",
+    "past": "Aiempi rajaus",
+    "burnt": "Palanut alue",
+    "uncontained": "Palon reuna (hallitsematon)",
+    "contained": "Hallittu reuna",
+    "inactive": "Hiljainen reuna (ei leviä)",
+    "burningZone": "Palava vyöhyke",
+    "head": "Kärki",
+    "spotConfirmed": "Pistepalo, vahvistettu",
+    "spotUnconfirmed": "Pistepalo, vahvistamaton",
+    "detections": "Dronen lämpöhavainto",
+    "detectionAges": [
+      "< 10 min",
+      "10–20 min",
+      "20–30 min"
+    ],
+    "projection": "Leviämisennuste",
+    "fontPx": 10,
+    "projectionBands": [
+      "0–10",
+      "10–20 min"
+    ]
+  }
+}

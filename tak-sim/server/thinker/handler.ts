@@ -1,0 +1,366 @@
+/**
+ * One Thinker request, end to end (SPEC/14 revision (q) pipeline): validate, time-gate (recomputed
+ * here from the view and virtual time — records from the client are never trusted), retrieve,
+ * generate or fall back, log one JSON line, respond. Transport-free, so tests call it directly.
+ *
+ * Haku / Open Thinker redesign (researcher, 8 Oct 2026): `/api/thinker` is Haku's structured chat
+ * for every cell (radio included) and every view including the practice view, always with the
+ * standard prompt — the strategy-guided variant (D2, `linjaus`) is withdrawn, its prompt kept frozen
+ * for old logs. `/api/thinker-open` is the Open Thinker (AI condition, main views): its own frozen
+ * prompt (`prompt-open.*.md`, F3), plain text, the conversation's history (F2), temperature 0.
+ * Retrieval is the same for both. Revision (am), 10 Oct 2026: the Open Thinker answers the practice view
+ * (VP) too, for the Thinker practice — in both Thinker cells with the `reasoning_once` prompt and no
+ * order block, no verdict coded, its log line marked `practice: true`.
+ *
+ * Language (SPEC/14 revision (v)): the request's language picks the retrieval language — passages,
+ * tokeniser and vector index ({@link retrievalRoute}). Without the English index an English request
+ * is refused (HTTP 503) unless the deps allow the declared demonstration fallback to the whole
+ * Finnish treatment, which the response and the log name (`hybrid_fi_fallback`). Never mixed.
+ */
+
+import type { GoogleGenAI } from "@google/genai";
+import { toRenderable } from "../../app/boundary/render-boundary.js";
+import { hybridRetrieve, roundVector, type Embedder, type RetrievalLang, type VectorIndex } from "../../app/retrieval/hybrid.js";
+import { reachableAtoms, stepAtVirtualTime } from "../../app/retrieval/time-gate.js";
+import type { ScenarioContract } from "../../app/scenario/types.js";
+import {
+  STRATEGY_FROM_VIEW, templateThinkerAnswer, validateThinkerRequest, type OpenThinkerResponse, type ThinkerCell, type ThinkerPromptVariant, type ThinkerRequest,
+  type ThinkerResponse, type ThinkerRetrievalMode, type ThinkerTool,
+} from "../../app/session/thinker-protocol.js";
+import { tr } from "../../app/i18n/text.js";
+import { citationIssuesOfStructured, directiveQuoted, historyTurnForModel, imperativeWordsIn, provenanceHashes } from "./answer-checks.js";
+import { limitOpenAnswer } from "./open-answer.js";
+import { loadDirectivePremises, type DirectivePremises } from "./directive-premises.js";
+import { renderOpenAnswer, verdictsOfOptions, wordCount } from "../../app/session/open-answer.js";
+import { clockAt } from "../../app/session/template-answer.js";
+import type { RetrievedRecord } from "../../app/retrieval/hybrid.js";
+import type { InfoAtom } from "../../app/scenario/types.js";
+import { assignmentOf, type AssignmentTable } from "../../app/session/assignment.js";
+import { ALLOCATION_TABLE } from "../../app/session/preview.js";
+import { rosterForView } from "../../app/scenario/allocation.js";
+import { indexFileOf, sha256Hex, THINKER_MODEL_ID, type SystemPrompt } from "./config.js";
+import { ageReferenceOf, buildUserContent, callThinkerModel, callOpenThinkerModel, clockLineOf, latestDigest, openPlanContext, openSystemInstruction, receivedUpToOf, recentMatches, taggedAtoms } from "./model.js";
+
+export interface ThinkerDeps {
+  readonly scenario: ScenarioContract;
+  /** Null runs the lexical half alone (only with the server's explicit `--lexical-only`). The Finnish index. */
+  readonly vector: { readonly embedder: Embedder; readonly index: VectorIndex } | null;
+  /**
+   * The English index (`content/thinker/index.en.json`, SPEC/14 revision (v)), with the same
+   * embedder. Absent or null: not built. Ignored when `vector` is null (lexical-only).
+   */
+  readonly vectorEn?: { readonly embedder: Embedder; readonly index: VectorIndex } | null;
+  /**
+   * What an English request gets when `vectorEn` is absent and `vector` is not: `"refuse"` (the
+   * default; HTTP 503) or `"fi_index"` — the demonstration fallback to the whole Finnish treatment,
+   * logged as `retrievalMode: "hybrid_fi_fallback"`. A study-mode proxy never starts in that state.
+   */
+  readonly englishWithoutIndex?: "refuse" | "fi_index";
+  readonly prompt: SystemPrompt;
+  /** The English session's prompt (`prompt.en.md`); absent, an English request is answered with the Finnish prompt. */
+  readonly promptEn?: SystemPrompt;
+  /**
+   * The strategy-guided prompt (`prompt.intent.fi.md`, D2). Absent, a request that needs it is an
+   * error (HTTP 500): the other cell's treatment is never given silently.
+   */
+  readonly promptIntent?: SystemPrompt;
+  /** Its English version (`prompt.intent.en.md`); absent, an English request uses the Finnish one. */
+  readonly promptIntentEn?: SystemPrompt;
+  /** The Open Thinker's prompt (`prompt-open.fi.md`, F3). Absent, an Open Thinker request is an error (HTTP 500). */
+  readonly promptOpen?: SystemPrompt;
+  /** Its English version (`prompt-open.en.md`); absent, an English request uses the Finnish one. */
+  readonly promptOpenEn?: SystemPrompt;
+  /**
+   * Revision (al): the `reasoning_once` cell's Open Thinker prompt (`prompt-open.once.fi.md`; no order
+   * block). Absent, a `reasoning_once` request is an error (HTTP 500): the other cell's prompt is never given silently.
+   */
+  readonly promptOpenOnce?: SystemPrompt;
+  /** Its English version (`prompt-open.once.en.md`); absent, an English request uses the Finnish one. */
+  readonly promptOpenOnceEn?: SystemPrompt;
+  /**
+   * Revision (ar), 11 Oct 2026: the directive's authored, frozen premises. Absent: read from `content/thinker/directive-premises.json`
+   * (the real server checks the file against the manifest at startup, `createThinkerDeps`).
+   */
+  readonly directivePremises?: DirectivePremises;
+  /** Null when GEMINI_API_KEY is unset: every answer is the template, `no_api_key`. */
+  readonly client: GoogleGenAI | null;
+  /** Appends one JSON line to the session's log. */
+  readonly appendLog: (sessionId: string, line: Readonly<Record<string, unknown>>) => Promise<void>;
+  /** A monotonic millisecond clock, for the latency. */
+  readonly nowMs: () => number;
+  /** Wall-clock ISO time for the log line. */
+  readonly nowIso: () => string;
+}
+
+type Refused = { readonly status: 400 | 503; readonly body: { readonly error: string } };
+
+export type ThinkerHandlerResult = { readonly status: 200; readonly body: ThinkerResponse } | Refused;
+
+export type OpenThinkerHandlerResult = { readonly status: 200; readonly body: OpenThinkerResponse } | Refused;
+
+/** How one request retrieves: the language, the index (null: lexical half alone) and the logged mode. */
+export type RetrievalRoute =
+  | {
+      readonly ok: true;
+      readonly lang: RetrievalLang;
+      readonly vector: { readonly embedder: Embedder; readonly index: VectorIndex } | null;
+      readonly mode: ThinkerRetrievalMode;
+      /** The index file used, or null for lexical-only. */
+      readonly indexFile: string | null;
+    }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * SPEC/14 revision (v): picks the retrieval of a request's language. Finnish is unchanged. English
+ * uses the English index when loaded; on a lexical-only proxy the English lexical half alone;
+ * without the English index, the declared demonstration fallback or a refusal. Passages, tokeniser
+ * and index are always of one language.
+ */
+export function retrievalRoute(deps: ThinkerDeps, lang: "fi" | "en"): RetrievalRoute {
+  if (lang === "fi" || deps.vector === null) {
+    return { ok: true, lang, vector: deps.vector, mode: deps.vector ? "hybrid" : "lexical_only", indexFile: deps.vector ? indexFileOf(lang) : null };
+  }
+  if (deps.vectorEn) return { ok: true, lang: "en", vector: deps.vectorEn, mode: "hybrid", indexFile: indexFileOf("en") };
+  if (deps.englishWithoutIndex === "fi_index") return { ok: true, lang: "fi", vector: deps.vector, mode: "hybrid_fi_fallback", indexFile: indexFileOf("fi") };
+  return { ok: false, error: `English retrieval is not available: ${indexFileOf("en")} is not loaded (run \`npm run thinker:index\`)` };
+}
+
+/**
+ * SPEC/27 §2.2 (5 Oct 2026): a request that carries a participant code must carry that code's cell
+ * from the allocation table; an unknown code or another cell is refused (HTTP 400), never answered
+ * with either cell's prompt. A request without a code (demonstration, pilot) is served by its cell.
+ */
+export function allocationError(req: { readonly cell: string; readonly participantCode?: string }, table: AssignmentTable = ALLOCATION_TABLE): string | null {
+  if (req.participantCode === undefined) return null;
+  const row = assignmentOf(table, req.participantCode);
+  if (!row) return "unknown participantCode";
+  return row.cell === req.cell ? null : "cell does not match the allocation table";
+}
+
+/** The versioned prompt of a language and variant (its hash is what the response and log carry). */
+export function promptFor(deps: ThinkerDeps, lang: "fi" | "en", variant: ThinkerPromptVariant): SystemPrompt {
+  if (variant === "standard") return lang === "en" && deps.promptEn ? deps.promptEn : deps.prompt;
+  const fi = deps.promptIntent;
+  if (!fi) throw new Error("the strategy-guided prompt (prompt.intent.fi.md) is not loaded");
+  return lang === "en" && deps.promptIntentEn ? deps.promptIntentEn : fi;
+}
+
+/**
+ * The Open Thinker's versioned prompt of a language and cell (its hash is what the response and log
+ * carry). Revision (al): one prompt per Thinker cell — `prompt-open.*` for `reasoning_intent`,
+ * `prompt-open.once.*` for `reasoning_once`.
+ */
+export function openPromptFor(deps: ThinkerDeps, lang: "fi" | "en", cell: ThinkerCell = "reasoning_intent"): SystemPrompt {
+  if (cell === "reasoning_once") {
+    if (!deps.promptOpenOnce) throw new Error("the reasoning_once Open Thinker prompt (prompt-open.once.fi.md) is not loaded");
+    return lang === "en" && deps.promptOpenOnceEn ? deps.promptOpenOnceEn : deps.promptOpenOnce;
+  }
+  if (!deps.promptOpen) throw new Error("the Open Thinker prompt (prompt-open.fi.md) is not loaded");
+  return lang === "en" && deps.promptOpenEn ? deps.promptOpenEn : deps.promptOpen;
+}
+
+/** A request validated for its endpoint, time-gated and retrieved over: what both chats share. */
+interface Prepared {
+  readonly req: ThinkerRequest;
+  readonly step: number;
+  readonly lang: "fi" | "en";
+  readonly route: Extract<RetrievalRoute, { ok: true }>;
+  readonly records: readonly RetrievedRecord[];
+  /** The time-gated atoms the retrieval ranked over (the clock line and the digest read them). */
+  readonly gated: readonly InfoAtom[];
+  /** Revision (ah): the question's best matches among the current step's records, beyond `records` (`recentMatches`). */
+  readonly recent: readonly InfoAtom[];
+  /**
+   * The virtual time the model is told is "now": the request's, except in the practice view, whose
+   * browser clock reads 0 while the view starts earlier (revision (ah), review H1: Haku said "now 13:20"
+   * while the screen showed 12:00). The view's start, as the gate already uses there.
+   */
+  readonly clockS: number;
+  /** Revision (am): the request is from the practice view (VP). */
+  readonly practice: boolean;
+}
+
+async function prepare(deps: ThinkerDeps, body: unknown, tool: ThinkerTool): Promise<Prepared | Refused> {
+  const valid = validateThinkerRequest(body, tool);
+  if (!valid.ok) return { status: 400, body: { error: valid.error } };
+  const req = valid.request;
+  const refused = allocationError(req);
+  if (refused) return { status: 400, body: { error: refused } };
+  // D1 (8 Oct 2026): Haku's chat answers in the practice view too, gated by its own step. The practice
+  // view has one step, and the browser's clock reads 0 there while the view starts at a negative
+  // virtual time (round 6, 8 Oct 2026: every practice-view question was refused as "outside the
+  // view"), so it is gated by that step whatever clock the request carries.
+  const practice = req.view === deps.scenario.practice.cycle.index;
+  const view = practice ? deps.scenario.practice.cycle : deps.scenario.cycles.find((c) => c.index === req.view);
+  const step = view ? (practice ? stepAtVirtualTime(view, view.startsAtVirtual) : stepAtVirtualTime(view, req.virtualTimeS)) : null;
+  if (step === null) return { status: 400, body: { error: "virtualTimeS is outside the view" } };
+
+  const lang = req.language ?? "fi";
+  const route = retrievalRoute(deps, lang);
+  if (!route.ok) return { status: 503, body: { error: route.error } };
+  const candidates = reachableAtoms(deps.scenario.atoms, step);
+  const vector = route.vector
+    ? { queryVector: roundVector(await route.vector.embedder.embed(req.question, "query")), index: route.vector.index }
+    : null;
+  const records = hybridRetrieve(req.question, candidates, vector, undefined, route.lang);
+  const recent = recentMatches(req.question, candidates, step, records, vector, route.lang);
+  return { req, step, lang, route, gated: candidates, records, recent, clockS: practice ? view!.startsAtVirtual : req.virtualTimeS, practice };
+}
+
+/** The log line's fields both chats share. */
+function logBase(p: Prepared, system: string, tool: ThinkerTool) {
+  const { req } = p;
+  return {
+    tool,
+    sessionId: req.sessionId,
+    // Revision (al): the browser's question id, so the server line joins `ai_chat_*` in the session log.
+    queryId: req.queryId ?? null,
+    condition: req.condition,
+    cell: req.cell,
+    ...(req.participantCode !== undefined ? { participantCode: req.participantCode } : {}),
+    // The hash of the system text actually sent.
+    systemPromptHash: sha256Hex(system),
+    view: req.view,
+    // Revision (am): the practice view's lines say so (view 0 already does; analysis drops them like every practice record).
+    practice: p.practice,
+    virtualTimeS: req.virtualTimeS,
+    step: p.step,
+    question: req.question,
+    language: p.lang,
+    embedderId: p.route.vector?.embedder.id ?? null,
+    // SPEC/14 revision (v): which index answered (null: lexical half alone).
+    retrievalIndex: p.route.indexFile,
+    // Revision (ah): the current step's best matches the model also saw (tagged after `retrieved`), and the clock it was told.
+    recent: p.recent.map((a) => a.id),
+    clockVirtualS: p.clockS,
+    // Revision (an): the time the record ages in the model input are counted to.
+    ageRefVirtualS: ageReferenceOf(p.step),
+  };
+}
+
+/** Haku's structured chat (`/api/thinker`): every cell, every view, the standard prompt (D1, 8 Oct 2026). */
+export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Promise<ThinkerHandlerResult> {
+  const started = deps.nowMs();
+  const p = await prepare(deps, body, "haku");
+  if ("status" in p) return p;
+  const variant: ThinkerPromptVariant = "standard";
+  const prompt = promptFor(deps, p.lang, variant);
+  const system = prompt.text;
+  const clockLine = clockLineOf(p.lang, p.clockS, receivedUpToOf(p.gated, p.clockS));
+  const outcome = await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: ageReferenceOf(p.step) }), variant);
+  const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant);
+  const response: ThinkerResponse = {
+    answer,
+    retrieved: p.records.map((r) => ({ id: r.atom.id, score: r.score })),
+    modelId: THINKER_MODEL_ID,
+    promptHash: prompt.sha256,
+    latencyMs: Math.round(deps.nowMs() - started),
+    fallback: !outcome.ok,
+    fallbackReason: outcome.ok ? null : outcome.reason,
+    retrievalMode: p.route.mode,
+    retrievalLanguage: p.route.lang,
+    ...(!outcome.ok && outcome.reason === "refusal" ? { refusalCategory: outcome.refusalCategory ?? null } : {}),
+    promptVariant: variant,
+  };
+  await deps.appendLog(p.req.sessionId, {
+    loggedAt: deps.nowIso(),
+    ...logBase(p, system, "haku"),
+    ...response,
+    ...(outcome.ok ? { usage: outcome.usage } : {}),
+    ...(outcome.attempts !== undefined ? { attempts: outcome.attempts } : {}),
+    ...(!outcome.ok && outcome.detail ? { errorDetail: outcome.detail } : {}),
+  });
+  return { status: 200, body: response };
+}
+
+/**
+ * The Open Thinker (`/api/thinker-open`): its cell's frozen prompt (F3; revision (al): one per Thinker
+ * cell) as the system instruction — in `reasoning_intent` with the view's order block at its end (the
+ * command directive verbatim from V8, P2's opening intent before; `openSystemInstruction`), in
+ * `reasoning_once` alone — the history (F2, validated; its record tags rewritten, revision (al)),
+ * plain text at temperature 0. Every question carries the plan context derived here
+ * (`openPlanContext`). Revision (aq), 11 Oct 2026: the model answers in structured JSON (`open-answer.ts`:
+ * limited here, rendered to the display text, verdicts read from its fields); invalid JSON is asked for once more.
+ * A model failure answers with an empty text flagged as fallback: the browser shows "unavailable".
+ */
+export async function handleOpenThinkerRequest(deps: ThinkerDeps, body: unknown): Promise<OpenThinkerHandlerResult> {
+  const started = deps.nowMs();
+  const p = await prepare(deps, body, "open_thinker");
+  if ("status" in p) return p;
+  // `prepare` validated the cell as a Thinker cell for this endpoint.
+  const cell = p.req.cell as ThinkerCell;
+  // Revision (am): the Thinker practice (VP) is the same in both Thinker cells — the reasoning_once prompt, no
+  // order block (the practice has no order; the reasoning_intent prompt would announce a block that is not there).
+  const promptCell: ThinkerCell = p.practice ? "reasoning_once" : cell;
+  const prompt = openPromptFor(deps, p.lang, promptCell);
+  // Revision (al): the order block only in the reasoning_intent cell (`openSystemInstruction`), never in VP (`intentBlockOf`).
+  // Revision (ar): the authored premises go to the model and the display only with the directive in force (reasoning_intent from V8, never VP).
+  const directiveInForce = promptCell === "reasoning_intent" && p.req.view >= STRATEGY_FROM_VIEW;
+  const premises = directiveInForce ? (deps.directivePremises ?? loadDirectivePremises()) : undefined;
+  const system = openSystemInstruction(prompt.text, deps.scenario, p.req.view, p.lang, promptCell, premises);
+  const planContext = openPlanContext(deps.scenario, p.req.view, p.clockS, p.lang, receivedUpToOf(p.gated, p.clockS));
+  const digest = latestDigest(p.gated, p.records, new Set(rosterForView(deps.scenario.allocationSpace, p.req.view).map((a) => a.id)));
+  // Revision (an): every record line carries its age, counted to the end of the question's step (`ageReferenceOf`).
+  const extras = { digest, recent: p.recent, ageRefS: ageReferenceOf(p.step) };
+  const userContent = buildUserContent(p.req.question, p.records, p.lang, planContext, extras);
+  // Revision (al): the history's record tags are rewritten ("(earlier answer)"); tags are renumbered per request.
+  const history = p.req.history?.map((h) => historyTurnForModel(h, p.lang));
+  const outcome = await callOpenThinkerModel(deps.client, system.text, userContent, history);
+  // Revision (aq), 11 Oct 2026: the model's structured answer is limited (kinds, item counts, field lengths, 150 words, no verdicts
+  // without a directive in force) and rendered to the display text here; verdicts are read from its fields, not from the text.
+  // Verdicts and premises only in reasoning_intent from V8 on, never in the practice view (`promptCell` is once there).
+  const tagged = taggedAtoms(p.records, extras);
+  const limited = outcome.ok
+    ? limitOpenAnswer(outcome.answer, { directiveInForce, taggedCount: tagged.length, tagTimes: tagged.map((a) => clockAt(a.provenance.observedAt)), premises }, p.lang)
+    : null;
+  // Researcher decision (commander M1, 8 Oct 2026): a model failure is never answered with a record excerpt or free text; the browser shows the explicit "unavailable" state.
+  const answer = limited ? renderOpenAnswer(limited.answer, limited.tagTimes, p.lang) : "";
+  const verdicts = limited ? verdictsOfOptions(limited.answer) : null;
+  const citations = outcome.ok ? citationIssuesOfStructured(outcome.answer, tagged.length) : null;
+  const response: OpenThinkerResponse = {
+    answer,
+    structured: limited ? { ...limited.answer, tagTimes: limited.tagTimes } : null,
+    retrieved: p.records.map((r) => ({ id: r.atom.id, score: r.score })),
+    modelId: THINKER_MODEL_ID,
+    promptHash: prompt.sha256,
+    latencyMs: Math.round(deps.nowMs() - started),
+    fallback: !outcome.ok,
+    fallbackReason: outcome.ok ? null : outcome.reason,
+    retrievalMode: p.route.mode,
+    retrievalLanguage: p.route.lang,
+    ...(!outcome.ok && outcome.reason === "refusal" ? { refusalCategory: outcome.refusalCategory ?? null } : {}),
+    promptVariant: "standard",
+    // Revision (ah), review H2: no directive is in force before STRATEGY_FROM_VIEW, so no verdict is coded there.
+    // Back-compatibility only (revision (al)): the first coded option's verdict; `verdicts` is the analysis value.
+    // Revision (aq): both come from the options' `verdict` fields (`verdictsOfOptions`), null where none is coded.
+    verdict: verdicts ? verdicts[0]!.verdict : null,
+    verdicts,
+  };
+  await deps.appendLog(p.req.sessionId, {
+    loggedAt: deps.nowIso(),
+    // `systemPromptHash` (in logBase) is the hash of the system text actually sent: the frozen prompt plus the order block (reasoning_intent).
+    ...logBase(p, system.text, "open_thinker"),
+    intentBlock: system.block?.kind ?? null,
+    digest: digest.map((a) => a.id),
+    historyTurns: p.req.history?.length ?? 0,
+    // Revision (al), logging only: provenance hashes, the directive-quote screen, the citation post-check.
+    ...provenanceHashes(p.req.history, userContent),
+    directiveQuoted: directiveQuoted(p.req.question, [deps.scenario.hinge.intentStatement, tr("en", deps.scenario.hinge.intentStatement)]),
+    // Revision (aq): the tags of the answer as the model returned it, checked against the tagged records (the proxy writes each citation's time itself).
+    citationIssues: citations ? citations.issues : null,
+    ...(citations ? { uncitedItems: citations.uncited, imperativeWords: imperativeWordsIn(answer, p.lang), words: wordCount(answer) } : {}),
+    ...response,
+    // Revision (aq): the exact verdict fields (a justified departure is `departure_justifiable` here, `departs` in the browser's three-valued log), and the model's JSON as returned.
+    // Revision (ar): the frozen premises' hash and the rating of each authored premise as returned to the browser.
+    ...(premises ? { premisesSha256: premises.sha256 } : {}),
+    ...(limited && premises ? { aiPremises: limited.answer.premises.map((q) => ({ id: q.id, status: q.status, tags: q.tags, ...(q.filled ? { filled: true } : {}) })) } : {}),
+    ...(limited && outcome.ok ? { verdictFields: limited.answer.options.map((o) => o.verdict), kind: limited.answer.kind, rawJson: outcome.rawJson.slice(0, 8000) } : {}),
+    ...(outcome.ok ? { usage: outcome.usage } : {}),
+    ...(outcome.attempts !== undefined ? { attempts: outcome.attempts } : {}),
+    ...(outcome.ok && outcome.parseRetries ? { parseRetries: outcome.parseRetries } : {}),
+    // `truncated`: the proxy shortened the model's answer to its limits (what it changed is in `trimmed`); before (aq) it meant a cut-off by the output cap.
+    ...(limited && limited.trimmed.length > 0 ? { truncated: true, trimmed: limited.trimmed } : {}),
+    ...(!outcome.ok && outcome.detail ? { errorDetail: outcome.detail } : {}),
+  });
+  return { status: 200, body: response };
+}

@@ -1,0 +1,325 @@
+{
+  "header": {
+    "appVersion": "0.1.0",
+    "bundleHash": "golden-fixture-bundle",
+    "cell": "radio",
+    "condition": "directed",
+    "counterbalance": {
+      "expectationOrder": "A"
+    },
+    "echelon": "command",
+    "formatVersion": "0.1.0",
+    "participantCode": "golden-participant",
+    "scenarioId": "golden-scenario-mixed",
+    "scenarioVersion": "0.1.0",
+    "seed": "42",
+    "sessionId": "golden-golden-scenario-mixed",
+    "startedAtIso": "2026-01-01T00:00:00.000Z",
+    "userAgent": "golden-run-harness",
+    "viewport": {
+      "dpr": 1,
+      "h": 800,
+      "w": 1280
+    }
+  },
+  "records": [
+    {
+      "detail": {
+        "from": "BOOT",
+        "to": "PREFLIGHT",
+        "trigger": "start"
+      },
+      "kind": "state_transition",
+      "seq": 0,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PREFLIGHT",
+        "to": "BRIEFING",
+        "trigger": "preflight_passed"
+      },
+      "kind": "state_transition",
+      "seq": 1,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "BRIEFING",
+        "to": "WARMUP",
+        "trigger": "briefing_complete"
+      },
+      "kind": "state_transition",
+      "seq": 2,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "WARMUP",
+        "to": "TUTORIAL",
+        "trigger": "warmup_complete"
+      },
+      "kind": "state_transition",
+      "seq": 3,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "TUTORIAL",
+        "to": "RUNNING",
+        "trigger": "tutorial_complete"
+      },
+      "kind": "state_transition",
+      "seq": 4,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "PROBING_ONLINE",
+        "trigger": "online_probe"
+      },
+      "kind": "state_transition",
+      "seq": 5,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 4,
+        "label": "spam-question-pick",
+        "value": 3
+      },
+      "kind": "rng_draw_int",
+      "seq": 6,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_ONLINE",
+        "to": "RUNNING",
+        "trigger": "online_probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 7,
+      "tVirtual": 0,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 45
+      },
+      "kind": "clock_advanced",
+      "seq": 8,
+      "tVirtual": 45,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 1
+      },
+      "kind": "cycle_end",
+      "seq": 9,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 10,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_BLANKED",
+        "trigger": "enter_probing_blanked"
+      },
+      "kind": "state_transition",
+      "seq": 11,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "label": "recall-item-order",
+        "result": [
+          "r2",
+          "r3",
+          "r1",
+          "r4"
+        ]
+      },
+      "kind": "rng_shuffle",
+      "seq": 12,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_BLANKED",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 13,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 14,
+      "tVirtual": 1200,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 60
+      },
+      "kind": "clock_advanced",
+      "seq": 15,
+      "tVirtual": 1260,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 2
+      },
+      "kind": "cycle_end",
+      "seq": 16,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "label": "mid-session-marker",
+        "value": "15855728933467243650"
+      },
+      "kind": "rng_draw_u64",
+      "seq": 17,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "label": "not-actually-shuffled-in-prod-fixed-order-here",
+        "result": [
+          "fundamentally_wrong",
+          "partly_wrong",
+          "holds"
+        ]
+      },
+      "kind": "rng_shuffle",
+      "seq": 18,
+      "tVirtual": 3600,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 30
+      },
+      "kind": "clock_advanced",
+      "seq": 19,
+      "tVirtual": 3630,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 3
+      },
+      "kind": "cycle_end",
+      "seq": 20,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RUNNING",
+        "to": "FREEZING",
+        "trigger": "freeze"
+      },
+      "kind": "state_transition",
+      "seq": 21,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "FREEZING",
+        "to": "PROBING_VISIBLE",
+        "trigger": "enter_probing_visible"
+      },
+      "kind": "state_transition",
+      "seq": 22,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "bound": 100,
+        "label": "confidence-settle",
+        "value": 20
+      },
+      "kind": "rng_draw_int",
+      "seq": 23,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "PROBING_VISIBLE",
+        "to": "RESUMING",
+        "trigger": "probe_complete"
+      },
+      "kind": "state_transition",
+      "seq": 24,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "from": "RESUMING",
+        "to": "RUNNING",
+        "trigger": "resumed"
+      },
+      "kind": "state_transition",
+      "seq": 25,
+      "tVirtual": 4800,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "deltaSeconds": 70
+      },
+      "kind": "clock_advanced",
+      "seq": 26,
+      "tVirtual": 4870,
+      "tWallOffsetMs": 0
+    },
+    {
+      "detail": {
+        "cycle": 4
+      },
+      "kind": "cycle_end",
+      "seq": 27,
+      "tVirtual": 7200,
+      "tWallOffsetMs": 0
+    }
+  ]
+}

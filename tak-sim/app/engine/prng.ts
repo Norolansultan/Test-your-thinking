@@ -1,0 +1,118 @@
+/**
+ * Deterministic pseudo-random number generator.
+ *
+ * Invariant I1 (SPEC/00_README.md §3): same scenario id, same version, same
+ * seed, same input sequence must produce a byte-identical log on any
+ * machine, at any time. `Math.random()` and `crypto.getRandomValues()` are
+ * therefore banned everywhere reachable from the run loop (SPEC/05 §3);
+ * this module is the only source of randomness in the engine.
+ *
+ * Uses BigInt 64-bit arithmetic throughout so results do not depend on the
+ * host's floating-point rounding behaviour (SPEC/05 §3: "no platform
+ * variance").
+ */
+
+const MASK64 = (1n << 64n) - 1n;
+
+/** splitmix64 — used both to derive well-mixed seeds and to hash strings. */
+function splitmix64Step(state: bigint): { state: bigint; output: bigint } {
+  let s = (state + 0x9e3779b97f4a7c15n) & MASK64;
+  let z = s;
+  z = ((z ^ (z >> 30n)) * 0xbf58476d1ce4e5b9n) & MASK64;
+  z = ((z ^ (z >> 27n)) * 0x94d049bb133111ebn) & MASK64;
+  z = z ^ (z >> 31n);
+  return { state: s, output: z & MASK64 };
+}
+
+/**
+ * Deterministic 64-bit string hash (FNV-1a), used to mix `scenarioId` into
+ * the seed so that two scenarios sharing a seed diverge (SPEC/05 §3).
+ */
+export function hashString64(input: string): bigint {
+  const FNV_OFFSET = 0xcbf29ce484222325n;
+  const FNV_PRIME = 0x100000001b3n;
+  let hash = FNV_OFFSET;
+  for (let i = 0; i < input.length; i++) {
+    const codeUnit = BigInt(input.charCodeAt(i));
+    hash = (hash ^ codeUnit) & MASK64;
+    hash = (hash * FNV_PRIME) & MASK64;
+  }
+  return hash;
+}
+
+/**
+ * Derives the RNG seed for a run: the scenario's `seed` mixed with a stable
+ * hash of `scenarioId` (SPEC/05 §3), plus an optional stream label so
+ * independent deterministic streams (e.g. "probe-order", "fire-noise") can
+ * be drawn from one scenario seed without correlating with each other.
+ */
+export function deriveSeed(scenarioSeed: bigint, scenarioId: string, streamLabel = ""): bigint {
+  const idHash = hashString64(scenarioId + "\u0000" + streamLabel);
+  const mixed = (scenarioSeed ^ idHash) & MASK64;
+  // Run the mix through splitmix64 once so structurally similar seeds
+  // (e.g. adjacent integers) do not produce correlated xorshift states.
+  return splitmix64Step(mixed).output;
+}
+
+/**
+ * xorshift64* — self-implemented, no dependency, no platform variance
+ * (SPEC/05 §3 permits xorshift64 or PCG).
+ */
+export class Xorshift64Star {
+  private state: bigint;
+
+  constructor(seed: bigint) {
+    // xorshift64* requires a non-zero state.
+    const normalised = seed & MASK64;
+    this.state = normalised === 0n ? 0x9e3779b97f4a7c15n : normalised;
+  }
+
+  /** Returns the next raw 64-bit value as an unsigned bigint. */
+  nextU64(): bigint {
+    let x = this.state;
+    x ^= x >> 12n;
+    x ^= (x << 25n) & MASK64;
+    x ^= x >> 27n;
+    this.state = x & MASK64;
+    return (this.state * 0x2545f4914f6cdd1dn) & MASK64;
+  }
+
+  /** Returns a float in [0, 1) with 53 bits of precision, matching Number's mantissa. */
+  nextFloat(): number {
+    const bits53 = this.nextU64() >> 11n; // top 53 bits
+    return Number(bits53) / 2 ** 53;
+  }
+
+  /** Returns an integer in [0, boundExclusive), unbiased via rejection sampling. */
+  nextInt(boundExclusive: number): number {
+    if (!Number.isInteger(boundExclusive) || boundExclusive <= 0) {
+      throw new RangeError(`nextInt bound must be a positive integer, got ${boundExclusive}`);
+    }
+    const bound = BigInt(boundExclusive);
+    // Rejection sampling against the largest multiple of `bound` that fits in 64 bits,
+    // so every output value is equiprobable regardless of `bound`.
+    const limit = MASK64 - (MASK64 % bound);
+    let r: bigint;
+    do {
+      r = this.nextU64();
+    } while (r >= limit);
+    return Number(r % bound);
+  }
+
+  /** Deterministic Fisher-Yates shuffle; does not mutate the input. */
+  shuffle<T>(items: readonly T[]): T[] {
+    const out = items.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = this.nextInt(i + 1);
+      const tmp = out[i]!;
+      out[i] = out[j]!;
+      out[j] = tmp;
+    }
+    return out;
+  }
+
+  /** Exposes internal state for snapshotting (e.g. mid-run persistence). Never logged raw. */
+  getState(): bigint {
+    return this.state;
+  }
+}

@@ -82,6 +82,54 @@ export interface WindowSizeWarningDetail {
   readonly minWidth: number;
   readonly minHeight: number;
 }
+// ---------------------------------------------------------------------------
+// SPEC/28 §5 — the TAK shell's tools (13 Oct 2026), logged through `logMapUse` like the map's own records
+// ---------------------------------------------------------------------------
+
+/** The TAK shell's side panes (one open at a time; `app/render/ui/tak/`). `indexed_search` is the demonstration's third search tab. */
+export type TakPaneId = "overlays" | "contacts" | "geochat" | "video" | "range_bearing" | "haku" | "thinker" | "indexed_search";
+/**
+ * A pane opened or closed. `cause`: `toolbar` — its toolbar button; `close_button` — the pane's ×; `replaced` — another pane
+ * opened in its place; `default` — the GeoChat pane the shell opens at the start (the classic shell's always-visible message
+ * log); `tour` — the guided tour opened it (the Thinker practice).
+ */
+export interface TakPaneDetail {
+  readonly pane: TakPaneId;
+  readonly view: number;
+  readonly cause: "toolbar" | "close_button" | "replaced" | "default" | "tour";
+}
+/** A contact chosen in the Contacts pane (the map is centred on it, a participant move). `uid` follows SPEC/28 §3: `TAKSIM-UNIT-<id>`, `TAKSIM-AIR-<id>`, `TAKSIM-SELF`. */
+export interface TakContactSelectedDetail {
+  readonly uid: string;
+  readonly view: number;
+}
+/** The Overlay Manager's layers. The projection and the current perimeter are not among them: they cannot be hidden (SPEC/28 §5). */
+export type TakOverlayLayer = "labels" | "footprints" | "past_perimeters" | "rate_marks" | "plan_marks";
+export interface TakOverlayToggledDetail {
+  readonly layer: TakOverlayLayer;
+  readonly on: boolean;
+  readonly view: number;
+}
+/** A Range & Bearing measurement: two points, the ellipsoidal distance (m, WGS84) and the true initial bearing (°) from the first to the second. */
+export interface TakRbMeasuredDetail {
+  readonly from: LatLon;
+  readonly to: LatLon;
+  readonly metres: number;
+  readonly bearingDeg: number;
+  readonly view: number;
+}
+/** A GeoChat room shown (`app/tak/geochat.ts`); `all` is "All Chat Rooms". */
+export interface TakChatRoomViewedDetail {
+  readonly room: "all" | "ground" | "air" | "command" | "support";
+  readonly view: number;
+}
+/** A drone's video tile shown: `pane` — on screen when the Video pane opened or the drone took off while it was open; `select` — enlarged by a click. */
+export interface TakVideoViewedDetail {
+  readonly platformId: string;
+  readonly view: number;
+  readonly cause: "pane" | "select";
+}
+
 export interface TextScrolledDetail {
   readonly elementId: string;
   readonly maxScrollFraction: number; // 0-1

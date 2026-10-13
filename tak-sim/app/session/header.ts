@@ -38,7 +38,16 @@ export interface HeaderAnnotations {
   readonly appVersion: string;
   /** `sha256:<hex>` of the scenario bundle's canonical JSON (`app/telemetry/bundle-hash.ts`). */
   readonly bundleHash: string;
+  /**
+   * The screen layout the session runs in (SPEC/28 §5): chosen from the URL on the start page, outside the run loop, and
+   * never read by the session's logic — it changes only how the render layer draws the same snapshot. Logged as the
+   * header's `uiShell`; absent (tests, tools): no `uiShell` in the header.
+   */
+  readonly uiShell?: UiShell;
 }
+
+/** The participant screen's layout (SPEC/28 §5): the TAK shell (default) or the classic layout of SPEC/06 (`?klassinen`). */
+export type UiShell = "tak" | "classic";
 
 /**
  * The fixed annotations of a session created without real ones (tests, tools): the values every log
@@ -63,5 +72,6 @@ export function sessionHeader(
     ...(previewOverride ? { previewOverride } : {}),
     probeLevelsShown: showProbeLevels,
     ...(assignment ? { assignment } : {}),
+    ...(annotations.uiShell ? { uiShell: annotations.uiShell } : {}),
   };
 }

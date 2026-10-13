@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
 import type { SessionSnapshot } from "../../../session/orchestrator.js";
@@ -6,7 +7,9 @@ import type { LatLon, Polygon } from "../../../engine/primitives.js";
 import siteMeta from "../../../scenario/site-meta.json" with { type: "json" };
 import { topoTileUrl } from "../../../i18n/place-names.js";
 import { WindIndicator } from "./WindIndicator.js";
-import { crewLinks, MAP_ELEMENT_EVENT, OWN_FORMATION_HUE, setMarkerLang, syncUnitMarkers, unitMarkerData, type MapElementEventDetail } from "../unit-markers.js";
+import { crewLinks, MAP_ELEMENT_EVENT, OWN_FORMATION_HUE, setMarkerLang, setMarkerStyle, syncUnitMarkers, unitMarkerData, type MapElementEventDetail } from "../unit-markers.js";
+import { addTakLayers, applyTakOverlays, setFootprintFilter, updateTakPlanMarks } from "../tak/tak-map.js";
+import type { TakOverlayState } from "../tak/shell.js";
 import { addFireLayers, declutterFireLabels, onFireLabelsPlaced, updateFireLayers } from "../fire-layers.js";
 import { declutterUnitMarkers, edgeLines, spotSymbols } from "../unit-stacks.js";
 import { addOverlayLabels, addOverlayLines } from "../map-overlay.js";
@@ -102,14 +105,38 @@ const PAN_LIMIT_M = 12_000;
 /** Clear margin around the study area in the opening frame, px. */
 const FRAME_PAD_PX = 16;
 
+/**
+ * The TAK shell's hold on the live map (SPEC/28 §5), for its tools: the cursor readout, Range & Bearing, the plan marks
+ * and the Contacts pane. `markParticipantMove` precedes a move the participant asked for with a button (a contact
+ * selected): the move is then logged as `viewport_changed` input `preset`, and the opening frame no longer follows the
+ * map's size — the camera still never moves by itself (SPEC/12 revision (aj)).
+ */
+export interface TakMapHandle {
+  readonly map: MapLibreMap;
+  markParticipantMove(): void;
+}
+
+/** The TAK shell's map options (SPEC/28 §5): 2525 symbols, the Overlay Manager's state, the shell's chrome. Absent: the classic map. */
+export interface TakMapOptions {
+  readonly overlays: TakOverlayState;
+  readonly onMap: (handle: TakMapHandle | null) => void;
+  readonly planLabels: { readonly main: string; readonly secondary: string; readonly drones: string };
+  /** The legend's own-forces samples as 2525 symbols (SVG markup, `tak/tak-symbols.ts`). */
+  readonly legendSymbols: { readonly unit: string; readonly air: string };
+}
+
 export interface MapViewProps {
   readonly snapshot: SessionSnapshot;
   readonly extent: { readonly south: number; readonly north: number; readonly west: number; readonly east: number };
   /** Map-use logging (SPEC/07 revision (al)): `orchestrator.logMapUse`; resolves to the record's seq. Absent: nothing logged. */
   readonly onMapUse?: ((event: MapUseEvent) => Promise<number>) | undefined;
+  /** The TAK shell (SPEC/28 §5); fixed for the session. Absent: the classic map. */
+  readonly tak?: TakMapOptions | undefined;
+  /** Drawn over the map, inside its frame (the TAK shell's info card and coordinate readout). */
+  readonly children?: ComponentChildren;
 }
 
-export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
+export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewProps) {
   const { t, lang } = useLang();
   setMarkerLang(lang);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,6 +155,12 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
   // Map-use logging (SPEC/07 revision (al)). Never awaited and never fatal: a failed write must not stop the map.
   const logRef = useRef(onMapUse);
   logRef.current = onMapUse;
+  // The TAK shell (SPEC/28 §5): its options, the aircraft under the pointer (the footprints overlay), the relayout.
+  const takRef = useRef(tak);
+  takRef.current = tak;
+  const isTak = tak !== undefined;
+  const hoveredRef = useRef<string | null>(null);
+  const relayoutRef = useRef<() => void>(() => undefined);
   const viewportSeqRef = useRef(-1); // seq of the last viewport_changed (a click refers to it)
   const presetRef = useRef(false); // the next camera move comes from a zoom button
   const moveInputRef = useRef<NonNullable<ViewportChangedDetail["input"]>>("frame");
@@ -166,11 +199,16 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
     });
     mapRef.current = map;
     map.touchZoomRotate.disableRotation(); // pinch zooms, doesn't rotate — dragRotate is off too
-    // Scale bar, metric; follows every zoom change (the legend holds the bottom-left corner).
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 140, unit: "metric" }), "bottom-right");
+    // The TAK shell draws MIL-STD-2525 symbols (SPEC/28 §2.3); the classic shell its own icons.
+    setMarkerStyle(map, { symbology: takRef.current ? "2525" : "classic", labels: takRef.current?.overlays.labels ?? true });
+    // Scale bar, metric; follows every zoom change (the legend holds the bottom-left corner). The TAK shell draws its own
+    // scale bar in the coordinate readout, bottom-left.
+    if (!takRef.current) map.addControl(new maplibregl.ScaleControl({ maxWidth: 140, unit: "metric" }), "bottom-right");
 
     const showAircraft = (id: string) => {
+      hoveredRef.current = id || null;
       for (const layer of ["footprints-fill", "footprints-line", "aircraft-tracks-line"]) if (map.getLayer(layer)) map.setFilter(layer, ["==", ["get", "platformId"], id]);
+      if (takRef.current?.overlays.footprints) setFootprintFilter(map, true, null); // the TAK overlay shows every drone's footprint
     };
     containerRef.current.addEventListener("aircraft-hover", (e) => showAircraft((e as CustomEvent<string | null>).detail ?? ""));
     // After every settled move: the units' declutter, then the fire labels (which keep clear of the units), the overlay.
@@ -182,6 +220,7 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
       const region = updateOverlay();
       setDrawn((cur) => (cur.stacks === stacks && cur.region === region ? cur : { stacks, region }));
     };
+    relayoutRef.current = relayout;
     map.on("moveend", relayout);
     // viewport_changed: 4 Hz while moving, one record when settled (`viewport-log.ts`).
     map.on("movestart", (e) => { moveInputRef.current = inputOf((e as { originalEvent?: unknown }).originalEvent, presetRef.current); throttleRef.current.settle(); });
@@ -243,6 +282,12 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
 
       // Correction: yellow dashes on a dark casing, so it holds on the pale basemap too.
 
+      // The TAK shell's layers (plan marks under the fire, the R&B line on top) and its overlay state (SPEC/28 §5).
+      const takNow = takRef.current;
+      if (takNow) {
+        addTakLayers(map);
+        applyTakOverlays(map, takNow.overlays, null);
+      }
 
       loadedRef.current = true;
       map.once("idle", () => setMapReady(true));
@@ -250,11 +295,16 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
       if (onDefaultRef.current) frameDefault(map); // the container's size may have settled since the map was made
       relayout();
       logViewport(map, "view_start"); // the first view's start: the map's pixel size and frame
+      if (takNow) {
+        updateTakPlanMarks(map, snapshotRef.current.recordedPlan, takNow.planLabels);
+        takNow.onMap({ map, markParticipantMove: () => { presetRef.current = true; onDefaultRef.current = false; } });
+      }
     });
 
     const readyFallback = setTimeout(() => setMapReady(true), 20_000);
     return () => {
       clearTimeout(readyFallback);
+      takRef.current?.onMap(null);
       loadedRef.current = false;
       map.remove();
       mapRef.current = null;
@@ -325,6 +375,27 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
     logViewport(map, "view_start");
   }, [snapshot.currentCycle]);
 
+  // The TAK shell's overlays (SPEC/28 §5): the markers' labels, the earlier perimeters, the footprints, the plan marks.
+  // The projection and the current perimeter are never touched (`tak-map.ts`).
+  const takOverlays = tak?.overlays;
+  useEffect(() => {
+    const map = mapRef.current;
+    const opts = takRef.current;
+    if (!map || !loadedRef.current || !opts) return;
+    setMarkerStyle(map, { symbology: "2525", labels: opts.overlays.labels });
+    applyTakOverlays(map, opts.overlays, hoveredRef.current);
+    updateLayers(map, snapshotRef.current); // redraws the markers in the new style
+    relayoutRef.current();
+  }, [takOverlays]);
+  // The participant's own plan marks follow the plan recorded in this view (and its revisions).
+  const planKey = JSON.stringify(snapshot.recordedPlan);
+  useEffect(() => {
+    const map = mapRef.current;
+    const opts = takRef.current;
+    if (!map || !loadedRef.current || !opts) return;
+    updateTakPlanMarks(map, snapshotRef.current.recordedPlan, opts.planLabels);
+  }, [planKey]);
+
   const wind = snapshot.renderTree.cycleInfo?.wind;
 
   return (
@@ -343,16 +414,21 @@ export function MapView({ snapshot, extent, onMapUse }: MapViewProps) {
           <button
             key={z.id}
             onClick={() => { setLevel(z.id); onDefaultRef.current = false; presetRef.current = true; if (mapRef.current) applyLevel(mapRef.current, z.id); }}
-            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3a3f44", fontSize: 12, cursor: "pointer", color: "#e8eaed", background: level === z.id ? "#3a3f44" : "#1b1e22cc" }}
+            style={isTak
+              ? { padding: "6px 14px", minHeight: 32, borderRadius: 4, border: `1px solid ${level === z.id ? "#19c3d6" : "#26313a"}`, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "#f2f5f7", background: level === z.id ? "#0f7f8c" : "#0d1114e6" }
+              : { padding: "4px 10px", borderRadius: 6, border: "1px solid #3a3f44", fontSize: 12, cursor: "pointer", color: "#e8eaed", background: level === z.id ? "#3a3f44" : "#1b1e22cc" }}
           >
             {t.zoom[z.id as keyof typeof t.zoom] ?? z.labelFi}
           </button>
         ))}
       </div>
-      {wind && <WindIndicator wind={wind} />}
+      {/* The TAK shell shows the same wind reading in its info card (top-left). */}
+      {wind && !isTak && <WindIndicator wind={wind} />}
       <Legend isoMinutes={snapshot.currentEnvelope?.isochrones.map((i) => i.minutes) ?? []}
         drawn={legendPresence(snapshot.renderTree.cycleInfo, snapshot.currentEnvelope !== null, drawn)}
-        onToggle={(open) => log({ kind: "layer_toggled", detail: { layerId: "legend", newState: open } })} />
+        onToggle={(open) => log({ kind: "layer_toggled", detail: { layerId: "legend", newState: open } })}
+        bottom={isTak ? 74 : 28} symbols={tak?.legendSymbols} />
+      {children}
     </div>
   );
 }

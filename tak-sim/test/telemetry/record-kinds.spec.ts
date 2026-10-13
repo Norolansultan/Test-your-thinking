@@ -125,6 +125,13 @@ const EXPECTED_KINDS: readonly RecordKind[] = (() => {
       case "freeze_map_pick":
       case "map_labels_placed":
       case "window_size_warning":
+      case "tak_pane_opened":
+      case "tak_pane_closed":
+      case "tak_contact_selected":
+      case "tak_overlay_toggled":
+      case "tak_rb_measured":
+      case "tak_chat_room_viewed":
+      case "tak_video_viewed":
         return;
       default:
         assertExhaustive(kind);

@@ -168,8 +168,9 @@ export function declutterFireLabels(map: MapLibreMap) {
   const container = map.getContainer();
   const box = container.getBoundingClientRect();
   const rel = (r: DOMRect): Rect => ({ left: r.left - box.left, top: r.top - box.top, right: r.right - box.left, bottom: r.bottom - box.top });
-  // The map's own overlays (wind, zoom buttons, legend, scale bar): a label under them could not be read.
-  const overlays = Array.from(container.parentElement?.querySelectorAll("[data-tour=wind], [data-tour=zoom], [data-tour=legend], .maplibregl-ctrl-bottom-right > *") ?? []).map((el) => rel(el.getBoundingClientRect()));
+  // The map's own overlays (wind, zoom buttons, legend, scale bar; the TAK shell's info card and coordinate readout,
+  // `data-map-chrome`): a label under them could not be read.
+  const overlays = Array.from(container.parentElement?.querySelectorAll("[data-tour=wind], [data-tour=zoom], [data-tour=legend], [data-map-chrome], .maplibregl-ctrl-bottom-right > *") ?? []).map((el) => rel(el.getBoundingClientRect()));
   const units = Array.from(container.querySelectorAll(".unit-marker")).filter((el) => (el as HTMLElement).style.display !== "none").map((el) => rel(el.getBoundingClientRect()));
   const requests: LabelRequest[] = [];
   for (const [key, { marker, label }] of current) {
@@ -208,6 +209,7 @@ function syncLabels(map: MapLibreMap, labels: readonly FireLabel[]) {
     }
     m.label = l;
     const el = m.marker.getElement();
+    el.className = `fire-label fire-label-${l.kind}`; // the TAK Overlay Manager hides the earlier perimeters' times with their lines
     el.textContent = l.text;
     el.style.cssText = `pointer-events:none;white-space:nowrap;visibility:hidden;z-index:${l.kind === "spot" ? MARKER_Z.spotLabel : MARKER_Z.label};${l.css}`;
     m.marker.setLngLat([at.lon, at.lat]);

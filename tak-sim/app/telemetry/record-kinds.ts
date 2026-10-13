@@ -30,6 +30,7 @@ import type { LogHeader } from "./log.js";
 import type {
   ClickDetail, ElementEnterLeaveDetail, LayerToggledDetail, ViewportChangedDetail, TextScrolledDetail, PointerTrackDetail,
   FreezeMapPickDetail, MapLabelsPlacedDetail, WindowSizeWarningDetail,
+  TakPaneDetail, TakContactSelectedDetail, TakOverlayToggledDetail, TakRbMeasuredDetail, TakChatRoomViewedDetail, TakVideoViewedDetail,
   DrawerOpenedDetail, DrawerClosedDetail, DrawerTabChangedDetail, DrawerStateAtCycleBoundaryDetail,
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
@@ -198,6 +199,7 @@ export interface TrafficReturnedDetail {
 export type {
   ClickTargetKind, ClickDetail, ElementEnterLeaveDetail, LayerToggledDetail, ViewportChangedDetail, TextScrolledDetail, PointerTrackDetail,
   FreezeMapPickDetail, MapLabelsPlacedDetail, WindowSizeWarningDetail,
+  TakPaneId, TakPaneDetail, TakContactSelectedDetail, TakOverlayLayer, TakOverlayToggledDetail, TakRbMeasuredDetail, TakChatRoomViewedDetail, TakVideoViewedDetail,
   DrawerId, DrawerOpenedDetail, DrawerClosedDetail, DrawerTabChangedDetail, DrawerStateAtCycleBoundaryDetail,
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
@@ -802,7 +804,15 @@ export type TelemetryEvent =
   // Map use (10 Oct 2026, SPEC/07 revision (al))
   | { readonly kind: "freeze_map_pick"; readonly detail: FreezeMapPickDetail }
   | { readonly kind: "map_labels_placed"; readonly detail: MapLabelsPlacedDetail }
-  | { readonly kind: "window_size_warning"; readonly detail: WindowSizeWarningDetail };
+  | { readonly kind: "window_size_warning"; readonly detail: WindowSizeWarningDetail }
+  // The TAK shell's tools (13 Oct 2026, SPEC/28 §5)
+  | { readonly kind: "tak_pane_opened"; readonly detail: TakPaneDetail }
+  | { readonly kind: "tak_pane_closed"; readonly detail: TakPaneDetail }
+  | { readonly kind: "tak_contact_selected"; readonly detail: TakContactSelectedDetail }
+  | { readonly kind: "tak_overlay_toggled"; readonly detail: TakOverlayToggledDetail }
+  | { readonly kind: "tak_rb_measured"; readonly detail: TakRbMeasuredDetail }
+  | { readonly kind: "tak_chat_room_viewed"; readonly detail: TakChatRoomViewedDetail }
+  | { readonly kind: "tak_video_viewed"; readonly detail: TakVideoViewedDetail };
 
 export type RecordKind = TelemetryEvent["kind"];
 
@@ -899,6 +909,9 @@ export type RecordKind = TelemetryEvent["kind"];
  * no emitter) and gains `bearing`, `mapPx`, `view`, `cause` and `input`; `element_enter` / `element_leave` / `click`
  * are emitted for unit markers and stack badges (target kinds `unit`, `drone`, `unit_stack`); `layer_toggled` for the
  * legend (`layerId: "legend"`); `freeze_map_pick`, `map_labels_placed` and `window_size_warning` are added.
+ * The TAK shell (13 Oct 2026, SPEC/28 §5, same version, not yet released): `tak_pane_opened`, `tak_pane_closed`,
+ * `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed` and `tak_video_viewed` are added
+ * (emitted only by the TAK shell, through `logMapUse`); the header may carry `uiShell` (`tak` | `classic`).
  */
 export const TELEMETRY_FORMAT_VERSION = "0.9.4";
 
@@ -927,4 +940,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "consent_decided", "questionnaire_presented", "questionnaire_submitted", "debrief_shown", "debrief_closed", "glossary_opened", "glossary_closed",
   "ai_literacy_started", "ai_literacy_answered", "ai_literacy_submitted",
   "freeze_map_pick", "map_labels_placed", "window_size_warning",
+  "tak_pane_opened", "tak_pane_closed", "tak_contact_selected", "tak_overlay_toggled", "tak_rb_measured", "tak_chat_room_viewed", "tak_video_viewed",
 ];

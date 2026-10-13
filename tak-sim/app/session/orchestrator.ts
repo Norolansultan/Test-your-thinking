@@ -54,7 +54,9 @@ import { aiLiteracyEnded, aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswe
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
 /** The records the map components log through `logMapUse` (SPEC/07 revision (al)). */
-export type MapUseEvent = Extract<TelemetryEvent, { readonly kind: "viewport_changed" | "element_enter" | "element_leave" | "click" | "layer_toggled" | "freeze_map_pick" | "map_labels_placed" | "window_size_warning" }>;
+export type MapUseEvent = Extract<TelemetryEvent, { readonly kind: "viewport_changed" | "element_enter" | "element_leave" | "click" | "layer_toggled" | "freeze_map_pick" | "map_labels_placed" | "window_size_warning" | TakToolKind }>;
+/** The TAK shell's tool records (SPEC/28 §5): every TAK tool interaction goes through `logMapUse`. */
+export type TakToolKind = "tak_pane_opened" | "tak_pane_closed" | "tak_contact_selected" | "tak_overlay_toggled" | "tak_rb_measured" | "tak_chat_room_viewed" | "tak_video_viewed";
 export { ProbeToolsLockedError, type VisibleProbeView } from "./visible-probes.js";
 
 type Listener = (snapshot: SessionSnapshot) => void;

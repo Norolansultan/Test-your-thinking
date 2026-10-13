@@ -165,6 +165,14 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "freeze_map_pick", detail: { cycle: 4, itemId: "freeze.c4.ek12_where", point: { lat: 60.85, lon: 27.35 }, zoom: 13.4, centre: { lat: 60.849, lon: 27.35 }, mapPx: { width: 360, height: 360 } } },
   { kind: "map_labels_placed", detail: { view: 13, shown: ["iso:40", "past:0", "spot:US2"], hidden: [] } },
   { kind: "window_size_warning", detail: { shown: true, width: 1000, height: 480, minWidth: 1100, minHeight: 500 } },
+  // The TAK shell's tools (13 Oct 2026, SPEC/28 §5)
+  { kind: "tak_pane_opened", detail: { pane: "geochat", view: 3, cause: "toolbar" } },
+  { kind: "tak_pane_closed", detail: { pane: "geochat", view: 3, cause: "replaced" } },
+  { kind: "tak_contact_selected", detail: { uid: "TAKSIM-UNIT-EK11", view: 3 } },
+  { kind: "tak_overlay_toggled", detail: { layer: "past_perimeters", on: false, view: 3 } },
+  { kind: "tak_rb_measured", detail: { from: { lat: 60.85, lon: 27.33 }, to: { lat: 60.86, lon: 27.35 }, metres: 1543.2, bearingDeg: 47.12, view: 3 } },
+  { kind: "tak_chat_room_viewed", detail: { room: "air", view: 3 } },
+  { kind: "tak_video_viewed", detail: { platformId: "DR2", view: 3, cause: "select" } },
 ];
 
 export interface ScriptedSessionResult {

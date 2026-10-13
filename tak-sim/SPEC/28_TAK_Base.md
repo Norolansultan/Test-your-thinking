@@ -56,7 +56,7 @@ One `CotEvent` per object per view step, following the public CoT 2.0 base schem
 | VTOL mapping drone (DR3) | `a-f-A-M-F-Q` | `SFAPMFQ--------` | fixed-wing UAV |
 | Helicopter (HELI1) | `a-f-A-C-H` | `SFAPCH---------` | civil rotary wing |
 | Spotter aircraft (SPOT) | `a-f-A-C-F` | `SFAPCF---------` | civil fixed wing |
-| Participant (incident commander, command post) | `a-f-G-U-C` | `SFGPUC---------` | the TAK "self" marker |
+| Participant (incident commander, command post) | `a-f-G-U-C` | `SFGPU-----A----` | the TAK "self" marker; ATAK's default self type, drawn with the headquarters staff (the generic `SFGPUC` reads "CBT") |
 | Reported fire perimeter / detached front | `u-d-f` | — | red stroke, translucent fill |
 | Projection envelope | `u-d-f` | — | `how="m-p"`, `stale` = validity horizon |
 | Drone sensor footprint | `u-d-f` | — | `sensor` detail on the platform event |

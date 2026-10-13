@@ -69,7 +69,11 @@ export function legendPresence(
  * and the rows drawn on the map now (`legendPresence`, revision (am)). Every sample is drawn with the same theme values
  * as the map, so the legend cannot drift from what it explains.
  */
-export function Legend({ isoMinutes, drawn, onToggle }: { readonly isoMinutes: readonly number[]; readonly drawn: ReadonlySet<LegendRow>; readonly onToggle?: (open: boolean) => void }) {
+export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols }: {
+  readonly isoMinutes: readonly number[]; readonly drawn: ReadonlySet<LegendRow>; readonly onToggle?: (open: boolean) => void;
+  /** The TAK shell (SPEC/28 §5): the legend sits above the coordinate readout, and its unit rows show the map's 2525 symbols (SVG markup). */
+  readonly bottom?: number; readonly symbols?: { readonly unit: string; readonly air: string } | undefined;
+}) {
   const { tr, lang } = useLang();
   // Collapsible (revision (al)). Revision (am): collapsed at the start for everyone — open, it covered ~40 % of a
   // 1280 × 529 window's map — as a small "Legend" button; it stays as the participant leaves it. The guided tour's
@@ -106,6 +110,9 @@ export function Legend({ isoMinutes, drawn, onToggle }: { readonly isoMinutes: r
   const frame = (x: number, small = false, dome = false) => (
     <rect x={x} y={small ? 3 : 1.5} width={small ? 8 : 11} height={small ? 6 : 8} rx={dome ? 4 : 0} fill="#12151a" stroke={OWN} stroke-width={1.6} />
   );
+  // The TAK shell's 2525 symbol in place of the classic frame (`tak/tak-symbols.ts`; static markup, no user input).
+  const sym = (svg: string, small = false) => <span style={{ display: "inline-block", width: small ? 11 : 15, height: small ? 9 : 12, flex: "none" }} dangerouslySetInnerHTML={{ __html: svg }} />;
+  const symRow = (body: JSX.Element) => <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 2, width: w, height: h + 2, flex: "none" }}>{body}</span>;
   const rows: [LegendRow, JSX.Element, string][] = [
     ["past", sample(<line x1={0} y1={y} x2={w} y2={y} stroke={T.past.color} stroke-width={T.past.widthPx} opacity={T.past.opacityNewest} />), L.past],
     ["burnt", sample(<rect x={2} y={2} width={w - 4} height={h - 4} fill={T.burnt.color} opacity={T.burnt.opacity} />), L.burnt],
@@ -124,11 +131,11 @@ export function Legend({ isoMinutes, drawn, onToggle }: { readonly isoMinutes: r
       {T.projection.bands.map((b, k) => <rect x={k * bw} y={1} width={bw} height={h - 2} fill={b.color} opacity={b.opacity} />)}
       <line x1={0} y1={y} x2={w} y2={y} stroke={T.projection.color} stroke-width={pw} stroke-dasharray={`${T.projection.dashPx / 2} ${T.projection.gapPx / 2}`} />
     </>), `${L.projection} ${projectionBandsLabel(isoMinutes, L.projectionBands)}`],
-    ["unit", sample(<>{frame(7)}</>), M.unit],
-    ["crew", sample(<><line x1={6} y1={y} x2={19} y2={y} stroke={OWN} stroke-width={1} opacity={0.6} />{frame(1)}{frame(17, true)}</>), M.crew],
+    ["unit", symbols ? symRow(sym(symbols.unit)) : sample(<>{frame(7)}</>), M.unit],
+    ["crew", symbols ? symRow(<>{sym(symbols.unit)}<span style={{ width: 4, borderTop: `1px solid ${OWN}`, opacity: 0.6 }} />{sym(symbols.unit, true)}</>) : sample(<><line x1={6} y1={y} x2={19} y2={y} stroke={OWN} stroke-width={1} opacity={0.6} />{frame(1)}{frame(17, true)}</>), M.crew],
     ["hose", sample(<line x1={0} y1={y} x2={w} y2={y} stroke={OWN} stroke-width={2} opacity={0.9} />), M.hose],
     ["stack", sample(<><rect x={6} y={1.5} width={14} height={8} fill="#12151a" stroke={OWN} stroke-width={1.6} stroke-dasharray="none" /><text x={13} y={8.3} text-anchor="middle" font-size="7" font-weight="700" fill={OWN} font-family="monospace">3</text></>), M.stack],
-    ["air", sample(<><line x1={0} y1={y + 2} x2={w} y2={y + 2} stroke={OWN} stroke-width={1.2} stroke-dasharray="3 2" opacity={0.8} />{frame(7, false, true)}</>), M.air],
+    ["air", symbols ? symRow(sym(symbols.air)) : sample(<><line x1={0} y1={y + 2} x2={w} y2={y + 2} stroke={OWN} stroke-width={1.2} stroke-dasharray="3 2" opacity={0.8} />{frame(7, false, true)}</>), M.air],
     ["sector", sample(<line x1={0} y1={y} x2={w} y2={y} stroke={SECTOR_LINE.color} stroke-width={SECTOR_LINE.widthPx} stroke-dasharray={SECTOR_LINE.dash.join(" ")} />), M.sector],
     ["road", sample(<line x1={0} y1={y} x2={w} y2={y} stroke="#707070" stroke-width={2.4} />), M.road],
     ["power", sample(<><line x1={0} y1={y} x2={w} y2={y} stroke="#2d2d2d" stroke-width={0.9} />{[5, 13, 21].map((x) => <line x1={x} y1={y - 2.5} x2={x} y2={y + 2.5} stroke="#2d2d2d" stroke-width={0.9} />)}</>), M.power],
@@ -137,7 +144,7 @@ export function Legend({ isoMinutes, drawn, onToggle }: { readonly isoMinutes: r
   const toggle = () => { const next = !open; setOpen(next); onToggle?.(next); };
   // One compact column with only the rows drawn now; it scrolls rather than covering a short map.
   return (
-    <div data-tour="legend" data-open={shown ? "1" : "0"} style={{ position: "absolute", zIndex: 20, left: 8, bottom: 28, maxHeight: "calc(100% - 92px)", overflowY: shown ? "auto" : "hidden", background: "#f4f1eceb", color: "#1c1b19", border: "1px solid #c9c3ba", borderRadius: 5, padding: "3px 6px", fontSize: L.fontPx, lineHeight: 1.15 }}>
+    <div data-tour="legend" data-open={shown ? "1" : "0"} style={{ position: "absolute", zIndex: 20, left: 8, bottom, maxHeight: `calc(100% - ${64 + bottom}px)`, overflowY: shown ? "auto" : "hidden", background: "#f4f1eceb", color: "#1c1b19", border: "1px solid #c9c3ba", borderRadius: 5, padding: "3px 6px", fontSize: L.fontPx, lineHeight: 1.15 }}>
       <button type="button" onClick={toggle} aria-expanded={shown} title={shown ? M.hide : M.show}
         style={{ display: "block", border: "none", background: "none", padding: 0, margin: shown ? "0 0 2px" : 0, font: "inherit", fontWeight: 700, color: "inherit", cursor: "pointer" }}>
         {shown ? "▾" : "▸"} {L.title}

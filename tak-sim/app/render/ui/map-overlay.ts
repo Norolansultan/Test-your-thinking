@@ -66,6 +66,13 @@ export function sectorLabelPoint(geometry: Polygon, ignition: LatLon): LatLon {
   return { lat: ignition.lat + (dy / len) * r / ky, lon: ignition.lon + (dx / len) * r / kx };
 }
 
+/**
+ * The sectors' public outlines and label points (the reference overlay's own, drawn in every view): geometry only, for the
+ * TAK shell's plan marks (`tak/tak-map.ts`), which therefore never read the scenario bundle itself.
+ */
+export const SECTOR_OUTLINES: readonly { readonly id: string; readonly geometry: Polygon; readonly labelAt: LatLon }[] =
+  SITE_SCENARIO.sectors.map((s) => ({ id: s.id, geometry: s.geometry, labelAt: sectorLabelPoint(s.geometry, SITE_SCENARIO.ignition) }));
+
 export interface OverlayLabel { readonly key: string; readonly at: LatLon; readonly html: string; readonly kind: "road" | "bridge" | "power" | "cp" | "sector" | "region" }
 
 const TEXT = `font:600 ${OVERLAY_FONT_PX}px/1.15 -apple-system,'Segoe UI',Roboto,sans-serif;color:#1c1b19;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff`;

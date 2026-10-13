@@ -21,8 +21,10 @@ import type { Lang } from "../../../i18n/lang.js";
 import { LangContext, useDocumentLanguage, useLang } from "../i18n.js";
 import { statusOnStep, warnBeforeUnload } from "../../../telemetry/session-registry.js";
 import { attachCheckpoints } from "../../../telemetry/session-checkpoint.js";
+import type { UiShell } from "../../../session/header.js";
+import { TakSessionLayout } from "../tak/TakSessionLayout.js";
 
-export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false }: {
+export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak" }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels?: boolean;
   /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11); `allowTourSkip` in demonstration only. */
   readonly guidedTour?: boolean; readonly allowTourSkip?: boolean;
@@ -38,20 +40,26 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
   readonly allowViewSkip?: boolean;
   /** Demonstration only (11 Oct 2026): the index-based search tab (never under ?tuotanto). */
   readonly indexedSearch?: boolean;
+  /**
+   * The screen layout (SPEC/28 §5): the TAK shell (`TakSessionLayout`, the default of this build) or the classic layout of
+   * SPEC/06 (`?klassinen`). Logged in the header (`uiShell`, through the launcher's annotations); the session is the same.
+   */
+  readonly uiShell?: UiShell;
 }) {
   useDocumentLanguage(language);
   return (
     <LangContext.Provider value={language}>
-      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} />
+      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} />
     </LangContext.Provider>
   );
 }
 
-function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch }: {
+function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch, uiShell }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels: boolean;
   readonly guidedTour: boolean; readonly allowTourSkip: boolean; readonly cell: Cell | undefined;
   readonly participantCode: string | undefined; readonly assignment: SessionAssignment | undefined; readonly persistence: SessionPersistence | undefined;
   readonly studyShell: boolean; readonly allowPreflightOverride: boolean; readonly allowViewSkip: boolean; readonly indexedSearch: boolean;
+  readonly uiShell: UiShell;
 }) {
   const { snapshot, orchestrator } = useSession(scenario, condition, previewOverride, language, showProbeLevels, guidedTour, cell,
     { ...(participantCode ? { participantCode } : {}), ...(assignment ? { assignment } : {}), studyShell, allowPreflightOverride, allowViewSkip }, persistence);
@@ -113,9 +121,14 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
       <StatusStrip snapshot={snapshot} {...(snapshot.skipAvailable ? { onSkip: () => void orchestrator.skipView().catch(() => undefined) } : {})} />
       {snapshot.tour && <GuidedTour snapshot={snapshot} orchestrator={orchestrator} condition={condition} cell={cell} allowSkip={allowTourSkip} />}
       {frozen && <FreezeScreen freeze={snapshot.freeze!} orchestrator={orchestrator} showLevels={snapshot.showProbeLevels} allowSkip={snapshot.skipAllowed} />}
+      {/* The TAK shell (SPEC/28 §5): the map full-size with its toolbar and side panes; the decision strip under the map as below. */}
+      {uiShell === "tak" && (
+        <TakSessionLayout snapshot={snapshot} orchestrator={orchestrator} extent={scenario.extent} condition={condition} frozen={frozen} indexedSearch={indexedSearch}
+          planDraft={heldPlanDraft(plan, snapshot.currentCycle)} onPlanDraft={(draft) => setPlan({ view: snapshot.currentCycle, draft })} />
+      )}
       {/* Below NARROW_PX the right column goes under the map and the page scrolls (review 9 Oct 2026: at ~800 px the
           map collapsed and the wind and legend boxes overlapped the allocation text). */}
-      <div inert={frozen} aria-hidden={frozen} style={{ display: "flex", flexDirection: narrow ? "column" : "row", flex: 1, minHeight: 0, position: "relative", visibility: frozen ? "hidden" : "visible", ...(narrow ? { overflowY: "auto" as const } : {}) }}>
+      {uiShell === "classic" && <div inert={frozen} aria-hidden={frozen} style={{ display: "flex", flexDirection: narrow ? "column" : "row", flex: 1, minHeight: 0, position: "relative", visibility: frozen ? "hidden" : "visible", ...(narrow ? { overflowY: "auto" as const } : {}) }}>
         {/* The map keeps at least MAP_MIN_HEIGHT_PX; when the cards below it (situation question, allocation) need more
             room than is left, this column scrolls instead of squeezing the map (review 9 Oct 2026: at 1280×529 with a
             situation question and the allocation open, the map was 99 px tall). */}
@@ -137,7 +150,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
         </div>
         {/* Haku, Thinker and the message log all live in the right column — nothing opens over the map. */}
         <RightPanel snapshot={snapshot} orchestrator={orchestrator} condition={condition} aiPresent={capabilities.aiDrawerPresent} hakuFreeText={capabilities.crossSourceFreeTextQuery} stacked={narrow} indexedSearch={indexedSearch} />
-      </div>
+      </div>}
     </div>
   );
 }

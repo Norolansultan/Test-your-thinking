@@ -8,7 +8,11 @@ import { useLang } from "../i18n.js";
  * Mean speed only — gusts stay in the weather record (SPEC/12 §9 cycle 17). Values in mono,
  * SPEC/06 §3.1.
  */
-export function WindIndicator({ wind }: { readonly wind: CycleWind }) {
+export function WindIndicator({ wind, inline = false }: {
+  readonly wind: CycleWind;
+  /** The TAK shell's info card holds it (SPEC/28 §5): the same reading and rose, in the card's flow instead of over the map's corner. */
+  readonly inline?: boolean;
+}) {
   const { t, tr } = useLang();
   const compass = t.compass[Math.round((((wind.fromDeg % 360) + 360) % 360) / 45) % 8]!;
   const toDeg = (wind.fromDeg + 180) % 360;
@@ -17,7 +21,7 @@ export function WindIndicator({ wind }: { readonly wind: CycleWind }) {
     <div
       data-tour="wind"
       aria-label={t.windAria(compass, wind.fromDeg, wind.meanMs)}
-      style={{
+      style={inline ? { display: "flex", alignItems: "center", gap: 6, color: "#e8eaed" } : {
         // Revision (am): compact (36 px rose, two text lines; was 52 px and three lines), so it covers less of the map.
         position: "absolute", zIndex: 20, left: 8, top: 8, display: "flex", alignItems: "center", gap: 6,
         background: "#1b1e22e6", border: "1px solid #3a3f44", borderRadius: 6, padding: "3px 8px 3px 3px", color: "#e8eaed",

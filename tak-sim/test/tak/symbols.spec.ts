@@ -32,9 +32,9 @@ describe("CoT type and 2525C SIDC per object (SPEC/28 §4 table)", () => {
     expect(sidcOfCotType(type)).toBe(sidc);
   });
 
-  it("the participant is the command post: a-f-G-U-C / SFGPUC---------", () => {
+  it("the participant is the command post: a-f-G-U-C, drawn as a headquarters SFGPU-----A----", () => {
     expect(SELF_COT_TYPE).toBe("a-f-G-U-C");
-    expect(SELF_SIDC).toBe("SFGPUC---------");
+    expect(SELF_SIDC).toBe("SFGPU-----A----");
     expect(SELF_UID).toBe("TAKSIM-SELF");
   });
 

@@ -22,6 +22,7 @@ import { unitCallSign } from "../../i18n/place-names.js";
 import { TASK_ICON_SVG, taskGlyph, UNIT_ICON_SVG, unitKind } from "./unit-icons.js";
 import { MARKER_Z } from "./fire-layers.js";
 import { COMPACT_FRAME, COMPACT_VEHICLE_FRAME } from "../unit-declutter.js";
+import { takMarkerSvg } from "./tak/tak-symbols.js";
 
 export const OWN_FORMATION_HUE = "#4fb3ff"; // cyan-blue
 
@@ -144,8 +145,25 @@ function glyphSvg(d: UnitMarkerData): string {
   return UNIT_ICON_SVG[unitKind(d.id, d.air)];
 }
 
+/**
+ * How a map draws its unit markers (SPEC/28 §2.3): `classic` — the own-forces frames with type glyphs above; `2525` — the
+ * TAK shell's MIL-STD-2525 symbols (milsymbol, `tak/tak-symbols.ts`) in the same boxes, so the declutter is unchanged.
+ * `labels`: the call-sign labels (the TAK Overlay Manager's "symbol labels"); they still follow the zoom as before.
+ */
+export interface MarkerStyle { readonly symbology: "classic" | "2525"; readonly labels: boolean }
+export const CLASSIC_MARKER_STYLE: MarkerStyle = { symbology: "classic", labels: true };
+const styleByMap = new WeakMap<MapLibreMap, MarkerStyle>();
+/** Sets a map's marker style; the markers are redrawn in it at the next `syncUnitMarkers`. */
+export function setMarkerStyle(map: MapLibreMap, style: MarkerStyle): void {
+  const cur = styleByMap.get(map);
+  if (!cur || cur.symbology !== style.symbology || cur.labels !== style.labels) styleByMap.set(map, style);
+}
+export function markerStyleOf(map: MapLibreMap): MarkerStyle { return styleByMap.get(map) ?? CLASSIC_MARKER_STYLE; }
+
 export interface Parts {
   readonly el: HTMLElement; readonly frame: HTMLElement; readonly tip: HTMLElement; readonly leader: HTMLElement;
+  /** The style the marker was drawn in (a change redraws it). */
+  readonly style: MarkerStyle;
   /** The call sign under the frame; none for a parked vehicle. */
   readonly label: HTMLElement | null;
   /** Full (true) or compact (false) marker now; null before the first layout (`setMarkerDetail`). */
@@ -186,7 +204,7 @@ export function markerLabel(d: Pick<UnitMarkerData, "id">): string {
   return unitCallSign(CARD_LANG, d.id);
 }
 
-function createMarker(d: UnitMarkerData): Parts {
+function createMarker(d: UnitMarkerData, style: MarkerStyle): Parts {
   const small = d.role === "vehicle";
   const el = document.createElement("div");
   el.className = "unit-marker";
@@ -216,7 +234,7 @@ function createMarker(d: UnitMarkerData): Parts {
   el.addEventListener("mouseenter", (e) => { tip.style.display = "block"; el.style.zIndex = String(MARKER_Z.hover); if (d.air) hover(d.id); emitMapElement(el, { type: "enter", targetKind, targetId: d.key, pointerType: pointerKind(e) }); });
   el.addEventListener("mouseleave", (e) => { tip.style.display = "none"; el.style.zIndex = String(MARKER_Z.unit); if (d.air) hover(null); emitMapElement(el, { type: "leave", targetKind, targetId: d.key, pointerType: pointerKind(e) }); });
   el.addEventListener("click", (e) => emitMapElement(el, { type: "click", targetKind, targetId: d.key, pointerType: pointerKind(e), button: (e as MouseEvent).button }));
-  const parts: Parts = { el, frame, tip, leader, label, labelled: null };
+  const parts: Parts = { el, frame, tip, leader, label, labelled: null, style };
   setMarkerDetail(parts, d, true);
   return parts;
 }
@@ -232,6 +250,12 @@ export function setMarkerDetail(parts: Parts, d: Pick<UnitMarkerData, "role" | "
   const small = d.role === "vehicle";
   const { w, h } = labelled ? (small ? { w: 18, h: 14 } : { w: 24, h: 18 }) : (small ? COMPACT_VEHICLE_FRAME : COMPACT_FRAME);
   const border = labelled ? 2 : 1.5;
+  if (parts.style.symbology === "2525") {
+    // The 2525 symbol carries its own frame: a transparent box of the same size, a soft shadow for the basemap.
+    parts.frame.style.cssText = `display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:${w}px;height:${h}px;filter:drop-shadow(0 0 1.5px #000a)`;
+    if (parts.label) parts.label.style.display = labelled && parts.style.labels ? "block" : "none";
+    return;
+  }
   parts.frame.style.cssText =
     `display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:${w}px;height:${h}px;padding:${labelled ? 1 : 0.5}px;` +
     // A white casing round the frame keeps the symbol readable over the basemap's blue water and bogs (revision (al)).
@@ -242,7 +266,8 @@ export function setMarkerDetail(parts: Parts, d: Pick<UnitMarkerData, "role" | "
 
 /** Refreshes glyph and hover card — a unit keeps its marker across cycles while its task changes. */
 function fillMarker(parts: Parts, d: UnitMarkerData) {
-  parts.frame.innerHTML = glyphSvg(d); // static, authored SVG — no user input
+  // Static SVG: authored glyphs, or milsymbol's symbol for the platform's SIDC — no user input.
+  parts.frame.innerHTML = parts.style.symbology === "2525" ? takMarkerSvg(d.id, markerLabel(d)) : glyphSvg(d);
   const [title, ...rest] = cardLines(d);
   const head = document.createElement("div");
   head.style.cssText = `font-weight:700;color:${OWN_FORMATION_HUE}`;
@@ -259,12 +284,14 @@ export function syncUnitMarkers(map: MapLibreMap, data: readonly UnitMarkerData[
   let markers = markersByMap.get(map);
   if (!markers) { markers = new Map(); markersByMap.set(map, markers); }
   const seen = new Set<string>();
+  const style = markerStyleOf(map);
   for (const d of data) {
     seen.add(d.key);
     let m = markers.get(d.key);
     if (m && m.role !== d.role && (m.role === "vehicle" || d.role === "vehicle")) { m.marker.remove(); markers.delete(d.key); m = undefined; }
+    if (m && m.parts.style !== style) { m.marker.remove(); markers.delete(d.key); m = undefined; } // the style changed: redraw
     if (!m) {
-      const parts = createMarker(d);
+      const parts = createMarker(d, style);
       m = { marker: new maplibregl.Marker({ element: parts.el }).setLngLat([d.at.lon, d.at.lat]).addTo(map), parts, role: d.role, data: d };
       markers.set(d.key, m);
     } else {

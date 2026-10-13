@@ -68,6 +68,12 @@ export interface LogHeader {
    */
   readonly probeLevelsShown?: boolean;
   /**
+   * The participant's screen layout (SPEC/28 §5, 13 Oct 2026): `tak` — the TAK shell (map-centred, right-edge toolbar, side
+   * panes, 2525 symbols), the default of this build; `classic` — the layout of SPEC/06 (`?klassinen` / `?classic`). Data from
+   * the two shells are never pooled silently (SPEC/00 §6). Absent in logs before 13 Oct 2026 (the classic layout).
+   */
+  readonly uiShell?: "tak" | "classic";
+  /**
    * Where `cell` came from (SPEC/27 §2.2, 5 Oct 2026; `app/session/preview.ts` `SessionAssignment`):
    * `table` — the allocation table by participant code (`participantCode` is the table's code;
    * `tableSha256` is the table's `rowsSha256`; `block` its block in the language stratum), the only

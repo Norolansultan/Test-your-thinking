@@ -22,6 +22,7 @@ import { LangContext, useDocumentLanguage, useLang } from "./i18n.js";
 import { browserEnvironment, sessionAnnotations, wallNowMs } from "../../session/annotations.js";
 import { STUDY_PARAM, type PreviewOverride, type SessionAssignment } from "../../session/preview.js";
 import type { Cell, ScenarioContract } from "../../scenario/types.js";
+import type { UiShell } from "../../session/header.js";
 import type { Lang } from "../../i18n/lang.js";
 import { InMemoryLogSink, type LogRecord } from "../../telemetry/log.js";
 import { openSessionSink, registeringSink, SessionRegistry, type SessionEntry, type SessionStatus } from "../../telemetry/session-registry.js";
@@ -50,6 +51,8 @@ type LaunchProps = {
   readonly indexedSearch?: boolean;
   /** The session id fixed before the start (the shared study link's, `auto-assign.ts`); otherwise a fresh one. */
   readonly sessionId?: string | undefined;
+  /** The screen layout (SPEC/28 §5; `?klassinen` gives the classic one); annotated into the header as `uiShell`. */
+  readonly uiShell: UiShell;
 };
 
 function Centered({ children }: { readonly children: ComponentChildren }) {
@@ -65,7 +68,8 @@ export function SessionLauncher(props: LaunchProps) {
 
   useEffect(() => {
     void (async () => {
-      const annotations = sessionAnnotations(props.scenario, browserEnvironment(), props.sessionId);
+      // The shell is chosen on the start page from the URL, outside the run loop, and only annotated (`header.ts`).
+      const annotations = { ...sessionAnnotations(props.scenario, browserEnvironment(), props.sessionId), uiShell: props.uiShell };
       try {
         const reg = await registry();
         const sink = await openSessionSink(annotations.sessionId);
@@ -127,6 +131,7 @@ export function ResumeGate({ scenario, children }: { readonly scenario: () => Sc
         guidedTour={header.guidedTour ?? false} allowTourSkip={demo} participantCode={header.participantCode}
         assignment={header.assignment as SessionAssignment | undefined} persistence={gate.persistence}
         studyShell allowPreflightOverride={demo} allowViewSkip={demo} indexedSearch={demo}
+        uiShell={header.uiShell ?? "classic"}
       />
     );
   }

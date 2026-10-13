@@ -70,7 +70,11 @@ export function sidcOf(platformId: string): string {
   return sidcOfCotType(cotTypeOf(platformId)) ?? "SFGP-----------";
 }
 
-/** The participant's own marker: the incident commander at the command post. */
+/**
+ * The participant's own marker: the incident commander at the command post. The CoT type is ATAK's
+ * default self type (`a-f-G-U-C`); the symbol drawn is a friendly unit with the headquarters staff
+ * (2525C symbol modifier "A"), because the generic `SFGPUC` reads "CBT" (combat) on screen.
+ */
 export const SELF_UID = "TAKSIM-SELF";
 export const SELF_COT_TYPE = COT_TYPE_BY_KIND.command_post;
-export const SELF_SIDC = sidcOfCotType(SELF_COT_TYPE) ?? "SFGPUC---------";
+export const SELF_SIDC = "SFGPU-----A----";

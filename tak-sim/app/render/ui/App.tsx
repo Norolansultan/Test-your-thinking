@@ -9,6 +9,7 @@ import { AUTO_ASSIGN_TEXT, LINK_INACTIVE_BOTH } from "../../i18n/auto-assign-tex
 import { DEFAULT_LANG, isLang, LANGUAGES, type Lang } from "../../i18n/lang.js";
 import { UI_TEXT } from "../../i18n/ui.js";
 import { useDocumentLanguage } from "./i18n.js";
+import { uiShellFromSearch } from "./tak/shell.js";
 
 let cachedScenario: ReturnType<typeof buildDemoScenario> | null = null;
 function getDemoScenario() {
@@ -123,6 +124,7 @@ function StartPage() {
   }
 
   // `?esikatselu=<s>` shortens every exploration phase for development (preview.ts); logged in the header.
+  // The TAK shell is the default screen (SPEC/28 §5); `?klassinen` (or `?classic`) gives the classic layout; logged (`uiShell`).
   // `?tuotanto` is the study configuration: the freeze items' SA level (L1/L2) hidden, nothing skippable.
   // Without it (the demonstration) the views run on the same real times (6 Oct 2026; was a 30 s minimum),
   // the level is shown, and the presenter may skip the rest of a view or a freeze. The header logs all three
@@ -139,6 +141,7 @@ function StartPage() {
       showProbeLevels={!study} allowTourSkip={!study}
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
       studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} sessionId={issued?.sessionId}
+      uiShell={uiShellFromSearch(search)}
     />
   );
 }

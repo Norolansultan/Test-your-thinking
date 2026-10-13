@@ -11,6 +11,170 @@ import {
   SECTORS_EN, SECTORS_FI, TOOLS_THINKER_AGAIN_EN, TOOLS_THINKER_AGAIN_FI, TOOLS_THINKER_INTENT_AGAIN_EN, TOOLS_THINKER_INTENT_AGAIN_FI, TOUR_SETTING_EN, TOUR_SETTING_FI,
 } from "../scenario/briefing.js";
 import type { TourStepId } from "../render/ui/tour.js";
+import type { TakOverlayLayer, TakPaneId } from "../telemetry/record-kinds.js";
+import { ALL_CHAT_ROOMS_LABEL, CHAT_ROOM_LABEL, type ChatRoom } from "../tak/geochat.js";
+
+/**
+ * The TAK shell's interface (SPEC/28 §5, 13 Oct 2026): the toolbar, the side panes, the info card and the coordinate
+ * readout. DRAFT (native and domain review pending). The GeoChat room names are `app/tak/geochat.ts`'s, shared with the
+ * CoT export, so the screen and the export name a room alike.
+ */
+export interface TakText {
+  /** The toolbar's short labels (under each icon) and the panes' titles. */
+  readonly toolbar: Readonly<Record<TakPaneId, string>>;
+  readonly paneTitle: Readonly<Record<TakPaneId, string>>;
+  readonly toolbarAria: string;
+  readonly closePane: string;
+  /** The info card (top-left): the participant's own call sign and role ("self"), the clock's label. */
+  readonly selfCallsign: string;
+  readonly selfRole: string;
+  readonly scenarioTime: string;
+  /** The coordinate readout (bottom-left). */
+  readonly cursorHint: string;
+  readonly mgrs: string;
+  readonly scale: string;
+  readonly overlays: {
+    readonly intro: string;
+    readonly layers: Readonly<Record<TakOverlayLayer, string>>;
+    /** What each toggle does, one line under it. */
+    readonly notes: Readonly<Record<TakOverlayLayer, string>>;
+    readonly lockedTitle: string;
+    readonly layersTitle: string;
+    readonly projection: string;
+    readonly currentPerimeter: string;
+    readonly lockedNote: string;
+    readonly unavailable: string;
+    readonly on: string;
+    readonly off: string;
+  };
+  readonly contacts: {
+    readonly self: string; readonly ground: string; readonly air: string;
+    readonly task: string; readonly water: string; readonly battery: string; readonly lastReport: string;
+    readonly unknown: string; readonly centreHint: string; readonly none: string;
+  };
+  readonly geochat: {
+    readonly rooms: Readonly<Record<"all" | ChatRoom, string>>;
+    readonly empty: string;
+    readonly readOnly: string;
+    readonly unread: (n: number) => string;
+  };
+  readonly video: {
+    readonly none: string; readonly battery: string; readonly footprint: string; readonly noFootprint: string;
+    readonly synthetic: string; readonly enlarge: string; readonly back: string; readonly unknown: string; readonly live: string;
+  };
+  readonly rb: {
+    readonly hintFirst: string; readonly hintSecond: string; readonly range: string; readonly bearing: string; readonly backBearing: string;
+    readonly clear: string; readonly from: string; readonly to: string; readonly again: string; readonly keeps: string;
+  };
+  /** The participant's own plan marks on the map: the main effort, the secondary sector, the drones. */
+  readonly plan: { readonly main: string; readonly secondary: string; readonly drones: string };
+}
+
+const TAK_FI: TakText = {
+  toolbar: { overlays: "Tasot", contacts: "Kontaktit", geochat: "GeoChat", video: "Video", range_bearing: "Mittaa", haku: "Haku", thinker: "Thinker", indexed_search: "Indeksi" },
+  paneTitle: { overlays: "Tasonhallinta", contacts: "Kontaktit", geochat: "GeoChat", video: "Video (droonit)", range_bearing: "Etäisyys ja suunta", haku: "Haku", thinker: "Thinker", indexed_search: "Indeksihaku" },
+  toolbarAria: "Työkalut",
+  closePane: "Sulje paneeli",
+  selfCallsign: "PTJ",
+  selfRole: "Pelastustoiminnan johtaja · johtopaikka",
+  scenarioTime: "Tilanneaika",
+  cursorHint: "Vie osoitin kartalle",
+  mgrs: "MGRS",
+  scale: "Mittakaava",
+  overlays: {
+    intro: "Valitse, mitä kartalla näytetään. Valinta pätee, kunnes muutat sitä.",
+    layers: { labels: "Tunnukset symbolien alla", footprints: "Anturien kuvausalueet", past_perimeters: "Aiemmat palorajat", rate_marks: "Leviämisnopeusmerkit", plan_marks: "Oman suunnitelman merkinnät" },
+    notes: {
+      labels: "Yksiköiden tunnukset näkyvät, kun karttaa on lähennetty.",
+      footprints: "Päällä: kaikkien ilmassa olevien droonien kuvausalueet. Pois: vain osoitetun ilma-aluksen.",
+      past_perimeters: "Aiemmin ilmoitetut palorajat ja niiden kellonajat.",
+      rate_marks: "Leviämisnopeudet ovat ilmoituksissa, eivät kartalla.",
+      plan_marks: "Tässä jaksossa kirjaamasi suunnitelman lohkot katkoviivalla.",
+    },
+    lockedTitle: "Aina näkyvissä",
+    layersTitle: "Valittavat tasot",
+    projection: "Ennuste",
+    currentPerimeter: "Nykyinen paloraja",
+    lockedNote: "Näitä ei voi piilottaa.",
+    unavailable: "Ei käytössä tässä tutkimuksessa.",
+    on: "Päällä",
+    off: "Pois",
+  },
+  contacts: {
+    self: "Oma", ground: "Maayksiköt", air: "Ilma-alukset",
+    task: "Tehtävä", water: "Vesi", battery: "Akku", lastReport: "Viimeisin viesti",
+    unknown: "–", centreHint: "Valitse kontakti keskittääksesi kartan siihen.", none: "Ei yksiköitä kartalla.",
+  },
+  geochat: {
+    rooms: { all: ALL_CHAT_ROOMS_LABEL.fi, ground: CHAT_ROOM_LABEL.ground.fi, air: CHAT_ROOM_LABEL.air.fi, command: CHAT_ROOM_LABEL.command.fi, support: CHAT_ROOM_LABEL.support.fi },
+    empty: "Ei viestejä tässä huoneessa.",
+    readOnly: "Vain luku: et voi lähettää viestejä yksiköille.",
+    unread: (n) => `${n} uutta viestiä`,
+  },
+  video: {
+    none: "Ei droonia ilmassa.", battery: "Akku", footprint: "Kuvausala", noFootprint: "Ei lämpökameran kuvausalaa",
+    synthetic: "Lämpökuva muodostetaan kartan tiedoista (ilmoitettu paloraja kuvausalan sisällä).", enlarge: "Suurenna", back: "Kaikki kuvat", unknown: "–", live: "LÄMPÖ",
+  },
+  rb: {
+    hintFirst: "Napauta kartalta alkupiste.", hintSecond: "Napauta kartalta loppupiste.",
+    range: "Etäisyys", bearing: "Suunta (tosi)", backBearing: "Paluusuunta", clear: "Tyhjennä", from: "Alku", to: "Loppu",
+    again: "Napauta uutta alkupistettä mitataksesi uudelleen.", keeps: "Viiva jää kartalle, kunnes tyhjennät sen.",
+  },
+  plan: { main: "Pääpaino", secondary: "Toissijainen", drones: "Droonit" },
+};
+
+const TAK_EN: TakText = {
+  toolbar: { overlays: "Overlays", contacts: "Contacts", geochat: "GeoChat", video: "Video", range_bearing: "R&B", haku: "Search", thinker: "Thinker", indexed_search: "Index" },
+  paneTitle: { overlays: "Overlay Manager", contacts: "Contacts", geochat: "GeoChat", video: "Video (drones)", range_bearing: "Range & Bearing", haku: "Search", thinker: "Thinker", indexed_search: "Indexed search" },
+  toolbarAria: "Tools",
+  closePane: "Close the pane",
+  selfCallsign: "IC",
+  selfRole: "Incident commander · command post",
+  scenarioTime: "Scenario time",
+  cursorHint: "Move the pointer over the map",
+  mgrs: "MGRS",
+  scale: "Scale",
+  overlays: {
+    intro: "Choose what the map shows. A choice holds until you change it.",
+    layers: { labels: "Call signs under symbols", footprints: "Sensor footprints", past_perimeters: "Earlier perimeters", rate_marks: "Spread-rate marks", plan_marks: "My plan marks" },
+    notes: {
+      labels: "Unit call signs show when the map is zoomed in.",
+      footprints: "On: every airborne drone's footprint. Off: only the aircraft under the pointer.",
+      past_perimeters: "Earlier reported perimeters and their times.",
+      rate_marks: "Spread rates are in the reports, not on the map.",
+      plan_marks: "The sectors of the plan you recorded in this period, dashed.",
+    },
+    lockedTitle: "Always shown",
+    layersTitle: "Layers you can switch",
+    projection: "Projection",
+    currentPerimeter: "Current perimeter",
+    lockedNote: "These cannot be hidden.",
+    unavailable: "Not used in this study.",
+    on: "On",
+    off: "Off",
+  },
+  contacts: {
+    self: "Self", ground: "Ground units", air: "Aircraft",
+    task: "Task", water: "Water", battery: "Battery", lastReport: "Last message",
+    unknown: "–", centreHint: "Select a contact to centre the map on it.", none: "No units on the map.",
+  },
+  geochat: {
+    rooms: { all: ALL_CHAT_ROOMS_LABEL.en, ground: CHAT_ROOM_LABEL.ground.en, air: CHAT_ROOM_LABEL.air.en, command: CHAT_ROOM_LABEL.command.en, support: CHAT_ROOM_LABEL.support.en },
+    empty: "No messages in this room.",
+    readOnly: "Read only: you cannot send messages to units.",
+    unread: (n) => `${n} new message${n === 1 ? "" : "s"}`,
+  },
+  video: {
+    none: "No drone in the air.", battery: "Battery", footprint: "Footprint", noFootprint: "No thermal camera footprint",
+    synthetic: "The thermal picture is drawn from the map's data (the reported fire edge inside the footprint).", enlarge: "Enlarge", back: "All feeds", unknown: "–", live: "THERMAL",
+  },
+  rb: {
+    hintFirst: "Tap the start point on the map.", hintSecond: "Tap the end point on the map.",
+    range: "Range", bearing: "Bearing (true)", backBearing: "Back bearing", clear: "Clear", from: "From", to: "To",
+    again: "Tap a new start point to measure again.", keeps: "The line stays on the map until you clear it.",
+  },
+  plan: { main: "Main effort", secondary: "Secondary", drones: "Drones" },
+};
 
 export interface UiText {
   /** The browser tab's title (`document.title`), set with the page's `lang` from the session language. */
@@ -195,6 +359,8 @@ export interface UiText {
     readonly pendingUploadBody: string;
     readonly startNew: string;
   };
+  /** The TAK shell (SPEC/28 §5). */
+  readonly tak: TakText;
 }
 
 const FI: UiText = {
@@ -371,6 +537,7 @@ const FI: UiText = {
     pendingUploadBody: "Tällä koneella on valmis istunto, jonka tietoja ei ole vielä lähetetty.",
     startNew: "Siirry aloitussivulle",
   },
+  tak: TAK_FI,
 };
 
 const EN: UiText = {
@@ -538,6 +705,7 @@ const EN: UiText = {
     pendingUploadBody: "There is a finished session on this computer whose data has not been sent yet.",
     startNew: "Go to the start page",
   },
+  tak: TAK_EN,
 };
 
 export const UI_TEXT: Readonly<Record<Lang, UiText>> = { fi: FI, en: EN };

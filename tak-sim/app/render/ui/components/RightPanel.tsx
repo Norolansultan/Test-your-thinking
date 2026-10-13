@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { TOUR_OPEN_TOOL_EVENT } from "../tour.js";
-import type { SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
+import type { RadioLogEntry, SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
 
 import { THINKER_MAX_QUESTION_CHARS } from "../../../session/thinker-protocol.js";
 import { displayAnswerText, questionRefusal } from "../../../session/chat-display.js";
@@ -149,13 +149,17 @@ function QuestionInput({ q, placeholder }: { readonly q: ReturnType<typeof useQu
   );
 }
 
-function HakuChat({ snapshot, orchestrator }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
+/**
+ * Haku's chat. Exported for the TAK shell's Haku pane (SPEC/28 §5), which shows this same component; `fill`: the chat takes
+ * the pane's whole height (there is no message log under it there).
+ */
+export function HakuChat({ snapshot, orchestrator, fill = false }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator; readonly fill?: boolean }) {
   const { t } = useLang();
   const q = useQuestion((query) => orchestrator.askAiChat(query));
   const pending = q.pending;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", maxHeight: "58%", minHeight: 0, borderBottom: "1px solid #33383e" }}>
+    <div style={{ display: "flex", flexDirection: "column", ...(fill ? { flex: 1 } : { maxHeight: "58%" }), minHeight: 0, borderBottom: "1px solid #33383e" }}>
       <div style={{ ...scrollArea, flex: "0 1 auto" }}>
         {snapshot.aiChatHistory.length === 0 && <div data-testid="haku-empty" style={{ opacity: 0.4, fontSize: 12.5 }}>{t.noQuestions(t.haku)}</div>}
         {snapshot.aiChatHistory.map((turn, i) => (
@@ -184,13 +188,14 @@ function HakuChat({ snapshot, orchestrator }: { readonly snapshot: SessionSnapsh
   );
 }
 
-function OpenAiChat({ snapshot, orchestrator }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
+/** The Open Thinker's chat. Exported for the TAK shell's Thinker pane (SPEC/28 §5), as `HakuChat`. */
+export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator; readonly fill?: boolean }) {
   const { t, lang } = useLang();
   const q = useQuestion((query) => orchestrator.askOpenThinker(query));
   const pending = q.pending;
 
   return (
-    <div data-tour="thinker-chat" style={{ display: "flex", flexDirection: "column", maxHeight: "58%", minHeight: 0, borderBottom: "1px solid #33383e" }}>
+    <div data-tour="thinker-chat" style={{ display: "flex", flexDirection: "column", ...(fill ? { flex: 1 } : { maxHeight: "58%" }), minHeight: 0, borderBottom: "1px solid #33383e" }}>
       <div style={{ ...scrollArea, flex: "0 1 auto" }}>
         {snapshot.openThinkerHistory.length === 0 && <div data-testid="thinker-empty" style={{ opacity: 0.4, fontSize: 12.5 }}>{t.noQuestions("Thinker")}</div>}
         {snapshot.openThinkerHistory.map((turn, i) => (
@@ -215,8 +220,8 @@ function OpenAiChat({ snapshot, orchestrator }: { readonly snapshot: SessionSnap
   );
 }
 
-function MessageLog({ snapshot, orchestrator }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
-  const { t, rec, src, lang } = useLang();
+function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
+  const { t } = useLang();
   return (
     <div data-tour="log" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <div style={{ ...panelHeader, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -224,14 +229,23 @@ function MessageLog({ snapshot, orchestrator }: { readonly snapshot: SessionSnap
       </div>
       <div style={scrollArea}>
         {snapshot.radioLog.length === 0 && <div style={{ opacity: 0.4, fontSize: 12.5 }}>{t.noMessages}</div>}
-        {snapshot.radioLog.map((entry, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6 }}>
-            <div style={{ opacity: 0.5, fontFamily: "monospace" }}>{entry.clockLabel}</div>
-            <div style={{ fontWeight: 600, fontFamily: "monospace" }}>{src(entry.from)}</div>
-            <div>{rec(entry.id, entry.text)}</div>
-          </div>
-        ))}
+        {snapshot.radioLog.map((entry, i) => <MessageLogRow key={i} entry={entry} />)}
       </div>
+    </div>
+  );
+}
+
+/**
+ * One message of the log: its time, its source and its text, in the session language. Shared with the TAK shell's GeoChat
+ * pane (SPEC/28 §5), so a message reads the same in both shells — its wording, time and source are never changed.
+ */
+export function MessageLogRow({ entry }: { readonly entry: RadioLogEntry }) {
+  const { rec, src, lang } = useLang();
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6 }}>
+      <div style={{ opacity: 0.5, fontFamily: "monospace" }}>{entry.clockLabel}</div>
+      <div style={{ fontWeight: 600, fontFamily: "monospace", overflowWrap: "anywhere" }}>{src(entry.from)}</div>
+      <div>{rec(entry.id, entry.text)}</div>
     </div>
   );
 }

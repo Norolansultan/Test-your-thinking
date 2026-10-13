@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **13 Oct 2026 (av)** — the TAK shell (`28` §5): header field `uiShell` (`"tak" | "classic"`; a resumed log without it resumes as classic) and six map-use kinds `tak_pane_opened` / `tak_pane_closed`, `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed`, `tak_video_viewed`. See the revision at the end.
 > - **10 Oct 2026 (am)** — the Thinker practice (`15` revision (am)): Open Thinker records in the practice view carry `view` 0 like every practice record (no browser record field changes; analysis drops them by that tag, inside the `phase_entered` practice … phase_a bracket); the Thinker server's JSONL line (both tools) gains **`practice`** (true for view 0), and an Open Thinker line in VP has `intentBlock` null and `verdict`/`verdicts` null. The tour step opens the Thinker tab, logged as `tab_selected open_thinker`.
 > - **10 Oct 2026 (al)** — `ai_chat_answer_received.aiVerdicts` (per-option verdicts); the chats send `queryId`; the Thinker server lines gain `queryId`, `attempts`, and for the Open Thinker `verdicts`, `citationIssues`, `directiveQuoted`, `historyHashes`, `userContentHash`. See the revision at the end.
 > - **9 Oct 2026 (ai)** — closed items: V13's area item logs `{unsure, areas, optionOrder}` and its option order in `probe_presented.optionIds`; the V14 backup's `probe_submitted.confidence`; the questionnaire's multi-select answers (option-id lists with `optionOrder`, `notShown`) and `questionnaire_presented.multiOptionOrders`; `plan.departureReason` is a closed enum. No free text is logged from the participant except the Search/Thinker questions. See the revision at the end.
@@ -590,3 +591,22 @@ No record kind or field changes (`12` revision (am)). Readings that change:
 - **`viewport_changed` with cause `view_start`** now records the opening frame of `12` (am) — a fixed 5 × 5 km box about the extent's centre, fitted to the map — instead of the whole study area; the "Fire" (`palo`) preset still records the whole area (`input: "preset"`). A move by the opening frame's refit while the map's size settles keeps `input: "frame"`.
 - **`layer_toggled` (`layerId: "legend"`)**: the legend now starts collapsed, so the first participant toggle has `newState: true`. Its opening during the practice tour's legend step is part of the tour (identical for everyone) and is not logged as a toggle.
 - **`element_enter` / `element_leave` / `click`** on unit markers and stack badges are unchanged; at the opening frame the markers are compact and the call sign shows only in the hover card, so `element_enter` on a unit is also where a participant read a call sign at that zoom.
+
+
+## Revision 13 Oct 2026 (av) — the TAK shell
+
+Follows `28` §5. Format version unchanged (0.9.4); the kinds are additive.
+
+- **Header:** `uiShell: "tak" | "classic"` — which screen the session ran. `?klassinen` / `?classic` selects the classic shell; the TAK shell is the default of the TAK build. A resumed session keeps its header's shell (`"classic"` when the field is absent). Data from the two shells are never pooled silently (`00` §6, `11` §7.29).
+- **Map use** (all through `logMapUse`, each with `view`):
+
+| Kind | Fields | When |
+|---|---|---|
+| `tak_pane_opened` / `tak_pane_closed` | `pane` (geochat, contacts, overlays, video, rb, haku, thinker, index), `cause` | a toolbar pane opens or closes |
+| `tak_contact_selected` | `uid` (`TAKSIM-UNIT-<id>`, `TAKSIM-AIR-<id>`, `TAKSIM-SELF`) | a contact is selected; the map's centring follows as `viewport_changed` (input `preset`) |
+| `tak_overlay_toggled` | `layer`, `on` | an Overlay Manager toggle (the projection and the current perimeter are not toggleable) |
+| `tak_rb_measured` | `from`, `to`, `metres`, `bearingDeg` | a Range & Bearing measurement completes |
+| `tak_chat_room_viewed` | `room` (all, ground, air, command, support) | a GeoChat room is selected |
+| `tak_video_viewed` | `platformId`, `cause` | a drone's video tile is shown |
+
+Opening or closing Haku or the Thinker in the TAK shell also writes the classic `tab_selected`, so tool use reads the same in both shells.

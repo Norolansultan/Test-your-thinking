@@ -103,8 +103,9 @@ Every tool interaction is logged through `logMapUse` with a `tak_*` kind (opened
 
 From the researcher's August design (the white cell's map, "continuous realistic change", in the style of Command: Modern Operations): a **separate, researcher-only page** `excon.html` (`npm run excon`, dev server only). It shows, per view and with a time slider and playback speed, the **truth** picture (the CA perimeter at the step's end, flags, designed events F7 / rekindle / omission / contradiction, branch truth) beside **the participant's picture** (the reported perimeter, the projection, units and drones, the CoT stream). It reads truth, so:
 
-- it is a separate Vite entry that the participant bundle never imports (import-boundary test);
-- `npm run build:prod` excludes it, and the production server never serves it.
+- it is served **only by the dev server** (a dev-only Vite plugin serves `app/excon/excon.html` at `/excon.html`); it is not a build input, so no build ever contains it;
+- a Vite build guard fails any build whose output contains an `app/excon` module or an "excon" file, `npm run build:prod` re-scans `dist/ui` (`tools/deploy/excon-guard.ts`), and the production server answers 404 for any path containing "excon";
+- `test/excon/isolation.spec.ts` checks that nothing outside `app/excon` imports it and that the participant entry's import graph never reaches it.
 
 **Public repository.** The researcher chose to keep this build, with the full content and answer keys, in the public `Test-your-thinking` repository (13 Oct 2026), knowing participants could in principle find the keys. Before data collection, either make the repository private or move the build to the private `Fire-rescue-simulation` repository (`11` §7.29).
 

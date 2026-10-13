@@ -1,0 +1,46 @@
+name: tak-sim CI
+
+# The TAK-based research instrument in tak-sim/ (see tak-sim/README.md, tak-sim/SPEC/28_TAK_Base.md).
+# Its own tak-sim/.github/workflows/ci.yml is inert in a subfolder; this workflow runs it from the
+# repository root: strict type check, the determinism lint (invariant I1) and the full vitest suite
+# (`npm run ci`), including the truth-boundary (I4) and EXCON isolation tests.
+
+on:
+  push:
+    paths:
+      - "tak-sim/**"
+      - ".github/workflows/tak-sim-ci.yml"
+  pull_request:
+    paths:
+      - "tak-sim/**"
+      - ".github/workflows/tak-sim-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tak-sim-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tak-sim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: tak-sim/package-lock.json
+
+      # GitHub's runners can download onnxruntime, so the full install (with install scripts) works here;
+      # restricted networks use `npm ci --ignore-scripts` instead (tak-sim/README.md).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check, determinism lint and tests (npm run ci)
+        run: npm run ci

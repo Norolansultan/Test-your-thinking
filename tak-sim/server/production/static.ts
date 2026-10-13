@@ -34,6 +34,17 @@ export function resolveInside(root: string, urlPath: string): string | null {
   return full === normalize(root) || full.startsWith(base) ? full : null;
 }
 
+/**
+ * SPEC/28 §8: the researcher-only EXCON page (it shows truth) is never served, whatever is on disk — not even
+ * through the single-page fallback. Any path naming it (`/excon`, `/excon.html`, an asset with "excon" in it)
+ * is a 404. The build never contains it either (`tools/deploy/excon-guard.ts`); this is the last lock.
+ */
+export function isExconPath(urlPath: string): boolean {
+  let decoded = urlPath;
+  try { decoded = decodeURIComponent(urlPath); } catch { /* the raw path is checked */ }
+  return /excon/i.test(decoded);
+}
+
 async function fileAt(path: string): Promise<Buffer | null> {
   try { return (await stat(path)).isFile() ? await readFile(path) : null; } catch { return null; }
 }
@@ -41,7 +52,7 @@ async function fileAt(path: string): Promise<Buffer | null> {
 export async function serveStatic(root: string, urlPath: string): Promise<StaticFile> {
   const path = resolveInside(root, urlPath === "/" ? "/index.html" : urlPath);
   const notFound: StaticFile = { status: 404, headers: { "content-type": "text/plain; charset=utf-8" }, body: Buffer.from("not found") };
-  if (path === null) return notFound;
+  if (path === null || isExconPath(urlPath)) return notFound;
   let target = path;
   let body = await fileAt(target);
   // A path without an extension is the single-page app (query parameters carry the configuration).

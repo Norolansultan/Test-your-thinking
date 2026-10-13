@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { defineConfig, type Plugin } from "vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig, normalizePath, type Plugin } from "vite";
 import preact from "@preact/preset-vite";
 
 // maplibre-gl 6 starts its worker from `new URL("./maplibre-gl-worker.mjs", import.meta.url)`, i.e. next
@@ -22,6 +23,57 @@ function maplibreWorker(): Plugin {
   };
 }
 
+// SPEC/28 §8: EXCON, the researcher-only exercise-control page (`app/excon/`, it SHOWS TRUTH). It is a
+// separate page the dev server serves at /excon.html (`npm run excon`) and that no build ever contains:
+//  - `exconDevPage` is `apply: "serve"`, so `vite build` / `npm run build:prod` never see the page (it is
+//    deliberately NOT a rollup input — a rollup input would put its chunks into dist/ui, which the
+//    production server serves);
+//  - `exconBuildGuard` fails any build whose output contains a module from app/excon/ or a file named
+//    excon (e.g. if participant code ever imported it), and `tools/deploy/build.ts` re-checks dist/ui;
+//  - `server/production/static.ts` refuses /excon paths even if a file got there.
+// test/excon/isolation.spec.ts checks all of it, plus that nothing outside app/excon/ imports app/excon/.
+const EXCON_DIR = fileURLToPath(new URL("./app/excon/", import.meta.url));
+const EXCON_PAGE_PATHS = ["/excon.html", "/excon"] as const;
+
+function exconDevPage(): Plugin {
+  return {
+    name: "excon-dev-page",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url ?? "").split("?")[0] ?? "";
+        if (!(EXCON_PAGE_PATHS as readonly string[]).includes(path)) return next();
+        // The page lives in app/excon/ (outside the participant root); its entry is served through /@fs/.
+        const entry = `/@fs/${normalizePath(join(EXCON_DIR, "main.tsx")).replace(/^\/+/, "")}`;
+        const raw = readFileSync(join(EXCON_DIR, "excon.html"), "utf8").replace('src="./main.tsx"', `src="${entry}"`);
+        server.transformIndexHtml("/excon.html", raw).then((html) => {
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.setHeader("Cache-Control", "no-store");
+          res.end(html);
+        }, next);
+      });
+      server.httpServer?.once("listening", () => setTimeout(() => {
+        for (const url of server.resolvedUrls?.local ?? []) server.config.logger.info(`  \u279c  EXCON (researcher only, shows truth): ${url}excon.html`);
+      }, 0));
+    },
+  };
+}
+
+function exconBuildGuard(): Plugin {
+  return {
+    name: "excon-build-guard",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      for (const [fileName, out] of Object.entries(bundle)) {
+        const ids = out.type === "chunk" ? out.moduleIds : [];
+        if (/excon/i.test(fileName) || ids.some((id) => normalizePath(id).includes("/app/excon/"))) {
+          this.error(`EXCON (researcher-only, shows truth, SPEC/28 §8) must never be in a build: ${fileName}`);
+        }
+      }
+    },
+  };
+}
+
 // Dev/preview build only — SPEC/05 §8 requires the real instrument's asset
 // bundle (tiles, fonts, scenario content) to be resolved offline before a
 // session starts (invariant I3: "no network during a run"). This config
@@ -30,7 +82,7 @@ function maplibreWorker(): Plugin {
 // app/render/ui/README.md.
 export default defineConfig({
   root: "app/render/ui",
-  plugins: [preact(), maplibreWorker()],
+  plugins: [preact(), maplibreWorker(), exconDevPage(), exconBuildGuard()],
   server: {
     host: true,
     port: 5173,
@@ -64,5 +116,8 @@ export default defineConfig({
   // the worker URL resolves correctly.
   optimizeDeps: {
     exclude: ["maplibre-gl"],
+    // The EXCON page (outside the participant root, so not scanned) draws 2525 symbols with milsymbol;
+    // pre-bundled up front so opening /excon.html does not trigger a re-optimise-and-reload.
+    include: ["milsymbol"],
   },
 });

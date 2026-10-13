@@ -14,6 +14,7 @@ import { build } from "vite";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { scenarioBundleHash } from "../../app/telemetry/bundle-hash.js";
 import { REPO_ROOT } from "../../server/thinker/config.js";
+import { exconLeaks } from "./excon-guard.js";
 
 function git(args: string[]): string {
   try { return execFileSync("git", args, { cwd: REPO_ROOT, encoding: "utf8" }).trim(); } catch { return ""; }
@@ -35,6 +36,9 @@ await build({ configFile: `${REPO_ROOT}vite.config.ts`, mode: "production" });
 for (const file of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
   if (!existsSync(`${REPO_ROOT}dist/ui/assets/${file}`)) throw new Error(`build:prod: dist/ui/assets/${file} is missing; the map would show no fire`);
 }
+// SPEC/28 §8: the researcher-only EXCON page shows truth; nothing of it may reach the study build (excon-guard.ts).
+const exconFiles = exconLeaks(`${REPO_ROOT}dist/ui`);
+if (exconFiles.length > 0) throw new Error(`build:prod: researcher-only EXCON material in dist/ui (SPEC/28 §8): ${exconFiles.join(", ")}`);
 
 console.log(`build:prod: dist/ui built, appVersion build stamp ${process.env.APP_BUILD}`);
 console.log(`build:prod: scenario bundleHash ${scenarioBundleHash(buildDemoScenario())}`);

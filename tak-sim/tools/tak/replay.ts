@@ -130,15 +130,50 @@ interface Sender {
   close(): Promise<void>;
 }
 
+/**
+ * A socket's failure after it opened (a TCP reset mid-stream, a UDP send error): the error listener stays for the socket's
+ * whole life — removing it would make the next `error` event an uncaught exception, so the replay's `finally` would never
+ * run. A failure rejects every send in flight and every later send; `close` then just destroys the socket.
+ */
+class SocketFailure {
+  private error: Error | null = null;
+  private readonly inFlight = new Set<(err: Error) => void>();
+
+  get failed(): Error | null { return this.error; }
+
+  fail(err: Error): void {
+    this.error ??= err;
+    for (const reject of this.inFlight) reject(this.error);
+    this.inFlight.clear();
+  }
+
+  /** Runs `start` with callbacks that settle the returned promise once; rejects at once when the socket already failed. */
+  track(start: (ok: () => void, fail: (err: Error) => void) => void): Promise<void> {
+    if (this.error) return Promise.reject(this.error);
+    return new Promise<void>((resolveSend, rejectSend) => {
+      const reject = (err: Error) => { this.inFlight.delete(reject); rejectSend(err); };
+      this.inFlight.add(reject);
+      start(() => { this.inFlight.delete(reject); resolveSend(); }, reject);
+    });
+  }
+}
+
 function tcpSender(host: string, port: number): Promise<Sender> {
   return new Promise((resolveSender, reject) => {
     const socket: TcpSocket = createConnection({ host, port });
-    socket.once("error", reject);
+    const failure = new SocketFailure();
+    let connected = false;
+    socket.on("error", (err) => (connected ? failure.fail(err) : reject(err)));
+    // The peer closing the connection is a failure too: later writes would go nowhere.
+    socket.on("close", () => { if (connected) failure.fail(new Error(`tak:replay: connection to ${host}:${port} closed`)); });
     socket.once("connect", () => {
-      socket.off("error", reject);
+      connected = true;
       resolveSender({
-        send: (xml) => new Promise((ok, fail) => socket.write(`${xml}\n`, (err) => (err ? fail(err) : ok()))),
-        close: () => new Promise((ok) => socket.end(() => ok())),
+        send: (xml) => failure.track((ok, fail) => { socket.write(`${xml}\n`, (err) => (err ? fail(err) : ok())); }),
+        close: () => new Promise((ok) => {
+          if (failure.failed || socket.destroyed) { socket.destroy(); ok(); return; }
+          socket.end(() => ok());
+        }),
       });
     });
   });
@@ -147,14 +182,18 @@ function tcpSender(host: string, port: number): Promise<Sender> {
 function udpSender(host: string, port: number, ttl: number): Promise<Sender> {
   return new Promise((resolveSender, reject) => {
     const socket: UdpSocket = createSocket({ type: "udp4", reuseAddr: true });
-    socket.once("error", reject);
+    const failure = new SocketFailure();
+    let bound = false;
+    socket.on("error", (err) => (bound ? failure.fail(err) : reject(err)));
     socket.bind(0, () => {
       const first = Number(host.split(".")[0]);
       if (first >= 224 && first <= 239) socket.setMulticastTTL(ttl);
-      socket.off("error", reject);
+      bound = true;
       resolveSender({
-        send: (xml) => new Promise((ok, fail) => socket.send(Buffer.from(xml, "utf8"), port, host, (err) => (err ? fail(err) : ok()))),
-        close: () => new Promise((ok) => socket.close(() => ok())),
+        send: (xml) => failure.track((ok, fail) => { socket.send(Buffer.from(xml, "utf8"), port, host, (err) => (err ? fail(err) : ok())); }),
+        close: () => new Promise((ok) => {
+          try { socket.close(() => ok()); } catch { ok(); } // already closed after a failure
+        }),
       });
     });
   });

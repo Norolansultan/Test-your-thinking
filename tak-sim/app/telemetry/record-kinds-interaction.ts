@@ -90,13 +90,18 @@ export interface WindowSizeWarningDetail {
 export type TakPaneId = "overlays" | "contacts" | "geochat" | "video" | "range_bearing" | "haku" | "thinker" | "indexed_search";
 /**
  * A pane opened or closed. `cause`: `toolbar` — its toolbar button; `close_button` — the pane's ×; `replaced` — another pane
- * opened in its place; `default` — the GeoChat pane the shell opens at the start (the classic shell's always-visible message
- * log); `tour` — the guided tour opened it (the Thinker practice).
+ * opened in its place; `default` — the GeoChat pane the shell opens each time it mounts (the classic shell's always-visible
+ * message log); `tour` — the guided tour opened it (the Thinker practice); `unmount` — closed because the shell unmounted
+ * (the training screen, the session's end, a resume), so every opening has its closing (SPEC/07 revision (av)).
+ *
+ * `overlays`: only on the mount's `default` opening — the Overlay Manager's full state then (every layer, keys sorted), so
+ * the map's layers can be rebuilt from the log alone (this record, then the `tak_overlay_toggled` records after it).
  */
 export interface TakPaneDetail {
   readonly pane: TakPaneId;
   readonly view: number;
-  readonly cause: "toolbar" | "close_button" | "replaced" | "default" | "tour";
+  readonly cause: "toolbar" | "close_button" | "replaced" | "default" | "tour" | "unmount";
+  readonly overlays?: Readonly<Record<TakOverlayLayer, boolean>>;
 }
 /** A contact chosen in the Contacts pane (the map is centred on it, a participant move). `uid` follows SPEC/28 §3: `TAKSIM-UNIT-<id>`, `TAKSIM-AIR-<id>`, `TAKSIM-SELF`. */
 export interface TakContactSelectedDetail {

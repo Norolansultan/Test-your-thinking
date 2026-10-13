@@ -1,7 +1,8 @@
 /**
  * Contacts (SPEC/28 §5): the participant ("self") and every unit and aircraft on the map now — 2525 symbol, call sign,
- * roster type, task, water in the tank, the last battery level and message the participant has been told. Choosing one
- * centres the map on it (the participant's own move; logged as `tak_contact_selected`). Renderable data only.
+ * roster type, task, water in the tank, the time of the last message the participant has been told. No battery level: the
+ * drones' battery reports are Haku-only records, never pushed (QA 13 Oct 2026). Choosing one centres the map on it (the
+ * participant's own move; logged as `tak_contact_selected`). Renderable data only.
  */
 
 import { useLang } from "../i18n.js";
@@ -41,8 +42,6 @@ function ContactRow({ c, active, onSelect }: { readonly c: TakContact; readonly 
   const C = t.tak.contacts;
   const facts: string[] = [];
   if (c.waterPct !== null) facts.push(`${C.water} ${c.waterPct} %`);
-  if (c.battery) facts.push(`${C.battery} ${c.battery.pct} % (${c.battery.clock})`);
-  else if (c.kind === "air") facts.push(`${C.battery} ${C.unknown}`);
   if (c.lastReport) facts.push(`${C.lastReport} ${c.lastReport}`);
   return (
     <button type="button" data-testid={`tak-contact-${c.id}`} onClick={onSelect} aria-pressed={active}

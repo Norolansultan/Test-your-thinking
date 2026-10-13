@@ -1,8 +1,11 @@
 /**
  * The TAK shell's map chrome (SPEC/28 §5), drawn inside the map's frame: top-left the info card — the participant's own
- * ("self") call sign and role, the scenario clock, the wind (the classic map's wind reading, `WindIndicator`) — and under
- * it, from V8, the command directive; bottom-left the pointer's coordinates in MGRS and lat/lon and the scale bar. North
- * up, no rotation. The fire labels keep clear of all of it (`data-map-chrome`, `fire-layers.ts`).
+ * ("self") call sign and role, the scenario clock, the wind (the classic map's wind reading, `WindIndicator`); bottom-left
+ * the pointer's coordinates in MGRS and lat/lon and the scale bar. North up, no rotation. The fire labels keep clear of all
+ * of it (`data-map-chrome`, `fire-layers.ts`).
+ *
+ * The command directive (from V8) is not map chrome: `TakDirectiveStrip` draws it as a full-width strip above the map
+ * (review 13 Oct 2026 — over the map it hid the places it names).
  */
 
 import { useEffect, useState } from "preact/hooks";
@@ -19,8 +22,8 @@ import { TAK } from "./theme.js";
 
 const card = { background: "#0d1114e8", border: `1px solid ${TAK.panelBorder}`, borderRadius: TAK.radius, color: TAK.text, boxShadow: "0 2px 10px #0008" };
 
-export function TakInfoCard({ clockLabel, wind, directive }: { readonly clockLabel: string; readonly wind: CycleWind | null | undefined; readonly directive: string | null }) {
-  const { t, tr } = useLang();
+export function TakInfoCard({ clockLabel, wind }: { readonly clockLabel: string; readonly wind: CycleWind | null | undefined }) {
+  const { t } = useLang();
   return (
     <div style={{ position: "absolute", zIndex: 21, top: 8, left: 8, display: "flex", flexDirection: "column", gap: 6, maxWidth: 330, pointerEvents: "none" }}>
       <div data-map-chrome data-testid="tak-info-card" style={{ ...card, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6, pointerEvents: "auto" }}>
@@ -38,13 +41,22 @@ export function TakInfoCard({ clockLabel, wind, directive }: { readonly clockLab
         </div>
         {wind && <div style={{ borderTop: `1px solid ${TAK.panelBorder}`, paddingTop: 5 }}><WindIndicator wind={wind} inline /></div>}
       </div>
-      {/* D1 (8 Oct 2026): the command directive, persistent from V8 on, identical in every cell (the classic right panel's line). */}
-      {directive !== null && (
-        <div data-map-chrome data-testid="directive-banner" style={{ ...card, padding: "7px 10px", borderLeft: `3px solid ${TAK.accent}`, pointerEvents: "auto" }}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: TAK.accent, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.directiveBanner}</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.4 }}>{tr(directive)}</div>
-        </div>
-      )}
+    </div>
+  );
+}
+
+/**
+ * D1 (8 Oct 2026): the command directive, persistent from V8 on, identical in every cell — the classic right panel's line,
+ * same label and wording. A full-width strip between the status strip and the map (SPEC/28 §5), never over the map; one or
+ * two lines. Its display is logged by the session (`directive_shown`, once, when V8's message delivers it), not here.
+ */
+export function TakDirectiveStrip({ directive }: { readonly directive: string }) {
+  const { t, tr } = useLang();
+  return (
+    <div data-testid="directive-banner" role="note" aria-label={t.directiveBanner}
+      style={{ display: "flex", alignItems: "baseline", gap: 10, flexShrink: 0, padding: "6px 14px", background: TAK.panelRaised, color: TAK.text, borderBottom: `1px solid ${TAK.panelBorder}`, borderLeft: `3px solid ${TAK.accent}` }}>
+      <span style={{ flex: "none", fontWeight: 700, fontSize: 11, color: TAK.accent, textTransform: "uppercase", letterSpacing: 0.4 }}>{t.directiveBanner}</span>
+      <span style={{ fontSize: 12.5, lineHeight: 1.4 }}>{tr(directive)}</span>
     </div>
   );
 }

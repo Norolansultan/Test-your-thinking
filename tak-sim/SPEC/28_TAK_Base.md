@@ -82,7 +82,11 @@ Layout, after ATAK/WinTAK:
 - **Video**: one tile per drone in the air — a deterministic synthetic thermal frame of what the drone's footprint covers (from renderable data only), its callsign and footprint (no battery, as in Contacts). No real video, no network.
 - **Range & Bearing**: two clicks give distance (m) and true bearing; the line stays until cleared. Logged as map use.
 
+**Stacking order (both shells, review 13 Oct 2026):** map chrome (20–21) < the forced situation question (25; was 15, so the zoom buttons and legend stayed clickable over it — a defect inherited from the classic shell) < the freeze screen (30; was 20) < the guided tour and the window-size cover (1000). This also changes the classic shell; port it to the original repository.
+
 Every tool interaction is logged through `logMapUse` with a `tak_*` kind (opened pane, selected contact, toggled overlay, R&B measurement, chat room viewed) so tool use is analysable alongside Haku and Thinker use.
+
+**Resume:** a resume is a page reload, so the pane open at the interruption gets no `tak_pane_closed`; analysis treats `session_resumed` as its close. The resumed shell logs a new `default` opening with the full overlay state.
 
 ## 6. Exports and TAK interoperability (outside study runs)
 

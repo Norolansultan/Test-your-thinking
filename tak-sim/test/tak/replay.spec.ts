@@ -82,6 +82,35 @@ describe("delivery", () => {
     expect(got).toEqual(events.filter((e) => e.detail.taksim.view === "V03"));
   });
 
+  it("rejects cleanly when the server resets the connection mid-stream: no uncaught error, the socket is closed", async () => {
+    // Before the fix the only `error` listener was removed after connect: the reset was an uncaught exception and the
+    // replay's `finally` (closing the socket) never ran — vitest fails the run on the former, `server.close` hangs on the latter.
+    let resets = 0;
+    const server = createServer((socket) => {
+      socket.on("error", () => undefined);
+      socket.once("data", () => { resets += 1; socket.resetAndDestroy(); });
+    });
+    await new Promise<void>((ok) => server.listen(0, "127.0.0.1", () => ok()));
+    const port = (server.address() as AddressInfo).port;
+    const lines: string[] = [];
+    try {
+      // The whole scenario at 200 000×: about a tenth of a second of paced sends, so the reset lands mid-stream.
+      await expect(replay(parseReplayArgs(["--host", "127.0.0.1", "--port", String(port), "--speed", "200000"]), events, (l) => lines.push(l))).rejects.toThrow();
+    } finally {
+      await new Promise<void>((ok) => server.close(() => ok())); // resolves only once the client's socket is closed too
+    }
+    expect(resets).toBe(1);
+    expect(lines.some((l) => l.includes("done"))).toBe(false);
+  });
+
+  it("refuses at once when nothing listens (the connect error still rejects)", async () => {
+    const server = createServer();
+    await new Promise<void>((ok) => server.listen(0, "127.0.0.1", () => ok()));
+    const port = (server.address() as AddressInfo).port;
+    await new Promise<void>((ok) => server.close(() => ok()));
+    await expect(replay(parseReplayArgs(["--host", "127.0.0.1", "--port", String(port), "--limit", "1"]), events, () => undefined)).rejects.toThrow(/ECONNREFUSED/);
+  });
+
   it("sends one datagram per event over UDP", async () => {
     const socket = createSocket("udp4");
     const datagrams: string[] = [];

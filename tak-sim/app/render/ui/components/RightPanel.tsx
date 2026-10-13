@@ -151,7 +151,7 @@ function QuestionInput({ q, placeholder }: { readonly q: ReturnType<typeof useQu
 
 /**
  * Haku's chat. Exported for the TAK shell's Haku pane (SPEC/28 §5), which shows this same component; `fill`: the chat takes
- * the pane's whole height (there is no message log under it there).
+ * the whole height of the box it is given (the TAK pane's upper part, over the message log).
  */
 export function HakuChat({ snapshot, orchestrator, fill = false }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator; readonly fill?: boolean }) {
   const { t } = useLang();
@@ -238,13 +238,15 @@ function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly
 /**
  * One message of the log: its time, its source and its text, in the session language. Shared with the TAK shell's GeoChat
  * pane (SPEC/28 §5), so a message reads the same in both shells — its wording, time and source are never changed.
+ * `wrapSource`: the TAK shell's narrower pane breaks a long source name inside its column; the classic log leaves it as it
+ * always was (review 13 Oct 2026: the classic layout must not change).
  */
-export function MessageLogRow({ entry }: { readonly entry: RadioLogEntry }) {
+export function MessageLogRow({ entry, wrapSource = false }: { readonly entry: RadioLogEntry; readonly wrapSource?: boolean }) {
   const { rec, src, lang } = useLang();
   return (
     <div style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6 }}>
       <div style={{ opacity: 0.5, fontFamily: "monospace" }}>{entry.clockLabel}</div>
-      <div style={{ fontWeight: 600, fontFamily: "monospace", overflowWrap: "anywhere" }}>{src(entry.from)}</div>
+      <div style={{ fontWeight: 600, fontFamily: "monospace", ...(wrapSource ? { overflowWrap: "anywhere" as const } : {}) }}>{src(entry.from)}</div>
       <div>{rec(entry.id, entry.text)}</div>
     </div>
   );

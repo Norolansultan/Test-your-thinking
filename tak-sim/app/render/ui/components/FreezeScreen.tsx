@@ -67,8 +67,11 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
     background: active ? "#3a3f44" : "#20242a", color: "#e8eaed",
   });
 
+  // z-index 30: above everything in the session's screen, the forced situation question (25) included — a freeze may
+  // interrupt it (review 13 Oct 2026; was 20, level with the map's chrome). Only the guided tour and the window-size cover
+  // (1000) are higher.
   return (
-    <div style={{ position: "absolute", inset: 0, background: "#0f1114", zIndex: 20, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <div style={{ position: "absolute", inset: 0, background: "#0f1114", zIndex: 30, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ padding: "16px 28px", borderBottom: "1px solid #33383e", display: "flex", alignItems: "flex-start", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, opacity: 0.6, letterSpacing: "0.06em" }}>{t.freezeTitle}</div>

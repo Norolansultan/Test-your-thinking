@@ -7,7 +7,7 @@
 import type { JSX } from "preact";
 import type { TakPaneId } from "../../../telemetry/record-kinds.js";
 import { useLang } from "../i18n.js";
-import { SEARCH_PANES } from "./shell.js";
+import { SEARCH_PANES, toolbarButtonName } from "./shell.js";
 import { TAK } from "./theme.js";
 
 const icon = (body: JSX.Element) => (
@@ -56,8 +56,10 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
         const active = open === p;
         const disabled = searchLocked && SEARCH_PANES.has(p);
         const tour = p === "geochat" && logTarget ? "log" : TOUR_TARGET[p];
+        const badge = p === "geochat" && unread > 0 && !active;
         return (
           <button key={p} type="button" data-testid={`tak-tool-${p}`} {...(tour ? { "data-tour": tour } : {})} disabled={disabled} aria-pressed={active}
+            aria-label={toolbarButtonName(t.tak.toolbar[p], t.tak.paneTitle[p], badge ? t.tak.geochat.unread(unread) : null)}
             onClick={() => onSelect(p)} title={t.tak.paneTitle[p]}
             style={{
               position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
@@ -67,8 +69,8 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
             }}>
             {TAK_PANE_ICON[p]}
             <span style={{ maxWidth: TAK.toolbarWidth - 10, overflowWrap: "anywhere" }}>{t.tak.toolbar[p]}</span>
-            {p === "geochat" && unread > 0 && !active && (
-              <span data-testid="tak-unread" aria-label={t.tak.geochat.unread(unread)}
+            {badge && (
+              <span data-testid="tak-unread" aria-hidden="true"
                 style={{ position: "absolute", top: 4, right: 8, minWidth: 18, height: 18, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, background: TAK.warn, color: "#1c1b19", fontSize: 11, fontWeight: 700, lineHeight: "18px" }}>
                 {unread > 99 ? "99+" : unread}
               </span>

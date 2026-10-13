@@ -8,7 +8,7 @@
 import type { LatLon, Polygon } from "../../../engine/primitives.js";
 import type { RenderableCycle } from "../../../boundary/render-boundary.js";
 import type { RadioLogEntry } from "../../../session/snapshot.js";
-import type { TakOverlayLayer, TakPaneId } from "../../../telemetry/record-kinds.js";
+import type { TakOverlayLayer, TakPaneDetail, TakPaneId } from "../../../telemetry/record-kinds.js";
 import type { UiShell } from "../../../session/header.js";
 import { CAPABILITY_MATRIX } from "../../../routing/capability-matrix.js";
 import { sortedKeys } from "../../../engine/deterministic-object.js";
@@ -59,6 +59,54 @@ export function tabToolOf(pane: TakPaneId | null): "haku" | "open_thinker" | "in
   return null;
 }
 
+/**
+ * Review 13 Oct 2026 (SPEC/28 §5): Haku, the Thinker and the index search open with the message log under them, as in the
+ * classic right column, so using a tool never hides the pushed reports. The tool takes this share of the side pane's
+ * height (per cent), the log ("All Chat Rooms", newest in view) the rest.
+ */
+export const SEARCH_TOOL_SHARE_PCT = 58;
+
+/** Whether the open pane shows the message log: GeoChat, and the search tools with the log under them. */
+export function paneShowsLog(pane: TakPaneId | null): boolean {
+  return pane === "geochat" || (pane !== null && SEARCH_PANES.has(pane));
+}
+
+/**
+ * A toolbar button's accessible name: its visible label first (WCAG 2.5.3, label in name), then the pane's full title when
+ * it says more ("R&B, Range & Bearing"), then GeoChat's unread count when its badge shows.
+ */
+export function toolbarButtonName(label: string, title: string, unread: string | null): string {
+  return [label, title !== label ? title : null, unread].filter((s): s is string => s !== null).join(", ");
+}
+
+// ---------------------------------------------------------------------------
+// The shell's mount and unmount records (SPEC/07 revision (av))
+// ---------------------------------------------------------------------------
+
+/** The pane the shell opens on every mount: GeoChat, the classic layout's always-visible message log. */
+export const DEFAULT_PANE: TakPaneId = "geochat";
+
+/**
+ * The record of the pane the shell opens when it mounts (cause `default`). It always carries the full overlay state — on
+ * every mount, not only when it differs from {@link DEFAULT_OVERLAYS} — so the map's layers at any moment can be rebuilt
+ * from the log alone: this record, then the `tak_overlay_toggled` records after it. (The state is kept across the remounts
+ * of one session — the training screen — and starts again from the defaults in a new or resumed session.)
+ */
+export function mountPaneRecord(view: number, overlays: TakOverlayState): TakPaneDetail {
+  return { pane: DEFAULT_PANE, view, cause: "default", overlays: overlaysForLog(overlays) };
+}
+
+/**
+ * What the shell logs when it unmounts (the training screen, the session's end, a resume) with `pane` open: the pane closed
+ * with cause `unmount`, and for a search tool the classic tab record `none` (as closing it with its button logs), so every
+ * opening has its closing. Nothing once the session is finished (`finished`: the engine is COMPLETE or ABORTED): no record
+ * may follow `session_completed`.
+ */
+export function unmountRecords(pane: TakPaneId | null, view: number, finished: boolean): { readonly closed: TakPaneDetail; readonly tab: "none" | null } | null {
+  if (finished || pane === null) return null;
+  return { closed: { pane, view, cause: "unmount" }, tab: SEARCH_PANES.has(pane) ? "none" : null };
+}
+
 // ---------------------------------------------------------------------------
 // Overlay Manager
 // ---------------------------------------------------------------------------
@@ -71,9 +119,15 @@ export const TAK_OVERLAY_LAYERS: readonly TakOverlayLayer[] = ["labels", "footpr
 /**
  * Each session starts from these, the same for everyone: call-sign labels on (they still follow the zoom, as in the classic
  * map), sensor footprints as in the classic map (only for the aircraft under the pointer), earlier perimeters on, rate marks
- * off, the participant's own plan marks on (SPEC/12 §6.2: where the participant has sent it, in the anticipated convention).
+ * off, and the participant's own plan marks off (review 13 Oct 2026, SPEC/28 §5: SPEC/12 does not provide for them under
+ * the projection, so the map starts as the classic map; the Overlay Manager can show them).
  */
-export const DEFAULT_OVERLAYS: TakOverlayState = { labels: true, footprints: false, past_perimeters: true, rate_marks: false, plan_marks: true };
+export const DEFAULT_OVERLAYS: TakOverlayState = { labels: true, footprints: false, past_perimeters: true, rate_marks: false, plan_marks: false };
+
+/** The overlay state as logged: every layer, keys in sorted order (the log's bytes must not depend on insertion order, I1). */
+export function overlaysForLog(state: TakOverlayState): TakOverlayState {
+  return { footprints: state.footprints, labels: state.labels, past_perimeters: state.past_perimeters, plan_marks: state.plan_marks, rate_marks: state.rate_marks };
+}
 
 /**
  * What the Overlay Manager lists but never lets the participant hide: the projection and the current (reported) perimeter
@@ -134,25 +188,10 @@ export interface TakContact {
   /** What the unit is doing now (`unitWork`), in the session language; null for aircraft and units without work. */
   readonly task: string | null;
   readonly waterPct: number | null;
-  /** The last battery level the participant was told (a pushed report from the platform), with its clock; null when not known. */
-  readonly battery: { readonly pct: number; readonly clock: string } | null;
   /** The clock of the platform's last message in the log; null when it has sent none. */
   readonly lastReport: string | null;
   readonly at: LatLon;
   readonly sidc: string;
-}
-
-const BATTERY = /\b(?:akku|battery)\s*(\d{1,3})\s*%/i;
-
-/** The last battery level a source reported in the message log (what the participant has been told), or null. */
-export function latestBattery(log: readonly RadioLogEntry[], sourceId: string): { readonly pct: number; readonly clock: string } | null {
-  let found: { pct: number; clock: string } | null = null;
-  for (const e of log) {
-    if (e.from.trim().toUpperCase() !== sourceId) continue;
-    const m = BATTERY.exec(e.text);
-    if (m) found = { pct: Math.min(100, Number(m[1])), clock: e.clockLabel };
-  }
-  return found;
 }
 
 /** The clock of a source's last message in the log, or null. */
@@ -167,10 +206,12 @@ type ContactCycle = Pick<RenderableCycle, "unitPositions" | "unitWork" | "aircra
 /**
  * Every unit and aircraft on the map now, after the participant's own "self" entry (the incident commander at the command
  * post): ground units by id, then aircraft by id. Positions are the map's (the crew's position for a crew on foot).
+ * No battery level (QA 13 Oct 2026, SPEC/28 §5): the drones' battery reports are Haku-only records, never pushed, so
+ * showing one would hand the participant what the design makes them search for.
  */
 export function takContacts(cycle: ContactCycle | null, log: readonly RadioLogEntry[], lang: "fi" | "en", self: { readonly at: LatLon; readonly callsign: string; readonly role: string }): TakContact[] {
   const out: TakContact[] = [{
-    uid: SELF_UID, id: "SELF", kind: "self", callsign: self.callsign, type: self.role, task: null, waterPct: null, battery: null, lastReport: null, at: self.at, sidc: SELF_SIDC,
+    uid: SELF_UID, id: "SELF", kind: "self", callsign: self.callsign, type: self.role, task: null, waterPct: null, lastReport: null, at: self.at, sidc: SELF_SIDC,
   }];
   const typeOf = (id: string) => (lang === "en" ? UNIT_ROSTER_EN[id]?.type : UNIT_ROSTER[id]?.typeFi) ?? null;
   if (!cycle) return out;
@@ -179,14 +220,14 @@ export function takContacts(cycle: ContactCycle | null, log: readonly RadioLogEn
     out.push({
       uid: contactUid(id, false), id, kind: "ground", callsign: unitCallSign(lang, id), type: typeOf(id),
       task: work ? taskLabel(id, work.task, lang) : null, waterPct: typeof work?.waterPct === "number" ? work.waterPct : null,
-      battery: latestBattery(log, id), lastReport: lastReportOf(log, id), at: cycle.unitPositions[id]!, sidc: sidcOf(id),
+      lastReport: lastReportOf(log, id), at: cycle.unitPositions[id]!, sidc: sidcOf(id),
     });
   }
   const air = [...cycle.aircraft].sort((a, b) => (a.platformId < b.platformId ? -1 : a.platformId > b.platformId ? 1 : 0));
   for (const a of air) {
     out.push({
       uid: contactUid(a.platformId, true), id: a.platformId, kind: "air", callsign: unitCallSign(lang, a.platformId), type: typeOf(a.platformId),
-      task: null, waterPct: null, battery: latestBattery(log, a.platformId), lastReport: lastReportOf(log, a.platformId), at: a.position, sidc: sidcOf(a.platformId),
+      task: null, waterPct: null, lastReport: lastReportOf(log, a.platformId), at: a.position, sidc: sidcOf(a.platformId),
     });
   }
   return out;

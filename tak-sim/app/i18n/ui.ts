@@ -49,8 +49,8 @@ export interface TakText {
   };
   readonly contacts: {
     readonly self: string; readonly ground: string; readonly air: string;
-    readonly task: string; readonly water: string; readonly battery: string; readonly lastReport: string;
-    readonly unknown: string; readonly centreHint: string; readonly none: string;
+    readonly task: string; readonly water: string; readonly lastReport: string;
+    readonly centreHint: string; readonly none: string;
   };
   readonly geochat: {
     readonly rooms: Readonly<Record<"all" | ChatRoom, string>>;
@@ -59,8 +59,8 @@ export interface TakText {
     readonly unread: (n: number) => string;
   };
   readonly video: {
-    readonly none: string; readonly battery: string; readonly footprint: string; readonly noFootprint: string;
-    readonly synthetic: string; readonly enlarge: string; readonly back: string; readonly unknown: string; readonly live: string;
+    readonly none: string; readonly footprint: string; readonly noFootprint: string;
+    readonly synthetic: string; readonly enlarge: string; readonly back: string; readonly live: string;
   };
   readonly rb: {
     readonly hintFirst: string; readonly hintSecond: string; readonly range: string; readonly bearing: string; readonly backBearing: string;
@@ -102,8 +102,8 @@ const TAK_FI: TakText = {
   },
   contacts: {
     self: "Oma", ground: "Maayksiköt", air: "Ilma-alukset",
-    task: "Tehtävä", water: "Vesi", battery: "Akku", lastReport: "Viimeisin viesti",
-    unknown: "–", centreHint: "Valitse kontakti keskittääksesi kartan siihen.", none: "Ei yksiköitä kartalla.",
+    task: "Tehtävä", water: "Vesi", lastReport: "Viimeisin viesti",
+    centreHint: "Valitse kontakti keskittääksesi kartan siihen.", none: "Ei yksiköitä kartalla.",
   },
   geochat: {
     rooms: { all: ALL_CHAT_ROOMS_LABEL.fi, ground: CHAT_ROOM_LABEL.ground.fi, air: CHAT_ROOM_LABEL.air.fi, command: CHAT_ROOM_LABEL.command.fi, support: CHAT_ROOM_LABEL.support.fi },
@@ -112,8 +112,8 @@ const TAK_FI: TakText = {
     unread: (n) => `${n} uutta viestiä`,
   },
   video: {
-    none: "Ei droonia ilmassa.", battery: "Akku", footprint: "Kuvausala", noFootprint: "Ei lämpökameran kuvausalaa",
-    synthetic: "Lämpökuva muodostetaan kartan tiedoista (ilmoitettu paloraja kuvausalan sisällä).", enlarge: "Suurenna", back: "Kaikki kuvat", unknown: "–", live: "LÄMPÖ",
+    none: "Ei droonia ilmassa.", footprint: "Kuvausala", noFootprint: "Ei lämpökameran kuvausalaa",
+    synthetic: "Lämpökuva muodostetaan kartan tiedoista (ilmoitettu paloraja kuvausalan sisällä).", enlarge: "Suurenna", back: "Kaikki kuvat", live: "LÄMPÖ",
   },
   rb: {
     hintFirst: "Napauta kartalta alkupiste.", hintSecond: "Napauta kartalta loppupiste.",
@@ -155,8 +155,8 @@ const TAK_EN: TakText = {
   },
   contacts: {
     self: "Self", ground: "Ground units", air: "Aircraft",
-    task: "Task", water: "Water", battery: "Battery", lastReport: "Last message",
-    unknown: "–", centreHint: "Select a contact to centre the map on it.", none: "No units on the map.",
+    task: "Task", water: "Water", lastReport: "Last message",
+    centreHint: "Select a contact to centre the map on it.", none: "No units on the map.",
   },
   geochat: {
     rooms: { all: ALL_CHAT_ROOMS_LABEL.en, ground: CHAT_ROOM_LABEL.ground.en, air: CHAT_ROOM_LABEL.air.en, command: CHAT_ROOM_LABEL.command.en, support: CHAT_ROOM_LABEL.support.en },
@@ -165,8 +165,8 @@ const TAK_EN: TakText = {
     unread: (n) => `${n} new message${n === 1 ? "" : "s"}`,
   },
   video: {
-    none: "No drone in the air.", battery: "Battery", footprint: "Footprint", noFootprint: "No thermal camera footprint",
-    synthetic: "The thermal picture is drawn from the map's data (the reported fire edge inside the footprint).", enlarge: "Enlarge", back: "All feeds", unknown: "–", live: "THERMAL",
+    none: "No drone in the air.", footprint: "Footprint", noFootprint: "No thermal camera footprint",
+    synthetic: "The thermal picture is drawn from the map's data (the reported fire edge inside the footprint).", enlarge: "Enlarge", back: "All feeds", live: "THERMAL",
   },
   rb: {
     hintFirst: "Tap the start point on the map.", hintSecond: "Tap the end point on the map.",

@@ -1,18 +1,17 @@
 /**
  * Video (SPEC/28 §5): one tile per drone in the air — a synthetic thermal frame of what its camera footprint covers,
- * drawn deterministically from the map's renderable data (`thermal-frame.ts`), with its call sign, the last battery level
- * the participant was told and the footprint's size and centre. No real video, no network. A tile shown, and a tile
- * enlarged, are logged (`tak_video_viewed`).
+ * drawn deterministically from the map's renderable data (`thermal-frame.ts`), with its call sign and the footprint's size
+ * and centre. No battery level, as in Contacts (the battery reports are Haku-only records). No real video, no network. A
+ * tile shown, and a tile enlarged, are logged (`tak_video_viewed`).
  */
 
 import { useEffect, useRef } from "preact/hooks";
 import type { RenderableCycle } from "../../../boundary/render-boundary.js";
-import type { RadioLogEntry } from "../../../session/snapshot.js";
 import { detectionColor } from "../fire-layers.js";
 import { useLang } from "../i18n.js";
 import { unitCallSign } from "../../../i18n/place-names.js";
 import { toMgrs } from "./coords.js";
-import { latestBattery, type VideoFeed } from "./shell.js";
+import type { VideoFeed } from "./shell.js";
 import { footprintSize, renderThermalFrame, thermalSceneOf, THERMAL_FRAME_SIZE, type ThermalFrame } from "./thermal-frame.js";
 import { paneScroll } from "./TakSidePane.js";
 import { TAK } from "./theme.js";
@@ -33,10 +32,9 @@ function frameFor(feed: VideoFeed, cycle: RenderableCycle): ThermalFrame | null 
   return f;
 }
 
-export function VideoPane({ feeds, cycle, log, selected, onSelect }: {
+export function VideoPane({ feeds, cycle, selected, onSelect }: {
   readonly feeds: readonly VideoFeed[];
   readonly cycle: RenderableCycle | null;
-  readonly log: readonly RadioLogEntry[];
   readonly selected: string | null;
   readonly onSelect: (platformId: string | null) => void;
 }) {
@@ -53,13 +51,13 @@ export function VideoPane({ feeds, cycle, log, selected, onSelect }: {
         </button>
       )}
       {feeds.length === 0 && <div style={{ fontSize: 12.5, opacity: 0.6 }}>{V.none}</div>}
-      {cycle && shown.map((feed) => <VideoTile key={feed.platformId} feed={feed} cycle={cycle} log={log} enlarged={enlarged === feed.platformId} onSelect={() => onSelect(enlarged === feed.platformId ? null : feed.platformId)} />)}
+      {cycle && shown.map((feed) => <VideoTile key={feed.platformId} feed={feed} cycle={cycle} enlarged={enlarged === feed.platformId} onSelect={() => onSelect(enlarged === feed.platformId ? null : feed.platformId)} />)}
       {feeds.length > 0 && <div style={{ fontSize: 11, color: TAK.textDim }}>{V.synthetic}</div>}
     </div>
   );
 }
 
-function VideoTile({ feed, cycle, log, enlarged, onSelect }: { readonly feed: VideoFeed; readonly cycle: RenderableCycle; readonly log: readonly RadioLogEntry[]; readonly enlarged: boolean; readonly onSelect: () => void }) {
+function VideoTile({ feed, cycle, enlarged, onSelect }: { readonly feed: VideoFeed; readonly cycle: RenderableCycle; readonly enlarged: boolean; readonly onSelect: () => void }) {
   const { t, lang } = useLang();
   const V = t.tak.video;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,7 +69,6 @@ function VideoTile({ feed, cycle, log, enlarged, onSelect }: { readonly feed: Vi
     if (frame) ctx.putImageData(new ImageData(frame.data, frame.width, frame.height), 0, 0);
     else { ctx.fillStyle = "#08090b"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   }, [frame]);
-  const battery = latestBattery(log, feed.platformId);
   const size = feed.footprint ? footprintSize(feed.footprint) : null;
   const ring = feed.footprint?.[0] ?? [];
   const centre = ring.length > 0 ? { lat: ring.reduce((a, p) => a + p.lat, 0) / ring.length, lon: ring.reduce((a, p) => a + p.lon, 0) / ring.length } : feed.position;
@@ -82,12 +79,10 @@ function VideoTile({ feed, cycle, log, enlarged, onSelect }: { readonly feed: Vi
         style={{ position: "relative", display: "block", width: "100%", padding: 0, border: `1px solid ${enlarged ? TAK.accent : TAK.panelBorder}`, borderRadius: TAK.radius, overflow: "hidden", background: "#000", cursor: "pointer" }}>
         <canvas ref={canvasRef} width={THERMAL_FRAME_SIZE.width} height={THERMAL_FRAME_SIZE.height} style={{ display: "block", width: "100%", aspectRatio: `${THERMAL_FRAME_SIZE.width} / ${THERMAL_FRAME_SIZE.height}` }} />
         <span style={{ ...hud, top: 4, left: 4, fontWeight: 700 }}>{unitCallSign(lang, feed.platformId)} · {V.live}</span>
-        <span style={{ ...hud, top: 4, right: 4 }}>{V.battery} {battery ? `${battery.pct} %` : V.unknown}</span>
         {!feed.footprint && <span style={{ ...hud, left: "50%", top: "50%", transform: "translate(-50%, -50%)", fontFamily: "inherit" }}>{V.noFootprint}</span>}
       </button>
       <figcaption style={{ fontSize: 11.5, color: TAK.textDim, fontFamily: TAK.mono, lineHeight: 1.4 }}>
         {size ? `${V.footprint} ≈ ${size.widthM} × ${size.heightM} m · ${toMgrs(centre, 4)}` : V.noFootprint}
-        {battery && <span> · {V.battery} {battery.pct} % ({battery.clock})</span>}
       </figcaption>
     </figure>
   );

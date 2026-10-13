@@ -1,13 +1,14 @@
 /**
  * SPEC/28 §5 GeoChat and Contacts, on a real session's snapshot: the message log grouped into rooms by source ("All Chat
  * Rooms" first) with every message kept as it is — its wording, time and source, in the log's order — and the Contacts
- * list built from the map's renderable units and aircraft, with what the participant has been told of each.
+ * list built from the map's renderable units and aircraft, with what the participant has been told of each. No battery
+ * level in Contacts or Video (QA 13 Oct 2026): the drones' battery reports are Haku-only records.
  */
 
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { CHAT_ROOMS, chatRoomOf } from "../../app/tak/geochat.js";
-import { geoChatRooms, GEOCHAT_ROOM_ORDER, latestBattery, lastReportOf, takContacts, contactUid } from "../../app/render/ui/tak/shell.js";
+import { geoChatRooms, GEOCHAT_ROOM_ORDER, lastReportOf, takContacts, contactUid } from "../../app/render/ui/tak/shell.js";
 import { sidcOf, SELF_UID } from "../../app/tak/symbols.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { assertNoTruthKeysPresent } from "../../app/boundary/render-boundary.js";
@@ -75,7 +76,7 @@ describe("GeoChat groups the real message log by source", () => {
   it("the pane shows each message through the classic log's own row and has no input (nobody can message a unit)", () => {
     const pane = code("app/render/ui/tak/GeoChatPane.tsx");
     expect(pane).toMatch(/import \{ MessageLogRow \} from "\.\.\/components\/RightPanel\.js";/);
-    expect(pane).toMatch(/<MessageLogRow key=\{index\} entry=\{entry\} \/>/);
+    expect(pane).toMatch(/<MessageLogRow key=\{index\} entry=\{entry\} wrapSource \/>/);
     expect(pane).not.toMatch(/<input|<textarea|contentEditable/);
     expect(code("app/render/ui/components/RightPanel.tsx")).toMatch(/\{snapshot\.radioLog\.map\(\(entry, i\) => <MessageLogRow key=\{i\} entry=\{entry\} \/>\)\}/);
   });
@@ -83,6 +84,14 @@ describe("GeoChat groups the real message log by source", () => {
   it("names the rooms with geochat.ts's own labels in both languages", () => {
     expect(UI_TEXT.en.tak.geochat.rooms).toEqual({ all: "All Chat Rooms", ground: "Ground units", air: "Air & drones", command: "Command", support: "Support & weather" });
     expect(UI_TEXT.fi.tak.geochat.rooms.all).toBe("Kaikki keskustelut");
+  });
+
+  it("the room tabs control a tab panel labelled by the room shown (ARIA tabs pattern)", () => {
+    const pane = code("app/render/ui/tak/GeoChatPane.tsx");
+    expect(pane).toMatch(/role="tablist"/);
+    expect(pane).toMatch(/role="tab" id=\{roomTabId\(r\.room\)\} aria-controls=\{ROOM_PANEL_ID\} aria-selected=\{active\}/);
+    expect(pane).toMatch(/role="tabpanel" id=\{ROOM_PANEL_ID\} aria-labelledby=\{roomTabId\(shown\.room\)\}/);
+    expect(readFileSync("app/render/ui/tak/GeoChatPane.tsx", "utf8")).toMatch(/const roomTabId = \(room: GeoChatRoomId\) => `tak-room-tab-\$\{room\}`;/);
   });
 });
 
@@ -102,7 +111,7 @@ describe("Contacts from the map's units and aircraft", () => {
     assertNoTruthKeysPresent(list);
   });
 
-  it("carries the task and water the map shows, and the last battery and message the participant was told", () => {
+  it("carries the task and water the map shows, and the time of the last message the participant was told", () => {
     const cycle = snap.renderTree.cycleInfo!;
     const list = takContacts(cycle, snap.radioLog, "en", self);
     for (const c of list.filter((x) => x.kind === "ground")) {
@@ -114,11 +123,26 @@ describe("Contacts from the map's units and aircraft", () => {
     const log = [
       { clockLabel: "13:30", from: "DR1", text: "DR1 anturiloki: korkeus 120 m, akku 21 %, viimeisin kuva klo 13.30." },
       { clockLabel: "13:50", from: "DR1", text: "DR1 anturiloki: akku 58 %." },
-      { clockLabel: "13:55", from: "EK11", text: "EK11: akku 99 % (not a drone's)" },
     ];
-    expect(latestBattery(log, "DR1")).toEqual({ pct: 58, clock: "13:50" });
-    expect(latestBattery(log, "DR2")).toBeNull();
     expect(lastReportOf(log, "DR1")).toBe("13:50");
+    expect(lastReportOf(log, "DR2")).toBeNull();
+  });
+
+  it("shows no battery level: not in a contact, not in Contacts or Video, not in their strings (Haku-only records)", () => {
+    // A log that does carry a battery report (as a Haku answer might): the contact still has no battery.
+    const log = [...snap.radioLog, { clockLabel: "13:50", from: "DR1", text: "DR1 anturiloki: akku 58 %." }];
+    const list = takContacts(snap.renderTree.cycleInfo!, log, "en", self);
+    for (const c of list) expect(c).not.toHaveProperty("battery");
+    expect(JSON.stringify(list)).not.toMatch(/battery|akku/i);
+    for (const f of ["shell.ts", "ContactsPane.tsx", "VideoPane.tsx", "TakSessionLayout.tsx"]) {
+      expect(code(`app/render/ui/tak/${f}`), f).not.toMatch(/battery|latestBattery|akku/i);
+    }
+    for (const lang of ["fi", "en"] as const) {
+      expect(UI_TEXT[lang].tak.contacts).not.toHaveProperty("battery");
+      expect(UI_TEXT[lang].tak.video).not.toHaveProperty("battery");
+    }
+    // Video no longer reads the message log at all.
+    expect(code("app/render/ui/tak/VideoPane.tsx")).not.toMatch(/RadioLogEntry|\blog\b/);
   });
 
   it("selecting a contact is logged first, then the map is centred as the participant's own move", () => {

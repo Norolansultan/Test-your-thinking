@@ -96,8 +96,11 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
   );
   if (!spam.forced) return item;
   // Forced: a modal step over the map column (the map and the decision strip out of reach); the right column stays usable.
+  // z-index 25 (was 15, review 13 Oct 2026): above all of the map's chrome — zoom buttons, legend, wind (20), the TAK
+  // shell's info card and coordinates (21) — in both shells; below the freeze screen (30), which may interrupt
+  // mid-question, and the guided tour (1000).
   return (
-    <div role="dialog" aria-modal="true" aria-label={t.spam.title} style={{ position: "absolute", inset: 0, zIndex: 15, background: "rgba(15,17,20,0.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div role="dialog" aria-modal="true" aria-label={t.spam.title} style={{ position: "absolute", inset: 0, zIndex: 25, background: "rgba(15,17,20,0.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ width: "min(640px, 100%)", border: `1px solid ${AMBER}`, borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>{item}</div>
     </div>
   );

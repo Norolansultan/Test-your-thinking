@@ -2,12 +2,13 @@
  * SPEC/28 §5 Overlay Manager: the call-sign labels, sensor footprints, earlier perimeters and the participant's own plan
  * marks can be switched; the projection and the current perimeter cannot — they carry the primary DV and stay drawn by
  * SPEC/12's layers whatever the state. Rate marks are listed but stay off: they are not drawn in this study (SPEC/12 (y)).
+ * The plan marks start off (review 13 Oct 2026). The state is logged in full, keys sorted, at every mount (SPEC/07 (av)).
  */
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_OVERLAYS, isToggleableOverlay, LOCKED_OVERLAYS, overlayLayerVisibility, PROTECTED_MAP_LAYER_PREFIXES, TAK_OVERLAY_LAYERS, toggleOverlay,
+  DEFAULT_OVERLAYS, isToggleableOverlay, LOCKED_OVERLAYS, overlayLayerVisibility, overlaysForLog, PROTECTED_MAP_LAYER_PREFIXES, TAK_OVERLAY_LAYERS, toggleOverlay,
   type TakOverlayState,
 } from "../../app/render/ui/tak/shell.js";
 import { TAK_MAP_CSS } from "../../app/render/ui/tak/tak-map.js";
@@ -58,8 +59,23 @@ describe("what can and cannot be switched", () => {
     }
   });
 
-  it("every session starts from the same state: labels, earlier perimeters and plan marks on; footprints as in the classic map; rate marks off", () => {
-    expect(DEFAULT_OVERLAYS).toEqual({ labels: true, footprints: false, past_perimeters: true, rate_marks: false, plan_marks: true });
+  it("every session starts from the same state: labels and earlier perimeters on; footprints as in the classic map; rate marks and own plan marks off", () => {
+    expect(DEFAULT_OVERLAYS).toEqual({ labels: true, footprints: false, past_perimeters: true, rate_marks: false, plan_marks: false });
+    // The plan marks start hidden (SPEC/12 does not provide for them under the projection) but can be switched on.
+    expect(isToggleableOverlay("plan_marks")).toBe(true);
+    expect(overlayLayerVisibility(DEFAULT_OVERLAYS).filter(([id]) => id.startsWith("tak-plan")).every(([, on]) => !on)).toBe(true);
+  });
+
+  it("the logged state names every layer, keys sorted, values as they are — for every state (deterministic bytes, I1)", () => {
+    const sorted = [...TAK_OVERLAY_LAYERS].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    for (const s of allStates()) {
+      const logged = overlaysForLog(s);
+      expect(JSON.stringify(Object.keys(logged))).toBe(JSON.stringify(sorted));
+      for (const l of TAK_OVERLAY_LAYERS) expect(logged[l]).toBe(s[l]);
+      // An object built in another key order logs the same bytes.
+      const reversed = Object.fromEntries([...TAK_OVERLAY_LAYERS].reverse().map((l) => [l, s[l]])) as TakOverlayState;
+      expect(JSON.stringify(overlaysForLog(reversed))).toBe(JSON.stringify(logged));
+    }
   });
 });
 

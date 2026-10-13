@@ -911,7 +911,9 @@ export type RecordKind = TelemetryEvent["kind"];
  * legend (`layerId: "legend"`); `freeze_map_pick`, `map_labels_placed` and `window_size_warning` are added.
  * The TAK shell (13 Oct 2026, SPEC/28 §5, same version, not yet released): `tak_pane_opened`, `tak_pane_closed`,
  * `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed` and `tak_video_viewed` are added
- * (emitted only by the TAK shell, through `logMapUse`); the header may carry `uiShell` (`tak` | `classic`).
+ * (emitted only by the TAK shell, through `logMapUse`); the header may carry `uiShell` (`tak` | `classic`). After review
+ * (revision (av)): a pane open when the shell unmounts is closed with cause `unmount`, and the mount's `default` opening
+ * carries the full overlay state (`overlays`, keys sorted).
  */
 export const TELEMETRY_FORMAT_VERSION = "0.9.4";
 

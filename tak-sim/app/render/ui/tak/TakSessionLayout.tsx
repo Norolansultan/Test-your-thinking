@@ -6,9 +6,12 @@
  * window-size cover stay with `SessionView`.
  *
  * GeoChat is open at the start, so the message log is on screen from the first moment as in the classic layout (the
- * toolbar counts what arrives while it is closed). Every tool interaction is logged through `logMapUse` with a `tak_*`
- * kind (SPEC/28 §5); opening and closing Haku or the Thinker also logs `tab_selected`, as the classic right panel does, so
- * tool use reads alike in both shells. Reads the snapshot's renderable data only (I4); no clock, no randomness (I1).
+ * toolbar counts what arrives while it is closed); Haku, the Thinker and the index search open with the log under them. From
+ * V8 the command directive is a full-width strip above the map (inside the blanked area, so a freeze hides it). Every tool
+ * interaction is logged through `logMapUse` with a `tak_*` kind (SPEC/28 §5); opening and closing Haku or the Thinker also
+ * logs `tab_selected`, as the classic right panel does, so tool use reads alike in both shells. Each mount opens GeoChat
+ * with the overlay state in its record, and the pane open at an unmount is closed then (SPEC/07 revision (av)). Reads the
+ * snapshot's renderable data only (I4); no clock, no randomness (I1).
  */
 
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -23,8 +26,9 @@ import type { PlanDraft } from "../components/DecisionPanels.js";
 import { OVERLAY } from "../map-overlay.js";
 import { TOUR_OPEN_TOOL_EVENT } from "../tour.js";
 import { useLang } from "../i18n.js";
+import { TERMINAL_STATES } from "../../../engine/freeze-machine.js";
 import {
-  DEFAULT_OVERLAYS, SEARCH_PANES, tabToolOf, takContacts, takToolbarPanes, toggleOverlay, videoFeeds,
+  DEFAULT_OVERLAYS, DEFAULT_PANE, mountPaneRecord, paneShowsLog, SEARCH_PANES, tabToolOf, takContacts, takToolbarPanes, toggleOverlay, unmountRecords, videoFeeds,
   type GeoChatRoomId, type TakContact, type TakOverlayState,
 } from "./shell.js";
 import { clearRangeBearing, setRangeBearing, TAK_MAP_CSS } from "./tak-map.js";
@@ -39,7 +43,7 @@ import { OverlayManagerPane } from "./OverlayManagerPane.js";
 import { VideoPane } from "./VideoPane.js";
 import { RangeBearingPane, type RbState } from "./RangeBearingPane.js";
 import { HakuPane, IndexSearchPane, ThinkerPane } from "./SearchPanes.js";
-import { TakCoordReadout, TakInfoCard } from "./TakMapChrome.js";
+import { TakCoordReadout, TakDirectiveStrip, TakInfoCard } from "./TakMapChrome.js";
 import { TAK } from "./theme.js";
 
 /**
@@ -71,7 +75,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
   useEffect(() => { kept.set(orchestrator, { overlays, room }); }, [overlays, room]);
 
   const panes = takToolbarPanes(condition, { indexedSearch });
-  const [pane, setPane] = useState<TakPaneId | null>("geochat");
+  const [pane, setPane] = useState<TakPaneId | null>(DEFAULT_PANE);
   const paneRef = useRef(pane);
   paneRef.current = pane;
 
@@ -89,8 +93,21 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
     paneRef.current = target;
     setPane(target);
   };
-  // GeoChat open from the start (the classic layout's always-visible log), logged once per mount.
-  useEffect(() => { log({ kind: "tak_pane_opened", detail: { pane: "geochat", view: viewRef.current, cause: "default" } }); }, []);
+  // GeoChat open from the start (the classic layout's always-visible log), logged once per mount with the overlay state then
+  // (`mountPaneRecord`: always, so the map's layers can be rebuilt from the log). On unmount (the training screen, the
+  // session's end) the open pane is closed, with the search tool's `none` tab record — never after the session is finished,
+  // and never fatal: the screen is going away.
+  useEffect(() => {
+    log({ kind: "tak_pane_opened", detail: mountPaneRecord(viewRef.current, overlays) });
+    return () => {
+      try {
+        const records = unmountRecords(paneRef.current, viewRef.current, TERMINAL_STATES.has(orchestrator.engineState));
+        if (!records) return;
+        log({ kind: "tak_pane_closed", detail: records.closed });
+        if (records.tab) void orchestrator.logTabSelected(records.tab).catch(() => undefined);
+      } catch { /* the session is gone: nothing to log */ }
+    };
+  }, []);
   // Revision (am): the practice tour's Thinker step opens the Thinker pane (logged like a click on it).
   useEffect(() => {
     const open = (e: Event) => { if ((e as CustomEvent).detail === "ai" && panes.includes("thinker") && paneRef.current !== "thinker") choosePane("thinker", "tour"); };
@@ -98,9 +115,9 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
     return () => window.removeEventListener(TOUR_OPEN_TOOL_EVENT, open);
   });
 
-  // GeoChat's unread count: what arrived while its pane was closed.
+  // GeoChat's unread count: what arrived while no open pane showed the log (GeoChat, or a search tool over it).
   const [seen, setSeen] = useState(snapshot.radioLog.length);
-  useEffect(() => { if (pane === "geochat") setSeen(snapshot.radioLog.length); }, [pane, snapshot.radioLog.length]);
+  useEffect(() => { if (paneShowsLog(pane)) setSeen(snapshot.radioLog.length); }, [pane, snapshot.radioLog.length]);
   const unread = Math.max(0, snapshot.radioLog.length - seen);
 
   // The live map, once loaded (MapView hands it over).
@@ -182,7 +199,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
       case "overlays": return <OverlayManagerPane state={overlays} onToggle={onToggle} />;
       case "contacts": return <ContactsPane contacts={contacts} onSelect={onContact} selected={selectedContact} />;
       case "geochat": return <GeoChatPane log={snapshot.radioLog} room={room} onRoom={onRoom} />;
-      case "video": return <VideoPane feeds={feeds} cycle={snapshot.renderTree.cycleInfo} log={snapshot.radioLog} selected={videoSelected} onSelect={onVideo} />;
+      case "video": return <VideoPane feeds={feeds} cycle={snapshot.renderTree.cycleInfo} selected={videoSelected} onSelect={onVideo} />;
       case "range_bearing": return <RangeBearingPane rb={rb} onClear={() => setRb({ from: null, to: null })} />;
       case "haku": return <HakuPane snapshot={snapshot} orchestrator={orchestrator} />;
       case "thinker": return <ThinkerPane snapshot={snapshot} orchestrator={orchestrator} />;
@@ -192,30 +209,34 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
 
   return (
     <div inert={frozen} aria-hidden={frozen} data-testid="tak-shell"
-      style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0, position: "relative", visibility: frozen ? "hidden" : "visible", background: TAK.panel }}>
+      style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", visibility: frozen ? "hidden" : "visible", background: TAK.panel }}>
       <style>{TAK_MAP_CSS}</style>
-      {/* The map column: the map, then the decision strip under it, as in the classic layout (SessionView). */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-          <MapView snapshot={snapshot} extent={extent} onMapUse={(e) => orchestrator.logMapUse(e)} tak={tak}>
-            <TakInfoCard clockLabel={snapshot.clockLabel} wind={snapshot.renderTree.cycleInfo?.wind} directive={snapshot.directiveInForce} />
-            <TakCoordReadout map={handle?.map ?? null} />
-          </MapView>
-          {snapshot.visibleProbe && (
-            <VisibleProbeCard probe={snapshot.visibleProbe} orchestrator={orchestrator} />
-          )}
-          {snapshot.spam && <SpamCard spam={snapshot.spam} orchestrator={orchestrator} />}
-          <div inert={snapshot.decisionHeld} aria-hidden={snapshot.decisionHeld} style={{ display: snapshot.visibleProbe ? "none" : "flex", flexDirection: "column", flexShrink: 0, opacity: snapshot.decisionHeld ? 0.45 : 1 }}>
-            <JudgementPanel snapshot={snapshot} orchestrator={orchestrator} planDraft={planDraft} onPlanDraft={onPlanDraft} />
+      {/* From V8 (null before): the directive, full width between the status strip and the map — never over the map. */}
+      {snapshot.directiveInForce !== null && <TakDirectiveStrip directive={snapshot.directiveInForce} />}
+      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
+        {/* The map column: the map, then the decision strip under it, as in the classic layout (SessionView). */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+            <MapView snapshot={snapshot} extent={extent} onMapUse={(e) => orchestrator.logMapUse(e)} tak={tak}>
+              <TakInfoCard clockLabel={snapshot.clockLabel} wind={snapshot.renderTree.cycleInfo?.wind} />
+              <TakCoordReadout map={handle?.map ?? null} />
+            </MapView>
+            {snapshot.visibleProbe && (
+              <VisibleProbeCard probe={snapshot.visibleProbe} orchestrator={orchestrator} />
+            )}
+            {snapshot.spam && <SpamCard spam={snapshot.spam} orchestrator={orchestrator} />}
+            <div inert={snapshot.decisionHeld} aria-hidden={snapshot.decisionHeld} style={{ display: snapshot.visibleProbe ? "none" : "flex", flexDirection: "column", flexShrink: 0, opacity: snapshot.decisionHeld ? 0.45 : 1 }}>
+              <JudgementPanel snapshot={snapshot} orchestrator={orchestrator} planDraft={planDraft} onPlanDraft={onPlanDraft} />
+            </div>
           </div>
         </div>
+        {pane !== null && (
+          <TakSidePane key={pane} testId={`tak-pane-${pane}`} title={t.tak.paneTitle[pane]} onClose={() => choosePane(null, "close_button")}>
+            {body(pane)}
+          </TakSidePane>
+        )}
+        <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} />
       </div>
-      {pane !== null && (
-        <TakSidePane key={pane} testId={`tak-pane-${pane}`} title={t.tak.paneTitle[pane]} onClose={() => choosePane(null, "close_button")}>
-          {body(pane)}
-        </TakSidePane>
-      )}
-      <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={pane !== "geochat"} />
     </div>
   );
 }

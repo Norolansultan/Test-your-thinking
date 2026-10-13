@@ -47,6 +47,8 @@
     "@huggingface/transformers": "^4.3.0",
     "howler": "^2.2.4",
     "maplibre-gl": "^6.10.0",
+    "mgrs": "^2.2.0",
+    "milsymbol": "^3.0.4",
     "preact": "^10.29.8"
   }
 }

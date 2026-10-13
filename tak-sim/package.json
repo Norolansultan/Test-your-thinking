@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "excon": "vite --open /excon.html",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -30,7 +31,9 @@
     "build:prod": "tsx tools/deploy/build.ts",
     "serve": "tsx server/production/main.ts",
     "sessions:export": "tsx tools/deploy/export-sessions.ts",
-    "review:export": "tsx tools/review/export.ts"
+    "review:export": "tsx tools/review/export.ts",
+    "tak:export": "tsx tools/tak/export.ts",
+    "tak:replay": "tsx tools/tak/replay.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",

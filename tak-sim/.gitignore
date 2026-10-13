@@ -30,3 +30,6 @@ review-packet/
 .claude-flow/data/
 .claude-flow/logs/
 .claude-flow/sessions/
+
+# TAK export (npm run tak:export, SPEC/28 §6): generated CoT files and data package
+dist-tak/

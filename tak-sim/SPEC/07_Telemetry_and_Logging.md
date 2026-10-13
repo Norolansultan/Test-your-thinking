@@ -3,7 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
-> - **13 Oct 2026 (av)** — the TAK shell (`28` §5): header field `uiShell` (`"tak" | "classic"`; a resumed log without it resumes as classic) and six map-use kinds `tak_pane_opened` / `tak_pane_closed`, `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed`, `tak_video_viewed`. See the revision at the end.
+> - **13 Oct 2026 (av)** — the TAK shell (`28` §5): header field `uiShell` (`"tak" | "classic"`; a resumed log without it resumes as classic) and seven map-use kinds `tak_pane_opened`, `tak_pane_closed`, `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed`, `tak_video_viewed`. See the revision at the end.
 > - **10 Oct 2026 (am)** — the Thinker practice (`15` revision (am)): Open Thinker records in the practice view carry `view` 0 like every practice record (no browser record field changes; analysis drops them by that tag, inside the `phase_entered` practice … phase_a bracket); the Thinker server's JSONL line (both tools) gains **`practice`** (true for view 0), and an Open Thinker line in VP has `intentBlock` null and `verdict`/`verdicts` null. The tour step opens the Thinker tab, logged as `tab_selected open_thinker`.
 > - **10 Oct 2026 (al)** — `ai_chat_answer_received.aiVerdicts` (per-option verdicts); the chats send `queryId`; the Thinker server lines gain `queryId`, `attempts`, and for the Open Thinker `verdicts`, `citationIssues`, `directiveQuoted`, `historyHashes`, `userContentHash`. See the revision at the end.
 > - **9 Oct 2026 (ai)** — closed items: V13's area item logs `{unsure, areas, optionOrder}` and its option order in `probe_presented.optionIds`; the V14 backup's `probe_submitted.confidence`; the questionnaire's multi-select answers (option-id lists with `optionOrder`, `notShown`) and `questionnaire_presented.multiOptionOrders`; `plan.departureReason` is a closed enum. No free text is logged from the participant except the Search/Thinker questions. See the revision at the end.
@@ -602,7 +602,7 @@ Follows `28` §5. Format version unchanged (0.9.4); the kinds are additive.
 
 | Kind | Fields | When |
 |---|---|---|
-| `tak_pane_opened` / `tak_pane_closed` | `pane` (geochat, contacts, overlays, video, rb, haku, thinker, index), `cause` | a toolbar pane opens or closes |
+| `tak_pane_opened` / `tak_pane_closed` | `pane` (geochat, contacts, overlays, video, range_bearing, haku, thinker, indexed_search), `cause` | a toolbar pane opens or closes; a pane open when the shell unmounts (the training screen, the session's end, a resume) is closed with cause `unmount`, and the shell's first pane opens with cause `default` |
 | `tak_contact_selected` | `uid` (`TAKSIM-UNIT-<id>`, `TAKSIM-AIR-<id>`, `TAKSIM-SELF`) | a contact is selected; the map's centring follows as `viewport_changed` (input `preset`) |
 | `tak_overlay_toggled` | `layer`, `on` | an Overlay Manager toggle (the projection and the current perimeter are not toggleable) |
 | `tak_rb_measured` | `from`, `to`, `metres`, `bearingDeg` | a Range & Bearing measurement completes |

@@ -204,12 +204,16 @@ function syncLabels(map: MapLibreMap, labels: readonly FireLabel[]) {
     const at = l.anchors[0]!;
     if (!m) {
       const el = document.createElement("div");
+      // Set before the Marker is built: MapLibre adds its positioning classes (`maplibregl-marker`, the anchor) only in
+      // the constructor, so assigning `className` afterwards would strip them and every label would lose its place
+      // (review 13 Oct 2026). A label's key fixes its kind, so the class never needs to change. The TAK Overlay
+      // Manager hides the earlier perimeters' times by this class.
+      el.className = `fire-label fire-label-${l.kind}`;
       m = { marker: new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([at.lon, at.lat]).addTo(map), label: l };
       current.set(l.key, m);
     }
     m.label = l;
     const el = m.marker.getElement();
-    el.className = `fire-label fire-label-${l.kind}`; // the TAK Overlay Manager hides the earlier perimeters' times with their lines
     el.textContent = l.text;
     el.style.cssText = `pointer-events:none;white-space:nowrap;visibility:hidden;z-index:${l.kind === "spot" ? MARKER_Z.spotLabel : MARKER_Z.label};${l.css}`;
     m.marker.setLngLat([at.lon, at.lat]);

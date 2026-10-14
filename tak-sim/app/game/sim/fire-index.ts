@@ -1,6 +1,6 @@
 /**
  * Game mode: the loop's index over the live fire. It keeps the active cells (burning or smouldering)
- * as a sorted list, the burning ones among them in 200 m buckets for radius queries, and every cell
+ * as a sorted list, the burning and the smouldering ones in 200 m buckets for radius queries, and every cell
  * that has ever burned (the scored area), so unit behaviours never scan the whole grid. Results come
  * in cell order; ties are broken by the lower index.
  */
@@ -22,6 +22,9 @@ export class FireIndex {
   private readonly bucketRows: number;
   private readonly buckets: number[][];
   private readonly usedBuckets: number[] = [];
+  /** Smouldering cells in the same buckets (mop-up queries). */
+  private readonly sBuckets: number[][];
+  private readonly usedSBuckets: number[] = [];
   /** Active cells (burning or smouldering), ascending. */
   active: number[] = [];
   /** Burning cells, ascending; refreshed by `refresh()`. */
@@ -45,6 +48,7 @@ export class FireIndex {
     this.bucketCols = Math.ceil(grid.cols / BUCKET_CELLS);
     this.bucketRows = Math.ceil(grid.rows / BUCKET_CELLS);
     this.buckets = Array.from({ length: this.bucketCols * this.bucketRows }, () => []);
+    this.sBuckets = Array.from({ length: this.bucketCols * this.bucketRows }, () => []);
     for (let c = 0; c < n; c++) {
       const s = fire.state[c];
       if (s === CELL.burning || s === CELL.smouldering) this.add(c);
@@ -85,12 +89,34 @@ export class FireIndex {
     this.burning = keep.filter((c) => st[c] === CELL.burning);
     for (const b of this.usedBuckets) this.buckets[b]!.length = 0;
     this.usedBuckets.length = 0;
-    for (const c of this.burning) {
+    for (const b of this.usedSBuckets) this.sBuckets[b]!.length = 0;
+    this.usedSBuckets.length = 0;
+    for (const c of keep) {
       const b = this.bucketOf(c);
-      const list = this.buckets[b]!;
-      if (list.length === 0) this.usedBuckets.push(b);
+      const burning = st[c] === CELL.burning;
+      const list = (burning ? this.buckets : this.sBuckets)[b]!;
+      if (list.length === 0) (burning ? this.usedBuckets : this.usedSBuckets).push(b);
       list.push(c);
     }
+  }
+
+  /** Burning plus smouldering cells (after the last `refresh`). */
+  activeCount(): number {
+    return this.active.length;
+  }
+
+  /** The smouldering cell nearest `p` within `r` (ties: lower index); -1 if none. Optional filter (mop-up). */
+  nearestSmouldering(p: XY, r: number, accept?: (cell: number) => boolean): number {
+    if (this.usedSBuckets.length === 0) return -1;
+    let best = -1;
+    let bestD = Infinity;
+    this.scanBuckets(this.sBuckets, CELL.smouldering, p, r, (c, d) => {
+      if (d > bestD || (d === bestD && c > best)) return;
+      if (accept !== undefined && !accept(c)) return;
+      best = c;
+      bestD = d;
+    });
+    return best;
   }
 
   isBurning(cell: number): boolean {
@@ -146,6 +172,10 @@ export class FireIndex {
   /** Burning cells within `r` of `p` (unordered visit; every caller makes its result order-free). */
   private scan(p: XY, r: number, visit: (cell: number, d: number) => void): void {
     if (this.burning.length === 0) return;
+    this.scanBuckets(this.buckets, CELL.burning, p, r, visit);
+  }
+
+  private scanBuckets(buckets: readonly number[][], want: number, p: XY, r: number, visit: (cell: number, d: number) => void): void {
     const size = this.grid.cellM * BUCKET_CELLS;
     const h = this.grid.rows * this.grid.cellM;
     const bc0 = Math.max(0, Math.floor((p.x - r) / size));
@@ -155,8 +185,8 @@ export class FireIndex {
     const st = this.fire.state;
     for (let br = br0; br <= br1; br++) {
       for (let bc = bc0; bc <= bc1; bc++) {
-        for (const c of this.buckets[br * this.bucketCols + bc]!) {
-          if (st[c] !== CELL.burning) continue;
+        for (const c of buckets[br * this.bucketCols + bc]!) {
+          if (st[c] !== want) continue;
           const d = Math.hypot(this.cx[c]! - p.x, this.cy[c]! - p.y);
           if (d <= r) visit(c, d);
         }

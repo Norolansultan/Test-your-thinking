@@ -93,8 +93,9 @@ describe("score", () => {
   it("grades S to F, with S only for a clean sweep and a lost game at best D", () => {
     const g = { allObjectivesMet: true, casualties: 0, assetsLost: 0, phase: "won" as const };
     expect(gradeFor({ ...g, points: 1200 })).toBe("S");
+    expect(gradeFor({ ...g, points: 1199 })).toBe("A");
     expect(gradeFor({ ...g, points: 1200, assetsLost: 1 })).toBe("A");
-    expect(gradeFor({ ...g, points: 1200, allObjectivesMet: false })).toBe("A");
+    expect(gradeFor({ ...g, points: 1200, phase: "running" })).toBe("A");
     expect(gradeFor({ ...g, points: 960 })).toBe("A");
     expect(gradeFor({ ...g, points: 800 })).toBe("B");
     expect(gradeFor({ ...g, points: 650 })).toBe("C");

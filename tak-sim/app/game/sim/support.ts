@@ -34,6 +34,7 @@ export function wet(ctx: Ctx, u: UnitRt, centre: XY, radiusM: number, litres: nu
     return false;
   }
   ctx.fire.applyWater(centre, radiusM, litres);
+  ctx.waterAppliedL += litres;
   return true;
 }
 

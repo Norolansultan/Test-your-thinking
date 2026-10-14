@@ -30,6 +30,7 @@ export type FireWorld = Pick<GameWorld, "grid" | "fuel" | "elevation">;
 export interface FireSimOptions {
   /** Spotting, brook leaks and rekindles (hashed randomness). Off for forecasts. Default true. */
   readonly randomEvents?: boolean;
+  readonly startS?: number; // the fire's clock at creation, s (default 0; negative for a scenario's pre-burn)
 }
 
 /** A cell burns at most this long, s, even while its front creeps on (it then smoulders or burns out). */
@@ -118,6 +119,7 @@ export class LiveFireSim implements FireSim {
       this.flags = new Uint8Array(n);
       this.slotOf = new Int32Array(n).fill(-1);
       this.slots = new SlotPool();
+      this.t = Number.isFinite(options.startS) ? options.startS! : 0;
       for (let i = 0; i < n; i++) {
         const s = fuelProps(world.fuel[i]!).burnable ? UNBURNED : NO_FUEL;
         this.state[i] = s;

@@ -72,7 +72,9 @@ describe.each(GAME_SCENARIOS.map((s) => [s.id, s] as const))("scenario %s", (_id
       expect(u.arriveAtS).toBeGreaterThanOrEqual(0);
       expect(u.arriveAtS).toBeLessThan(s.endAtS);
     }
-    expect(s.units.filter((u) => u.arriveAtS === 0).length).toBeGreaterThanOrEqual(3);
+    // Someone is on scene at the start: a crew and eyes (a drone or a second crew).
+    expect(s.units.filter((u) => u.arriveAtS === 0).length).toBeGreaterThanOrEqual(2);
+    expect(s.units.some((u) => u.arriveAtS === 0 && !UNIT_SPECS[u.kind].air)).toBe(true);
   });
 
   it("has ignitions on the real map and valid objectives", () => {
@@ -117,6 +119,16 @@ describe("the scenarios", () => {
     const s = SUMMER_AFTERNOON;
     expect(s.startClockMin).toBe(720);
     expect(s.ignitions).toEqual([{ x: 5000, y: 5000 }]);
+    // Burning since about 11:20 (called in at 11:32); EK11 first, VPK and EK12 minutes later (SPEC/18 §8.2 W1–W4).
+    expect(s.preBurnS).toBeGreaterThanOrEqual(30 * 60);
+    expect(s.preBurnS).toBeLessThanOrEqual(45 * 60);
+    const arrive = (id: string) => s.units.find((u) => u.id === id)!.arriveAtS;
+    expect(arrive("EK11")).toBe(0);
+    expect(arrive("VPK")).toBeGreaterThan(0);
+    expect(arrive("EK12")).toBeGreaterThan(arrive("VPK"));
+    expect(arrive("EK12")).toBeLessThanOrEqual(30 * 60);
+    // Three separate fires to find and catch after the first: the ridge (14:00), the rekindle (17:00), the bog (17:20).
+    expect(s.events.filter((e) => e.kind === "ignite").map((e) => e.atS)).toEqual([at(720, "14:00"), at(720, "17:00"), at(720, "17:20")]);
     expect(s.endAtS).toBe(at(720, "20:00"));
     expect(s.powerLineLiveAtStart).toBe(true);
     expect(s.events.find((e) => e.kind === "power_line_dead")!.atS).toBe(at(720, "15:30"));
@@ -127,9 +139,14 @@ describe("the scenarios", () => {
     for (const id of ["EK13", "EK14", "KY21", "DR2", "DR3", "HELI1", "VD1", "UGV1", "EK15", "EK16", "KY23"]) expect(s.units.some((u) => u.id === id && u.arriveAtS > 0)).toBe(true);
     expect(s.objectives).toContainEqual({ kind: "contain", byS: at(720, "20:00") });
     expect(s.objectives).toContainEqual({ kind: "protect_settlement", settlementId: "Lahdenkylä" });
-    const w17 = s.weather.find((w) => w.atS === at(720, "17:00"))!;
-    expect(w17.windFromDeg).toBeGreaterThanOrEqual(250);
-    expect(Math.max(...s.weather.map((w) => w.windMs))).toBe(6);
+    const w18 = s.weather.find((w) => w.atS === at(720, "18:00"))!;
+    expect(w18.windFromDeg).toBeGreaterThanOrEqual(250);
+    // From 16:00 the same afternoon as "Evening wind": the north-westerly peaks at 11 m/s around 19:00.
+    for (const w of EVENING_WIND.weather) {
+      const same = s.weather.find((x) => x.atS === w.atS + (960 - 720) * 60);
+      expect(same).toEqual({ ...w, atS: w.atS + (960 - 720) * 60 });
+    }
+    expect(Math.max(...s.weather.map((w) => w.windMs))).toBe(11);
   });
 
   it("Evening wind: 16:00 start, three ignitions, 11 m/s at 19:00, fewer units", () => {
@@ -146,7 +163,8 @@ describe("the scenarios", () => {
     const s = TRAINING;
     expect(s.endAtS).toBe(90 * 60);
     expect(s.ignitions.length).toBe(1);
-    expect(Math.max(...s.weather.map((w) => w.windMs))).toBeLessThanOrEqual(3);
+    expect(Math.max(...s.weather.map((w) => w.windMs))).toBeLessThanOrEqual(5); // a light to gentle breeze
+    expect(s.preBurnS).toBeGreaterThan(0); // a small fire already burning when the game starts
     expect(s.units.every((u) => u.arriveAtS <= 600)).toBe(true);
   });
 

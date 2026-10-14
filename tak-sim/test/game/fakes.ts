@@ -2,7 +2,7 @@
  * Small fakes for the game-loop tests: a 60 × 60-cell world (1.5 km square) with one straight E–W
  * gravel road, a pond with a water point, a four-house village and a N–S power line; a straight-line
  * router; grid helpers; step weather; and a deterministic grid fire that grows one ring downwind every
- * few steps and honours water and fire breaks.
+ * few steps, may smoulder before it burns out, and honours water (mop-up too) and fire breaks.
  */
 
 import { CELL, FUEL, type FireSim, type FireStepReport, type GameGrid, type GameScenario, type GameWorld, type RoadClass, type ScenarioUnit, type Weather, type WeatherKey, type XY } from "../../app/game/contracts.js";
@@ -115,6 +115,10 @@ export interface FakeFireOptions {
   readonly growFromS?: number;
   /** A neighbour catches when its direction's cosine to the wind exceeds this (0.9: straight downwind only). */
   readonly spreadCos?: number;
+  /** A cell that burns out smoulders this long first, s (0 = burns straight out). Needs `burnOutS`. */
+  readonly smoulderS?: number;
+  /** Water that drowns a smouldering cell, litres (default 100). */
+  readonly mopUpL?: number;
 }
 
 export class FakeFire implements FireSim {
@@ -156,11 +160,16 @@ export class FakeFire implements FireSim {
     const burnedOut: number[] = [];
     for (let c = 0; c < n; c++) this.wetness[c] = Math.max(0, this.wetness[c]! - dtS * 0.0005);
     const burnOutS = this.opts.burnOutS ?? 0;
+    const smoulderS = this.opts.smoulderS ?? 0;
     if (burnOutS > 0) {
       for (let c = 0; c < n; c++) {
-        if (this.state[c] === CELL.burning && this.tS - this.ignitedAtS[c]! >= burnOutS) {
-          this.state[c] = CELL.burnedOut;
+        const age = this.tS - this.ignitedAtS[c]!;
+        if (this.state[c] === CELL.burning && age >= burnOutS) {
+          this.state[c] = smoulderS > 0 ? CELL.smouldering : CELL.burnedOut;
           this.intensity[c] = 0;
+          if (smoulderS <= 0) burnedOut.push(c);
+        } else if (this.state[c] === CELL.smouldering && age >= burnOutS + smoulderS) {
+          this.state[c] = CELL.burnedOut;
           burnedOut.push(c);
         }
       }
@@ -217,6 +226,14 @@ export class FakeFire implements FireSim {
     const changed: number[] = [];
     for (const c of cells) {
       this.wetness[c] = Math.min(3, this.wetness[c]! + share / 10);
+      if (this.state[c] === CELL.smouldering) {
+        this.water[c] = this.water[c]! + share;
+        if (this.water[c]! >= (this.opts.mopUpL ?? 100)) {
+          this.state[c] = CELL.extinguished;
+          changed.push(c);
+        }
+        continue;
+      }
       if (this.state[c] !== CELL.burning) continue;
       this.water[c] = this.water[c]! + share;
       if (this.water[c]! >= 50 + this.intensity[c]! * 0.1) {
@@ -269,8 +286,9 @@ export function fakeDeps(opts: FakeFireOptions = {}, onCreate?: (fire: FakeFire,
       return best;
     },
     cellOf, cellCentre, cellsInCircle, cellsAlongLine,
-    createFire: (world) => {
+    createFire: (world, _seed, startS) => {
       const f = new FakeFire(world, opts);
+      f.tS = startS ?? 0;
       onCreate?.(f, world);
       fires.push(f);
       return f;

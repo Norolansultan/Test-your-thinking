@@ -50,9 +50,9 @@ export function writeCellRgba(out: Uint8ClampedArray | number[], o: number, stat
   if (s > 0) {
     // Desaturate toward the cell's own grey and fade.
     const grey = 0.3 * r + 0.59 * g + 0.11 * b;
-    const k = 0.75 * s;
+    const k = 0.6 * s;
     r = r + (grey - r) * k; g = g + (grey - g) * k; b = b + (grey - b) * k;
-    a = a * (1 - 0.55 * s);
+    a = a * (1 - 0.35 * s);
   }
   out[o] = clamp255(r); out[o + 1] = clamp255(g); out[o + 2] = clamp255(b); out[o + 3] = clamp255(a);
 }

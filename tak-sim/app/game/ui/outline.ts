@@ -67,9 +67,12 @@ function simplify(ring: XY[]): XY[] {
   return keep;
 }
 
-/** The ring point furthest north (then west): where the outline's label goes. */
-export function labelPoint(rings: readonly (readonly XY[])[]): XY | null {
+/** The ring point furthest north (ties: west) or south (ties: east): where an outline's label goes. */
+export function labelPoint(rings: readonly (readonly XY[])[], side: "north" | "south" = "north"): XY | null {
   let best: XY | null = null;
-  for (const ring of rings) for (const p of ring) if (best === null || p.y > best.y || (p.y === best.y && p.x < best.x)) best = p;
+  const better = side === "north"
+    ? (p: XY, b: XY) => p.y > b.y || (p.y === b.y && p.x < b.x)
+    : (p: XY, b: XY) => p.y < b.y || (p.y === b.y && p.x > b.x);
+  for (const ring of rings) for (const p of ring) if (best === null || better(p, best)) best = p;
   return best;
 }

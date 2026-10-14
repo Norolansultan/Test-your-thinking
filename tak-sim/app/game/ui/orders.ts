@@ -2,11 +2,12 @@
  * Game mode screen: which orders each kind of unit takes, the order bar's keys, and the targeting state machine that
  * turns "order chosen → click(s) on the map" into an `Order` (pure, tested).
  *
- * The capability and sensor tables mirror the game loop's unit specs (`sim/unit-specs.ts`, `can` and `sensorM`).
- * TEMPORARY copy until the game loop is merged into this branch; then they are read from there.
+ * What a kind can do and how far it sees are the game loop's own unit specs (`sim/unit-specs.ts`), so the order bar
+ * never offers an order the game would refuse for the kind.
  */
 
 import type { GameWorld, Order, UnitKind, XY } from "../contracts.js";
+import { canDo as specCanDo, specOf } from "../sim/unit-specs.js";
 
 export type OrderType = Order["type"];
 
@@ -18,31 +19,18 @@ export const ORDER_KEY: Readonly<Record<OrderType, string>> = {
   move: "M", attack: "A", hose_line: "H", fire_break: "B", refill: "R", shuttle: "S", recon: "C", drop: "D", protect: "P", hold: "X",
 };
 
-/** What each kind can do (mirrors `UNIT_SPECS[kind].can`). TEMPORARY copy. */
-const CAN: Readonly<Record<UnitKind, readonly OrderType[]>> = {
-  engine: ["move", "attack", "hose_line", "refill", "protect", "hold"],
-  tanker: ["move", "refill", "shuttle", "protect", "hold"],
-  forest_unit: ["move", "attack", "hose_line", "fire_break", "refill", "protect", "hold"],
-  volunteer: ["move", "attack", "hose_line", "refill", "protect", "hold"],
-  ugv: ["move", "hose_line", "fire_break", "hold"],
-  drone_thermal: ["move", "recon", "hold"],
-  drone_vtol: ["move", "recon", "hold"],
-  drone_water: ["move", "drop", "hold"],
-  helicopter: ["move", "drop", "recon", "hold"],
-  spotter: ["move", "recon", "hold"],
-};
+/** Clear-air sensor radius of a kind, m (smoke halves it for optical sensors). */
+export function sensorRadiusM(kind: UnitKind): number {
+  return specOf(kind).sensorM;
+}
 
-/** Clear-air sensor radius by kind, m (mirrors `UNIT_SPECS[kind].sensorM`). TEMPORARY copy. */
-export const SENSOR_M: Readonly<Record<UnitKind, number>> = {
-  engine: 250, tanker: 200, forest_unit: 250, volunteer: 250, ugv: 150,
-  drone_thermal: 600, drone_vtol: 800, drone_water: 200, helicopter: 500, spotter: 1500,
-};
-
-/** Aircraft and drones (drawn with an air symbol and an energy bar). */
-export const AIR_KINDS: ReadonlySet<UnitKind> = new Set<UnitKind>(["drone_thermal", "drone_vtol", "drone_water", "helicopter", "spotter"]);
+/** Aircraft and drones: they show an energy bar (battery or fuel). */
+export function isAir(kind: UnitKind): boolean {
+  return specOf(kind).air;
+}
 
 export function canDo(kind: UnitKind, order: OrderType): boolean {
-  return CAN[kind].includes(order);
+  return specCanDo(kind, order);
 }
 
 /** The orders a unit of `kind` takes, in the order bar's order. */

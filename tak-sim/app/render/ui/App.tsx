@@ -1,4 +1,5 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import type { ComponentType } from "preact";
 import { buildDemoScenario } from "../../scenario/demo-scenario.js";
 import { knownSessionStatus, ResumeGate, SessionLauncher } from "./SessionLauncher.js";
 import type { Cell } from "../../scenario/types.js";
@@ -49,6 +50,32 @@ export function App() {
 
 type ServerPhase = "idle" | "assigning" | "inactive" | "done";
 
+/**
+ * Game mode (SPEC/29 §2): a separate, playable game on the study's terrain, offered on the demonstration start page
+ * only. Under `?tuotanto` neither the button nor the import exists; otherwise the game's code is a separate chunk
+ * loaded only when the button is pressed, and nothing it does reaches the study's session log, telemetry or store.
+ */
+const GAME_BUTTON: Readonly<Record<Lang, string>> = { fi: "Pelitila — komentajan peli", en: "Game mode — commander's game" };
+
+type GameAppComponent = ComponentType<{ readonly lang: Lang; readonly onExit: () => void }>;
+
+function GameMode({ lang, onExit }: { readonly lang: Lang; readonly onExit: () => void }) {
+  const [Game, setGame] = useState<GameAppComponent | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    import("../../game/ui/GameApp.js").then((m) => { if (live) setGame(() => m.GameApp); }, () => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, []);
+  if (Game) return <Game lang={lang} onExit={onExit} />;
+  return (
+    <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+      <p role={failed ? "alert" : "status"}>{failed ? "⚠" : "…"} {GAME_BUTTON[lang]}</p>
+      {failed && <button style={buttonStyle} onClick={onExit}>←</button>}
+    </div>
+  );
+}
+
 function localStore() {
   try { return window.localStorage; } catch { return null; }
 }
@@ -59,7 +86,9 @@ function StartPage() {
   // The shared study link (revision (af)): the server's code once issued, and the phase of the request.
   const [issued, setIssued] = useState<{ readonly choice: Extract<StartChoice, { kind: "assigned" }>; readonly sessionId: string | undefined } | null>(null);
   const [phase, setPhase] = useState<ServerPhase>("idle");
+  const [gameOpen, setGameOpen] = useState(false);
   const search = window.location.search;
+  const inStudy = new URLSearchParams(search).has(STUDY_PARAM);
   const urlChoice = startChoiceFromUrl(search);
   const serverLink = urlChoice.kind === "server_assign";
   // A code this browser already holds for the shared link is used again (never a second draw).
@@ -89,6 +118,8 @@ function StartPage() {
     setCell(assigned.cell);
   };
 
+  if (gameOpen && !inStudy) return <GameMode lang={lang} onExit={() => setGameOpen(false)} />;
+
   if (!cell) {
     return (
       <div lang={lang} style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24 }}>
@@ -105,11 +136,12 @@ function StartPage() {
           </label>
         )}
         {choice.kind === "choose" && (
-          <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", padding: "0 16px" }}>
             {/* The Search-only (radio) cell is hidden from the start screen (researcher, 9 Oct 2026); an
                 assigned study link (`koodi`) still opens it. */}
             <button style={buttonStyle} onClick={() => setCell("reasoning_once")}>{t.conditionSubstitutive}</button>
             <button style={buttonStyle} onClick={() => setCell("reasoning_intent")}>{t.conditionIntent}</button>
+            {!inStudy && <button style={{ ...buttonStyle, borderColor: "#19c3d6" }} data-testid="game-mode-button" onClick={() => setGameOpen(true)}>{GAME_BUTTON[lang]}</button>}
           </div>
         )}
         {(choice.kind === "assigned" || choice.kind === "server_assign") && phase === "idle" && (
@@ -131,7 +163,7 @@ function StartPage() {
   // (`previewOverride`, `probeLevelsShown`, `viewSkipAllowed`), and the cell.
   // The study shell (5 Oct 2026, work package I): consent, preflight and the pre-session item before the
   // briefing; the questionnaire and the debrief after V14. A demonstration may override the preflight.
-  const study = new URLSearchParams(search).has(STUDY_PARAM);
+  const study = inStudy;
   const assigned = choice.kind === "assigned" ? choice : null;
   return (
     // The launcher annotates the header (session id, start time, browser, build, bundle hash) and opens

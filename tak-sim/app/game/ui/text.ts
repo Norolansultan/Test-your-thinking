@@ -36,6 +36,8 @@ export interface GameText {
     readonly wind: string; readonly gust: string; readonly temp: string; readonly rh: string;
     readonly burned: string; readonly assetsLost: string; readonly points: string; readonly clock: string;
     readonly quit: string; readonly quitConfirm: string;
+    /** Phone-width labels. */
+    readonly tempShort: string; readonly rhShort: string; readonly burnedShort: string; readonly assetsLostShort: string; readonly pointsShort: string;
   };
   readonly ready: string;
   readonly readyHint: string;
@@ -44,6 +46,9 @@ export interface GameText {
   readonly closePane: string;
   readonly kind: Readonly<Record<UnitKind, string>>;
   readonly status: Readonly<Record<UnitStatus, string>>;
+  /** Out of action because the region took the unit (harm < 1), and because of a casualty (harm 1). */
+  readonly released: string;
+  readonly casualty: string;
   readonly order: Readonly<Record<OrderType, string>>;
   readonly hint: Readonly<Record<TargetHintId, string>>;
   readonly escCancels: string;
@@ -122,11 +127,12 @@ const FI: GameText = {
   },
   hud: {
     pause: "Tauko", play: "Jatka", speed: "Nopeus", wind: "Tuuli", gust: "puuskissa", temp: "Lämpötila", rh: "Kosteus",
-    burned: "Palanut", assetsLost: "Rakennuksia menetetty", points: "Pisteet", clock: "Kello", quit: "Lopeta", quitConfirm: "Lopetetaanko peli?",
+    burned: "Palanut", assetsLost: "Rakennuksia menetetty", points: "Pisteet", clock: "Kello", quit: "Lopeta", quitConfirm: "Lopetetaanko peli ja siirrytään yhteenvetoon?",
+    tempShort: "Läm.", rhShort: "RH", burnedShort: "Palanut", assetsLostShort: "Menetetty", pointsShort: "Pisteet",
   },
   ready: "Peli on pysäytetty",
   readyHint: "Valitse yksikkö ja anna käsky. Käynnistä aika ⏵-painikkeella tai välilyönnillä.",
-  toolbar: { units: "Yksiköt", radio: "Radio", objectives: "Tavoitteet", layers: "Tasot", help: "Ohje" },
+  toolbar: { units: "Yksiköt", radio: "Radio", objectives: "Tavoite", layers: "Tasot", help: "Ohje" },
   paneTitle: { units: "Yksiköt", radio: "Radio / GeoChat", objectives: "Tavoitteet", layers: "Karttatasot", help: "Ohjaus" },
   closePane: "Sulje",
   kind: {
@@ -134,6 +140,7 @@ const FI: GameText = {
     drone_thermal: "Lämpökamerakopteri", drone_vtol: "VTOL-drooni", drone_water: "Vesidrooni", helicopter: "Sammutushelikopteri", spotter: "Palovartiolentokone",
   },
   status: { en_route: "Tulossa", idle: "Valmiina", moving: "Siirtyy", working: "Työssä", refilling: "Täyttää", returning: "Palaa", out_of_action: "Poissa toiminnasta" },
+  released: "Vapautettu", casualty: "Henkilövahinko",
   order: {
     move: "Siirry", attack: "Hyökkää", hose_line: "Letkulinja", fire_break: "Palokatko", refill: "Täytä", shuttle: "Vesisukkula",
     recon: "Tiedustele", drop: "Pudota vesi", protect: "Suojaa", hold: "Pysy",
@@ -219,7 +226,8 @@ const EN: GameText = {
   },
   hud: {
     pause: "Pause", play: "Resume", speed: "Speed", wind: "Wind", gust: "gusting", temp: "Temperature", rh: "Humidity",
-    burned: "Burned", assetsLost: "Buildings lost", points: "Points", clock: "Clock", quit: "Quit", quitConfirm: "Quit this game?",
+    burned: "Burned", assetsLost: "Buildings lost", points: "Points", clock: "Clock", quit: "Quit", quitConfirm: "End this game and go to the debrief?",
+    tempShort: "Temp", rhShort: "RH", burnedShort: "Burned", assetsLostShort: "Lost", pointsShort: "Points",
   },
   ready: "The game is paused",
   readyHint: "Select a unit and give an order. Start the clock with ⏵ or Space.",
@@ -231,6 +239,7 @@ const EN: GameText = {
     drone_thermal: "Thermal drone", drone_vtol: "VTOL mapping drone", drone_water: "Water drone", helicopter: "Firefighting helicopter", spotter: "Fire-spotting aircraft",
   },
   status: { en_route: "En route", idle: "Idle", moving: "Moving", working: "Working", refilling: "Refilling", returning: "Returning", out_of_action: "Out of action" },
+  released: "Released", casualty: "Casualty",
   order: {
     move: "Move", attack: "Attack", hose_line: "Hose line", fire_break: "Fire break", refill: "Refill", shuttle: "Shuttle",
     recon: "Recon", drop: "Drop", protect: "Protect", hold: "Hold",

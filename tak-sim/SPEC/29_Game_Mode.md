@@ -35,7 +35,15 @@ A game needs the opposite: continuous time, a fire that responds to wind, terrai
 | Game loop | `sim/`, `scenarios/` | Units with speeds, tanks, pumps, hose, fire-break rate, sensors, endurance and crew safety limits; orders (move, attack, hose line, fire break, refill, shuttle, recon, drop, protect, hold); fog of war from sensor ranges; assets burn unless protected; radio traffic in Finnish and English; scripted events (power line de-energised, units recalled, wind warnings); objectives, points and grade; command log and replay |
 | Screen | `ui/` | The TAK look: live fire drawn on the topo basemap with a fuel overlay, the player's fogged picture, 2525 unit symbols, unit selection and orders on the map, GeoChat fed by the radio, wind, clock and speed controls (pause, 1×–60×), forecast overlay, objectives, briefing and debrief with the score |
 
-## 4. Open items
+## 4. Rules, scenarios and balance
+
+- **Start.** A scenario may let the fire burn before the clock starts (`preBurnS`, the discovery delay); the player's map then shows only what the first report covers (`FIRST_REPORT_M` = 150 m around each reported origin). Everything else must be seen by units, drones or the spotter plane (fog of war).
+- **Winning.** The game ends early as won only when nothing has burned or smouldered for 15 minutes and no scripted ignition is still to come; otherwise it runs to its end time: won if every objective is met, else ended. It is lost at once when an objective fails for good: a protected village falls (more than half of its houses burn), a casualty under "no casualties", or the area limit exceeded by more than 20 %. "Contain by" is judged at its deadline.
+- **Points.** 1000 − 2 × burned ha − value of buildings lost − 300 × casualties − 200 × villages lost + up to 300 for early containment that holds + 50 per objective met; −200 if the fire still burns at the end; never below 0. Grades S/A/B/C/D/F; an unmet objective caps the grade at C; a lost game, or one in which no water was put down and no break cut, at D; S needs ≥ 1200, a win, every objective and no losses.
+- **Scenarios.** *Harjoitus / Training* (easy, 90 min, a small fire, P3 explains the orders); *Kesäiltapäivä / Summer afternoon* (normal, 12:00–20:00: a 40-minute head start, staggered arrivals, a ridge spot fire at 14:00, the 110 kV line de-energised at 15:30, an unreported bog flare-up at 17:20, units recalled at 17:40, the wind turning north-west and rising to 11 m/s by 19:00 toward Lahdenkylä); *Iltatuuli / Evening wind* (hard, 16:00–, three fires, the evening wind event, the line live all evening, the helicopter recalled at 18:40).
+- **Balance** (`npm run game:balance`, bots idle / naive / competent over seeds 1–5, median): training D / S / S; summer F / F / A; evening D / D / C. Doing nothing never grades above D; summer cannot be won before its story has played out.
+
+## 5. Open items
 
 1. All fuel, rate-of-spread, intensity, unit and scoring numbers are PROVISIONAL game values with a one-line rationale each in code; a domain reviewer may tune them.
 2. Whether game mode should later serve as training before a study session (it would then have to use different terrain).

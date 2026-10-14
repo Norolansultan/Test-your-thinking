@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Game, GameScenario, GameState, Order, RadioMessage } from "../contracts.js";
 import type { Lang } from "../../i18n/lang.js";
-import { issueToSelection, nextSelection, type IssueOutcome } from "./controls.js";
+import { fireStillBurning, issueToSelection, nextSelection, type IssueOutcome } from "./controls.js";
 import type { GameResult } from "./Debrief.js";
 import { computeForecast, forecastDue } from "./forecast-view.js";
 import { GameMapController, type Layers } from "./game-map.js";
@@ -19,7 +19,9 @@ import { OrderBar } from "./OrderBar.js";
 import { NO_TARGETING, nearestProtectable, nearestWaterPoint, orderByKey, ordersForSelection, targetStep, type OrderType, type TargetEvent, type TargetPick, type Targeting } from "./orders.js";
 import { GameToolbar, HelpPane, LayersPane, ObjectivesPane, RadioPane, SidePane, UnitsPane } from "./Panes.js";
 import { GM, TAK } from "./styles.js";
+import { radioToast, windShift } from "./scenario-info.js";
 import { GAME_TEXT, inLang, type LayerId, type PaneId } from "./text.js";
+import { describeWeatherEn, describeWeatherFi } from "../weather/weather.js";
 
 const RENDER_EVERY_MS = 150;
 const TOAST_MS = 4500;
@@ -31,9 +33,12 @@ const OVERLAY_BELOW_PX = 760;
 const PICK_WATER_M = 400;
 const PICK_PROTECT_M = 250;
 
-interface Toast { readonly id: number; readonly text: string; readonly kind: "ok" | "bad" | "urgent" }
+interface Toast { readonly id: number; readonly text: string; readonly kind: "ok" | "bad" | "urgent" | "warn" }
 
-const DEFAULT_LAYERS: Readonly<Record<LayerId, boolean>> = { fuel: false, forecast: false, labels: true, sensors: true, truth: false };
+/** How long the HUD's wind reading stays highlighted after a wind change, real ms. */
+const WIND_ALERT_MS = 9000;
+
+const DEFAULT_LAYERS: Readonly<Record<LayerId, boolean>> = { fog: true, fuel: false, forecast: false, labels: true, sensors: true, truth: false };
 
 export function GameScreen({ lang, scenario, seed, onFinish }: {
   readonly lang: Lang; readonly scenario: GameScenario; readonly seed: number;
@@ -50,6 +55,9 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
   const [layers, setLayers] = useState<Readonly<Record<LayerId, boolean>>>(DEFAULT_LAYERS);
   const [toasts, setToasts] = useState<readonly Toast[]>([]);
   const [unread, setUnread] = useState(0);
+  const [unreadUrgent, setUnreadUrgent] = useState(false);
+  const [windAlert, setWindAlert] = useState(false);
+  const windTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [started, setStarted] = useState(false);
   const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < OVERLAY_BELOW_PX);
 
@@ -187,6 +195,7 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
     let lastForecastS: number | null = null;
     let lastForecastMs = -1e9;
     let radioSeen = game.state.radio.length;
+    let windRef = game.state.weather;
     let nextSampleS = 0;
     const history = historyRef.current;
 
@@ -204,14 +213,25 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
         if (st.radio.length > radioSeen) {
           const fresh: readonly RadioMessage[] = st.radio.slice(radioSeen);
           radioSeen = st.radio.length;
-          for (const m of fresh) if (m.priority === "urgent") toast(inLang(lang, m.textFi, m.textEn), "urgent");
-          if (paneRef.current !== "radio") setUnread((n) => n + fresh.length);
+          for (const m of fresh) { const kind = radioToast(m); if (kind) toast(inLang(lang, m.textFi, m.textEn), kind); }
+          if (paneRef.current !== "radio") {
+            setUnread((n) => n + fresh.length);
+            if (fresh.some((m) => m.priority === "urgent")) setUnreadUrgent(true);
+          }
+        }
+        // A wind change is announced and the HUD's wind reading flashes: the head of the fire may change sides.
+        if (windShift(windRef, st.weather)) {
+          windRef = st.weather;
+          toast(`${t.windChange}: ${lang === "fi" ? describeWeatherFi(st.weather) : describeWeatherEn(st.weather)}`, "warn");
+          setWindAlert(true);
+          if (windTimer.current !== null) clearTimeout(windTimer.current);
+          windTimer.current = setTimeout(() => setWindAlert(false), WIND_ALERT_MS);
         }
         if (st.phase === "won" || st.phase === "lost" || st.phase === "ended") {
           if (!finishedRef.current) {
             finishedRef.current = true;
             history.push({ tS: st.tS, ha: st.score.burnedHa });
-            onFinish({ phase: st.phase, score: st.score, endedAtS: st.tS, history, assetStatus: st.assetStatus });
+            onFinish({ phase: st.phase, score: st.score, endedAtS: st.tS, history, assetStatus: st.assetStatus, burningAtEnd: st.phase !== "won" && fireStillBurning(st.fire) });
           }
           return;
         }
@@ -223,7 +243,7 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
       }
       const realDt = lastFrameMs === null ? 0 : Math.min(MAX_REAL_DT_S, Math.max(0, (ms - lastFrameMs) / 1000));
       lastFrameMs = ms;
-      c.frame(st, ms, sp > 0 ? realDt : 0, layersRef.current.truth);
+      c.frame(st, ms, sp > 0 ? realDt : 0, layersRef.current.truth, layersRef.current.fog);
       if (dirty.current && ms - lastRender >= RENDER_EVERY_MS) { dirty.current = false; lastRender = ms; setVersion((v) => v + 1); }
       raf = requestAnimationFrame(loop);
     };
@@ -278,7 +298,7 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
   const selSet = new Set(selected);
   const selUnits = st.units.filter((u) => selSet.has(u.id));
   const orders = ordersForSelection(selUnits.map((u) => u.kind));
-  const openPane = (p: PaneId) => { setPane((cur) => (cur === p ? null : p)); if (p === "radio") setUnread(0); };
+  const openPane = (p: PaneId) => { setPane((cur) => (cur === p ? null : p)); if (p === "radio") { setUnread(0); setUnreadUrgent(false); } };
   const selectFromList = (id: string, add: boolean) => {
     setSelected(nextSelection(selRef.current, id, add));
     const u = st.units.find((x) => x.id === id);
@@ -291,12 +311,12 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
     if (!window.confirm(t.hud.quitConfirm)) return;
     const s = game.state;
     finishedRef.current = true;
-    onFinish({ phase: "ended", score: s.score, endedAtS: s.tS, history: [...historyRef.current, { tS: s.tS, ha: s.score.burnedHa }], assetStatus: s.assetStatus });
+    onFinish({ phase: "ended", score: s.score, endedAtS: s.tS, history: [...historyRef.current, { tS: s.tS, ha: s.score.burnedHa }], assetStatus: s.assetStatus, burningAtEnd: false }); // the game itself is not over: no end-of-game penalty in its points
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }} data-testid="game-screen">
-      <Hud lang={lang} scenario={game.scenario} world={world} state={st} speed={speed} onSpeed={setSpeed} onQuit={quit} />
+      <Hud lang={lang} scenario={game.scenario} world={world} state={st} speed={speed} onSpeed={setSpeed} onQuit={quit} windAlert={windAlert} />
       <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative" }}>
         <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
           <div ref={mapEl} class="gm-map" data-testid="game-map" style={{ position: "absolute", inset: 0 }} />
@@ -315,7 +335,7 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
               onDeselect={() => { setTargeting(NO_TARGETING); setSelected([]); refreshMap(); }} />
           )}
           <div aria-live="polite" style={{ position: "absolute", top: narrow ? 8 : 12, left: 8, zIndex: 17, display: "flex", flexDirection: "column", gap: 6, pointerEvents: "none" }} data-testid="game-toasts">
-            {toasts.map((x) => <div key={x.id} class={`gm-toast ${x.kind === "bad" ? "bad" : x.kind === "urgent" ? "urgent" : ""}`} role={x.kind === "ok" ? "status" : "alert"}>{x.kind === "urgent" && <b style={{ color: GM.fire }}>⚠ </b>}{x.text}</div>)}
+            {toasts.map((x) => <div key={x.id} class={`gm-toast ${x.kind === "ok" ? "" : x.kind}`} role={x.kind === "ok" ? "status" : "alert"}>{x.kind === "urgent" && <b style={{ color: GM.fire }}>⚠ </b>}{x.text}</div>)}
           </div>
         </div>
         {pane && (
@@ -329,7 +349,7 @@ export function GameScreen({ lang, scenario, seed, onFinish }: {
             </SidePane>
           </div>
         )}
-        <GameToolbar lang={lang} open={pane} onSelect={openPane} unread={unread} narrow={narrow} />
+        <GameToolbar lang={lang} open={pane} onSelect={openPane} unread={unread} urgent={unreadUrgent} narrow={narrow} />
       </div>
     </div>
   );

@@ -24,9 +24,11 @@ export function WindArrow({ fromDeg, size = 26 }: { readonly fromDeg: number; re
 
 const sep = <span aria-hidden="true" class="gm-hide-narrow" style={{ width: 1, alignSelf: "stretch", background: TAK.panelBorder, margin: "2px 2px" }} />;
 
-export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit }: {
+export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit, windAlert = false }: {
   readonly lang: Lang; readonly scenario: GameScenario; readonly world: GameWorld; readonly state: GameState;
   readonly speed: Speed; readonly onSpeed: (s: Speed) => void; readonly onQuit: () => void;
+  /** The wind has just changed: its reading flashes. */
+  readonly windAlert?: boolean;
 }) {
   const t = GAME_TEXT[lang];
   const w = state.weather;
@@ -62,7 +64,7 @@ export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit }: {
         </div>
         <button type="button" onClick={onQuit} class="gm-btn gm-hud-quit" style={{ minHeight: 32, padding: "4px 10px", fontSize: 12.5 }} data-testid="game-quit">{t.hud.quit}</button>
         <div class="gm-hud-stats">
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }} data-testid="game-wind" title={`${t.hud.wind} ${Math.round(w.windFromDeg)}°`}>
+        <div class={windAlert ? "gm-alert" : undefined} style={{ display: "flex", alignItems: "center", gap: 6, padding: "1px 4px", borderRadius: 4 }} data-testid="game-wind" title={`${t.hud.wind} ${Math.round(w.windFromDeg)}°`}>
           <WindArrow fromDeg={w.windFromDeg} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
             <span style={{ fontFamily: TAK.mono, fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}>{windPoint(w, lang)} {w.windMs.toFixed(0)} m/s</span>

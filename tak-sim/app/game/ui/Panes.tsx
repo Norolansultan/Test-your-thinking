@@ -31,8 +31,8 @@ const PANE_ICON: Readonly<Record<PaneId, JSX.Element>> = {
 
 export const PANES: readonly PaneId[] = ["units", "radio", "objectives", "layers", "help"];
 
-export function GameToolbar({ lang, open, onSelect, unread, narrow }: {
-  readonly lang: Lang; readonly open: PaneId | null; readonly onSelect: (p: PaneId) => void; readonly unread: number; readonly narrow: boolean;
+export function GameToolbar({ lang, open, onSelect, unread, urgent = false, narrow }: {
+  readonly lang: Lang; readonly open: PaneId | null; readonly onSelect: (p: PaneId) => void; readonly unread: number; readonly urgent?: boolean; readonly narrow: boolean;
 }) {
   const t = GAME_TEXT[lang];
   const width = narrow ? 58 : TAK.toolbarWidth;
@@ -49,7 +49,7 @@ export function GameToolbar({ lang, open, onSelect, unread, narrow }: {
             {PANE_ICON[p]}
             <span style={{ maxWidth: width - 8, overflowWrap: "anywhere" }}>{t.toolbar[p]}</span>
             {badge && (
-              <span data-testid="game-unread" style={{ position: "absolute", top: 4, right: 6, minWidth: 18, height: 18, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, background: TAK.warn, color: "#1c1b19", fontSize: 11, fontWeight: 700, lineHeight: "18px" }}>{unread > 99 ? "99+" : unread}</span>
+              <span data-testid="game-unread" style={{ position: "absolute", top: 4, right: 6, minWidth: 18, height: 18, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, background: urgent ? GM.danger : TAK.warn, color: urgent ? "#fff" : "#1c1b19", fontSize: 11, fontWeight: 700, lineHeight: "18px" }}>{unread > 99 ? "99+" : unread}</span>
             )}
           </button>
         );
@@ -198,7 +198,7 @@ export function ObjectivesPane({ lang, scenario, world, state }: { readonly lang
   );
 }
 
-const LAYER_IDS: readonly LayerId[] = ["fuel", "forecast", "labels", "sensors", "truth"];
+const LAYER_IDS: readonly LayerId[] = ["fog", "fuel", "forecast", "labels", "sensors", "truth"];
 
 export function LayersPane({ lang, layers, onToggle }: { readonly lang: Lang; readonly layers: Readonly<Record<LayerId, boolean>>; readonly onToggle: (id: LayerId) => void }) {
   const t = GAME_TEXT[lang];

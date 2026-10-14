@@ -12,6 +12,8 @@ import { FUEL_COLORS, flickerNoise, NEVER_SEEN, staleness, writeCellRgba } from 
 export const CROWN_DRAW_KWM = 4000;
 /** A cell counts as seen "now" (crown colours, flicker at full strength) for this long, s. */
 const NOW_S = 30;
+/** The veil over never-observed ground (the fog of war), RGBA. */
+export const FOG_RGBA = [16, 22, 30, 72] as const;
 
 export class FireRaster {
   readonly canvas: HTMLCanvasElement;
@@ -27,6 +29,7 @@ export class FireRaster {
   private glowingAge: Float32Array = new Float32Array(0);
   private lastState: GameState | null = null;
   private lastTruth = false;
+  private lastFog = true;
 
   constructor(cols: number, rows: number) {
 
@@ -43,8 +46,8 @@ export class FireRaster {
   }
 
   /** Redraws for `state` at real time `ms`. Returns whether anything was drawn. */
-  draw(state: GameState, ms: number, truth: boolean): boolean {
-    if (state !== this.lastState || truth !== this.lastTruth) this.rebuild(state, truth);
+  draw(state: GameState, ms: number, truth: boolean, fog = true): boolean {
+    if (state !== this.lastState || truth !== this.lastTruth || fog !== this.lastFog) this.rebuild(state, truth, fog);
     const px = this.img.data;
     for (let k = 0; k < this.flaming.length; k++) {
       const i = this.flaming[k]!;
@@ -59,9 +62,11 @@ export class FireRaster {
     return true;
   }
 
-  private rebuild(state: GameState, truth: boolean): void {
+  private rebuild(state: GameState, truth: boolean, fog: boolean): void {
     this.lastState = state;
     this.lastTruth = truth;
+    this.lastFog = fog;
+    const veil = fog && !truth;
     const px = this.img.data;
     px.fill(0);
     const src = truth ? state.fire.state : state.known;
@@ -72,7 +77,12 @@ export class FireRaster {
     const glowing: number[] = [], gAge: number[] = [];
     for (let i = 0; i < src.length; i++) {
       const s = src[i]!;
-      if (s === NEVER_SEEN || s < CELL.burning) continue;
+      if (s === NEVER_SEEN) {
+        // Fog of war: ground nobody has seen yet lies under a light veil.
+        if (veil) { const o = i * 4; px[o] = FOG_RGBA[0]; px[o + 1] = FOG_RGBA[1]; px[o + 2] = FOG_RGBA[2]; px[o + 3] = FOG_RGBA[3]; }
+        continue;
+      }
+      if (s < CELL.burning) continue;
       const age = truth ? 0 : Math.max(0, t - (at[i] ?? t));
       if (s === CELL.burning) {
         flaming.push(i);

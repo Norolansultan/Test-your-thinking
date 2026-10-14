@@ -8,7 +8,7 @@ import type { Lang } from "../../i18n/lang.js";
 import type { OrderType } from "./orders.js";
 
 export type PaneId = "units" | "radio" | "objectives" | "layers" | "help";
-export type LayerId = "fuel" | "forecast" | "labels" | "sensors" | "truth";
+export type LayerId = "fog" | "fuel" | "forecast" | "labels" | "sensors" | "truth";
 export type TargetHintId = "point_move" | "point_attack" | "point_hose_line" | "point_recon" | "point_drop" | "break_from" | "break_to" | "water" | "shuttle_water" | "shuttle_unit" | "protect";
 
 export interface GameText {
@@ -66,6 +66,7 @@ export interface GameText {
   readonly noMessages: string;
   readonly layers: Readonly<Record<LayerId, string>>;
   readonly layerNote: Readonly<Record<LayerId, string>>;
+  readonly windChange: string;
   readonly fireLegend: string;
   readonly fireStates: { readonly burning: string; readonly crown: string; readonly smouldering: string; readonly burnedOut: string; readonly extinguished: string; readonly stale: string };
   readonly fuelLegend: string;
@@ -164,14 +165,16 @@ const FI: GameText = {
   orderGiven: (u, o) => `${u}: ${o}`,
   rooms: { all: "Kaikki", ground: "Maa", air: "Ilma", command: "Johto", support: "Tuki" },
   noMessages: "Ei viestejä vielä.",
-  layers: { fuel: "Polttoaine (metsätyypit)", forecast: "Ennuste +20 / +40 min", labels: "Nimet ja tunnukset", sensors: "Anturien kantamat", truth: "Totuus (debug)" },
+  layers: { fog: "Tuntematon alue (sumu)", fuel: "Polttoaine (metsätyypit)", forecast: "Ennuste +20 / +40 min", labels: "Nimet ja tunnukset", sensors: "Anturien kantamat", truth: "Totuus (debug)" },
   layerNote: {
+    fog: "Maasto, jota kukaan ei ole vielä nähnyt, on himmennetty: palo voi edetä siellä huomaamatta. Lähetä drooni tai yksikkö katsomaan.",
     fuel: "13 polttoaineluokkaa: mistä palo kulkee nopeasti ja mistä ei.",
     forecast: "Mallin ennuste palon reunasta 20 ja 40 minuutin päähän; päivittyy enintään 30 pelisekunnin välein. Ei tunne lentokipinöitä.",
     labels: "Yksiköiden tunnukset, kylien ja vesipisteiden nimet.",
     sensors: "Mitä kukin yksikkö näkee: drooneilla laaja, miehistöillä pieni.",
     truth: "Näyttää todellisen palon sumun läpi. Vain kehitykseen.",
   },
+  windChange: "Tuulen muutos",
   fireLegend: "Palo (oma tilannekuva)",
   fireStates: { burning: "Liekehtii", crown: "Latvapalo", smouldering: "Kytee", burnedOut: "Palanut", extinguished: "Sammutettu", stale: "Vanha tieto haalistuu" },
   fuelLegend: "Polttoaineluokat",
@@ -263,14 +266,16 @@ const EN: GameText = {
   orderGiven: (u, o) => `${u}: ${o}`,
   rooms: { all: "All", ground: "Ground", air: "Air", command: "Command", support: "Support" },
   noMessages: "No messages yet.",
-  layers: { fuel: "Fuel (forest types)", forecast: "Forecast +20 / +40 min", labels: "Names and call signs", sensors: "Sensor ranges", truth: "Truth (debug)" },
+  layers: { fog: "Unknown ground (fog)", fuel: "Fuel (forest types)", forecast: "Forecast +20 / +40 min", labels: "Names and call signs", sensors: "Sensor ranges", truth: "Truth (debug)" },
   layerNote: {
+    fog: "Ground nobody has seen yet is dimmed: fire can spread there unnoticed. Send a drone or a unit to look.",
     fuel: "13 fuel classes: where the fire runs fast and where it does not.",
     forecast: "The model's forecast of the fire edge 20 and 40 minutes ahead; refreshed at most every 30 game seconds. It cannot know which embers will take.",
     labels: "Unit call signs, settlement and water point names.",
     sensors: "What each unit sees: drones far, crews near.",
     truth: "Shows the real fire through the fog of war. Development only.",
   },
+  windChange: "Wind change",
   fireLegend: "Fire (your picture)",
   fireStates: { burning: "Flaming", crown: "Crown fire", smouldering: "Smouldering", burnedOut: "Burned out", extinguished: "Put out", stale: "Old reports fade" },
   fuelLegend: "Fuel classes",

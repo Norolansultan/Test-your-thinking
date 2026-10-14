@@ -6,7 +6,7 @@
 import { useState } from "preact/hooks";
 import type { AssetStatus, GamePhase, GameScenario, GameWorld, Score } from "../contracts.js";
 import type { Lang } from "../../i18n/lang.js";
-import { CONTAIN_BONUS, POINTS_PER_CASUALTY, POINTS_PER_HA, POINTS_PER_OBJECTIVE, POINTS_PER_SETTLEMENT, START_POINTS } from "../sim/score.js";
+import { CONTAIN_BONUS, POINTS_PER_CASUALTY, POINTS_PER_HA, POINTS_PER_OBJECTIVE, POINTS_PER_SETTLEMENT, START_POINTS, STILL_BURNING_PENALTY } from "../sim/score.js";
 import { settlementOf } from "./scenario-info.js";
 import { GM, TAK } from "./styles.js";
 import { clockAt, GAME_TEXT, inLang } from "./text.js";
@@ -18,12 +18,14 @@ export interface GameResult {
   /** Burned hectares sampled through the game. */
   readonly history: readonly { readonly tS: number; readonly ha: number }[];
   readonly assetStatus: Readonly<Record<string, AssetStatus>>;
+  /** The game ended with a fire still flaming (a penalty in the score). */
+  readonly burningAtEnd: boolean;
 }
 
 export const GRADE_COLOR: Readonly<Record<Score["grade"], string>> = { S: "#ffd400", A: GM.ok, B: "#8bc34a", C: TAK.accent, D: GM.fire, F: GM.danger };
 
 /** The score's parts, by the game's own scoring constants (`sim/score.ts`); the last row reconciles to the total. */
-export function pointsBreakdown(score: Score, lostValue: number, endAtS: number): { readonly key: string; readonly value: number }[] {
+export function pointsBreakdown(score: Score, lostValue: number, endAtS: number, burningAtEnd = false): { readonly key: string; readonly value: number }[] {
   const rows: { key: string; value: number }[] = [{ key: "start", value: START_POINTS }];
   rows.push({ key: "burned", value: -Math.round(POINTS_PER_HA * score.burnedHa) });
   if (lostValue > 0) rows.push({ key: "assets", value: -Math.round(lostValue) });
@@ -32,14 +34,15 @@ export function pointsBreakdown(score: Score, lostValue: number, endAtS: number)
   if (score.containedAtS !== null && endAtS > 0) rows.push({ key: "contained", value: Math.round(CONTAIN_BONUS * Math.max(0, Math.min(1, (endAtS - score.containedAtS) / endAtS))) });
   const met = score.objectives.filter((o) => o.met === true).length;
   if (met > 0) rows.push({ key: "objectives", value: POINTS_PER_OBJECTIVE * met });
+  if (burningAtEnd) rows.push({ key: "burning", value: -STILL_BURNING_PENALTY });
   const sum = rows.reduce((a, r) => a + r.value, 0);
   if (Math.abs(score.points - sum) >= 1) rows.push({ key: "other", value: score.points - sum });
   return rows;
 }
 
 const ROW_LABEL: Readonly<Record<Lang, Readonly<Record<string, string>>>> = {
-  fi: { start: "Lähtöpisteet", burned: "Paloala", assets: "Menetetyt rakennukset", casualties: "Henkilövahingot", settlements: "Menetetyt kylät", contained: "Rajausbonus", objectives: "Saavutetut tavoitteet", other: "Muut / pyöristys" },
-  en: { start: "Starting points", burned: "Burned area", assets: "Buildings lost", casualties: "Casualties", settlements: "Settlements lost", contained: "Containment bonus", objectives: "Objectives met", other: "Other / rounding" },
+  fi: { start: "Lähtöpisteet", burned: "Paloala", assets: "Menetetyt rakennukset", casualties: "Henkilövahingot", settlements: "Menetetyt kylät", contained: "Rajausbonus", objectives: "Saavutetut tavoitteet", burning: "Palo palaa yhä", other: "Muut / pyöristys" },
+  en: { start: "Starting points", burned: "Burned area", assets: "Buildings lost", casualties: "Casualties", settlements: "Settlements lost", contained: "Containment bonus", objectives: "Objectives met", burning: "Fire still burning", other: "Other / rounding" },
 };
 
 export function Debrief({ lang, scenario, result, world, onPlayAgain, onBack }: {
@@ -50,7 +53,7 @@ export function Debrief({ lang, scenario, result, world, onPlayAgain, onBack }: 
   const d = t.debrief;
   const s = result.score;
   const lostValue = world.assets.reduce((a, x) => a + (result.assetStatus[x.id] === "burned" ? x.value : 0), 0);
-  const rows = pointsBreakdown(s, lostValue, scenario.endAtS);
+  const rows = pointsBreakdown(s, lostValue, scenario.endAtS, result.burningAtEnd);
   const settlementNames = s.settlementsLost.map((id) => { const st = settlementOf(world, id); return st ? inLang(lang, st.nameFi, st.nameEn) : id; });
   const stat = (label: string, value: string, bad = false) => (
     <div style={{ background: TAK.row, border: `1px solid ${TAK.panelBorder}`, borderRadius: TAK.radius, padding: "10px 12px" }}>
@@ -158,7 +161,7 @@ function BurnChart({ lang, history, startClockMin }: { readonly lang: Lang; read
         </g>
       ))}
       {xTicks.map((s) => (
-        <text key={s} x={x(s)} y={H - 8} text-anchor="middle" font-size={11} fill={TAK.textDim}>{clockAt(startClockMin, s)}</text>
+        <text key={s} x={x(s)} y={H - 8} text-anchor={x(s) > W - R - 18 ? "end" : x(s) < L + 18 ? "start" : "middle"} font-size={11} fill={TAK.textDim}>{clockAt(startClockMin, s)}</text>
       ))}
       <text x={L - 6} y={11} text-anchor="end" font-size={11} fill={TAK.textDim}>{t.hectares}</text>
       <path d={area} fill={GM.fire} fill-opacity={0.14} />

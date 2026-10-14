@@ -126,6 +126,12 @@ describe("debrief", () => {
     }
   });
 
+  it("a game over with the fire still flaming shows the penalty as its own row", () => {
+    const rows = pointsBreakdown(score({ points: START_POINTS - 10 * POINTS_PER_HA - 200 }), 0, 28_800, true);
+    expect(rows.find((r) => r.key === "burning")?.value).toBe(-200);
+    expect(rows.some((r) => r.key === "other")).toBe(false);
+  });
+
   it("chart axes end on round numbers", () => {
     expect([niceMax(0), niceMax(0.3), niceMax(1.9), niceMax(7), niceMax(42), niceMax(180)]).toEqual([1, 0.5, 2, 10, 50, 200]);
   });

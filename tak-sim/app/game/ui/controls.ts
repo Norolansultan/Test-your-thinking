@@ -2,7 +2,7 @@
  * Game mode screen: selection and order issuing (pure apart from `game.issue`, tested).
  */
 
-import type { Game, Order, Unit } from "../contracts.js";
+import { CELL, type FireSim, type Game, type Order, type Unit } from "../contracts.js";
 import { canDo } from "./orders.js";
 
 /** Click on a unit: alone it replaces the selection; with Shift it toggles that unit in it. */
@@ -33,4 +33,11 @@ export function issueToSelection(game: Pick<Game, "issue">, units: readonly Unit
     out.push(r.ok ? { unitId: u.id, ok: true } : { unitId: u.id, ok: false, reasonFi: r.reasonFi, reasonEn: r.reasonEn });
   }
   return out;
+}
+
+/** Whether any cell still flames (the score's "still burning" penalty, as the game loop counts it; the game is over, so the truth). */
+export function fireStillBurning(fire: Pick<FireSim, "state">): boolean {
+  const st = fire.state;
+  for (let i = 0; i < st.length; i++) if (st[i] === CELL.burning) return true;
+  return false;
 }

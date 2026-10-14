@@ -205,9 +205,9 @@ export class GameMapController {
   }
 
   /** Every animation frame: the fire's flicker and the smoke. `dtS` is real seconds since the last frame while running. */
-  frame(state: GameState, ms: number, dtS: number, truth: boolean): void {
+  frame(state: GameState, ms: number, dtS: number, truth: boolean, fog = true): void {
     if (!this.loaded) return;
-    this.fire.draw(state, ms, truth);
+    this.fire.draw(state, ms, truth, fog);
     this.smoke.frame(dtS, this.fire.flamingCells, this.world.grid, state.weather, this.affine(), this.metresPerPx(), true);
   }
 

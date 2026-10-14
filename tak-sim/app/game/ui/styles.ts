@@ -64,6 +64,9 @@ const CSS = `
 .gm-toast { pointer-events: auto; padding: 9px 14px; border-radius: ${TAK.radius}px; background: #1b2329f2; border: 1px solid ${TAK.panelBorder}; border-left: 4px solid ${TAK.accent}; box-shadow: 0 4px 16px #000a; font-size: 13px; max-width: min(520px, calc(100vw - 32px)); }
 .gm-toast.bad { border-left-color: ${GM.danger}; }
 .gm-toast.urgent { border-left-color: ${GM.fire}; }
+.gm-toast.warn { border-left-color: #ffc14d; }
+.gm-alert { animation: gm-flash 0.9s ease-in-out 9; box-shadow: 0 0 0 2px #ffc14d; }
+@keyframes gm-flash { 0%,100% { background: transparent; } 50% { background: rgba(255,193,77,.28); } }
 .gm-hud-stats { order: 2; flex: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 4px; min-width: 0; }
 .gm-hud-quit { order: 3; margin-left: auto; }
 .gm-orderbar { display: flex; align-items: stretch; gap: 8px; }

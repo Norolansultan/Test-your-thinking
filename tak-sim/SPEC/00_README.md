@@ -5,6 +5,7 @@
 **Status:** Governing. This directory replaces every prior design document.
 
 > **Changelog**
+> - **14 Oct 2026 (aw)** — index row for `29` (game mode): a separate live, playable mode; the instrument and its invariants are unchanged.
 > - **13 Oct 2026 (av)** — index row for `28` (TAK base): the TAK-based build in `Test-your-thinking/tak-sim/`; TAK shell default, classic shell `?klassinen`, `uiShell` in the header; open items in `11` §7.29.
 > - **11 Oct 2026 (au)** — planned sample 210 = 3 × 70 (blocks of 42, 14 : 14 : 14); Haku 70, Thinker cells 70 + 70; Paper 2 70 vs 70. `02`/`09`/`27` revisions (au); power to recompute.
 > - **9 Oct 2026 (af)** — one shared study link, `?tuotanto`: the hosted study server (`AUTO_ASSIGN=1`) issues the next unused allocation code when the participant presses start, persisted so no code is issued twice; never on a local run; the header logs `assignmentSource`; `ASSIGN_CELLS` restricts the codes to some cells for a pilot only (`27` af; `02`, `11`, `15`; `docs/DEPLOYMENT.md` §7.1).
@@ -65,6 +66,7 @@ Read in this order:
 | **26** | `26_Fifteen_Views_and_Rekindle.md` | **Governing.** 1 practice + 14 map views from merged steps; the rekindle arc |
 | **27** | `27_Phase_B_Paper2_Design.md` | **Governing for phase B (V8–V14) and Paper 2.** The three cells and their assignment; the strategy-guided Thinker (`linjaus` field) as the manipulation; H13–H17; power; scenario inputs; threats and decisions **8 Oct 2026: the `linjaus` manipulation is withdrawn; Paper 2's contrast was OPEN (revision (z)); **resolved by revision (aa): a directive-aware Open Thinker against Haku (130 vs 70).** |
 | **28** | `28_TAK_Base.md` | **Governing for the TAK-based build (`tak-sim/`).** The screen as a TAK common operating picture (ATAK/WinTAK conventions: 2525 symbols, GeoChat, Contacts, Overlay Manager, drone video, Range & Bearing, MGRS); every object as a Cursor-on-Target event compiled from the render boundary only; CoT export, TAK data package and replay outside study runs; the researcher-only EXCON truth display. Changes how things look and are encoded, never what or when (`00`–`27` decide that) |
+| **29** | `29_Game_Mode.md` | **Governing for game mode (`app/game/`).** A separate, playable mode on the study's terrain: live fire (wind, slope, moisture, water, breaks, spotting), units the player commands, fog of war, radio, scenarios and scoring. Never offered or loaded under `?tuotanto`; its data are never pooled with the study's |
 
 If a statement in 01–10 conflicts with a statement in `11_Open_Design_Register.md`, the register wins. The register marks that item as undecided, and an undecided item must not be guessed.
 

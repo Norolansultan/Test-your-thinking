@@ -21,6 +21,7 @@
     "map:build": "tsx tools/topo-map/build.ts",
     "map:render": "python tools/topo-map/render.py",
     "map": "npm run map:build && npm run map:render",
+    "game:world": "tsx tools/game/build-world.ts",
     "corpus:export": "tsx tools/corpus/export.ts",
     "thinker:index": "tsx tools/thinker/build-index.ts",
     "thinker:eval": "tsx tools/thinker/eval-neutral.ts",

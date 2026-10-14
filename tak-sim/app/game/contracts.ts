@@ -255,6 +255,8 @@ export interface Score {
   readonly objectives: readonly { readonly objective: Objective; readonly met: boolean | null }[];
 }
 
+export type AssetStatus = "intact" | "protected" | "burned";
+
 export type GamePhase = "briefing" | "running" | "won" | "lost" | "ended";
 
 export interface GameState {
@@ -268,6 +270,8 @@ export interface GameState {
   readonly known: Uint8Array;
   readonly knownAtS: Float32Array;
   readonly powerLineLive: boolean;
+  /** Each structure's status by asset id (world order): burned, protected (crews wetting or defending it now), or intact. */
+  readonly assetStatus: Readonly<Record<string, AssetStatus>>;
   readonly radio: readonly RadioMessage[];
   readonly score: Score;
 }

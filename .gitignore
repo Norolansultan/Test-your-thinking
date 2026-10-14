@@ -16,4 +16,4 @@
 CLAUDE.md
 ruvector.db
 **/.claude-flow/
-node_modules/
+node_modules

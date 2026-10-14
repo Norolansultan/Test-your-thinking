@@ -9,6 +9,7 @@
     "dev": "vite",
     "excon": "vite --open /excon.html",
     "build": "vite build",
+    "build:web": "vite build --base ./ --outDir ../../../dist/web --emptyOutDir",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

@@ -7,6 +7,7 @@ import type { PreviewOverride, SessionAssignment } from "../../session/preview.j
 import type { HeaderAnnotations } from "../../session/header.js";
 import type { LogSink } from "../../telemetry/log.js";
 import type { SessionStatus } from "../../telemetry/session-registry.js";
+import { assetUrl } from "../../session/asset-url.js";
 
 /**
  * How the browser session stores its log (SPEC/05 §9; `SessionLauncher.tsx`): the durable sink, the
@@ -33,7 +34,7 @@ export function useSession(scenario: ScenarioContract, condition: "directed" | "
     orchestratorRef.current = new SessionOrchestrator(scenario, condition, {
       // The AI literacy test after consent runs in every session the study shell runs (revision (ac)): every cell, study and demonstration.
       // So does the intro video before the practice view (10 Oct 2026).
-      previewOverride, language, showProbeLevels, guidedTour, visibleProbes: true, aiLiteracyTest: true, introVideo: INTRO_VIDEO_SRC, ...(cell ? { cell } : {}), ...start,
+      previewOverride, language, showProbeLevels, guidedTour, visibleProbes: true, aiLiteracyTest: true, introVideo: assetUrl(INTRO_VIDEO_SRC), ...(cell ? { cell } : {}), ...start,
       ...(persistence ? { sink: persistence.sink } : {}),
       ...(persistence?.annotations ? { annotations: persistence.annotations } : {}),
       ...(persistence?.resume ? { resume: persistence.resume } : {}),

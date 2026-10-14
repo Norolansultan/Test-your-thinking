@@ -1,4 +1,5 @@
 import { Howl, Howler } from "howler";
+import { assetUrl } from "./asset-url.js";
 
 const BASE_VOLUME = 0.3;
 const PEAK_VOLUME = 0.5; // Last 20 s of a view; was 0.8, too loud a rise (researcher, 9 Oct 2026)
@@ -14,7 +15,7 @@ class AudioManager {
 
   private constructor() {
     this.bgm = new Howl({
-      src: ["/audio/bgm_tension.mp3"],
+      src: [assetUrl("/audio/bgm_tension.mp3")],
       loop: true,
       volume: 0, 
       preload: true,

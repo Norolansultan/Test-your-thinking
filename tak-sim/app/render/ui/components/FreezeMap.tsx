@@ -7,6 +7,7 @@ import siteMeta from "../../../scenario/site-meta.json" with { type: "json" };
 import { topoTileUrl } from "../../../i18n/place-names.js";
 import { extentCamera, openingCamera } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
+import { assetUrl } from "../../../session/asset-url.js";
 
 /**
  * A `map_point` freeze item's map (SPEC/15 r.12): the generated topographic basemap and nothing
@@ -110,7 +111,7 @@ export function FreezeMap({ extent, point, onPick }: { readonly extent: Extent; 
     map.on("resize", () => { if (onDefault.current) refit(); });
     map.on("load", () => {
       TOPO_TILES.forEach((tile, i) => {
-        map.addSource(`topo-${i}`, { type: "image", url: topoTileUrl(tile.url, lang), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
+        map.addSource(`topo-${i}`, { type: "image", url: assetUrl(topoTileUrl(tile.url, lang)), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
         map.addLayer({ id: `topo-basemap-${i}`, type: "raster", source: `topo-${i}`, paint: { "raster-fade-duration": 0 } });
       });
       map.addSource("pick", { type: "geojson", data: pointFeature(pointRef.current) });

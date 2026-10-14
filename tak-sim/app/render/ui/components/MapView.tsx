@@ -19,6 +19,7 @@ import type { ViewportChangedDetail } from "../../../telemetry/record-kinds.js";
 import { Legend, legendPresence } from "./Legend.js";
 import { extentCamera, openingCamera, panBounds, zoomForWidth } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
+import { assetUrl } from "../../../session/asset-url.js";
 
 // Own formations and the participant's own marks. The fire and projection layers take all their
 // styling from fire-theme.json (fire-layers.ts, SPEC/12 revision 24 Sep (c)): no blue or purple
@@ -250,7 +251,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
     map.on("resize", () => { if (onDefaultRef.current) frameDefault(map); });
     map.on("load", () => {
       TOPO_TILES.forEach((tile, i) => {
-        map.addSource(`topo-${i}`, { type: "image", url: topoTileUrl(tile.url, lang), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
+        map.addSource(`topo-${i}`, { type: "image", url: assetUrl(topoTileUrl(tile.url, lang)), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
         map.addLayer({ id: `topo-basemap-${i}`, type: "raster", source: `topo-${i}`, paint: { "raster-fade-duration": 0 } });
       });
 

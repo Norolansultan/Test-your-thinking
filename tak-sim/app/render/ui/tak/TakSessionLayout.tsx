@@ -76,6 +76,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
 
   const panes = takToolbarPanes(condition, { indexedSearch });
   const [pane, setPane] = useState<TakPaneId | null>(DEFAULT_PANE);
+  const narrow = useNarrowTak();
   const paneRef = useRef(pane);
   paneRef.current = pane;
 
@@ -213,7 +214,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
       <style>{TAK_MAP_CSS}</style>
       {/* From V8 (null before): the directive, full width between the status strip and the map — never over the map. */}
       {snapshot.directiveInForce !== null && <TakDirectiveStrip directive={snapshot.directiveInForce} />}
-      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
+      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0, position: "relative" }}>
         {/* The map column: the map, then the decision strip under it, as in the classic layout (SessionView). */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
@@ -231,7 +232,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
           </div>
         </div>
         {pane !== null && (
-          <TakSidePane key={pane} testId={`tak-pane-${pane}`} title={t.tak.paneTitle[pane]} onClose={() => choosePane(null, "close_button")}>
+          <TakSidePane key={pane} testId={`tak-pane-${pane}`} title={t.tak.paneTitle[pane]} onClose={() => choosePane(null, "close_button")} overlay={narrow}>
             {body(pane)}
           </TakSidePane>
         )}
@@ -239,4 +240,20 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
       </div>
     </div>
   );
+}
+
+/**
+ * Below this window width (a phone, the web demo in a side panel) a side pane would leave the map almost no width
+ * (pane ≥ 300 px + toolbar 76 px), so the open pane lies over the map instead; closing it shows the map again (14 Oct 2026).
+ */
+export const TAK_OVERLAY_BELOW_PX = 760;
+
+function useNarrowTak(): boolean {
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < TAK_OVERLAY_BELOW_PX);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < TAK_OVERLAY_BELOW_PX);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return narrow;
 }

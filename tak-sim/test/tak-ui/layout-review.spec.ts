@@ -61,7 +61,7 @@ describe("the directive: a full-width strip above the map, from V8, blanked by a
   it("is drawn by the layout above the map's row, inside the blanked root, only when a directive is in force", () => {
     const root = t.indexOf('<div inert={frozen} aria-hidden={frozen} data-testid="tak-shell"');
     const strip = t.indexOf("{snapshot.directiveInForce !== null && <TakDirectiveStrip directive={snapshot.directiveInForce} />}");
-    const row = t.indexOf('<div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>');
+    const row = t.indexOf('<div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0, position: "relative" }}>'); // relative: a narrow window's pane lies over it
     const map = t.indexOf("<MapView ");
     expect(root).toBeGreaterThan(0);
     expect(strip).toBeGreaterThan(root);

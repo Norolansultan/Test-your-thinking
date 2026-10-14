@@ -24,7 +24,7 @@ import { attachCheckpoints } from "../../../telemetry/session-checkpoint.js";
 import type { UiShell } from "../../../session/header.js";
 import { TakSessionLayout } from "../tak/TakSessionLayout.js";
 
-export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak" }: {
+export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels?: boolean;
   /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11); `allowTourSkip` in demonstration only. */
   readonly guidedTour?: boolean; readonly allowTourSkip?: boolean;
@@ -40,6 +40,8 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
   readonly allowViewSkip?: boolean;
   /** Demonstration only (11 Oct 2026): the index-based search tab (never under ?tuotanto). */
   readonly indexedSearch?: boolean;
+  /** The minimum-window cover (`WindowSizeGuard`, SPEC/12 (al)); on in the study (`?tuotanto`), off in a demonstration and the web demo (14 Oct 2026). */
+  readonly minWindowGuard?: boolean;
   /**
    * The screen layout (SPEC/28 §5): the TAK shell (`TakSessionLayout`, the default of this build) or the classic layout of
    * SPEC/06 (`?klassinen`). Logged in the header (`uiShell`, through the launcher's annotations); the session is the same.
@@ -49,16 +51,16 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
   useDocumentLanguage(language);
   return (
     <LangContext.Provider value={language}>
-      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} />
+      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} minWindowGuard={minWindowGuard} />
     </LangContext.Provider>
   );
 }
 
-function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch, uiShell }: {
+function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch, uiShell, minWindowGuard }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels: boolean;
   readonly guidedTour: boolean; readonly allowTourSkip: boolean; readonly cell: Cell | undefined;
   readonly participantCode: string | undefined; readonly assignment: SessionAssignment | undefined; readonly persistence: SessionPersistence | undefined;
-  readonly studyShell: boolean; readonly allowPreflightOverride: boolean; readonly allowViewSkip: boolean; readonly indexedSearch: boolean;
+  readonly studyShell: boolean; readonly allowPreflightOverride: boolean; readonly allowViewSkip: boolean; readonly indexedSearch: boolean; readonly minWindowGuard: boolean;
   readonly uiShell: UiShell;
 }) {
   const { snapshot, orchestrator } = useSession(scenario, condition, previewOverride, language, showProbeLevels, guidedTour, cell,
@@ -117,7 +119,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
       {/* Below the minimum window size a cover asks for a larger window (revision (al)); logged, the session runs on. */}
-      <WindowSizeGuard onLog={(e) => orchestrator.logMapUse(e)} />
+      {minWindowGuard && <WindowSizeGuard onLog={(e) => orchestrator.logMapUse(e)} />}
       <StatusStrip snapshot={snapshot} {...(snapshot.skipAvailable ? { onSkip: () => void orchestrator.skipView().catch(() => undefined) } : {})} />
       {snapshot.tour && <GuidedTour snapshot={snapshot} orchestrator={orchestrator} condition={condition} cell={cell} allowSkip={allowTourSkip} />}
       {frozen && <FreezeScreen freeze={snapshot.freeze!} orchestrator={orchestrator} showLevels={snapshot.showProbeLevels} allowSkip={snapshot.skipAllowed} />}

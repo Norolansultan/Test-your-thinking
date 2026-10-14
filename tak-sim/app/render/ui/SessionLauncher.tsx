@@ -47,6 +47,8 @@ type LaunchProps = {
   readonly language: Lang; readonly showProbeLevels: boolean; readonly allowTourSkip: boolean;
   readonly participantCode?: string | undefined; readonly assignment?: SessionAssignment | undefined;
   readonly studyShell?: boolean; readonly allowPreflightOverride?: boolean; readonly allowViewSkip?: boolean;
+  /** The minimum-window cover: on in the study, off in a demonstration (SessionView). */
+  readonly minWindowGuard?: boolean;
   /** Demonstration only (11 Oct 2026): the original index-based search as a third tab (SPEC/25 revision (aq)). */
   readonly indexedSearch?: boolean;
   /** The session id fixed before the start (the shared study link's, `auto-assign.ts`); otherwise a fresh one. */
@@ -130,7 +132,7 @@ export function ResumeGate({ scenario, children }: { readonly scenario: () => Sc
         previewOverride={header.previewOverride ?? null} language={lang} showProbeLevels={header.probeLevelsShown ?? true}
         guidedTour={header.guidedTour ?? false} allowTourSkip={demo} participantCode={header.participantCode}
         assignment={header.assignment as SessionAssignment | undefined} persistence={gate.persistence}
-        studyShell allowPreflightOverride={demo} allowViewSkip={demo} indexedSearch={demo}
+        studyShell allowPreflightOverride={demo} allowViewSkip={demo} indexedSearch={demo} minWindowGuard={!demo}
         uiShell={header.uiShell ?? "classic"}
       />
     );

@@ -78,9 +78,12 @@ describe("water and fire breaks", () => {
     expect(changed).toBeGreaterThan(0);
     expect(sim.stateCounts()[CELL.burning]).toBe(0);
     expect(sim.stateCounts()[CELL.extinguished]).toBeGreaterThan(0);
+    const burnedWhenDoused = sim.burnedHa;
+    expect(burnedWhenDoused).toBeGreaterThan(0);
     run(sim, 6 * 60, wx(270, 5, 30, 22));
     expect(sim.stateCounts()[CELL.burning]).toBe(0);
-    expect(sim.burnedHa).toBe(0);
+    // The ground it burned before it was put out still counts (burnedHa includes extinguished cells); it does not grow.
+    expect(sim.burnedHa).toBe(burnedWhenDoused);
   });
 
   it("too little water only knocks a fire back and wets the ground, which dries in tens of minutes", () => {

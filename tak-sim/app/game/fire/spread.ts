@@ -136,9 +136,13 @@ export class LiveFireSim implements FireSim {
     return this.cellM;
   }
 
-  /** Burning + smouldering + burned-out area, hectares (as `FireStepReport.burnedHa`). */
+  /**
+   * Area the fire has reached, hectares (as `FireStepReport.burnedHa`): burning, smouldering, burned out, and
+   * extinguished — a cell is only ever extinguished after it caught fire, so a fire put out early still counts
+   * the ground it burned (integration review, 14 Oct 2026).
+   */
   get burnedHa(): number {
-    return ((this.counts[BURNING]! + this.counts[SMOULDERING]! + this.counts[BURNED_OUT]!) * this.cellM * this.cellM) / 10_000;
+    return ((this.counts[BURNING]! + this.counts[SMOULDERING]! + this.counts[BURNED_OUT]! + this.counts[EXTINGUISHED]!) * this.cellM * this.cellM) / 10_000;
   }
 
   /** Cells in each `CellState`, indexed by state. */

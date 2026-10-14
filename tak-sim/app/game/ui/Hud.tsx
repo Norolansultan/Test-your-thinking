@@ -22,7 +22,7 @@ export function WindArrow({ fromDeg, size = 26 }: { readonly fromDeg: number; re
   );
 }
 
-const sep = <span aria-hidden="true" style={{ width: 1, alignSelf: "stretch", background: TAK.panelBorder, margin: "2px 2px" }} />;
+const sep = <span aria-hidden="true" class="gm-hide-narrow" style={{ width: 1, alignSelf: "stretch", background: TAK.panelBorder, margin: "2px 2px" }} />;
 
 export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit }: {
   readonly lang: Lang; readonly scenario: GameScenario; readonly world: GameWorld; readonly state: GameState;

@@ -55,18 +55,27 @@ export function fanOffset(i: number, n: number, radiusPx = Math.max(26, 9 * n)):
 }
 
 /**
- * Markers closer than `nearPx` on screen are grouped (greedily, in the given order, each joining the first group whose
- * first member is near) and fanned out around their spot, so every unit stays visible and clickable at any zoom.
+ * Markers closer than `nearPx` on screen (about a marker's width) are grouped (greedily, in the given order, each joining
+ * the first group whose first member is near) and laid out on a small ring around the group's centre, so every unit
+ * stays visible and clickable at any zoom. Returns each marker's offset from its own anchor, px.
  */
-export function fanOut(points: readonly { readonly id: string; readonly x: number; readonly y: number }[], nearPx = 30): Map<string, [number, number]> {
-  const groups: { x: number; y: number; ids: string[] }[] = [];
+export function fanOut(points: readonly { readonly id: string; readonly x: number; readonly y: number }[], nearPx = 42): Map<string, [number, number]> {
+  const groups: { x: number; y: number; members: { id: string; x: number; y: number }[] }[] = [];
   for (const p of points) {
     const g = groups.find((q) => (q.x - p.x) ** 2 + (q.y - p.y) ** 2 < nearPx * nearPx);
-    if (g) g.ids.push(p.id);
-    else groups.push({ x: p.x, y: p.y, ids: [p.id] });
+    if (g) g.members.push(p);
+    else groups.push({ x: p.x, y: p.y, members: [p] });
   }
   const out = new Map<string, [number, number]>();
-  for (const g of groups) g.ids.forEach((id, i) => out.set(id, fanOffset(i, g.ids.length)));
+  for (const g of groups) {
+    const n = g.members.length;
+    if (n === 1) { out.set(g.members[0]!.id, [0, 0]); continue; }
+    const cx = g.members.reduce((a, m) => a + m.x, 0) / n, cy = g.members.reduce((a, m) => a + m.y, 0) / n;
+    g.members.forEach((m, i) => {
+      const [fx, fy] = fanOffset(i, n);
+      out.set(m.id, [Math.round(cx + fx - m.x), Math.round(cy + fy - m.y)]);
+    });
+  }
   return out;
 }
 

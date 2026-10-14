@@ -31,7 +31,10 @@ const CSS = `
 .gm-btn.primary:hover { background: ${TAK.accent}; color: ${TAK.accentInk}; }
 .gm-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .gm-marker { cursor: pointer; }
-.gm-unit { width: 44px; height: 44px; } /* position stays MapLibre's (absolute): the children are laid out against it */
+.gm-unit { width: 44px; height: 44px; z-index: 5; } /* position stays MapLibre's (absolute): the children are laid out against it */
+.gm-unit.sel { z-index: 6; }
+.gm-place, .gm-water, .gm-cp { z-index: 2; }
+.gm-fclabel { z-index: 1; }
 .gm-unit .ring { position: absolute; left: 5px; top: 5px; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; border: 3px solid #d5dde2; background: rgba(13,17,20,.62); display: flex; align-items: center; justify-content: center; transition: box-shadow .15s; }
 .gm-unit .sym { width: 24px; height: 18px; }
 .gm-unit.sel .ring { box-shadow: 0 0 0 3px ${GM.select}, 0 0 14px 5px rgba(255,212,0,.55); }
@@ -69,7 +72,7 @@ const CSS = `
 @media (max-width: 700px) {
   .gm-hide-narrow { display: none !important; }
   .gm-hud-quit { order: 1; }
-  .gm-hud-stats { flex-basis: 100%; gap: 8px; }
+  .gm-hud-stats { flex-basis: 100%; gap: 7px; justify-content: space-between; }
   .gm-orderbar { flex-direction: column; gap: 4px; width: 100%; box-sizing: border-box; }
   .gm-orderbar .who { border-right: none; border-bottom: 1px solid ${TAK.panelBorder}; padding: 0 2px 4px; }
   .gm-orderbar .cmds { overflow-x: auto; flex-shrink: 1; }

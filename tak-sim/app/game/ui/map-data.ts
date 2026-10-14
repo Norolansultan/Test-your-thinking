@@ -41,7 +41,8 @@ export function orderTarget(order: Order, world: Pick<GameWorld, "waterPoints" |
   }
 }
 
-const ACTIVE_FOR_ROUTE = new Set<Unit["status"]>(["moving", "returning", "refilling", "working"]);
+// Not "returning" or "refilling": then the unit is on a water run, not going to its order's place.
+const ACTIVE_FOR_ROUTE = new Set<Unit["status"]>(["moving", "working"]);
 
 /** Dashed planned routes: from each busy unit to its order's place (straight; the game routes by road). */
 export function routeLines(world: GameWorld, units: readonly Unit[], selected: ReadonlySet<string>): FeatureCollection<LineString> {

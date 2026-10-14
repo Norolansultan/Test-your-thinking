@@ -128,7 +128,7 @@ const FI: GameText = {
   hud: {
     pause: "Tauko", play: "Jatka", speed: "Nopeus", wind: "Tuuli", gust: "puuskissa", temp: "Lämpötila", rh: "Kosteus",
     burned: "Palanut", assetsLost: "Rakennuksia menetetty", points: "Pisteet", clock: "Kello", quit: "Lopeta", quitConfirm: "Lopetetaanko peli ja siirrytään yhteenvetoon?",
-    tempShort: "Läm.", rhShort: "RH", burnedShort: "Palanut", assetsLostShort: "Menetetty", pointsShort: "Pisteet",
+    tempShort: "Läm.", rhShort: "RH", burnedShort: "Palanut", assetsLostShort: "Menet.", pointsShort: "Pisteet",
   },
   ready: "Peli on pysäytetty",
   readyHint: "Valitse yksikkö ja anna käsky. Käynnistä aika ⏵-painikkeella tai välilyönnillä.",

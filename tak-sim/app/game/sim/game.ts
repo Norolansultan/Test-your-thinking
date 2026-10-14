@@ -8,7 +8,7 @@
  * safety → clock → fog of war → radio → objectives, score and phase.
  */
 
-import { SIM_STEP_S, type FireStepReport, type Game, type GameCommand, type GamePhase, type GameScenario, type GameState, type GameWorld, type Order, type ScenarioEvent, type ScenarioUnit, type Score, type XY } from "../contracts.js";
+import { SIM_STEP_S, type AssetStatus, type FireStepReport, type Game, type GameCommand, type GamePhase, type GameScenario, type GameState, type GameWorld, type Order, type ScenarioEvent, type ScenarioUnit, type Score, type XY } from "../contracts.js";
 import { stepAir } from "./air.js";
 import { runEvent, periodicRadio, SITREP_EVERY_S } from "./events.js";
 import { FireIndex } from "./fire-index.js";
@@ -131,6 +131,7 @@ class GameImpl implements Game {
         known: this.fog.known,
         knownAtS: this.fog.knownAtS,
         powerLineLive: ctx.powerLineLive,
+        assetStatus: assetStatusOf(this.world.assets, ctx.burnedAssets, ctx.protectedUntil, ctx.tS),
         radio: ctx.radio.messages.slice(),
         score: this.score,
       };
@@ -305,4 +306,11 @@ export function replay(scenario: GameScenario, world: GameWorld, seed: number, d
   const rest = untilS - g.state.tS;
   if (rest > 0) g.tick(rest);
   return g;
+}
+
+/** The screen's view of the structures (contract `GameState.assetStatus`), in world order. */
+function assetStatusOf(assets: GameWorld["assets"], burned: ReadonlySet<string>, protectedUntil: ReadonlyMap<string, number>, tS: number): Record<string, AssetStatus> {
+  const out: Record<string, AssetStatus> = {};
+  for (const a of assets) out[a.id] = burned.has(a.id) ? "burned" : (protectedUntil.get(a.id) ?? -1) >= tS ? "protected" : "intact";
+  return out;
 }

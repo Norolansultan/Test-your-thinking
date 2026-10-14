@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { CELL, type WeatherKey } from "../../app/game/contracts.js";
+import { CELL, FIRST_REPORT_M, type WeatherKey } from "../../app/game/contracts.js";
 import { UNKNOWN } from "../../app/game/sim/fog.js";
 import { createGame } from "../../app/game/sim/game.js";
 import { UNIT_SPECS } from "../../app/game/sim/unit-specs.js";
@@ -15,7 +15,7 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.
 const SOUTHERLY: readonly WeatherKey[] = [{ atS: 0, windFromDeg: 180, windMs: 4, gustMs: 6, tempC: 22, rh: 35 }];
 
 describe("fog of war", () => {
-  it("reveals only cells within a unit's sensor radius, and the reported ignition", () => {
+  it("reveals only cells within a unit's sensor radius, and the first report round the ignition", () => {
     const world = makeWorld();
     const far = { x: 1300, y: 1300 };
     const deps = fakeDeps({}, (f, w) => { lightBlock(f, w, 1280, 1280, 1320, 1320); });
@@ -27,8 +27,10 @@ describe("fog of war", () => {
     expect(s.known[farCell]).toBe(UNKNOWN);
     expect(s.knownAtS[farCell]).toBe(-1);
     for (let c = 0; c < world.grid.cols * world.grid.rows; c++) {
-      if (s.known[c] === UNKNOWN || c === ign) continue;
-      expect(dist(cellCentre(world.grid, c), world.commandPost)).toBeLessThanOrEqual(UNIT_SPECS.drone_thermal.sensorM + 1);
+      if (s.known[c] === UNKNOWN) continue;
+      const p = cellCentre(world.grid, c);
+      const seen = dist(p, world.commandPost) <= UNIT_SPECS.drone_thermal.sensorM + 1 || dist(p, { x: 200, y: 200 }) <= FIRST_REPORT_M + 1;
+      expect(seen).toBe(true);
     }
     g.issue("DR1", { type: "recon", centre: far });
     g.tick(150);

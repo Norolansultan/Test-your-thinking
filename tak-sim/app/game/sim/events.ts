@@ -5,7 +5,7 @@
  * spot-fire calls and long-shift warnings.
  */
 
-import { CELL, type FireStepReport, type ScenarioEvent } from "../contracts.js";
+import { CELL, type FireStepReport, type ScenarioEvent, type XY } from "../contracts.js";
 import { bearingDeg, clockLabel, dist, flameLengthM, windToVector } from "./geom.js";
 import type { Fog } from "./fog.js";
 import { active, say, unitSay, type Ctx, type UnitRt } from "./runtime.js";
@@ -21,12 +21,34 @@ export const AIR_SITREP_EVERY_S = 900;
 
 const p3 = (t: Text): Text => ({ fi: `P3: ${t.fi}`, en: `P3: ${t.en}` });
 
+/** A scripted ignition on ground that has already burned flares up at the nearest unburned fuel this close (the old edge), m. */
+export const REKINDLE_SEARCH_M = 300;
+
+/**
+ * Where a scripted ignition at `at` catches: its own cell while unburned, else — a rekindle in ground
+ * the fire (or the player's crews) already went over — the unburned cell nearest it within
+ * `REKINDLE_SEARCH_M` (ties: lower index); null when nothing there can burn.
+ */
+export function ignitionCell(ctx: Ctx, at: XY): number | null {
+  const st = ctx.fire.state;
+  const own = ctx.deps.cellOf(ctx.world.grid, at);
+  if (own !== null && st[own] === CELL.unburned) return own;
+  let best: number | null = null;
+  let bestD = Infinity;
+  for (const c of ctx.deps.cellsInCircle(ctx.world.grid, at, REKINDLE_SEARCH_M)) {
+    if (st[c] !== CELL.unburned) continue;
+    const d = dist(ctx.fireIdx.centre(c), at);
+    if (d < bestD || (d === bestD && best !== null && c < best)) { best = c; bestD = d; }
+  }
+  return best;
+}
+
 export function runEvent(ctx: Ctx, fog: Fog, e: ScenarioEvent): void {
   const msg = e.message;
   switch (e.kind) {
     case "ignite": {
       if (e.at !== undefined) {
-        const cell = ctx.deps.cellOf(ctx.world.grid, e.at);
+        const cell = ignitionCell(ctx, e.at);
         if (cell !== null && ctx.fire.ignite(cell)) ctx.fireIdx.noteIgnited(cell);
         // A reported ignition is on the map; an unreported one waits to be found.
         if (cell !== null && msg !== undefined) fog.reveal(ctx, [cell]);

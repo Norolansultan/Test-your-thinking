@@ -14,7 +14,7 @@ export interface Leg { readonly to: XY; readonly speedMs: number }
 
 export type Phase =
   | "none"
-  | "approach" | "engage" | "standby" // attack
+  | "approach" | "engage" | "standby" | "mop_up" // attack (mop-up: drowning the smouldering ground once the flames are out)
   | "to_anchor" | "laying" | "holding" // hose line
   | "to_start" | "cutting" // fire break
   | "to_target" | "transfer" // shuttle
@@ -95,6 +95,9 @@ export interface Ctx {
   readonly protectedUntil: Map<string, number>;
   /** Assets that have burned. */
   readonly burnedAssets: Set<string>;
+  /** Water the units have put on the ground, litres, and fire-break cells cut: whether the player fought the fire at all (the grade). */
+  waterAppliedL: number;
+  breakCellsCut: number;
 }
 
 /** A unit's message: its callsign, its net, the sender's prefix on the text. */

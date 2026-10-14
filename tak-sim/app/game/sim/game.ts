@@ -6,9 +6,17 @@
  *
  * Each step: weather → scenario events → arrivals → unit behaviours → fire step → buildings and crew
  * safety → clock → fog of war → radio → objectives, score and phase.
+ *
+ * A scenario's pre-burn (`preBurnS`) runs the fire from its ignitions before tS 0 under the weather at
+ * tS 0; the player's picture then holds only the first report (`FIRST_REPORT_M` round each ignition).
+ *
+ * The game is won early only when the fire is out — no flaming and no smouldering cell — for
+ * `OUT_CONFIRM_S` with no scripted ignition still to come and every objective met; it is lost when an
+ * objective fails for good (score.ts `failedForGood`); otherwise it plays to `endAtS` and is won if every
+ * objective is met, else it ends.
  */
 
-import { SIM_STEP_S, type AssetStatus, type FireStepReport, type Game, type GameCommand, type GamePhase, type GameScenario, type GameState, type GameWorld, type Order, type ScenarioEvent, type ScenarioUnit, type Score, type XY } from "../contracts.js";
+import { FIRST_REPORT_M, SIM_STEP_S, type AssetStatus, type FireStepReport, type Game, type GameCommand, type GamePhase, type GameScenario, type GameState, type GameWorld, type Order, type ScenarioEvent, type ScenarioUnit, type Score, type XY } from "../contracts.js";
 import { stepAir } from "./air.js";
 import { runEvent, periodicRadio, SITREP_EVERY_S } from "./events.js";
 import { FireIndex } from "./fire-index.js";
@@ -20,7 +28,7 @@ import type { GameDeps } from "./ports.js";
 import { RadioLog } from "./radio.js";
 import { resolveScenario } from "./resolve.js";
 import { active, resetBehaviour, say, toUnit, unitSay, type Ctx, type UnitRt } from "./runtime.js";
-import { CONTAIN_CONFIRM_S, failedForGood, gradeFor, objectiveWhy, pointsFor, updateObjectives, type ObjectiveStatus } from "./score.js";
+import { OUT_CONFIRM_S, failedForGood, gradeFor, objectiveWhy, pointsFor, updateObjectives, type ObjectiveStatus, type WorldFacts } from "./score.js";
 import { resumePhase } from "./support.js";
 import { T } from "./texts.js";
 import { specOf } from "./unit-specs.js";
@@ -77,18 +85,24 @@ class GameImpl implements Game {
   private nextEvent = 0;
   private casualties = 0;
   private containedAtS: number | null = null;
-  private containedSinceS: number | null = null;
+  /** Since when nothing burns or smoulders (null while anything does). */
+  private outSinceS: number | null = null;
   private score: Score;
   private snapshot: GameState | null = null;
 
   constructor(scenario: GameScenario, world: GameWorld, seed: number, private readonly deps: GameDeps) {
     this.scenario = resolveScenario(scenario, world);
     this.world = world;
-    const fire = deps.createFire(world, seed);
-    const ignitionCells: number[] = [];
+    const preBurnS = Math.max(0, this.scenario.preBurnS ?? 0);
+    const fire = deps.createFire(world, seed, -preBurnS);
     for (const p of this.scenario.ignitions) {
       const c = deps.cellOf(world.grid, p);
-      if (c !== null && fire.ignite(c)) ignitionCells.push(c);
+      if (c !== null) fire.ignite(c);
+    }
+    // The discovery delay: the fire runs from its ignitions to tS 0 under the weather at tS 0.
+    if (preBurnS > 0) {
+      const w0 = deps.weatherAt(this.scenario.weather, 0);
+      for (let t = -preBurnS; t < -1e-6; t += SIM_STEP_S) fire.step(Math.min(SIM_STEP_S, -t), w0);
     }
     const units = this.scenario.units.map((su, i) => makeUnit(world, su, i));
     const unitById = new Map<string, UnitRt>();
@@ -102,9 +116,14 @@ class GameImpl implements Game {
       powerLineLive: this.scenario.powerLineLiveAtStart,
       protectedUntil: new Map<string, number>(),
       burnedAssets: new Set<string>(),
+      waterAppliedL: 0,
+      breakCellsCut: 0,
     };
     this.fog = new Fog(world.grid.cols * world.grid.rows);
-    this.fog.reveal(this.ctx, ignitionCells);
+    // The first report: what the caller and the emergency centre can say about the ground round each ignition.
+    const reported: number[] = [];
+    for (const p of this.scenario.ignitions) for (const c of deps.cellsInCircle(world.grid, p, FIRST_REPORT_M)) reported.push(c);
+    this.fog.reveal(this.ctx, reported);
     this.fog.observeAll(this.ctx);
     this.assetWatch = new AssetWatch(this.ctx);
     this.events = this.scenario.events.map((e, i) => ({ e, i })).sort((a, b) => a.e.atS - b.e.atS || a.i - b.i).map((x) => x.e);
@@ -216,6 +235,12 @@ class GameImpl implements Game {
     say(this.ctx, unitSay(u, { text: T.arrived(), priority: "important", key: "arrived", room: "command", at: u.pos }));
   }
 
+  /** Whether a scripted ignition (a new fire or a rekindle) is still to come. */
+  private ignitionPending(): boolean {
+    for (let i = this.nextEvent; i < this.events.length; i++) if (this.events[i]!.kind === "ignite") return true;
+    return false;
+  }
+
   private evaluate(): void {
     const ctx = this.ctx;
     const idx = ctx.fireIdx;
@@ -226,13 +251,15 @@ class GameImpl implements Game {
         const t = T.contained(clockLabel(this.scenario.startClockMin, ctx.tS));
         say(ctx, { from: "P3", room: "command", text: { fi: `P3: ${t.fi}`, en: `P3: ${t.en}` }, priority: "important", key: "contained", force: true });
       }
-      this.containedSinceS ??= ctx.tS;
     } else {
-      this.containedSinceS = null;
+      // A new fire or a flare-up: containment counts from when the last front goes out.
+      this.containedAtS = null;
     }
-    const facts = { tS: ctx.tS, burnedHa: idx.everBurnedHa(), casualties: this.casualties, settlementsLost: this.assetWatch.lostSettlements, containedNow };
+    if (containedNow && idx.activeCount() === 0) this.outSinceS ??= ctx.tS;
+    else this.outSinceS = null;
+    const facts: WorldFacts = { tS: ctx.tS, burnedHa: idx.everBurnedHa(), casualties: this.casualties, settlementsLost: this.assetWatch.lostSettlements, containedNow };
     updateObjectives(this.objectives, facts, false);
-    const failed = failedForGood(this.objectives);
+    const failed = failedForGood(this.objectives, facts);
     if (failed !== undefined) {
       updateObjectives(this.objectives, facts, true);
       this.phase = "lost";
@@ -242,9 +269,10 @@ class GameImpl implements Game {
       });
       const t = T.lost(why.fi, why.en);
       say(ctx, { from: "P3", room: "command", text: { fi: `P3: ${t.fi}`, en: `P3: ${t.en}` }, priority: "urgent", key: "phase", force: true });
-    } else if (this.containedSinceS !== null && ctx.tS - this.containedSinceS >= CONTAIN_CONFIRM_S && !this.objectives.some((o) => o.met === false)) {
+    } else if (this.outSinceS !== null && ctx.tS - this.outSinceS >= OUT_CONFIRM_S && !this.ignitionPending()) {
+      // Out and mopped up, with nothing scripted left to burn: the day is decided.
       updateObjectives(this.objectives, facts, true);
-      if (this.objectives.every((o) => o.met === true)) this.finish("won");
+      this.finish(this.objectives.every((o) => o.met === true) ? "won" : "ended");
     }
     if (this.phase === "running" && ctx.tS >= this.scenario.endAtS) {
       updateObjectives(this.objectives, facts, true);
@@ -260,9 +288,11 @@ class GameImpl implements Game {
   }
 
   private computeScore(containedNow: boolean): Score {
-    const idx = this.ctx.fireIdx;
+    const ctx = this.ctx;
+    const idx = ctx.fireIdx;
     const burnedHa = Math.round(idx.everBurnedHa() * 100) / 100;
     const met = this.objectives.filter((o) => o.met === true).length;
+    const over = this.phase === "won" || this.phase === "lost" || this.phase === "ended";
     const points = pointsFor({
       burnedHa,
       lostAssetValue: this.assetWatch.lostValue,
@@ -272,8 +302,9 @@ class GameImpl implements Game {
       containedNow,
       endAtS: this.scenario.endAtS,
       objectivesMet: met,
+      burningAtEnd: over && !containedNow,
     });
-    const assetsLost = this.ctx.burnedAssets.size;
+    const assetsLost = ctx.burnedAssets.size;
     return {
       burnedHa,
       assetsLost,
@@ -282,7 +313,15 @@ class GameImpl implements Game {
       casualties: this.casualties,
       containedAtS: this.containedAtS,
       points,
-      grade: gradeFor({ points, allObjectivesMet: this.objectives.length > 0 && this.objectives.every((o) => o.met === true), casualties: this.casualties, assetsLost, phase: this.phase }),
+      grade: gradeFor({
+        points,
+        allObjectivesMet: this.objectives.length > 0 && this.objectives.every((o) => o.met === true),
+        anyObjectiveUnmet: this.objectives.some((o) => o.met === false),
+        casualties: this.casualties,
+        assetsLost,
+        phase: this.phase,
+        fought: ctx.waterAppliedL > 0 || ctx.breakCellsCut > 0,
+      }),
       objectives: this.objectives.map((o) => ({ objective: o.objective, met: o.met })),
     };
   }

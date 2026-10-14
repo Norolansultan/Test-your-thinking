@@ -1,7 +1,10 @@
 /**
- * Game scenario "Harjoitus / Training" (easy): a small fire beside the forest road, a light
- * south-westerly and every unit on hand within ten minutes. P3 talks the player through each kind of
- * order; the 110 kV line is de-energised after half an hour so the player meets the rule first.
+ * Game scenario "Harjoitus / Training" (easy): a small fire beside the forest road, burning for 40
+ * minutes before the game starts (about 2 ha), a light south-westerly and every unit on hand within
+ * ten minutes. P3 talks the player through each kind of order; the 110 kV line is de-energised after
+ * half an hour so the player meets the rule first. Sized so that a crew sent in contains it in about
+ * 15–30 minutes and the game (out and mopped up) lasts through the tutorial; left alone it grows past
+ * the area limit. Balance: `npm run game:balance`.
  */
 
 import type { GameScenario } from "../contracts.js";
@@ -17,15 +20,15 @@ export const TRAINING: GameScenario = {
   titleFi: "Harjoitus",
   titleEn: "Training",
   briefingFi: [
-    "Rauhallinen aamupäivä. Metsäautotien eteläpuolella kytee pieni pintapalo, tuuli on heikko lounaistuuli. Kaikki yksiköt ovat käytössäsi heti tai kymmenen minuutin sisällä.",
+    "Rauhallinen aamupäivä. Metsäautotien eteläpuolella on palanut puolisen tuntia pieni pintapalo, tuuli on heikko lounaistuuli. Kaikki yksiköt ovat käytössäsi heti tai kymmenen minuutin sisällä.",
     "Harjoittele käskyt: suora hyökkäys reunaan, letkulinja tieltä, palokatko maastopaloyksiköllä, säiliöauton vesiajo, droonin tiedustelu ja helikopterin pudotukset. Näet kartalla vain sen, mitä yksiköt ovat nähneet.",
-    "Tavoitteet: palo rajattu 90 minuutissa, paloala alle 10 ha, ei loukkaantuneita.",
+    "Tavoitteet: palo rajattu 90 minuutissa, paloala alle 10 ha, ei loukkaantuneita. Peli voitetaan, kun mikään ei enää pala eikä kyte: sammuta myös kytevä reuna.",
     "Voimajohto on jännitteinen ensimmäisen puolen tunnin ajan: vettä ei saa käyttää 30 m sisällä.",
   ].join("\n\n"),
   briefingEn: [
-    "A quiet morning. A small surface fire smoulders south of the forest road, and the wind is a light south-westerly. Every unit is yours now or within ten minutes.",
+    "A quiet morning. A small surface fire has been burning south of the forest road for half an hour, and the wind is a light south-westerly. Every unit is yours now or within ten minutes.",
     "Practise the orders: direct attack on the edge, a hose line from the road, a fire break with the forest-fire unit, the tanker's water shuttle, drone reconnaissance and helicopter drops. The map shows only what your units have seen.",
-    "Objectives: contain the fire within 90 minutes, keep it under 10 ha, no casualties.",
+    "Objectives: contain the fire within 90 minutes, keep it under 10 ha, no casualties. The game is won when nothing burns or smoulders any more: mop up the smouldering edge too.",
     "The power line is live for the first half hour: no water within 30 m of it.",
   ].join("\n\n"),
   startClockMin: START,
@@ -33,9 +36,9 @@ export const TRAINING: GameScenario = {
   difficulty: "easy",
   ignitions: [FIRE],
   weather: [
-    wx(START, "10:00", 225, 2, 4, 20, 50),
-    wx(START, "10:45", 230, 3, 5, 21, 48),
-    wx(START, "11:30", 230, 2, 4, 22, 46),
+    wx(START, "10:00", 225, 3, 6, 20, 40),
+    wx(START, "10:45", 230, 4.5, 7.5, 21, 38),
+    wx(START, "11:30", 230, 3, 6, 22, 36),
   ],
   units: [
     { id: "EK11", kind: "engine", arriveAtS: 0 },
@@ -78,8 +81,8 @@ export const TRAINING: GameScenario = {
     {
       atS: T("10:15"), kind: "weather_warning",
       message: radio(T("10:15"), "SÄÄ", "support", "routine",
-        "SÄÄ: Tuuli voimistuu hetkellisesti 3 m/s:iin, puuskat 5 m/s, klo 10.45 aikaan.",
-        "WEATHER: The wind picks up briefly to 3 m/s, gusts 5 m/s, around 10:45."),
+        "SÄÄ: Tuuli voimistuu hetkellisesti 4–5 m/s:iin, puuskat 7–8 m/s, klo 10.45 aikaan.",
+        "WEATHER: The wind picks up briefly to 4–5 m/s, gusts 7–8 m/s, around 10:45."),
     },
     {
       atS: T("10:30"), kind: "power_line_dead",
@@ -94,4 +97,5 @@ export const TRAINING: GameScenario = {
     { kind: "no_casualties" },
   ],
   powerLineLiveAtStart: true,
+  preBurnS: 40 * 60,
 };

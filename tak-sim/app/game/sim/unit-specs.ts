@@ -104,7 +104,7 @@ export const UNIT_SPECS: Readonly<Record<UnitKind, UnitSpec>> = {
     offRoadKmh: 8, // drives into the forest behind its crew (SPEC/18 (m))
     airKmh: 0,
     waterL: 600, // trailer tank; it lives on natural water
-    pumpLpm: 250, // portable pump from natural water
+    pumpLpm: 400, // portable pump from natural water (a forest-fire pump on a long 25–38 mm line: ~400 l/min)
     fillLpm: 400, protectLpm: 150,
     reachM: 30,
     hoseM: 1000, // a trailer full of forest hose

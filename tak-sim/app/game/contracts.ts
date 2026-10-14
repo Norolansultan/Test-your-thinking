@@ -136,7 +136,10 @@ export interface FireSim {
   readonly intensity: Float32Array;
   /** Applied water / wetting, 0 = dry, ≥ 1 = soaked; dries over time. */
   readonly wetness: Float32Array;
-  /** Simulation time of each cell's ignition, seconds (−1 = never). */
+  /**
+   * Simulation time of each cell's ignition, seconds (−1 = never). A cell lit during a scenario's pre-burn
+   * (`GameScenario.preBurnS`) has a negative time, down to −preBurnS: test the cell's state, not the sign.
+   */
   readonly ignitedAtS: Float32Array;
   readonly tS: number;
   step(dtS: number, weather: Weather): FireStepReport;
@@ -213,12 +216,17 @@ export interface RadioMessage {
 
 export type Objective =
   | { readonly kind: "protect_settlement"; readonly settlementId: string }
-  | { readonly kind: "contain"; readonly byS: number } // no flaming front left
-  | { readonly kind: "limit_area"; readonly maxHa: number }
+  | { readonly kind: "contain"; readonly byS: number } // no flaming front left at byS (decided then; never ends the game by itself)
+  | { readonly kind: "limit_area"; readonly maxHa: number } // unmet above maxHa; the game is lost only above maxHa × 1.2 (sim/score.ts)
   | { readonly kind: "no_casualties" };
 
 export interface ScenarioUnit { readonly id: string; readonly kind: UnitKind; readonly arriveAtS: number; readonly entryNode?: number }
 
+/**
+ * A scripted event. `ignite` lights `at` — on ground that has already burned, the nearest unburned fuel
+ * within 300 m (a rekindle at the old edge; sim/events.ts) — and is on the player's map only when it
+ * carries a `message` (a reported fire); an unreported one waits to be found.
+ */
 export interface ScenarioEvent {
   readonly atS: number;
   readonly kind: "ignite" | "radio" | "power_line_dead" | "units_recalled" | "weather_warning";
@@ -242,13 +250,23 @@ export interface GameScenario {
   readonly objectives: readonly Objective[];
   /** The 110 kV line is live until a `power_line_dead` event. */
   readonly powerLineLiveAtStart: boolean;
+  /**
+   * Discovery delay, s (default 0): the fire burns this long before tS 0, from `ignitions`, under the
+   * weather at tS 0 (the fire's clock runs from −preBurnS). The player's picture starts with only the
+   * first report: what lies within `FIRST_REPORT_M` of each ignition point, as seen at tS 0.
+   */
+  readonly preBurnS?: number;
 }
+
+/** The first 112 report's extent around each reported ignition point, m (the player's picture at tS 0). */
+export const FIRST_REPORT_M = 150;
 
 export interface Score {
   readonly burnedHa: number;
   readonly assetsLost: number; readonly assetsTotal: number;
   readonly settlementsLost: readonly string[];
   readonly casualties: number;
+  /** When the flaming front was last gone (null while any front burns: a new or rekindled fire resets it). */
   readonly containedAtS: number | null;
   readonly points: number;
   readonly grade: "S" | "A" | "B" | "C" | "D" | "F";
@@ -257,6 +275,11 @@ export interface Score {
 
 export type AssetStatus = "intact" | "protected" | "burned";
 
+/**
+ * `won`: early when the fire is out (no flaming, no smouldering) for 15 min with no scripted ignition still
+ * to come and every objective met, or at `endAtS` with every objective met; `lost`: an objective failed
+ * for good; `ended`: over with an objective unmet (sim/game.ts).
+ */
 export type GamePhase = "briefing" | "running" | "won" | "lost" | "ended";
 
 export interface GameState {

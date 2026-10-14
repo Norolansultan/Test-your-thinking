@@ -38,8 +38,8 @@ export type CellsInCircleFn = (grid: GameGrid, centre: XY, radiusM: number) => r
 /** `world/grid.ts` cellsAlongLine: the cells a straight segment passes through, from `a` to `b`, without repeats. */
 export type CellsAlongLineFn = (grid: GameGrid, a: XY, b: XY) => readonly number[];
 
-/** `fire/*` createFireSim: a fresh live fire over the world, seeded. */
-export type CreateFireFn = (world: GameWorld, seed: number) => FireSim;
+/** `fire/*` createFireSim: a fresh live fire over the world, seeded, its clock at `startS` (default 0; negative for a pre-burn). */
+export type CreateFireFn = (world: GameWorld, seed: number, startS?: number) => FireSim;
 
 /** `weather/weather.ts` weatherAt: the weather at `tS`, interpolated between keyframes. */
 export type WeatherAtFn = (keys: readonly WeatherKey[], tS: number) => Weather;

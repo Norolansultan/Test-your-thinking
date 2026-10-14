@@ -1,6 +1,6 @@
 /**
- * Game mode: what ground units do with their orders, one fixed step at a time — direct attack,
- * hose lines, fire breaks, water runs, the tanker shuttle and structure protection (SPEC/18 (m), (y),
+ * Game mode: what ground units do with their orders, one fixed step at a time — direct attack (and
+ * the mop-up of the smouldering ground once the flames near the ordered point are out), hose lines, fire breaks, water runs, the tanker shuttle and structure protection (SPEC/18 (m), (y),
  * (ab): hose lines from the vehicle, sprinklers that open when the fire is about 100 m away, firebreak
  * sections cut by saw, the shuttle that keeps a line supplied).
  */
@@ -97,12 +97,23 @@ function stepAttack(ctx: Ctx, u: UnitRt, target: XY, dtS: number): void {
     u.workCell = cell;
   }
   if (cell < 0) return attackNothingWorkable(ctx, u, target, dtS);
-  const c = idx.centre(cell);
+  let c = idx.centre(cell);
   if (dist(u.pos, c) > spec.reachM) {
-    u.phase = "approach";
-    u.status = "moving";
-    moveToward(ctx, u, u.workAt ?? c, dtS);
-    return;
+    // Balance review (14 Oct 2026): a crew walking in attacks the first workable flames of this fire
+    // that come within its nozzle's reach — it no longer walks past (or into) the edge toward a cell
+    // picked from afar, which kept the first crews pulling back from flames underfoot without ever
+    // opening a nozzle.
+    const onTheWay = idx.nearestBurning(u.pos, spec.reachM, (k) => workable(k) && dist(idx.centre(k), target) <= ATTACK_SEARCH_M);
+    if (onTheWay < 0) {
+      u.phase = "approach";
+      u.status = "moving";
+      moveToward(ctx, u, u.workAt ?? c, dtS);
+      return;
+    }
+    cell = onTheWay;
+    u.workCell = cell;
+    u.workAt = null;
+    c = idx.centre(cell);
   }
   u.phase = "engage";
   u.status = "working";
@@ -135,6 +146,7 @@ function attackNothingWorkable(ctx: Ctx, u: UnitRt, target: XY, dtS: number): vo
     return;
   }
   if (u.phase === "engage") say(ctx, unitSay(u, { text: T.knockedDown(), priority: "routine", key: "knocked_down" }));
+  if (stepMopUp(ctx, u, target, dtS)) return;
   if (dist(u.pos, target) > ATTACK_SEARCH_M) {
     u.phase = "approach";
     u.status = "moving";
@@ -144,6 +156,35 @@ function attackNothingWorkable(ctx: Ctx, u: UnitRt, target: XY, dtS: number): vo
   u.phase = "standby";
   u.status = "idle";
   u.legs = [];
+}
+
+/**
+ * Mop-up: with no flames left near the ordered point, the crew drowns the smouldering ground within
+ * `ATTACK_SEARCH_M` of it, the cell nearest the crew first (a ground fire is out only when it is soaked:
+ * the fuel's mop-up water, fire/fuels.ts). True while it takes the step.
+ */
+function stepMopUp(ctx: Ctx, u: UnitRt, target: XY, dtS: number): boolean {
+  const idx = ctx.fireIdx;
+  const near = (c: number): boolean => dist(idx.centre(c), target) <= ATTACK_SEARCH_M && waterAllowedAt(ctx, idx.centre(c));
+  const cell = idx.nearestSmouldering(u.pos, dist(u.pos, target) + ATTACK_SEARCH_M, near);
+  u.workCell = cell;
+  u.workAt = null;
+  if (cell < 0) return false;
+  const c = idx.centre(cell);
+  if (dist(u.pos, c) > u.spec.reachM) {
+    u.phase = "approach";
+    u.status = "moving";
+    moveToward(ctx, u, c, dtS, u.spec.reachM * 0.7);
+    return true;
+  }
+  u.phase = "mop_up";
+  u.status = "working";
+  u.legs = [];
+  const natural = naturalWaterAt(ctx, u, u.pos);
+  let litres = (u.spec.pumpLpm * dtS) / 60;
+  if (!natural) litres = Math.min(litres, u.waterL);
+  if (wet(ctx, u, c, ctx.world.grid.cellM * 0.75, litres) && !natural) u.waterL = Math.max(0, u.waterL - litres);
+  return true;
 }
 
 // --- hose line ---------------------------------------------------------------------------------
@@ -283,7 +324,10 @@ function stepBreak(ctx: Ctx, u: UnitRt, from: XY, to: XY, dtS: number): void {
     batch.push(u.breakCells[u.breakNext]!.cell);
     u.breakNext++;
   }
-  if (batch.length > 0) ctx.fire.cutFireBreak(batch.sort(byNumber));
+  if (batch.length > 0) {
+    ctx.fire.cutFireBreak(batch.sort(byNumber));
+    ctx.breakCellsCut += batch.length;
+  }
   u.pos = toward(from, to, u.breakProgressM);
   if (done) {
     say(ctx, unitSay(u, { text: T.breakDone(Math.round(len)), priority: "important", key: "break_done" }));

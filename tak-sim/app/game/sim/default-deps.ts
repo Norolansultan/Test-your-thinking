@@ -27,7 +27,7 @@ export const defaultDeps: GameDeps = {
   cellsInCircle: (grid, centre, radiusM) => cellsInCircle(grid, centre, radiusM),
   // One cell wide: the cells a line passes through.
   cellsAlongLine: (grid, a, b) => cellsAlongLine(grid, a, b, grid.cellM),
-  createFire: (world, seed) => createFireSim(world, seed),
+  createFire: (world, seed, startS) => createFireSim(world, seed, startS === undefined ? {} : { startS }),
   weatherAt: (keys, tS) => weatherAt(keys, tS),
   describeWeatherFi: (w) => describeWeatherFi(w),
   describeWeatherEn: (w) => describeWeatherEn(w),

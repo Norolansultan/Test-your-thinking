@@ -22,7 +22,16 @@ import { batteryTimeline, type BatteryTimeline } from "../../app/scenario/drone-
 import { FIXED_ROADS, ROADS } from "../topo-map/roads.js";
 import { AIR_PLAN, FEATURES, THERMAL_FOOTPRINT_M, type P } from "./deployment.js";
 import { ANCHOR_PLACE, sectorOfPoint } from "./traffic-places.js";
-import { bearing, cap, dirAdj, dirTo, dist, fmt1, FLAME_FI, hm, intensityClass, isBog, L, pl, r10, r50, sec, stepStartS } from "./traffic-text.js";
+import { bearing, cap, dirAdj, dirTo, dist, flameWords, flatPlace, fmt1, hm, intensityClass, isBog, L, pl, r10, r50, sec, statedClass, stepStartS } from "./traffic-text.js";
+import { SCENARIO_18_FORCING } from "./scenario-18.js";
+import { PHASE_B_FIRST_STEP } from "./flame-table.js";
+
+/** The continuous front's authored rate (m/min) in step n, without the spot fires that merged with it (`scenario-18.ts` "Head ROS (actual)"; radio FB-01). */
+function frontRateWithoutJumps(n: number): number {
+  const f = SCENARIO_18_FORCING.find((x) => x.id === String(n));
+  if (!f) throw new Error(`traffic-drones: no forcing row for step ${n}`);
+  return f.headRosActualMpm;
+}
 import { NEW_FIRE_STEPS, NEW_FRONT_STEP, type Out, type TrafficAircraft, type TrafficCycleInput } from "./traffic-types.js";
 import { isRekindleCallsign } from "./fire-display.js";
 
@@ -143,7 +152,7 @@ function taskPlace(flight: string, coversBog: boolean): { place: string | null; 
     "edge:RIDGE": "harjun", "edge:SPR": "Kuusimäen reunan", "at:CABINS": "Mökkirannan puoleisen reunan", "at:BOG_S": "Rahkasuon palon", "at:VILLAGE": "Lahdenkylän puoleisen reunan",
   };
   const edgeEn: Record<string, string> = {
-    head: "the head", "edge:L1": "the north flank", "edge:L1B": "the north flank", "edge:L3": "the south edge by the point of origin", "edge:L3SE": "the south-east front",
+    head: "the head", "edge:L1": "the north edge", "edge:L1B": "the north edge", "edge:L3": "the south edge by the point of origin", // EN-02 (SPEC/31) "edge:L3SE": "the south-east front",
     "edge:RIDGE": "the esker", "edge:SPR": "the Kuusimäki edge", "at:CABINS": "the edge facing Mökkiranta", "at:BOG_S": "the Rahkasuo fire", "at:VILLAGE": "the edge facing Lahdenkylä",
   };
   return { place: a?.place ?? null, sector: a?.sector ?? null, edgeFi: L(edgeFi[code] ?? "reunan", edgeEn[code] ?? "the edge") };
@@ -177,7 +186,7 @@ function battery(a: TrafficAircraft, inp: TrafficCycleInput, out: Out, place: st
     const why = L(whyFi, LANDING_EN[whyFi] ?? whyFi);
     out.push({ offsetS: 1140, actor: a.id, actor_type: actorType, addressee: "JOHTO", pos: a.target, place, event_type: "status", task: a.flight,
       // The task's place goes with the callsign, so "johtopaikalla (Mökkiranta)" cannot be read as one place (audit item 19).
-      content: L(`${a.id}${place ? ` (${place})` : ""} laskeutuu klo ${hm(t0 + 1140)}: ${a.kind === "water_drone" ? "pudotukset päättyvät, " : ""}${why}.`, `${a.id}${place ? ` (${pl(place)})` : ""} landing at ${hm(t0 + 1140)}: ${a.kind === "water_drone" ? "drops ending, " : ""}${why}.`), tier: "T2_system", channel: "sensor_feed", nav: "ilma" });
+      content: L(`${a.id}${place ? ` (${flatPlace(place)})` : ""} laskeutuu klo ${hm(t0 + 1140)}: ${a.kind === "water_drone" ? "pudotukset päättyvät, " : ""}${why}.`, `${a.id}${place ? ` (${flatPlace(pl(place))})` : ""} landing at ${hm(t0 + 1140)}: ${a.kind === "water_drone" ? "drops ending, " : ""}${why}.`), tier: "T2_system", channel: "sensor_feed", nav: "ilma" });
   }
 }
 
@@ -205,9 +214,11 @@ function infrastructure(a: TrafficAircraft, inp: TrafficCycleInput, out: Out, pl
     if (!Number.isFinite(d) || d > 800) continue;
     const burning = inp.fire.freshHa(closest, 150) > 0;
     const run = inp.fire.advanceAt(closest, 150);
-    const cls = intensityClass(inp.landCoverAt(run.at ?? closest), run.m / 20, burning);
-    const state = burning && d < 60 && cls >= 2 ? L(`liekit tien reunassa (${FLAME_FI[cls]}), ajo ei turvallista`, `flames at the roadside (${FLAME_FI[cls]}), not safe to drive`)
-      : burning && d < 60 ? L(`matalaa paloa tien reunassa (${FLAME_FI[cls]}), ajettavissa varoen`, `low fire at the roadside (${FLAME_FI[cls]}), passable with care`)
+    const roadLc = inp.landCoverAt(run.at ?? closest);
+    const cls = intensityClass(roadLc, run.m / 20, burning);
+    const fw = flameWords(cls, run.m / 20, roadLc, inp.n);
+    const state = burning && d < 60 && cls >= 2 ? L(`liekit tien reunassa (${fw}), ajo ei turvallista`, `flames at the roadside (${fw}), not safe to drive`)
+      : burning && d < 60 ? L(`matalaa paloa tien reunassa (${fw}), ajettavissa varoen`, `low fire at the roadside (${fw}), passable with care`)
       : burning && d < 250 ? L("savua tiellä, ajettavissa varoen", "smoke on the road, passable with care")
       : d < 60 ? L("tien varsi palanut, ei liekkejä, ajettavissa", "the roadside has burned, no flames, passable") : L("tie ajettavissa, ei savua tiellä", "road passable, no smoke on the road");
     // A burned-out verge is not "fire 10 m from the road" (review 3 Oct 2026: the V5 R1 key read ambiguously).
@@ -266,11 +277,31 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
   // The sector is the one the target lies in, as for the units (A9); the anchor's name stays the place.
   const loc = { pos: tgt, place, location: sectorOfPoint(tgt) };
   let picture: string;
+  // The flame stated: from the hinge the provisional table's at the rate measured here (SPEC/31 §3.11), before it the class band. A
+  // separate fire's own run is not in the footprint's advance (`advanceAt` leaves its cells out): in phase B the separate fire is the
+  // rekindled front, whose head run is the step's observed rate (DR2 17:25: the 17:00–17:20 run).
+  const flameRate = jumped.length > 0 && n >= PHASE_B_FIRST_STEP ? Math.max(rate, inp.observedRateMpm) : rate;
+  const fw = flameWords(cls, flameRate, lc, n);
+  // The image's hottest pixel reads the class of the flame stated (one draw either way, so the step's stream is unchanged): a
+  // 3–4 m flame with "maks. 283 °C" (DR2 18.25, class-2 temperatures) contradicted itself.
+  const tempCls = statedClass(cls, flameRate, lc, n);
+  // Fix pass 6: a crown run's rate counts the spot fires that merged with the head (DR1's 38 m/min, evt.c07.010).
+  const includesJumps = jumped.length > 0 || (rate >= 25 && inp.spotFires.length > 0);
   if (jumped.length > 0) {
     // What is hot is what burns there: peat and ditch banks only where the new fire is on peat (consistency review item 7).
     const onPeat = jumped.filter((f) => isBog(inp.landCoverAt(f.p))).length * 2 > jumped.length;
-    picture = ((t: string) => L(`erillinen palo kuva-alalla, noin ${fmt1(jumped.length * fire.cellHa)} ha, ${FLAME_FI[cls]}; ${onPeat ? "ojanpenkat ja turve kuumia" : "maapuusto ja karike palavat"}, maks. ${t}`,
-      `a separate fire in the image, about ${fmt1(jumped.length * fire.cellHa)} ha, ${FLAME_FI[cls]}; ${onPeat ? "ditch banks and peat hot" : "deadwood and litter burning"}, max. ${t}`))(tempFi(Math.max(cls, 3), out.draw.rnd));
+    picture = ((t: string) => L(`erillinen palo kuva-alalla, noin ${fmt1(jumped.length * fire.cellHa)} ha, ${fw}; ${onPeat ? "ojanpenkat ja turve kuumia" : "maapuusto ja karike palavat"}, maks. ${t}`,
+      `a separate fire in the image, about ${fmt1(jumped.length * fire.cellHa)} ha, ${fw}; ${onPeat ? "ditch banks and peat hot" : "deadwood and litter burning"}, max. ${t}`))(tempFi(Math.max(tempCls, 3), out.draw.rnd));
+  } else if (includesJumps && freshHa > 0) {
+    // Radio FB-01 / fire FT-C6 (SPEC/31): the pushed crown-run picture (DR1 15.25, V5) said "51,3 m/min" with no caveat; it now says the
+    // head advanced through the spot fires' jumps and gives the continuous front's rate without them — the crown run's authored rate
+    // (`scenario-18.ts` step 6, 30 m/min, FBP C-2; the CA's 38 m/min and the image's rate include the merged spots; `24` ah.7).
+    const outward = run.at ? fire.outwardBearing(run.at, 400) : null;
+    const front = frontRateWithoutJumps(n - 1);
+    // Worded without "pistepalo" (as EK11's 14:0x line): a lexical match on it takes a V5 retrieval slot from DR1's spot-fire
+    // confirmations (`test/server/thinker-review-ah.spec.ts` C2); the recorded measurement keeps "(sisältää pistepalojen hypyt)".
+    picture = ((t: string) => L(`kärki edennyt ${dirTo(outward ?? inp.headingDeg)} hyppäyksin noin ${r10(adv)} m (klo ${hm(t0 - 1200)}–${hm(t0)}, ${fmt1(rate)} m/min hypyt mukaan lukien; yhtenäinen reuna noin ${front} m/min), ${fw}, maks. ${t}`,
+      `the head has advanced ${dirTo(outward ?? inp.headingDeg)} in jumps, about ${r10(adv)} m (${hm(t0 - 1200)}–${hm(t0)}, ${fmt1(rate)} m/min including the jumps; the continuous front about ${front} m/min), ${fw}, max. ${t}`))(tempFi(cls, out.draw.rnd));
   } else if (burned === 0) {
     const d = fire.distanceM(tgt, 4000);
     picture = L(`kuva-alalla ei paloa${Number.isFinite(d) ? `, lähin reuna noin ${r50(d)} m` : ""}`, `no fire in the image${Number.isFinite(d) ? `, nearest edge about ${r50(d)} m` : ""}`);
@@ -281,7 +312,7 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
     // centroid, which flipped on a slow edge between steps; a slow edge (< 2 m/min) is backing, against the wind (fix pass 5, 8 Oct 2026).
     const outward = run.at ? fire.outwardBearing(run.at, 400) : null;
     const dir = rate < BACKING_BELOW_MPM ? dirTo((inp.headingDeg + 180) % 360) : dirTo(outward ?? inp.headingDeg);
-    picture = ((t: string) => L(`reuna etenee ${dir} noin ${fmt1(rate)} m/min (klo ${hm(t0 - 1200)}–${hm(t0)}), ${FLAME_FI[cls]}, maks. ${t}`, `the edge is spreading ${dir} at about ${fmt1(rate)} m/min (${hm(t0 - 1200)}–${hm(t0)}), ${FLAME_FI[cls]}, max. ${t}`))(tempFi(cls, out.draw.rnd));
+    picture = ((t: string) => L(`reuna etenee ${dir} noin ${fmt1(rate)} m/min (klo ${hm(t0 - 1200)}–${hm(t0)}), ${fw}, maks. ${t}`, `the edge is spreading ${dir} at about ${fmt1(rate)} m/min (${hm(t0 - 1200)}–${hm(t0)}), ${fw}, max. ${t}`))(tempFi(tempCls, out.draw.rnd));
   }
   const hotFi = hot > 0 ? L(`${hot} tuoretta lämpöpistettä kuva-alalla`, `${hot} fresh hot spots in the image`) : L("ei uusia lämpöpisteitä kuva-alalla", "no new hot spots in the image");
   const shotAt = 300 + slot * 45;
@@ -292,12 +323,11 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
   out.push({ offsetS: shotAt + 40, actor: a.id, actor_type: "drone", addressee: recorded ? null : "JOHTO", ...loc, event_type: "detection", task: a.flight,
     content: L(`${a.id} lämpökuva, ${place ?? "kuva-ala"} klo ${hm(t0 + shotAt)}: ${picture}; ${hotFi}. (${conf}.)`, `${a.id} thermal image, ${pl(place ?? "kuva-ala")} at ${hm(t0 + shotAt)}: ${picture}; ${hotFi}. (${conf}.)`),
     tier: recorded ? "T2_system" : "T1_pushed", channel: recorded ? "sensor_feed" : "radio_command", nav: "ilma" });
-  // Fix pass 6: a crown run's rate counts the spot fires that merged with the head (DR1's 38 m/min, evt.c07.010).
-  const includesJumps = jumped.length > 0 || (rate >= 25 && inp.spotFires.length > 0);
   if (freshHa > 0 && jumped.length < fresh.length) {
+    const k = statedClass(cls, rate, lc, n);
     out.push({ offsetS: shotAt + 70, actor: a.id, actor_type: "drone", addressee: null, ...loc, event_type: "detection", task: a.flight,
-      content: L(`${a.id} mittaus: ${edgeFi} etenemä ${r10(adv)} m klo ${hm(t0 - 1200)}–${hm(t0)} (kahden kuvan vertailu), ${fmt1(rate)} m/min${includesJumps ? " (sisältää pistepalojen hypyt)" : ""}. Intensiteettiluokka ${cls}/5, ${FLAME_FI[cls]}. ${cap(conf)}.`,
-        `${a.id} measurement: ${edgeFi} advanced ${r10(adv)} m between ${hm(t0 - 1200)} and ${hm(t0)} (two images compared), ${fmt1(rate)} m/min${includesJumps ? " (includes the spot-fire jumps)" : ""}. Intensity class ${cls}/5, ${FLAME_FI[cls]}. ${cap(conf)}.`),
+      content: L(`${a.id} mittaus: ${edgeFi} etenemä ${r10(adv)} m klo ${hm(t0 - 1200)}–${hm(t0)} (kahden kuvan vertailu), ${fmt1(rate)} m/min${includesJumps ? " (sisältää pistepalojen hypyt)" : ""}. Intensiteettiluokka ${k}/5, ${fw}. ${cap(conf)}.`,
+        `${a.id} measurement: ${edgeFi} advanced ${r10(adv)} m between ${hm(t0 - 1200)} and ${hm(t0)} (two images compared), ${fmt1(rate)} m/min${includesJumps ? " (includes the spot-fire jumps)" : ""}. Intensity class ${k}/5, ${fw}. ${cap(conf)}.`),
       tier: "T2_system", channel: "sensor_feed", nav: "palo" });
   }
   // Where a spot fire is said against the CURRENT head (FF9, 7 Oct 2026: "1360 m from the edge in the previous image"); an
@@ -317,8 +347,8 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
   // In the strongest gusts (18.40: 14 m/s) a multicopter does not fly its normal sortie: it holds position low and the loop is shortened.
   const windy = inp.wind.gustMs > THERMAL_DRONE_MAX_GUST_MS;
   if (windy) out.push({ offsetS: 120 + slot * 20, actor: a.id, actor_type: "drone", addressee: "JOHTO", ...loc, event_type: "status", task: a.flight,
-    content: L(`${a.id} lentoloki: puuskat ${fmt1(inp.wind.gustMs)} m/s ylittävät ${THERMAL_DRONE_MAX_GUST_MS} m/s rajan, lento rajoitettu: pitää asemaa 100 m korkeudessa${place ? ` (${place})` : ""}, kuvaus lyhyempinä jaksoina.`,
-      `${a.id} flight log: gusts ${fmt1(inp.wind.gustMs)} m/s exceed the ${THERMAL_DRONE_MAX_GUST_MS} m/s limit, flight restricted: holding position at 100 m${place ? ` (${pl(place)})` : ""}, imaging in shorter periods.`),
+    content: L(`${a.id} lentoloki: puuskat ${fmt1(inp.wind.gustMs)} m/s ylittävät ${THERMAL_DRONE_MAX_GUST_MS} m/s rajan, lento rajoitettu: pitää asemaa 100 m korkeudessa${place ? ` (${flatPlace(place)})` : ""}, kuvaus lyhyempinä jaksoina.`,
+      `${a.id} flight log: gusts ${fmt1(inp.wind.gustMs)} m/s exceed the ${THERMAL_DRONE_MAX_GUST_MS} m/s limit, flight restricted: holding position at 100 m${place ? ` (${flatPlace(pl(place))})` : ""}, imaging in shorter periods.`),
     tier: "T2_system", channel: "sensor_feed", nav: "ilma" });
   const logAt = 640 + slot * 35;
   const pct = levelNear(a.id, n, logAt);
@@ -395,7 +425,7 @@ function waterDrone(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
       `${a.id} system log: ${pct !== null ? `battery ${pct} %` : "battery swap in progress"}, load ${WATER_DRONE_LOAD_L} l, wind at drop height ${fmt1(inp.wind.gustMs)} m/s${windy ? " (over the limit, drops paused)" : ""}; ${pl(pond.fi)} ${Number.isFinite(d) && d < 300 ? "at the edge of the smoke, scooping slows" : "clear of smoke"}.`), tier: "T2_system", channel: "sensor_feed", nav: "vesi_reitit" }, "feed");
   if (inp.n === 11) {
     out.push({ offsetS: 30, actor: a.id, actor_type: "water_drone", addressee: "JOHTO", pos: a.target, place, event_type: "size_up", task: a.flight,
-      content: L(`${a.id} (vesidrooni) valmiina. Kauhoo lähimmästä vesipisteestä, kuorma ${WATER_DRONE_LOAD_L} l, pudotukset pohjoisreunalle Karhujärven suuntaan.`, `${a.id} (water drone) ready. Scooping from the nearest water point, load ${WATER_DRONE_LOAD_L} l, drops on the north flank towards Karhujärvi.`), tier: "T1_pushed", channel: "radio_command", nav: "ilma" });
+      content: L(`${a.id} (vesidrooni) valmiina. Kauhoo lähimmästä vesipisteestä, kuorma ${WATER_DRONE_LOAD_L} l, pudotukset pohjoisreunalle Karhujärven suuntaan.`, `${a.id} (water drone) ready. Scooping from the nearest water point, load ${WATER_DRONE_LOAD_L} l, drops on the north edge towards Karhujärvi.`), tier: "T1_pushed", channel: "radio_command", nav: "ilma" });
   }
 }
 
@@ -409,7 +439,8 @@ export function droneTraffic(inp: TrafficCycleInput, out: Out): void {
   // After the step's first reports (review 6 Oct 2026, A12): DR1 over Kuivakangas at 14:00:45 came before the
   // first smoke report from the esker (14:01), DR3 over Kuusimäki before the head was reported at its edge.
   out.push({ offsetS: 150, actor: "DRONERYHMÄ", actor_type: "drone", addressee: null, pos: FEATURES.CP, place: "johtopaikka", location: null, event_type: "status", task: null,
-    content: L(`Droneryhmä klo ${hm(stepStartS(inp.n))}: ${up.length === 0 ? "ei droneja ilmassa" : `ilmassa ${up.map((a) => `${a.id} (${taskPlace(a.flight, coversBogS(a)).place ?? a.flight})`).join(", ")}`}.`,
-      `Drone team at ${hm(stepStartS(inp.n))}: ${up.length === 0 ? "no drones in the air" : `in the air ${up.map((a) => `${a.id} (${pl(taskPlace(a.flight, coversBogS(a)).place ?? a.flight)})`).join(", ")}`}.`),
+    // Radio CS-06 (one spelling, "drooni", as the roster and the briefing) and ST-07 (no "(eteläreuna (L3))": the task after a dash).
+    content: L(`Drooniryhmä klo ${hm(stepStartS(inp.n))}: ${up.length === 0 ? "ei drooneja ilmassa" : `ilmassa ${up.map((a) => `${a.id} – ${taskPlace(a.flight, coversBogS(a)).place ?? a.flight}`).join(", ")}`}.`,
+      `Drone team at ${hm(stepStartS(inp.n))}: ${up.length === 0 ? "no drones in the air" : `in the air ${up.map((a) => `${a.id} – ${pl(taskPlace(a.flight, coversBogS(a)).place ?? a.flight)}`).join(", ")}`}.`),
     tier: "T2_system", channel: "system_log", nav: "ilma" });
 }

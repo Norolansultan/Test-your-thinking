@@ -63,7 +63,7 @@ describe("item 1: a unit's place follows its deployment", () => {
 
   it("VPK is on the origin's south edge after its step-9 move and on the north flank after step 10, never the L4 mop-up place there (2 Oct 2026: was Rahkasuo)", () => {
     for (const e of LOG.filter((x) => x.actor === "VPK" && x.cycle >= 9 && x.cycle <= 12)) expect(e.place, e.id).not.toBe("syttymäkohta");
-    expect(LOG.find((e) => e.actor === "VPK" && e.cycle === 9 && /^VPK siirtyy syttymäkohdan eteläreunalle/.test(e.content))!.place).toBe("Syttymäkohdan eteläreuna"); // by content: EK11's 16:00 return now comes first (safety re-check (ah))
+    expect(LOG.find((e) => e.actor === "VPK" && e.cycle === 9 && /^VPK: siirrymme syttymäkohdan eteläreunalle/.test(e.content))!.place).toBe("syttymäkohdan eteläreuna"); // SPEC/31 (radio TE-13, the move said as speech): lower case, "VPK: siirrymme"; by content: EK11's 16:00 return now comes first (safety re-check (ah))
     expect(LOG.filter((e) => e.actor === "VPK" && e.cycle === 11 && generated(e)).every((e) => e.place === "pohjoisreuna, Karhujärven puoli")).toBe(true);
   });
 });
@@ -98,7 +98,7 @@ describe("item 2: drone thermal reports agree with the reported fire under the c
 
   it("offers more than the old 15 templates: rate, intensity, plume, roads, water, people, coverage, battery, confidence", () => {
     const drone = TRAFFIC.filter((e) => e.actor_type === "drone" || e.actor === "DRONERYHMÄ").map((e) => e.content);
-    for (const re of [/mittaus: .* m\/min/, /Intensiteettiluokka \d\/5/, /savupatsas/, /tiehavainto/, /vesipiste W\d/, /Mökkiranta: 14 mökkiä/, /Droneryhmä klo .*: ilmassa/, /akku 20 %/, /laskeutuu klo/, /luotettavuus (hyvä|kohtalainen|heikko)/]) {
+    for (const re of [/mittaus: .* m\/min/, /Intensiteettiluokka \d\/5/, /savupatsas/, /tiehavainto/, /vesipiste W\d/, /Mökkiranta: 14 mökkiä/, /Drooniryhmä klo .*: ilmassa/, /akku 20 %/, /laskeutuu klo/, /luotettavuus (hyvä|kohtalainen|heikko)/]) {
       expect(drone.some((c) => re.test(c)), String(re)).toBe(true);
     }
   });

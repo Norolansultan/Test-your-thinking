@@ -32,12 +32,12 @@ const ROUNDS: readonly { readonly step: number; readonly offsetS: number; readon
   {
     step: 13, offsetS: 300,
     fi: "Jälkivartion kierros klo 17.25: vanhan palon itä- ja kaakkoisreuna (lohko L2) kierretty. Vartiossa klo 16.45 alkaen metsänhoitoyhdistyksen urakoitsija alueen pyynnöstä, kaksi kuormatraktoria 10 m³:n vesisäiliöin ja neljä miestä. Linja kaivettu kivennäismaahan ja kasteltu, ei liekkejä; kolme kytöpesäkettä kasteltu ja kaivettu auki.",
-    en: "Mop-up patrol round at 17.25: the old fire's east and south-east edge (sector L2) patrolled. On watch since 16.45: the forest owners' association's contractor at the region's request, two forwarders with 10 m³ water tanks and four men. The line is dug to mineral soil and soaked, no flames; three hot spots soaked and dug out.",
+    en: "Mop-up patrol round at 17.25: the old fire's east and south-east edge (sector L2) patrolled. On watch since 16.45: the forest owners' association's contractor at the region's request, two forwarders with 10 m³ water tanks and four men. The line is dug to mineral soil and soaked, no flames; three smouldering spots soaked and dug out.",
   },
   {
     step: 15, offsetS: 300,
     fi: "Jälkivartion kierros klo 18.05: lohkon L2 itä- ja kaakkoisreuna kierretty toiseen kertaan. Länsiluoteistuuli painaa savua linjan yli, mutta linja pitää; kaksi kytöpesäkettä kasteltu, yksi kanto kaivettu auki.",
-    en: "Mop-up patrol round at 18.05: sector L2's east and south-east edge patrolled a second time. The west-north-west wind pushes smoke over the line, but the line holds; two hot spots soaked, one stump dug out.",
+    en: "Mop-up patrol round at 18.05: sector L2's east and south-east edge patrolled a second time. The west-north-west wind pushes smoke over the line, but the line holds; two smouldering spots soaked, one stump dug out.",
   },
   {
     step: 17, offsetS: 600,

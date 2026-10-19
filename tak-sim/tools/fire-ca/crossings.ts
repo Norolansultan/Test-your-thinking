@@ -241,7 +241,8 @@ export function crossingMessageFi(c: Crossing, gustMs: number, nearestUnit: { re
     ? `Kipinät lensivät ${c.barrier.nameGenFi} yli${again}, uusi palo toisella puolella.`
     : c.mechanism === "head"
       ? `Palon kärki ylitti ${c.barrier.nameGenFi}${again} klo ${window[0]}–${window[1]} puuskissa (${gustMs} m/s).`
-      : `Palo kyti ${c.barrier.nameGenFi} yli${again} reunaa pitkin.`;
+      // Radio ST-02 (SPEC/31): a surface fire crossing a road creeps; *kyteä* is to smoulder (was "Palo kyti … yli").
+      : `Palo ryömi matalana ${c.barrier.nameGenFi} yli${again} reunaa pitkin.`;
   if (!nearestUnit || nearestUnit.distM > 600) return `${what} Lähellä ei ollut yksiköitä, ei ehditty tehdä mitään.`;
   if (nearestUnit.withdrew) return `${what} ${nearestUnit.id} joutui vetäytymään, ei ehditty estää.`;
   return c.mechanism === "creep"

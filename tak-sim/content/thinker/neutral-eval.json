@@ -14,7 +14,7 @@
   "questions": [
     {"id":"n01","topic":"water","view":3,"question":"Paljonko EK11:llä on vettä jäljellä?","needs":[{"actor":"EK11","contains":"Vettä säiliössä","pick":"latest","ids":["evt.c04.008"]}]},
     {"id":"n02","topic":"water","view":8,"question":"Mikä on KY21:n vesitilanne?","needs":[{"actor":"KY21","contains":"Vettä säiliössä","pick":"latest","ids":["evt.c11.047"]}]},
-    {"id":"n03","topic":"unit_status","view":12,"question":"Missä EK16 on nyt ja mikä sen tehtävä on?","needs":[{"actor":"EK16","contains":"AVL","pick":"latest","ids":["evt.c16.020"]},{"actor":"EK16","contains":"siirtyy","pick":"latest","ids":["atom.radio.14.1"]}]},
+    {"id":"n03","topic":"unit_status","view":12,"question":"Missä EK16 on nyt ja mikä sen tehtävä on?","needs":[{"actor":"EK16","contains":"AVL","pick":"latest","ids":["evt.c16.020"]},{"actor":"EK16","contains":"siirrymme","pick":"latest","ids":["atom.radio.14.1"]}]},
     {"id":"n04","topic":"unit_status","view":5,"question":"Mitä EK12 tekee tällä hetkellä?","needs":[{"actor":"EK12","contains":"AVL","pick":"latest","ids":["evt.c07.019"]}]},
     {"id":"n05","topic":"wind","view":1,"question":"Mistä suunnasta tuulee ja kuinka kovaa?","needs":[{"actor":"SAA","contains":"tuuli","pick":"latest","ids":["evt.c01.026"]}]},
     {"id":"n06","topic":"wind","view":9,"question":"Onko tuuli kääntynyt?","needs":[{"actor":"HELI1","contains":"Tuuli kääntynyt","pick":"any","ids":["atom.demo.9.0"]},{"actor":"SAA","contains":"tuuli","pick":"latest","ids":["evt.c12.029"]}]},

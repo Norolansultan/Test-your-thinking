@@ -58,6 +58,9 @@ const DELIVERY_M3 = 6;
 const BASIN_MIN = 3;
 /** A crew this near the head whose tank runs dry before the basin is filled withdraws to the burned area. */
 const HEAD_NEAR_M = 450;
+/** An engine's tank (l) and a working line's draw (l/min), for how long a tank level lasts (radio ST-05). */
+const ENGINE_TANK_L = 3000;
+const WORK_LINE_L_MIN = 50;
 /** Where the shuttle is at the handover: filling at W1. */
 const SHUTTLE_HOME: P = FEATURES.POND_W1;
 
@@ -326,7 +329,10 @@ export function stepWater(inp: TrafficCycleInput, state: TrafficState, out: Out)
     const reqS = t0 + reqAt;
     const doneS = deliver(sh, reqS, u.vehicle ?? u.pos, u.id);
     const waitMin = Math.max(1, Math.round((doneS - reqS) / 60));
-    const left = perS > 0 ? Math.max(1, Math.round((reqPct - 5) / perS / 60)) : 20;
+    // Radio ST-05 (SPEC/31): "säiliö 4 %, riittää noin 20 min" — with no draw on record the minutes came from a fixed 20. The tank now
+    // lasts what its level holds at a working line's ~50 l/min from a ~3 000 l engine tank (4 % ≈ 120 l ≈ 2 min), or less at the draw measured.
+    const nominal = Math.max(1, Math.round((reqPct / 100) * ENGINE_TANK_L / WORK_LINE_L_MIN));
+    const left = perS > 0 ? Math.min(nominal, Math.max(1, Math.round((reqPct - 5) / perS / 60))) : nominal;
     // The tank will not last until the basin comes (fix pass 4, M2): the crew says how it bridges the gap.
     const short = left < waitMin
       ? { fi: " Säästämme vettä ja pidämme reunaa käsityökaluin, kunnes allas tulee.", en: " We are saving water and holding the edge with hand tools until the basin arrives." }

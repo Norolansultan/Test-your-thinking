@@ -14,7 +14,7 @@ import { UNIT_PLAN } from "./deployment.js";
 export const ANCHOR_PLACE: Readonly<Record<string, { readonly place: string; readonly sector: string | null }>> = {
   "edge:L1": { place: "pohjoisreuna", sector: "L1-Pohjoinen" },
   "edge:L1B": { place: "pohjoisreuna, Karhujärven puoli", sector: "L1-Pohjoinen" },
-  "edge:L3": { place: "Syttymäkohdan eteläreuna", sector: "L3-Etelä" }, // the origin's south edge (2 Oct 2026; was Rahkasuo)
+  "edge:L3": { place: "syttymäkohdan eteläreuna", sector: "L3-Etelä" }, // the origin's south edge (2 Oct 2026; was Rahkasuo); lower case (TE-13, SPEC/31)
   "edge:L3SE": { place: "kaakkoisrintama", sector: "L3-Etelä" },
   "edge:L4": { place: "syttymäkohta", sector: "L4-Länsi" },
   "edge:RIDGE": { place: "Kuivakangas", sector: null },

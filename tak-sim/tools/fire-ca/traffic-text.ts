@@ -7,6 +7,7 @@
 
 import type { ActorType, AirKind } from "../../app/scenario/types.js";
 import type { P } from "./deployment.js";
+import { classOfFlame, flameAt, PHASE_B_FIRST_STEP } from "./flame-table.js";
 
 /**
  * The language the generator writes (session language "en", 1 Oct 2026). The generator runs once in
@@ -31,20 +32,25 @@ export function LL(fi: readonly string[], en: readonly string[]): readonly strin
 
 /** Place names in the log (`traffic-places.ts`, `deployment.ts`) and their English. Proper names stay. */
 const PLACE_EN: Readonly<Record<string, string>> = {
-  "pohjoisreuna": "north flank", "pohjoisreuna, Karhujärven puoli": "north flank, Karhujärvi side", "kaakkoisrintama": "south-east front",
-  "syttymäkohta": "point of origin", "Syttymäkohdan eteläreuna": "south edge by the point of origin", "kärki, pohjoissivusta": "head, north flank", "kärki, eteläsivusta": "head, south flank", "kärki": "head",
-  "eteläsivusta": "south flank", "pohjoissivusta": "north flank", "itäreuna": "east edge", "tie R1, palanut alue": "road R1, burned area", "oma auto": "own truck",
+  // EN-02 (SPEC/31): one Finnish word, one English one: *pohjoisreuna* is the north EDGE (after 16:00 the active front); "flank" is for *sivusta*.
+  "pohjoisreuna": "north edge", "pohjoisreuna, Karhujärven puoli": "north edge, Karhujärvi side", "kaakkoisrintama": "south-east front",
+  // TE-13 (SPEC/31): the label is lower case mid-sentence ("VPK, syttymäkohdan eteläreuna:").
+  "syttymäkohta": "point of origin", "syttymäkohdan eteläreuna": "south edge by the point of origin", "kärki, pohjoissivusta": "head, north flank", "kärki, eteläsivusta": "head, south flank", "kärki": "head",
+  // EN-01 (SPEC/31): "kaakkoissivusta" was left untranslated.
+  "eteläsivusta": "south flank", "pohjoissivusta": "north flank", "kaakkoissivusta": "south-east flank", "itäreuna": "east edge", "tie R1, palanut alue": "road R1, burned area", "oma auto": "own truck",
   "johtopaikka": "command post", "tie R1": "road R1", "tie R2": "road R2", "R1/R2-risteys": "R1/R2 junction", "R3:n silta (Kotkanjoki)": "R3 bridge (Kotkanjoki)",
   "Lahdenkylän lampi": "Lahdenkylä pond", "koko kehä": "whole perimeter", "eteläreuna (L3)": "south edge (L3)",
   "kuva-ala": "image area", "reuna": "edge", "vesipiste": "water point", "maastossa": "in the terrain",
   "Lahdenkylän lampi (W2)": "Lahdenkylä pond (W2)", "R3:n silta (Kotkanjoki), W3": "R3 bridge (Kotkanjoki), W3",
   "vesipiste W1 (Haukilampi)": "water point W1 (Haukilampi)", "vesipiste W2 (Lahdenkylän lampi)": "water point W2 (Lahdenkylä pond)", "vesipiste W3, R3:n silta (Kotkanjoki)": "water point W3, R3 bridge (Kotkanjoki)",
-  "viljelijän lietevaunu": "farmer's slurry tanker", "pohjoisreuna (L1)": "north flank (L1)", "EK13:n vesiajo": "EK13's water run",
+  "viljelijän lietevaunu": "farmer's slurry tanker", "pohjoisreuna (L1)": "north edge (L1)", "EK13:n vesiajo": "EK13's water run",
   "metsäautotie (Honkaharju)": "forest road (Honkaharju)", "R2:n ja metsäautotien risteys": "junction of R2 and the forest road",
   "länsireuna (L4)": "west edge (L4)",
 };
 /** A place name in the language being written. */
 export const pl = (p: string): string => (LANG === "en" ? PLACE_EN[p] ?? p : p);
+/** A place inside brackets without a second level of brackets ("eteläreuna (L3)" → "eteläreuna, L3"; radio ST-07). */
+export const flatPlace = (p: string): string => p.replace(/ \(([^()]*)\)/g, ", $1");
 /** Sector labels ("L3-Etelä") in the language being written. */
 const SECTOR_EN: Readonly<Record<string, string>> = { "L1-Pohjoinen": "L1-North", "L2-Koillinen": "L2-North-east", "L3-Etelä": "L3-South", "L4-Länsi": "L4-West", Kaakkoisrintama: "South-east front" };
 export const sec = (s: string): string => (LANG === "en" ? SECTOR_EN[s] ?? s : s);
@@ -164,6 +170,36 @@ const FLAME_EN_LIST = ["no flames", "flames under 0.3 m", "flames 0.3–1 m", "f
 export const FLAME_FI: readonly string[] = new Proxy([...FLAME_FI_LIST], { get: (t, k) => Reflect.get(LANG === "en" ? FLAME_EN_LIST : t, k) });
 
 /**
+ * A fixed choice among parallel phrasings (radio ST-08, SPEC/31): by a key (a unit's id) and the step, so two crews — or one crew in
+ * two steps — do not say the same sentence word for word. Deterministic; with `rnd` it consumes the one draw the `pick` it replaces
+ * made, so nothing after it in the step moves.
+ */
+export function vary<T>(key: string, n: number, xs: readonly T[], rnd?: () => number): T {
+  if (rnd) rnd();
+  // FNV-1a (32-bit) of "key#n": a sum of character codes put EK12 at step 3 and EK11 at step 4 on one phrasing.
+  let h = 0x811c9dc5;
+  for (const c of `${key}#${n}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+  return xs[h % xs.length]!;
+}
+
+/** Whether step n's records read flames from the provisional table (`flame-table.ts`): a spreading edge (class 2–4) from the hinge on. */
+const followsTable = (cls: number, n: number) => n >= PHASE_B_FIRST_STEP && cls >= 2 && cls <= 4;
+/**
+ * The flame band a record states for an edge of generator class `cls` spreading at `rateMpm` on ground `lc` in step n (SPEC/31
+ * §3.11): from the hinge, Byram's flame at that rate (`flame-table.ts`); before it, and for a creeping or crowning edge, the class band.
+ * The class itself still drives the generator's choices (no draw moves); only the stated flame follows the table.
+ */
+export function flameWords(cls: number, rateMpm: number, lc: LandCoverFi, n: number): string {
+  if (!followsTable(cls, n)) return FLAME_FI[cls]!;
+  const b = flameAt(rateMpm, lc).band;
+  return LANG === "en" ? b.en : b.fi;
+}
+/** The intensity class a record states: from the hinge, the class of the table's flame (the generator's scale, `classOfFlame`). */
+export function statedClass(cls: number, rateMpm: number, lc: LandCoverFi, n: number): number {
+  return followsTable(cls, n) ? classOfFlame(flameAt(rateMpm, lc).lengthM, false) : cls;
+}
+
+/**
  * How a unit's leader talks (seeded by unit, fixed for the day). `prefix` opens a report; `self`
  * is how it names itself; `hedge` the words it uses when it is not sure.
  */
@@ -183,8 +219,9 @@ const V_LOCAL: Voice = {
   get ack() { return LL(["Joo, selvä.", "Ok, hoidetaan."], ["Yes, got it.", "OK, we will handle it."]); },
 };
 const V_CROSS: Voice = {
-  // KY21: a cross-border unit with its own call-sign habits (SPEC/18 §8.1).
-  prefix: (id, place) => L(`Johto, ${id}${place ? ` (${place})` : ""}:`, `Command, ${id}${place ? ` (${pl(place)})` : ""}:`),
+  // KY21: a cross-border unit with its own radio habits (SPEC/18 §8.1, "eri puhetavat"). Radio ST-07 (SPEC/31): its place follows
+  // a comma, so "metsäautotie (Honkaharju)" is no longer nested in brackets ("Johto, KY21 (metsäautotie (Honkaharju)):").
+  prefix: (id, place) => L(`Johto, ${id}${place ? `, ${place}` : ""}:`, `Command, ${id}${place ? `, ${pl(place)}` : ""}:`),
   get hedge() { return LL(["arviolta", "ei varmistettu", "epävarma tieto"], ["roughly", "not confirmed", "uncertain information"]); },
   get ack() { return LL(["Kuitattu.", "Vastaanotettu."], ["Acknowledged.", "Received."]); },
 };
@@ -194,7 +231,8 @@ const V_FOREST: Voice = {
   get ack() { return LL(["Selvä, toimitaan.", "Kuittaus."], ["Roger, acting on it.", "Copy."]); },
 };
 const V_OUTSIDE: Voice = {
-  prefix: (id, place) => `${id}${place ? ` (${pl(place)})` : ""}:`,
+  // Radio ST-07 (SPEC/31): the place after a comma ("OUT1, R3:n silta (Kotkanjoki):", was "OUT1 (R3:n silta (Kotkanjoki)):").
+  prefix: (id, place) => `${id}${place ? `, ${pl(place)}` : ""}:`,
   get hedge() { return LL(["arvio, emme tunne maastoa", "kartan mukaan, varmistamatta", "epävarma, paikannimet vieraita"], ["estimate, we do not know the terrain", "by the map, unconfirmed", "uncertain, the place names are new to us"]); },
   get ack() { return LL(["Selvä, kuittaan.", "Ymmärretty."], ["Roger, copy.", "Understood."]); },
 };

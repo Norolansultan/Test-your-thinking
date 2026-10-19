@@ -77,18 +77,23 @@ describe("the directive's keys (truth only)", () => {
       8: ["neutral", null, null],
       // Fix pass 2 (7 Oct 2026): a front straddling a sector boundary accepts both sides; V11–V13 only in the head's sector.
       // Review fixes (ah), 9 Oct 2026: with the re-authored evening winds the new front and its head stay in L3 (computed).
-      9: ["no", ["direct_attack"], { direct_attack: ["L3"] }],
-      10: ["no", ["direct_attack"], { direct_attack: ["L3"] }],
+      // SPEC/31 coa F13: L2 (across the boundary the new front runs towards) is in the sound sectors, and marked a boundary sector,
+      // so the primary coding reads L3 alone and the boundary-accepted sensitivity L2 and L3.
+      9: ["no", ["direct_attack"], { direct_attack: ["L2", "L3"] }],
+      10: ["no", ["direct_attack"], { direct_attack: ["L2", "L3"] }],
       11: ["yes", ["barrier_line", "protect_values"], { barrier_line: ["L3"], protect_values: ["L3"] }],
       12: ["yes", ["barrier_line", "protect_values"], { barrier_line: ["L3"], protect_values: ["L3"] }],
       13: ["yes", ["barrier_line", "protect_values"], { barrier_line: ["L3"], protect_values: ["L3"] }],
-      14: ["no", ["direct_attack"], { direct_attack: ["L1", "L4"] }], // round 2 (5 Oct 2026): the second rekindle
+      // SPEC/31 §3.2 (coa F2, RC): the second rekindle is sound only through the secondary route (was a main-effort direct attack in L1, L4).
+      14: ["no", [], null],
     });
+    for (const v of [9, 10]) expect((DIRECTIVE_KEYS[v] as { boundarySectors?: readonly string[] }).boundarySectors, `V${v}`).toEqual(["L2"]);
+    expect((DIRECTIVE_KEYS[14] as { boundarySectors?: readonly string[] }).boundarySectors).toEqual(["L1"]);
     // 6 Oct 2026: at V14 the flare-up attacked directly as the secondary sector, the main effort protecting Lahdenkylä (L3); fix pass 2: V9–V10's new front too, the main effort anywhere.
     expect([8, 11, 12, 13].every((v) => DIRECTIVE_KEYS[v]!.soundSecondary === undefined)).toBe(true);
     expect(VILLAGE_SECTOR).toBe(nearestSectorOf(SITE_SCENARIO.features["VILLAGE"]!));
     expect(DIRECTIVE_KEYS[14]!.soundSecondary).toEqual({ taskId: "task.direct-attack", sectors: ["L1", "L4"], mainEffortSectors: ["L3"], mainEffortPostures: ["barrier_line", "protect_values"] });
-    for (const v of [9, 10]) expect(DIRECTIVE_KEYS[v]!.soundSecondary).toEqual({ taskId: "task.direct-attack", sectors: ["L3"], mainEffortSectors: ["L1", "L2", "L3", "L4"], mainEffortPostures: ["barrier_line", "protect_values"] });
+    for (const v of [9, 10]) expect(DIRECTIVE_KEYS[v]!.soundSecondary).toEqual({ taskId: "task.direct-attack", sectors: ["L2", "L3"], mainEffortSectors: ["L1", "L2", "L3", "L4"], mainEffortPostures: ["barrier_line", "protect_values"] });
     // Alignment reads the whole plan in phase B: a secondary direct attack is against the directive.
     for (const v of [8, 9, 10, 11, 12, 13, 14]) expect(DIRECTIVE_KEYS[v]!.againstSecondaryTaskId, `V${v}`).toBe("task.direct-attack");
     for (const v of [11, 12, 13]) expect(headSector(MAIN_VIEWS.find((x) => x.index === v)!.steps[0]!)).toBe("L3");
@@ -141,9 +146,9 @@ describe("the directive's keys (truth only)", () => {
     const basis = (v: number) => DIRECTIVE_KEYS[v]!.basisAtomIds.map(text).join(" | ");
     expect(basis(9)).toMatch(/Avotulta ja savua syttymäkohdan kaakkoispuolella/);
     expect(basis(9)).toMatch(/noin 0,5–1 ha.*arviolta 3 m\/min/);
-    expect(basis(10)).toMatch(/noin \d+,\d ha, liekit 0,3–1 m/); // ~1.0 ha since the 8 Oct 2026 fire model
+    expect(basis(10)).toMatch(/noin \d+,\d ha, liekit 2–3 m/); // ~1.0 ha since the 8 Oct 2026 fire model; SPEC/31 D1: the flame table (was 0,3–1 m)
     expect(basis(10)).not.toMatch(/m\/min/); // phase-B rebuild: no V10 record gives a rate
-    expect(basis(10)).toMatch(/Uusi rintama etenee itään/);
+    expect(basis(10)).toMatch(/Uusi palo etenee itään/); // radio DF-02 (SPEC/31): "uusi palo" (was "uusi rintama")
     expect(basis(11)).toMatch(/annettu klo 18\.00\): tuuli kääntyy luoteeseen ja voimistuu/);
     expect(basis(12)).toMatch(/Kärki lähestyy metsäautotietä/);
     expect(basis(12)).toMatch(/puuskissa 14,0/);
@@ -160,15 +165,16 @@ describe("the directive's keys (truth only)", () => {
   it("the basis texts quote the figures of the records and the map (8 Oct 2026, fix pass 5), not stale ones", () => {
     const k = (v: number) => DIRECTIVE_KEYS[v]!.basis;
     // V10: DR2 and DR3 give 0.8 ha, the map's polygon 0.70 ha; the key rests on records up to 17:40 only.
-    expect(k(10)).toMatch(/recorded only: 0\.9 ha, flames 0\.3–1 m \(DR2 thermal 17:25; DR3 mapping 17:35: 0\.9 ha\), and the map's polygon draws it at 0\.89 ha/); // review fixes (ah): was 0.8 / 0.8 / 0.70; revision (aj): the polygon 0.89 (was 0.82)
+    expect(k(10)).toMatch(/recorded only: 0\.9 ha, flames 2–3 m \(DR2 thermal 17:25; DR3 mapping 17:35: 0\.9 ha\), and the map's polygon draws it at 0\.89 ha/); // review fixes (ah): was 0.8 / 0.8 / 0.70; revision (aj): the polygon 0.89 (was 0.82); SPEC/31 D1: flames from the table (was 0.3–1 m)
     expect(k(10)).toMatch(/Review note: key on records up to 17:40 only/);
     expect(k(10)).not.toMatch(/~1\.0 ha|was ~0\.8/);
     // V11: DR2's two measurements, with their intervals.
-    expect(k(11)).toMatch(/7\.9 m\/min over 17\.20–17\.40 \(160 m\) and 4\.5 m\/min over 17\.40–18\.00 \(90 m\) \(DR2, recorded\)/); // review fixes (ah): 7.6 / 7.3; revision (aj): step 14's rate 6 → 4 m/min
+    expect(k(11)).toMatch(/7\.9 m\/min over 17\.20–17\.40 \(160 m, flames 3–4 m\) and 4\.5 m\/min over 17\.40–18\.00 \(90 m, flames 2–3 m\) \(DR2, recorded; the provisional flame-length table\)/); // SPEC/31 D1: the flames DR2 states // review fixes (ah): 7.6 / 7.3; revision (aj): step 14's rate 6 → 4 m/min
     expect(k(11)).not.toMatch(/8\.4 m\/min/);
     expect(DIRECTIVE_KEYS[11]!.basisAtomIds.map(text).join(" | ")).toMatch(/17\.40–18\.00/);
     // V14: SPOT's 0.3 ha at 19:30, the flare-up's polygons.
-    expect(k(14)).toMatch(/~0\.3 ha, flames under a metre \(SPOT's second pass, 19\.30/);
+    expect(k(14)).toMatch(/~0\.3 ha, flames 1–2 m \(SPOT's second pass, 19\.30; the provisional flame-length table/); // SPEC/31 D1 (was "under a metre")
+    expect(k(9)).toMatch(/~0\.5–1 ha, flames 2–3 m, the edge running east ~3 m\/min/);
     expect(k(14)).toMatch(/polygon draws it at 0\.21 ha at 19:20 and 0\.26 ha at 20:00/); // fix pass 7: L4 secured at 16:40; review fixes (ah): 0.28 / 1.02; revision (aj): the flare-up on the edge, 15 m out, barely grows in the north-westerly
   });
 
@@ -198,10 +204,10 @@ describe("the phase-B records the directive keys rest on", () => {
     // Round 2 (5 Oct 2026): no crew is on the new front in V10, so no crew radios "we are on it"; its existence
     // is pushed by DR2's story line (English too), and the map shows the front.
     expect(pushedOfStep(13).filter((p) => /uusi pieni palo|pieni uusi palo|uusi palo on vielä pieni|kiinni/i.test(p.text))).toEqual([]);
-    const dr2 = recordAtomId(13, /^Uusi rintama etenee itään vanhan eteläreunan suuntaisesti/);
+    const dr2 = recordAtomId(13, /^Uusi palo etenee itään vanhan eteläreunan suuntaisesti/); // radio DF-02 (SPEC/31): was "Uusi rintama"
     expect(pushed(dr2)).toBe(true);
     expect(atom(dr2).provenance.sourceId).toBe("DR2");
-    expect(recordIn("en", dr2, text(dr2))).toMatch(/^The new front is spreading east/);
+    expect(recordIn("en", dr2, text(dr2))).toMatch(/^The new fire is spreading east/);
     expect(siteStep(13).reportedDetached.length).toBeGreaterThan(0);
   });
 

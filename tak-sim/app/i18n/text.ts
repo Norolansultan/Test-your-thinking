@@ -26,8 +26,14 @@ export function tr(lang: Lang, fi: string): string {
  * and the logged data keep the source id.
  */
 export function sourceName(lang: Lang, sourceId: string): string {
-  return tr(lang, sourceId);
+  return lang === "fi" ? SOURCE_NAME_FI[sourceId] ?? sourceId : tr(lang, sourceId);
 }
+
+/**
+ * Finnish display names where the source id misreads (SPEC/31 §2.3, display only; the ids, retrieval and the logs keep them):
+ * radio TE-12, "SAA" reads as the verb *saa*; CS-06, one spelling "drooni" (the roster and the briefing).
+ */
+const SOURCE_NAME_FI: Readonly<Record<string, string>> = { SAA: "Sääasema", DRONERYHMÄ: "Drooniryhmä" };
 
 /** Whether a Finnish label has an English version. */
 export function hasLabelEn(fi: string): boolean {

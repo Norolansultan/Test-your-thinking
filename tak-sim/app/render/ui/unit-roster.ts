@@ -4,6 +4,11 @@
  * resource board — type, crew, where it came from. The §8.1 "Notes" column (fault injections
  * such as AVL drift, the radio dead zone) is experiment design and never reaches the screen.
  * Types match `tools/fire-ca/deployment.ts` UNIT_PLAN.
+ *
+ * SPEC/31 §2.3 (19 Oct 2026, radio CS-01, CA-01, CA-03; DRAFT, native check): the roster names no real region ("oma
+ * pelastuslaitos" / "naapuripelastuslaitos", was Etelä-Karjala and Kymenlaakso: EK and KY may be real codes, VERIFY 1–2 with
+ * Pelastusopisto; a corpus-wide rename follows only a confirmed collision); the near-future assets VD1, UGV1 and DR3 are marked
+ * trials ("kokeilu"); OUT1 and OUT2 are heavy tanker units, as their radio says ("raskas säiliö").
  */
 
 export interface RosterEntry {
@@ -15,46 +20,46 @@ export interface RosterEntry {
 }
 
 export const UNIT_ROSTER: Readonly<Record<string, RosterEntry>> = {
-  EK11: { typeFi: "Pelastusyksikkö + säiliö", crew: "1+5", fromFi: "Etelä-Karjala, lähin vakinainen asema" },
+  EK11: { typeFi: "Pelastusyksikkö + säiliö", crew: "1+5", fromFi: "Oma pelastuslaitos, lähin vakinainen asema" },
   VPK: { typeFi: "VPK, säiliöauto", crew: "1+3", fromFi: "Paikallinen sopimuspalokunta" },
-  EK12: { typeFi: "Pelastusyksikkö", crew: "1+4", fromFi: "Etelä-Karjala" },
-  EK13: { typeFi: "Säiliöauto – vedensiirto (vesiajo linjojen altaisiin)", crew: "1+1", fromFi: "Etelä-Karjala, pääasema", detailFi: "Noin 14 m³, täyttää W1/W2/W3:lla" },
-  EK14: { typeFi: "Maastopaloyksikkö (maastoajoneuvo + perävaunu)", crew: "1+3", fromFi: "Etelä-Karjala" },
-  KY21: { typeFi: "Pelastusyksikkö + maastopalokontti", crew: "1+4", fromFi: "Kymenlaakso" },
+  EK12: { typeFi: "Pelastusyksikkö", crew: "1+4", fromFi: "Oma pelastuslaitos" },
+  EK13: { typeFi: "Säiliöauto – vedensiirto (vesiajo linjojen altaisiin)", crew: "1+1", fromFi: "Oma pelastuslaitos, pääasema", detailFi: "Noin 14 m³, täyttää W1/W2/W3:lla" },
+  EK14: { typeFi: "Maastopaloyksikkö (maastoajoneuvo + perävaunu)", crew: "1+3", fromFi: "Oma pelastuslaitos" },
+  KY21: { typeFi: "Pelastusyksikkö + maastopalokontti", crew: "1+4", fromFi: "Naapuripelastuslaitos" },
   EK15: { typeFi: "Pelastusyksikkö (vahvennus)", crew: "1+4", fromFi: "Naapuriasema" },
   EK16: { typeFi: "Pelastusyksikkö (vahvennus)", crew: "1+4", fromFi: "Naapuriasema" },
-  KY23: { typeFi: "Pelastusyksikkö (vahvennus)", crew: "1+4", fromFi: "Naapuriasema" },
-  OUT1: { typeFi: "Pelastusyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
-  OUT2: { typeFi: "Pelastusyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
-  UGV1: { typeFi: "Letkunvetorobotti (itsenäinen)", crew: "1 (käyttäjä)", fromFi: "Saapui OUT1:n mukana", detailFi: "Vetää letkua miehistönsä kanssa; ei suunnitelman tehtävissä" },
+  KY23: { typeFi: "Pelastusyksikkö (vahvennus)", crew: "1+4", fromFi: "Naapuripelastuslaitos" },
+  OUT1: { typeFi: "Raskas säiliöyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
+  OUT2: { typeFi: "Raskas säiliöyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
+  UGV1: { typeFi: "Letkunvetorobotti (itsenäinen, kokeilu)", crew: "1 (käyttäjä)", fromFi: "Saapui OUT1:n mukana", detailFi: "Vetää letkua miehistönsä kanssa; ei suunnitelman tehtävissä" },
 
   DR1: { typeFi: "Lämpökamerakopteri", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Akku n. 35 min" },
   DR2: { typeFi: "Lämpökamerakopteri", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Akku n. 35 min" },
-  DR3: { typeFi: "VTOL-drooni, kehän kartoitus", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Toiminta-aika n. 2,5 h" },
+  DR3: { typeFi: "VTOL-drooni, kehän kartoitus (kokeilu)", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Toiminta-aika n. 2,5 h" },
   HELI1: { typeFi: "Sammutushelikopteri (kauha)", fromFi: "Valtion ilmailu", detailFi: "Pudottaa vettä lentäjän harkinnan mukaan; ei suunnitelman tehtävissä" },
-  VD1: { typeFi: "Vesidrooni (autonominen)", crew: "0 — valvoja johtopaikalla", fromFi: "Saapui vahvennusten mukana", detailFi: "Visio: kauhoo vettä lähimmästä vesipisteestä, n. 80 l / kierros; pudottaa palon reunalle oman käyttäjänsä harkinnan mukaan, ei suunnitelman tehtävissä" },
+  VD1: { typeFi: "Vesidrooni (autonominen, kokeilu)", crew: "0 — valvoja johtopaikalla", fromFi: "Saapui vahvennusten mukana", detailFi: "Visio: kauhoo vettä lähimmästä vesipisteestä, n. 80 l / kierros; pudottaa palon reunalle oman käyttäjänsä harkinnan mukaan, ei suunnitelman tehtävissä" },
   SPOT: { typeFi: "Palovartiolentokone", crew: "2", fromFi: "Vapaaehtoinen palovartiolento", detailFi: "Ilmoitukset hätäkeskuksen kautta" },
 };
 
 /** The roster in English (session language "en"; DRAFT translation), same keys. */
 export const UNIT_ROSTER_EN: Readonly<Record<string, { readonly type: string; readonly crew?: string; readonly from?: string; readonly detail?: string }>> = {
-  EK11: { type: "Rescue unit + tanker", crew: "1+5", from: "South Karelia, nearest full-time station" },
+  EK11: { type: "Rescue unit + tanker", crew: "1+5", from: "Own rescue department, nearest full-time station" },
   VPK: { type: "Volunteer fire brigade, tanker", crew: "1+3", from: "Local contract fire brigade" },
-  EK12: { type: "Rescue unit", crew: "1+4", from: "South Karelia" },
-  EK13: { type: "Water tanker – shuttle (water runs to the basins at the lines)", crew: "1+1", from: "South Karelia, main station", detail: "About 14 m³, fills at W1/W2/W3" },
-  EK14: { type: "Forest-fire unit (off-road vehicle + trailer)", crew: "1+3", from: "South Karelia" },
-  KY21: { type: "Rescue unit + forest-fire container", crew: "1+4", from: "Kymenlaakso" },
+  EK12: { type: "Rescue unit", crew: "1+4", from: "Own rescue department" },
+  EK13: { type: "Water tanker – shuttle (water runs to the basins at the lines)", crew: "1+1", from: "Own rescue department, main station", detail: "About 14 m³, fills at W1/W2/W3" },
+  EK14: { type: "Forest-fire unit (off-road vehicle + trailer)", crew: "1+3", from: "Own rescue department" },
+  KY21: { type: "Rescue unit + forest-fire container", crew: "1+4", from: "Neighbouring rescue department" },
   EK15: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring station" },
   EK16: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring station" },
-  KY23: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring station" },
-  OUT1: { type: "Rescue unit (other region)", crew: "1+4", from: "From outside the region" },
-  OUT2: { type: "Rescue unit (other region)", crew: "1+4", from: "From outside the region" },
-  UGV1: { type: "Hose-laying robot (autonomous)", crew: "1 (operator)", from: "Arrived with OUT1", detail: "Lays hose with its crew; not tasked by the plan" },
+  KY23: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring rescue department" },
+  OUT1: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "From outside the region" },
+  OUT2: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "From outside the region" },
+  UGV1: { type: "Hose-laying robot (autonomous, trial)", crew: "1 (operator)", from: "Arrived with OUT1", detail: "Lays hose with its crew; not tasked by the plan" },
   DR1: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },
   DR2: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },
-  DR3: { type: "VTOL drone, perimeter mapping", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Endurance approx. 2.5 h" },
+  DR3: { type: "VTOL drone, perimeter mapping (trial)", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Endurance approx. 2.5 h" },
   HELI1: { type: "Firefighting helicopter (bucket)", from: "State aviation", detail: "Drops water at the pilot's judgement; not tasked by the plan" },
-  VD1: { type: "Water drone (autonomous)", crew: "0 — supervisor at the command post", from: "Arrived with the reinforcements", detail: "Scoops water from the nearest water point, approx. 80 l per round; drops on the burning edge at its own operator's judgement, not tasked by the plan" },
+  VD1: { type: "Water drone (autonomous, trial)", crew: "0 — supervisor at the command post", from: "Arrived with the reinforcements", detail: "Scoops water from the nearest water point, approx. 80 l per round; drops on the burning edge at its own operator's judgement, not tasked by the plan" },
   SPOT: { type: "Fire-spotting aircraft", crew: "2", from: "Volunteer fire-spotting flight", detail: "Reports through the emergency centre" },
 };
 

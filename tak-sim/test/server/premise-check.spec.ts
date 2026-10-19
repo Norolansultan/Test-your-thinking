@@ -2,7 +2,9 @@
  * SPEC/30 §3 (19 Oct 2026): the guide's rule-based premise check — the premise-evidence table (DRAFT, panel to confirm), its startup
  * check, the pure look-up by view and records clock, and the fixed-template lines. Fidelity (§3.6): a flag in every no-fit view
  * (V9, V10, V14) once its deciding record is in, none before it, none in V8 and the fit views V11–V13; a record is never cited
- * before the time gate has released it.
+ * before the time gate has released it. SPEC/31 §3.4 (coa F3/F4, RC; panel to confirm): V14 P2 is not contradicted (seven crews and the
+ * water shuttle hold R2 ahead of the head), and P1 is re-worded (DRAFT) so that only a new fire or rekindle since the directive
+ * contradicts it (V9, V10, V14).
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -70,11 +72,11 @@ describe("the premise-evidence table (DRAFT study content)", () => {
   it("the startup check refuses a table that is not the manifest's, not written for these premises, or cites a record the scenario lacks or has not yet received", () => {
     expect(() => checkPremiseEvidence(table, "0".repeat(64), premises, scenario.atoms)).toThrow(/differs from the manifest/);
     expect(() => checkPremiseEvidence(table, table.sha256, { ...premises, sha256: "f".repeat(64) }, scenario.atoms)).toThrow(/written for directive premises/);
-    expect(() => checkPremiseEvidence(table, table.sha256, premises, scenario.atoms.filter((a) => a.id !== DECIDING.ek16crossing))).toThrow(/no record atom\.radio\.19\.2/);
+    expect(() => checkPremiseEvidence(table, table.sha256, premises, scenario.atoms.filter((a) => a.id !== DECIDING.spot1923))).toThrow(/no record atom\.demo\.19\.2/);
     const early = raw();
-    early.views["V14"]!["P2"]!["fromVirtualS"] = atomOf(DECIDING.ek16crossing).provenance.observedAt - 1;
+    early.views["V14"]!["P1"]!["fromVirtualS"] = atomOf(DECIDING.spot1923).provenance.observedAt - 1;
     const parsed = parsePremiseEvidence(JSON.stringify(early));
-    expect(() => checkPremiseEvidence(parsed, parsed.sha256, premises, scenario.atoms)).toThrow(/before atom\.radio\.19\.2 is received/);
+    expect(() => checkPremiseEvidence(parsed, parsed.sha256, premises, scenario.atoms)).toThrow(/before atom\.demo\.19\.2 is received/);
   });
 
   it.each([
@@ -96,8 +98,9 @@ describe("the premise-evidence table (DRAFT study content)", () => {
     expect(table.views[9]!["P1"]).toMatchObject({ status: "contradicted", atomIds: [DECIDING.spot1701] });
     expect(table.views[10]!["P1"]).toMatchObject({ status: "contradicted", atomIds: [DECIDING.spot1701, DECIDING.dr21725, DECIDING.dr31735] });
     expect(table.views[14]!["P1"]).toMatchObject({ status: "contradicted", atomIds: [DECIDING.spot1923] });
-    expect(table.views[14]!["P2"]).toMatchObject({ status: "contradicted", atomIds: [DECIDING.ek16crossing] });
-    const notContradicted: [number, string][] = [[9, "P2"], [10, "P2"], ...[8, 11, 12, 13].flatMap((v): [number, string][] => [[v, "P1"], [v, "P2"]])];
+    // SPEC/31 §3.4 (coa F3, RC): the head crossed the forest road (EK16 19.22), but R2 ahead of it is held, so P2 stands at V14.
+    expect(table.views[14]!["P2"]!.note).toMatch(/SPEC\/31 §3\.4/);
+    const notContradicted: [number, string][] = [[9, "P2"], [10, "P2"], [14, "P2"], ...[8, 11, 12, 13].flatMap((v): [number, string][] => [[v, "P1"], [v, "P2"]])];
     for (const [view, id] of notContradicted) {
       expect(table.views[view]![id], `V${view} ${id}`).toEqual(expect.objectContaining({ status: "not_contradicted", atomIds: [], fromVirtualS: null }));
     }
@@ -112,8 +115,8 @@ describe("the premise-evidence table (DRAFT study content)", () => {
 });
 
 describe("premiseCheck: a pure look-up by view and records clock", () => {
-  it("flags P1 in V9 and V10 and P1 and P2 in V14 at every clock a request there can carry; nothing in V8, V11, V12 or V13", () => {
-    const expected: Readonly<Record<number, readonly string[]>> = { 8: [], 9: ["P1"], 10: ["P1"], 11: [], 12: [], 13: [], 14: ["P1", "P2"] };
+  it("flags P1 in V9, V10 and V14 at every clock a request there can carry (SPEC/31 §3.4: P2 no longer in V14); nothing in V8, V11, V12 or V13", () => {
+    const expected: Readonly<Record<number, readonly string[]>> = { 8: [], 9: ["P1"], 10: ["P1"], 11: [], 12: [], 13: [], 14: ["P1"] };
     for (const view of PREMISE_EVIDENCE_VIEWS) {
       for (const step of stepsOf(view)) expect(contradictedIds(view, clockAtStep(step)), `V${view} step ${step}`).toEqual(expected[view]);
     }
@@ -129,13 +132,15 @@ describe("premiseCheck: a pure look-up by view and records clock", () => {
   });
 
   it("is not contradicted before the deciding record's time, and is from that time on", () => {
-    for (const [view, id, atomId] of [[9, "P1", DECIDING.spot1701], [10, "P1", DECIDING.dr31735], [14, "P1", DECIDING.spot1923], [14, "P2", DECIDING.ek16crossing]] as const) {
+    for (const [view, id, atomId] of [[9, "P1", DECIDING.spot1701], [10, "P1", DECIDING.dr31735], [14, "P1", DECIDING.spot1923]] as const) {
       const at = atomOf(atomId).provenance.observedAt;
       const before = premiseCheck(table, view, at - 1)!.find((i) => i.id === id)!;
       expect(before, `V${view} ${id} before`).toEqual({ id, status: "not_contradicted", atomIds: [], fromVirtualS: null });
       const from = premiseCheck(table, view, at)!.find((i) => i.id === id)!;
       expect(from, `V${view} ${id} from`).toMatchObject({ id, status: "contradicted", fromVirtualS: at });
     }
+    // SPEC/31 §3.4: EK16's report of the head crossing the forest road (19.22) does not contradict P2; R2 ahead of the head is held.
+    expect(premiseCheck(table, 14, atomOf(DECIDING.ek16crossing).provenance.observedAt)!.find((i) => i.id === "P2")).toEqual({ id: "P2", status: "not_contradicted", atomIds: [], fromVirtualS: null });
     // The clock of the step before a no-fit view's first step is too early for its flag (the time gate and the table agree).
     expect(contradictedIds(9, clockAtStep(11))).toEqual([]);
     expect(contradictedIds(14, clockAtStep(18))).toEqual([]);
@@ -150,27 +155,22 @@ describe("the fixed template (never model text)", () => {
   const at = (view: number) => premiseCheck(table, view, clockAtStep(stepsOf(view).at(-1)!))!;
 
   it("English: one line per contradicted premise with its source and time; the line when nothing is contradicted", () => {
-    expect(premiseLines(at(14), premises, lookup, "en")).toEqual([
-      "P1 The region's fire situation is as the directive describes — no longer holds: SPOT 19.23.",
-      "P2 Roads or water ahead of each fire still give a line that can be held — no longer holds: EK16 19.22.",
-    ]);
-    expect(premiseLines(at(10), premises, lookup, "en")).toEqual(["P1 The region's fire situation is as the directive describes — no longer holds: SPOT 17.01, DR2 17.25, DR3 17.35."]);
-    expect(premiseLines(at(9), premises, lookup, "en")).toEqual(["P1 The region's fire situation is as the directive describes — no longer holds: SPOT 17.01."]);
+    expect(premiseLines(at(14), premises, lookup, "en")).toEqual(["P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 19.23."]);
+    expect(premiseLines(at(10), premises, lookup, "en")).toEqual(["P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 17.01, DR2 17.25, DR3 17.35."]);
+    expect(premiseLines(at(9), premises, lookup, "en")).toEqual(["P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 17.01."]);
     for (const view of [8, 11, 12, 13]) expect(premiseLines(at(view), premises, lookup, "en")).toEqual(["Directive premises: no newest record contradicts P1 or P2."]);
   });
 
   it("Finnish (DRAFT for the native check): the authored Finnish text and 'klo' before the time", () => {
-    expect(premiseLines(at(14), premises, lookup, "fi")).toEqual([
-      "P1 Alueen palotilanne on sellainen kuin linjaus kuvaa — ei enää päde: SPOT klo 19.23.",
-      "P2 Jokaisen palon edessä on yhä tie tai vesistö, jonka varaan linja voidaan pitää — ei enää päde: EK16 klo 19.22.",
-    ]);
+    expect(premiseLines(at(14), premises, lookup, "fi")).toEqual(["P1 Linjauksen jälkeen ei ole syttynyt uutta paloa tai uudelleensyttymää, jonka edessä ei ole linjaa — ei enää päde: SPOT klo 19.23."]);
+    expect(premiseLines(at(10), premises, lookup, "fi")).toEqual(["P1 Linjauksen jälkeen ei ole syttynyt uutta paloa tai uudelleensyttymää, jonka edessä ei ole linjaa — ei enää päde: SPOT klo 17.01, DR2 klo 17.25, DR3 klo 17.35."]);
     expect(premiseLines(at(11), premises, lookup, "fi")).toEqual(["Linjauksen lähtöoletukset: mikään uusin tieto ei kumoa oletuksia P1 ja P2."]);
   });
 
   it("the shown check carries the table version, the statuses, the deciding atom ids and the flag", () => {
     expect(premiseCheckShown(table, at(14), premises, lookup, "en")).toEqual({
       tableVersion: table.version,
-      items: [{ id: "P1", status: "contradicted", atomIds: [DECIDING.spot1923] }, { id: "P2", status: "contradicted", atomIds: [DECIDING.ek16crossing] }],
+      items: [{ id: "P1", status: "contradicted", atomIds: [DECIDING.spot1923] }, { id: "P2", status: "not_contradicted", atomIds: [] }],
       lines: premiseLines(at(14), premises, lookup, "en"),
       flagShown: true,
     });
@@ -179,11 +179,11 @@ describe("the fixed template (never model text)", () => {
 
   it("the block after the directive states the check to the model, records cited as in the template", () => {
     const en = premisesBlock(premises, "en", premiseBlockStatuses(at(14), lookup, "en"));
-    expect(en).toContain("P1: The region's fire situation is as the directive describes. — contradicted by the newest records: SPOT 19.23");
-    expect(en).toContain("P2: Roads or water ahead of each fire still give a line that can be held. — contradicted by the newest records: EK16 19.22");
+    expect(en).toContain("P1: No new fire or rekindle without a line ahead of it has started since the directive. — contradicted by the newest records: SPOT 19.23");
+    expect(en).toContain("P2: Roads or water ahead of each fire still give a line that can be held. — not contradicted by the newest records");
     expect(en).toMatch(/do not rate, restate, add or reword premises/);
     const fi = premisesBlock(premises, "fi", premiseBlockStatuses(at(11), lookup, "fi"));
-    expect(fi).toContain("P1: Alueen palotilanne on sellainen kuin linjaus kuvaa. — uusimmat tiedot eivät kumoa");
+    expect(fi).toContain("P1: Linjauksen jälkeen ei ole syttynyt uutta paloa tai uudelleensyttymää, jonka edessä ei ole linjaa. — uusimmat tiedot eivät kumoa");
     expect(fi).not.toMatch(/kumoavat:/);
   });
 });

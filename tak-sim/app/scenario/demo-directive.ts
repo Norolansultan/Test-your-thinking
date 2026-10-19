@@ -55,6 +55,13 @@
  * the panel: whether a small flare-up can carry the main effort while the south-east front runs for R2
  * (SPEC/27 §7.4's first constraint) is the open domain question; the key says it can, as at V9–V10.
  *
+ * SPEC/31 (19 Oct 2026, RC; DRAFT for the panel): V14's flare-up is sound only through the secondary route
+ * (§3.2, coa F2): `sound` is empty and `soundSectors` gone, so a main-effort direct attack on it codes as unsound,
+ * while `soundSecondary`, `boundarySectors` and `againstSecondaryTaskId` are unchanged. V9–V10 accept L2 across the
+ * boundary in the boundary-accepted sensitivity coding only (coa F13, `boundarySectors`). The flames the bases quote
+ * are the provisional flame-length table's (§3.11, `tools/fire-ca/flame-table.ts`): V9 2–3 m, V10 2–3 m, V14 1–2 m
+ * (was under a metre / 0.3–1 m). The V14 premise P2 is no longer contradicted (`premise-evidence.json`, §3.4).
+ *
  * Open (4 Oct 2026): the directive is not a corpus atom, so Haku and Thinker cannot find it (needs
  * `npm run thinker:index` on a machine with the model if it is to become one); H8 (rule 3 vs rule 4)
  * is withdrawn. EK11's step-14 story line no longer states the dropped release rule (rebuild). The
@@ -70,6 +77,7 @@ import { CYCLE_STORY } from "./demo-story.js";
 import { areaHa, centroid, distanceToLineM, headNow, inPolygon, nearestSectorOf, projectionHeadAtEndOf, sectorOf, siteStep, truthHeadAtEndOf } from "./freeze-keys.js";
 import type { Polygon } from "../engine/primitives.js";
 import type { CycleIndex } from "../engine/primitives.js";
+import { sortedKeys } from "../engine/deterministic-object.js";
 
 export type DirectiveFit = "neutral" | "yes" | "no";
 
@@ -198,6 +206,22 @@ const MAP_FLARE_UP_HA = (() => {
 
 const PHASE_B: readonly MainEffortPosture[] = ["barrier_line", "protect_values"];
 
+/**
+ * SPEC/31 coa F13 (sensitivity only): the sectors are not drawn on the map and V10's story says the new fire "etenee itään"; its polygon
+ * spans bearings 112–183° from the origin and its V11 outline reaches 97°, across the L2/L3 boundary (100°). A plan aiming at the new fire
+ * in L2 is therefore counted as on it in the boundary SENSITIVITY coding of V9–V10 (`boundarySectors`), never in the primary, which stays
+ * the computed sectors (`NEW_FRONT`). `16` y.4 and `27` y.1 are aligned by the integrator.
+ */
+const SENSITIVITY_SECTOR = "L2";
+const withSensitivity = (sectors: readonly string[]): string[] => [...new Set([...sectors, SENSITIVITY_SECTOR])].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+const SENSITIVITY_NOTE = `Sensitivity (SPEC/31 coa F13): ${SENSITIVITY_SECTOR} is accepted across the boundary in the boundary coding only (the front runs east along the old south edge towards it)`;
+
+/** TRUTH: the crews holding a road line at V14's end (step 20; the R2 crews), from the bundle, in id order (coa F16: the basis said "five"). */
+const R2_CREWS: readonly string[] = (() => {
+  const work = siteStep(20).unitWork;
+  return sortedKeys(work).filter((u) => work[u]!.task === "road_line");
+})();
+
 /** Phase B's whole-plan alignment (fix pass 2): a secondary direct attack is against the directive. */
 const AGAINST_SECONDARY: SecondaryTaskId = "task.direct-attack";
 
@@ -266,31 +290,35 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
     ],
   },
   9: {
-    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["direct_attack"], soundSectors: { direct_attack: NEW_FRONT.sectors }, boundarySectors: across(NEW_FRONT.sectors, NEW_FRONT.sector), fit: "no",
+    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["direct_attack"], soundSectors: { direct_attack: withSensitivity(NEW_FRONT.sectors) }, boundarySectors: withSensitivity(across(NEW_FRONT.sectors, NEW_FRONT.sector)), fit: "no",
     // Fix pass 2 (7 Oct 2026): the new front is attacked directly as the secondary sector, the main effort anywhere within the directive, is sound too.
-    soundSecondary: { taskId: AGAINST_SECONDARY, sectors: NEW_FRONT.sectors, mainEffortSectors: ALL_SECTORS, mainEffortPostures: PHASE_B },
-    basis: `17:00–17:20: open flame and smoke outside the origin's old south edge, ~120 m from the point of origin (6 Oct 2026: anchored to the burned edge, was ~200 m), not on the map before (SPOT, pushed); the step's radio moves no crew there. Its size and rate are recorded only: ~0.5–1 ha, flames under a metre, the edge running east ~3 m/min (SPOT's second pass, 17.10) — small enough that a direct attack on the new front (sector ${NEW_FRONT.sector}${NEW_FRONT.sectors.length > 1 ? `, or ${NEW_FRONT.sectors.filter((x) => x !== NEW_FRONT.sector).join(", ")} across the boundary it touches` : ""}) stops it; a barrier line gives it the stand. The front is not on the map until V10: the sectors are those its V10 polygon touches (fix pass 2, 7 Oct 2026: ${NEW_FRONT.sectors.length > 1 ? `the neighbour is ${NEW_FRONT.sectors.filter((x) => x !== NEW_FRONT.sector).join(", ")}, not L4` : "since review fixes (ah) it touches no neighbour"}; the sectors tile from the origin since 6 Oct 2026, A9; SPEC/11 §7.16.1 D14)`,
+    soundSecondary: { taskId: AGAINST_SECONDARY, sectors: withSensitivity(NEW_FRONT.sectors), mainEffortSectors: ALL_SECTORS, mainEffortPostures: PHASE_B },
+    // SPEC/31 (coa F16, D1): the figures are read from SPOT's record; its flames follow the provisional flame-length table (§3.11; were
+    // "under a metre"), so the direct attack is one from the black along the flanks — the panel keys it (V9-f).
+    basis: `17:00–17:20: open flame and smoke outside the origin's old south edge, ~120 m from the point of origin (6 Oct 2026: anchored to the burned edge, was ~200 m), not on the map before (SPOT, pushed); the step's radio moves no crew there. Its size and rate are recorded only: ~${recordFigure(12, /^SPOT, toinen ylilento klo 17\.10: syttymäkohdan kaakkoispuolen uusi palo noin (\d+,\d–\d+) ha/)} ha, flames ${recordFigure(12, /^SPOT, toinen ylilento klo 17\.10: .*liekit (\d+(?:,\d+)?–\d+) m/)} m, the edge running east ~${recordFigure(12, /^SPOT, toinen ylilento klo 17\.10: .*arviolta (\d+) m\/min/)} m/min (SPOT's second pass, 17.10; flames from the provisional flame-length table, SPEC/31 §3.11) — small enough that a direct attack on the new front (sector ${NEW_FRONT.sector}${NEW_FRONT.sectors.length > 1 ? `, or ${NEW_FRONT.sectors.filter((x) => x !== NEW_FRONT.sector).join(", ")} across the boundary it touches` : ""}), from the black along its flanks, stops it; a barrier line gives it the stand. The front is not on the map until V10: the sectors are those its V10 polygon touches (fix pass 2, 7 Oct 2026: ${NEW_FRONT.sectors.length > 1 ? `the neighbour is ${NEW_FRONT.sectors.filter((x) => x !== NEW_FRONT.sector).join(", ")}, not L4` : "since review fixes (ah) it touches no neighbour"}; the sectors tile from the origin since 6 Oct 2026, A9; SPEC/11 §7.16.1 D14). ${SENSITIVITY_NOTE}`,
     basisAtomIds: [
       recordAtomId(12, /^Avotulta ja savua syttymäkohdan kaakkoispuolella, vanhan eteläreunan ulkopuolella, noin 120 m syttymäkohdasta/),
       recordAtomId(12, /^SPOT, toinen ylilento klo 17\.10: syttymäkohdan kaakkoispuolen uusi palo noin 0,5–1 ha/),
     ],
   },
   10: {
-    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["direct_attack"], soundSectors: { direct_attack: NEW_FRONT.sectors }, boundarySectors: across(NEW_FRONT.sectors, NEW_FRONT.sector), fit: "no",
-    soundSecondary: { taskId: AGAINST_SECONDARY, sectors: NEW_FRONT.sectors, mainEffortSectors: ALL_SECTORS, mainEffortPostures: PHASE_B },
+    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["direct_attack"], soundSectors: { direct_attack: withSensitivity(NEW_FRONT.sectors) }, boundarySectors: withSensitivity(across(NEW_FRONT.sectors, NEW_FRONT.sector)), fit: "no",
+    soundSecondary: { taskId: AGAINST_SECONDARY, sectors: withSensitivity(NEW_FRONT.sectors), mainEffortSectors: ALL_SECTORS, mainEffortPostures: PHASE_B },
     // Fix pass 5 (8 Oct 2026): the figures are read from the records (DR2 and DR3 give 0.8 ha, the map's polygon 0.70 ha); the key rests on the
-    // records up to 17:40 only: DR2's 17:45 rate belongs to V11.
-    basis: `17:20–17:40: the new front in sector ${NEW_FRONT.sector} (its polygon touching ${NEW_FRONT.sectors.join(" and ")}) spreads east along the old south edge (DR2, pushed), and no crew or asset is on it (round 2: the crews come back south at step 14); its size is recorded only: ${recordFigure(13, /^DR2 lämpökuva, eteläreuna \(L3\) klo 17\.25: erillinen palo kuva-alalla, noin (\d+,\d) ha/)} ha, flames 0.3–1 m (DR2 thermal 17:25; DR3 mapping 17:35: ${recordFigure(13, /^DR3 kehäkartoitus valmis klo 17\.35:.*Erillinen uusi palo, noin (\d+,\d) ha/)} ha), and the map's polygon draws it at ${areaHa(siteStep(13).reportedDetached[0]!).toFixed(2)} ha: small and low enough to attack directly, in its sector. The V9 record gives ~3 m/min at 17:10. Review note: key on records up to 17:40 only (nothing recorded after 17:40, such as DR2's 17:45 rate, is a basis for this view's key)`,
+    // records up to 17:40 only: DR2's 17:45 rate belongs to V11. SPEC/31 §3.11: DR2's flames follow the provisional table (were 0.3–1 m); the
+    // fire/tactical audit expects V10 may be keyed mixed by the panel (a flank attack from the anchor marginal at these flames).
+    basis: `17:20–17:40: the new fire in sector ${NEW_FRONT.sector} (its polygon touching ${NEW_FRONT.sectors.join(" and ")}) spreads east along the old south edge (DR2, pushed), and no crew or asset is on it (round 2: the crews come back south at step 14); its size is recorded only: ${recordFigure(13, /^DR2 lämpökuva, eteläreuna \(L3\) klo 17\.25: erillinen palo kuva-alalla, noin (\d+,\d) ha/)} ha, flames ${recordFigure(13, /^DR2 lämpökuva, eteläreuna \(L3\) klo 17\.25: .*liekit (\d+(?:,\d+)?–\d+) m/)} m (DR2 thermal 17:25; DR3 mapping 17:35: ${recordFigure(13, /^DR3 kehäkartoitus valmis klo 17\.35:.*Erillinen uusi palo, noin (\d+,\d) ha/)} ha), and the map's polygon draws it at ${areaHa(siteStep(13).reportedDetached[0]!).toFixed(2)} ha: small enough to attack directly from the black, along its flanks, in its sector. The V9 record gives ~3 m/min at 17:10. Review note: key on records up to 17:40 only (nothing recorded after 17:40, such as DR2's 17:45 rate, is a basis for this view's key). ${SENSITIVITY_NOTE}`,
     basisAtomIds: [
-      recordAtomId(13, /^DR2 lämpökuva, eteläreuna \(L3\) klo 17\.25: erillinen palo kuva-alalla, noin \d+,\d ha, liekit 0,3–1 m/),
+      recordAtomId(13, /^DR2 lämpökuva, eteläreuna \(L3\) klo 17\.25: erillinen palo kuva-alalla, noin \d+,\d ha, liekit/),
       recordAtomId(13, /^DR3 kehäkartoitus valmis klo 17\.35:.*Erillinen uusi palo, noin \d+,\d ha/),
-      recordAtomId(13, /^Uusi rintama etenee itään vanhan eteläreunan suuntaisesti/),
+      recordAtomId(13, /^Uusi palo etenee itään vanhan eteläreunan suuntaisesti/), // radio DF-02 (SPEC/31): was "Uusi rintama"
     ],
   },
   11: {
     aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["barrier_line", "protect_values"], soundSectors: onHead(14), boundarySectors: across(headSectors(14), headSector(14)), fit: "yes",
     // Fix pass 5 (8 Oct 2026): the rates are read from DR2's two measurements (17.20–17.40 and 17.40–18.00), which the researcher's fire model moved.
-    basis: `17:40–18:20: the south-east front grows steadily, ${recordFigure(14, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.20–17\.40 \(kahden kuvan vertailu\), (\d+,\d) m\/min/)} m/min over 17.20–17.40 (${recordFigure(14, /^DR2 mittaus: kaakkoisrintaman etenemä (\d+) m klo 17\.20–17\.40/)} m) and ${recordFigure(15, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.40–18\.00 \(kahden kuvan vertailu\), (\d+,\d) m\/min/)} m/min over 17.40–18.00 (${recordFigure(15, /^DR2 mittaus: kaakkoisrintaman etenemä (\d+) m klo 17\.40–18\.00/)} m) (DR2, recorded); the FMI forecast (SÄÄENNUSTE, recorded only) gives the evening wind event — north-west and strengthening, gusts over 10 m/s (17.00), 7–9 m/s, gusts 12 from 18.30 (18.00): a line on a barrier ahead of it, or protecting the settlements the directive names, in the head's sector (${headSectors(14).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
+    // SPEC/31 §3.3, §3.11: their flames (the provisional table) are read too; the panel keys V11 with a 20–40 min horizon (coa F5).
+    basis: `17:40–18:20: the south-east front grows steadily, ${recordFigure(14, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.20–17\.40 \(kahden kuvan vertailu\), (\d+,\d) m\/min/)} m/min over 17.20–17.40 (${recordFigure(14, /^DR2 mittaus: kaakkoisrintaman etenemä (\d+) m klo 17\.20–17\.40/)} m, flames ${recordFigure(14, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.20–17\.40 .*liekit (\d+(?:,\d+)?–\d+) m/)} m) and ${recordFigure(15, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.40–18\.00 \(kahden kuvan vertailu\), (\d+,\d) m\/min/)} m/min over 17.40–18.00 (${recordFigure(15, /^DR2 mittaus: kaakkoisrintaman etenemä (\d+) m klo 17\.40–18\.00/)} m, flames ${recordFigure(15, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.40–18\.00 .*liekit (\d+(?:,\d+)?–\d+) m/)} m) (DR2, recorded; the provisional flame-length table); the FMI forecast (SÄÄENNUSTE, recorded only) gives the evening wind event — north-west and strengthening, gusts over 10 m/s (17.00), 7–9 m/s, gusts 12 from 18.30 (18.00): a line on a barrier ahead of it, or protecting the settlements the directive names, in the head's sector (${headSectors(14).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
     basisAtomIds: [
       recordAtomId(14, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.20–17\.40/),
       recordAtomId(15, /^DR2 mittaus: kaakkoisrintaman etenemä \d+ m klo 17\.40–18\.00/),
@@ -301,17 +329,20 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
   12: {
     aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["barrier_line", "protect_values"], soundSectors: onHead(16), boundarySectors: across(headSectors(16), headSector(16)), fit: "yes",
     // 6 Oct 2026: the Honkaharju stop is radioed at step 18 since the rekindles were anchored to the burned edge (was step 17, KY21): V13's.
-    basis: `18:20–19:00: the head runs ~10 m/min (EK16, on the forest road ahead of it, holding the road, pushed; EK11 until round 2), north-west wind gusting 14 m/s (weather station, recorded): too fast for a direct attack; a line on the road ahead of it, in the head's sector (${headSectors(16).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
+    // SPEC/31 (F16, §3.11): the figures are read from the records; EK16's flames follow the provisional table (were 1–2 m).
+    basis: `18:20–19:00: the head runs ~${recordFigure(17, /^Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon arviolta (\d+) m\/min/)} m/min, flames ${recordFigure(17, /^Kärki lähestyy metsäautotietä luoteesta, .*liekit (\d+(?:,\d+)?–\d+) m/)} m (EK16, on the forest road ahead of it, holding the road, pushed; EK11 until round 2), north-west wind gusting ${recordFigure(17, /^Sääasema johtopaikalla: tuuli luoteesta 9,0 m\/s, puuskissa (\d+,\d), lämpötila/)} m/s (weather station, recorded): too fast and too hot for a direct attack; a line on the road ahead of it, in the head's sector (${headSectors(16).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
     basisAtomIds: [
       recordAtomId(17, /^Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon arviolta 10 m\/min/),
-      recordAtomId(17, /^Sääasema johtopaikalla: tuuli luoteesta 9,0 m\/s, puuskissa 14,0\.$/),
+      // SPEC/31 D3: the station's step-start reading now gives temperature, humidity and dew point too.
+      recordAtomId(17, /^Sääasema johtopaikalla: tuuli luoteesta 9,0 m\/s, puuskissa 14,0, lämpötila/),
     ],
   },
   13: {
     aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["barrier_line", "protect_values"], soundSectors: onHead(18), boundarySectors: across(headSectors(18), headSector(18)), fit: "yes",
     // 6 Oct 2026: one step later since the rekindles were anchored to the burned edge (was: crossed 18.40–19.00, radioed at step 18).
     // Fix pass 2 regen (FF3): EK16 holds the road through step 18 and withdraws at step 19 (V14), so V13 no longer cites the withdrawal.
-    basis: `19:00–19:20: the forest road stopped the fire over ~700 m in 18.40–19.00 (KY21, which held that stretch until 19:00 — revision (ak); pushed; the re-tuned fire model of 8 Oct 2026 restores the stop), the head pressing it at ~10.6 m/min (DR2 thermal 19.05, pushed; round 2: the lines are on the roads); the directive names no line, so it still fits: the next barrier (service road R2) or protecting Lahdenkylä, in the head's sector (${headSectors(18).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
+    // SPEC/31 coa F16: the stop's length and the head's rate are read from the records (the text said ~700 m and ~10.6 m/min against 500 m and 10.1).
+    basis: `19:00–19:20: the forest road stopped the fire over ~${recordFigure(18, /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle klo 18\.40–19\.00 noin (\d+) metrin matkalta/)} m in 18.40–19.00 (KY21, which held that stretch until 19:00 — revision (ak); pushed; the re-tuned fire model of 8 Oct 2026 restores the stop), the head pressing it at ~${recordFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin (\d+,\d) m\/min/)} m/min with flames ${recordFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: .*liekit (\d+(?:,\d+)?–\d+) m/)} m (DR2 thermal 19.05, pushed; round 2: the lines are on the roads); the directive names no line, so it still fits: the next barrier (service road R2) or protecting Lahdenkylä, in the head's sector (${headSectors(18).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
     basisAtomIds: [
       recordAtomId(18, /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle klo 18\.40–19\.00/),
       recordAtomId(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin 10,1 m\/min/), // revision (aj): 10,1 (was 10,6)
@@ -320,11 +351,16 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
   // Round 2 (researcher decision 5 Oct 2026): a late no-fit view (SPEC/27 §7.4 candidate (ii)), which
   // breaks the order confound (no-fit V9, V10, V14; fit V11–V13). Was fit "yes" on the south-east front.
   14: {
-    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: ["direct_attack"], soundSectors: { direct_attack: SECOND_REKINDLE.sectors }, boundarySectors: across(SECOND_REKINDLE.sectors, SECOND_REKINDLE.sector), fit: "no",
-    // Researcher decision 6 Oct 2026: the flare-up attacked directly as the secondary sector, the main effort protecting Lahdenkylä, is sound too
+    // SPEC/31 §3.2 (coa F2, RC; WP-3's coding reads this shape): V14 is sound ONLY through the secondary route — `sound` is empty (no main-effort
+    // posture is sound; with `soundSectors` gone and `sound` still ["direct_attack"] a direct attack would have been sound in every sector), so a
+    // main effort on the flare-up codes D (rescue first, counter the greatest threat; SPEC/27 §7.4's first constraint). `boundarySectors`,
+    // `soundSecondary` and `againstSecondaryTaskId` unchanged; `soundVia` is reported per view.
+    aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: [], boundarySectors: across(SECOND_REKINDLE.sectors, SECOND_REKINDLE.sector), fit: "no",
+    // Researcher decision 6 Oct 2026: the flare-up attacked directly as the secondary sector, the main effort protecting Lahdenkylä, is sound
     // (fix pass 2, 7 Oct 2026: and against the directive, so it codes C).
     soundSecondary: { taskId: AGAINST_SECONDARY, sectors: SECOND_REKINDLE.sectors, mainEffortSectors: [VILLAGE_SECTOR], mainEffortPostures: PHASE_B },
-    basis: `19:20–20:00: the origin's old west edge has flared up again ~130 m west of the point of origin (SPOT, pushed, 19:23), in sector ${SECOND_REKINDLE.sector} (its polygon touching ${SECOND_REKINDLE.sectors.join(" and ")}), where no crew works; its size is recorded only: ~${recordFigure(19, /^SPOT, toinen ylilento klo 19\.30: syttymäkohdan länsipuolen uusi palo noin (\d+,\d) ha/)} ha, flames under a metre (SPOT's second pass, 19.30; fix pass 2 regen: DR2 stays over the south-east front), and the map's polygon draws it at ${MAP_FLARE_UP_HA.first} ha at 19:20 and ${MAP_FLARE_UP_HA.second} ha at 20:00 — small and low enough to attack directly before the north-westerly (station, recorded) runs it south-east to the forest road and Rahkasuo's drained peat; holding it on a barrier gives it the night. The south-east front heads for R2 (EK12, pushed; ~560 m at 19:4x, DR2's road report, recorded; revision (aj): was ~450 m, review fixes (ah): ~380 m), where five crews already hold the road and Lahdenkylä is being evacuated (VPK, pushed): the directive's lines are in place there. Unlike V9–V10, the secondary route (the flare-up attacked directly as the secondary sector) is sound only with the main effort in Lahdenkylä's sector (${VILLAGE_SECTOR}), the front the directive's lines hold (fix pass 3). DRAFT for the panel: whether the flare-up can carry the main effort (SPEC/27 §7.4)`,
+    // SPEC/31 coa F16: the figures are read from the records and the bundle (the text said "five crews": seven hold R2).
+    basis: `19:20–20:00: the origin's old west edge has flared up again ~130 m west of the point of origin (SPOT, pushed, 19:23), in sector ${SECOND_REKINDLE.sector} (its polygon touching ${SECOND_REKINDLE.sectors.join(" and ")}), where no crew works; its size is recorded only: ~${recordFigure(19, /^SPOT, toinen ylilento klo 19\.30: syttymäkohdan länsipuolen uusi palo noin (\d+,\d) ha/)} ha, flames ${recordFigure(19, /^SPOT, toinen ylilento klo 19\.30: .*liekit (\d+(?:,\d+)?–\d+) m/)} m (SPOT's second pass, 19.30; the provisional flame-length table, SPEC/31 §3.11; fix pass 2 regen: DR2 stays over the south-east front), and the map's polygon draws it at ${MAP_FLARE_UP_HA.first} ha at 19:20 and ${MAP_FLARE_UP_HA.second} ha at 20:00 — small and low enough to attack directly before the north-westerly (station, recorded) runs it south-east to the forest road and Rahkasuo's drained peat; holding it on a barrier gives it the night. The south-east front heads for R2 (EK12, pushed; ~${recordFigure(20, /^DR2 tiehavainto: tie R2 .*palo noin (\d+) m tiestä/)} m at 19:4x, DR2's road report, recorded; revision (aj): was ~450 m, review fixes (ah): ~380 m), where ${R2_CREWS.length} crews (${R2_CREWS.join(", ")}) and the water shuttle already hold the road and Lahdenkylä is being evacuated with residents still in their houses (VPK, pushed): the directive's lines are in place there, and they are the main effort. Sound only through the secondary route (SPEC/31 §3.2, RC): the main effort, within the directive, in Lahdenkylä's sector (${VILLAGE_SECTOR}), the flare-up attacked directly as the secondary sector; a main effort on the flare-up while the head runs at R2 and the village codes D (rescue first, counter the greatest threat; SPEC/27 §7.4's first constraint). DRAFT for the panel (V14-b, V14-d)`,
     basisAtomIds: [
       recordAtomId(19, /^Uutta savua ja liekkejä syttymäkohdan länsipuolella, vanhan länsireunan ulkopuolella/),
       recordAtomId(19, /^SPOT, toinen ylilento klo 19\.30: syttymäkohdan länsipuolen uusi palo noin 0,3 ha/),

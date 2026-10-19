@@ -4,6 +4,7 @@
 **Scope:** every finding of `docs/audits/2026-10-19-skills/` (sagat, radio, coa, fire_tactical, parity_measures), the conflicts with `30` they raise, the data the scenario must add before Gate A, the people list, and the phase-3 work packages.
 
 > **Changelog**
+> - **19 Oct 2026 (az)** — §3.12's re-runs done after WP-3; the figures and their reading are in `30` (az).
 > - **19 Oct 2026** — created (phase 2 of the skills review; reports at commit 588908b, scenario export 3631cd4).
 
 ---

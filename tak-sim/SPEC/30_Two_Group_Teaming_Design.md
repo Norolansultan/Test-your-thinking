@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **19 Oct 2026 (az)** — §11 re-run after WP-3 (`31` §3.12): H2 unchanged; H2t under the three-way split falls to 49 % at a small effect; H13 under the act coding and V14's secondary route falls to 53–86 % at exposure .8. See the revision at the end.
 > - **19 Oct 2026 (ay)** — the skills review (`31`) amends §3 (V14 P2 not contradicted; P1 re-worded, DRAFT; "sparks over the Honkaharju forest road"), §4 (the notice yields to a freeze due within 15 s), §5.1 (V12's freeze after the plan; "now" = the view's end for view-end freezes; the 240 s cap; the V4 and V14 items re-authored), §5.2 (tool-aided probes; H-T as an item-level model), §5.3 (three-way told split; digest and recent matches logged), §5.5 (two lure facts), §6 (H13 codes the act, RC; V14 sound only via the secondary route, RC; fallbacks), §8 (replaced by `31` §6), §11 (re-runs). See the revision at the end.
 > - **19 Oct 2026** — created. Researcher decisions of 14–19 Oct 2026: only 100 participants; two groups instead of three; the study is framed as human–AI teaming (how teaming with an AI changes the commander's own situational understanding and metacognition, and whether an AI can act as a facilitator and strategic guide); a critical review cut the additions that cost more than they bring (§9).
 
@@ -190,3 +191,37 @@ The Thinker's configured model (`gemini-3.5-flash`) was observed answering as an
 - **§8** is replaced by `31` §6 (one ordered list, merged with `11` §7.30).
 - **§11.** The H2 rows stand (24 items unchanged). The H2t figure is an upper bound under the three-way split; `h2-power.ts` is re-run. `paper2-power.ts` is re-run with act-based base rates per view, V14's secondary route and a two-view fallback case. Point 4's reading does not cover the fallback.
 - **The scenario.** A provisional flame-length table (Byram, Kalajoki pairs) replaces the phase-B flame bands before the panel sees the record sets (RC for the keys); the station's T/RH every step; LCES lines for the R2 crews; the game's scenarios no longer replay keyed events and the demonstration is gated during recruitment (`31` §5, §2.5).
+
+## Revision 19 Oct 2026 (az) — §11 re-run after WP-3 (`31` §3.12)
+
+`h2-power.ts` and `paper2-power.ts` as merged at `4b38cc8`, 1000 replicates per cell, seeds 20261002 and 20261004, α = .05 two-sided. The assumptions are still planning values; pilot 2 replaces the base rates, exposure and the stated-key rate, and the tools run again before the pre-registration locks. Rows are 50 / 50 · 40 / 40 · 70 / 70 (Paper 2) or 70 / 140 (H2, the old plan) as reference.
+
+**H2 and H2r.** The calibration rows reproduce §11 exactly (24 items: small overconfidence 70 · 59 %, medium 100 · 99 %, resolution λ 0.5 GLM× 39 · 34 %, mixed 41 · 34 %, null 6 · 5 %). §11's H2 table stands.
+
+**H2t under the three-way split** (8 of 24 items stream-told, assumed +1 logit accuracy in both groups; the AI states 30 % of the other 16 to the guide group, so the AI-told stratum is about 20 % of all items; 24 items):
+
+| Scenario | Gap, all items (H2) | Gap, neither (H2t) | Gap, not AI-told (two-way) | Gap without stream-told (H2 sensitivity) |
+|---|---|---|---|---|
+| Not-stated δ +0.4 | 38 · 34 % | **49** · 43 % | 59 · 53 % | 21 · 23 % |
+| Not-stated δ +0.8 | 92 · 88 % | **97** · 93 % | 99 · 96 % | 77 · 70 % |
+| Cancellation (stated δ −0.9) | 11 · 9 % | **50** · 43 % | 60 · 49 % | 5 · 5 % |
+| Null | 4 · 6 % | 4 · 6 % | 4 · 5 % | 4 · 5 % |
+
+**Paper 2, act coding primary** (V9, V10, V14; V14 only through the secondary route; planning base rates `pdirect` .25/.30/.30, `hshare` .25, `mainshare` .6/.6/.5, `mainok` .95/.95/.75). Haku's C rate: 26.9 % by act, 19.6 % by label; V14 alone 16.6 % by act, 9.8 % by label, 23.1 % under the old key.
+
+| Scenario | C by act, Haku → guide | H13 act | H13 label (sens.) | H13 act, V14 mixed | H14 | H15 |
+|---|---|---|---|---|---|---|
+| Check, exp .6, δ 1.0 | 27.1 → 35.3 | 34 · 27 · 47 % | 25 · 20 · 34 % | 32 · 26 · 42 % | 23 · 19 · 33 % | 55 · 50 · 75 % |
+| Check, exp .6, δ 1.5 | 26.8 → 39.1 | 62 · 51 · 75 % | 45 · 35 · 54 % | 56 · 47 · 72 % | 41 · 34 · 54 % | 85 · 76 · 93 % |
+| Check, exp .8, δ 1.0 | 26.7 → 38.4 | **53** · 45 · 68 % | 37 · 32 · 49 % | 48 · 43 · 64 % | 43 · 35 · 55 % | 82 · 73 · 93 % |
+| Check, exp .8, δ 1.5 | 27.2 → 42.9 | **86** · 74 · 95 % | 65 · 55 · 81 % | 82 · 72 · 92 % | 65 · 57 · 82 % | 97 · 94 · 100 % |
+| Compliance amplifier | 27.0 → 18.7 | 45 · 38 · 58 % | 34 · 28 · 42 % | 38 · 33 · 51 % | 41 · 32 · 50 % | 6 · 5 · 7 % |
+| Null | 26.9 → 27.1 | 5 · 6 · 6 % | 5 · 6 · 5 % | 5 · 4 · 5 % | 5 · 5 · 5 % | 6 · 6 · 4 % |
+
+With V11 keyed mixed (two fit views) H14 falls to 34 % (exp .8, δ 1.0) and 49 % (δ 1.5) at 50 / 50, and H15 to 70 % and 91 %. At 40 / 40 up to 5 of 1000 two-view fits did not converge; the figures are over the rest.
+
+**Reading (replaces §11 points 3 and 4).**
+1. **H2t is powered for a medium effect only.** With 8 items stream-told, the "neither" stratum holds about 11 items per guide participant (16 for Haku, to whom the simulation states nothing) and H2t at a small effect falls from 63–64 % to 49 % (43 % after attrition); at a medium effect it keeps 97 %. The two-way contrast (not AI-told, stream-told included) keeps 59 % and is the natural sensitivity. In the cancellation case the all-items test now shows 11 % (the stream-told items lift both groups alike) and H2t keeps 50 %: H2t remains necessary, and a null on it at a small effect is uninformative. Pilot 2's `aiStatedKey` rates by class decide whether this holds (`31` §6 item 8).
+2. **H13 is powered only for a large effect with the notice working.** The act coding raises the base rate in both groups, but V14's key now moves only through the secondary route (16.4 → 23.7 % at exp .8, δ 1.0), so the group difference shrinks from +13 to +20 points (§11) to +12 to +16. H13 reaches 86 % (74 % after attrition) at exp .8 and δ 1.5 and 53 % (45 %) at δ 1.0; at exposure .6 it has 34–62 %. The minimum effect H13 detects with 80 % at 50 / 50 and exp .8 is about +15 points (C 27 → 42 %). The label coding, now the sensitivity, is 15–20 points weaker; dropping V14 (fallback) costs 4–5 points, because V14 carries little of the power.
+3. **H15 stays the most sensitive test of the check** (82–97 % at exp .8) and stays blind to the amplifier (5–7 %); H14 remains the weakest (23–65 %).
+4. **What follows (researcher, RC, before the pre-registration).** H13 stays primary and two-sided (the amplifier reading makes the direction a real question); the pre-registration states the +15-point minimum detectable effect and that a null below it is uninformative; exposure is the lever, so pilot 2 measures the notice's reach (consult opened, chip, decision question before the plan) and the tools are re-run with it. Adding a no-fit view would raise power but needs new keyed content and a panel round; it is not proposed here.

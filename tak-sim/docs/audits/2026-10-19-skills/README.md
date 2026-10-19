@@ -12,5 +12,6 @@ changed the instrument. The decisions taken on these findings are in `SPEC/31`.
 | `coa.md` (+ `coa_option_key.csv`, `coa_rating_sheet.csv`) | wildfire-coa-authoring | the decision task and keys V9–V14; DRAFT panel sheets (34 plans) |
 | `fire_tactical.md` | wildfire-fire-behaviour-check, wildfire-tactical-check | the fire envelope per cycle; the Prometheus request; tactical checks of the keyed steps |
 | `parity_measures.md` | wildfire-scenario-pipeline, wildfire-sagat-probes | parity between groups; scoring and calibration; standardisation; the pipeline status (gates A–D) |
+| `pipeline_status.md` | all six (phase 4, commit 114070e) | every skill script re-run after WP-1 to WP-5: status of gates A–D, flags resolved and remaining since phase 1, owners, what still blocks each gate |
 
 The panel sheets and the answer keys in these files are study content (the repository is public: SPEC/11 §7.30 item 1).

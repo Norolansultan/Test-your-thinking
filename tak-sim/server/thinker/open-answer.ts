@@ -10,7 +10,8 @@ import { isImperativeSentence, sentencesOf, withoutImperativeSentences } from ".
 import { DIRECTIVE_PREMISE_IDS, premiseText, type DirectivePremises } from "./directive-premises.js";
 import {
   OPEN_ANSWER_KINDS, OPEN_ANSWER_MAX_WORDS, OPEN_OPTION_VERDICTS, OPEN_PREMISE_STATUSES, renderOpenAnswer, wordCount,
-  type OpenAnswerKind, type OpenFact, type OpenOption, type OpenOptionVerdict, type OpenPremise, type OpenPremiseStatus, type OpenStructuredAnswer, type OpenUnforeseen,
+  type OpenAnswerKind, type OpenFact, type OpenOption, type OpenOptionVerdict, type OpenPremise, type OpenPremiseCheck, type OpenPremiseStatus, type OpenStructuredAnswer,
+  type OpenUnforeseen,
 } from "../../app/session/open-answer.js";
 
 /**
@@ -76,6 +77,42 @@ export const OPEN_ANSWER_SCHEMA = {
   required: ["kind", "unforeseen", "premises", "options", "facts", "inference", "questionsForYou"],
   propertyOrdering: ["kind", "unforeseen", "premises", "options", "facts", "inference", "questionsForYou"],
 } as const;
+
+/**
+ * SPEC/30 §3 (19 Oct 2026), decided here: the guide's cell (`reasoning_intent`, every view) asks the model for no `premises` and no
+ * `unforeseen`. The premise statuses are the server's (the premise-evidence table, `premise-check.ts`) and overwrite anything the
+ * model writes; the `unforeseen` scan existed only to prime the model's own premise rating, so it is redundant. Both are removed
+ * rather than asked for and ignored: fewer tokens, and no model text that could disagree with the table. Nothing else changes: the
+ * same limits, the verdict told to follow the system's check. The `reasoning_once` cell and the practice view keep
+ * {@link OPEN_ANSWER_SCHEMA} byte for byte (their frozen prompt names the `premises` field, which it leaves empty).
+ */
+export const OPEN_ANSWER_SCHEMA_GUIDE = {
+  type: "object",
+  properties: {
+    kind: OPEN_ANSWER_SCHEMA.properties.kind,
+    options: {
+      ...OPEN_ANSWER_SCHEMA.properties.options,
+      items: {
+        ...OPEN_ANSWER_SCHEMA.properties.options.items,
+        properties: {
+          ...OPEN_ANSWER_SCHEMA.properties.options.items.properties,
+          verdict: { ...OPEN_ANSWER_SCHEMA.properties.options.items.properties.verdict, description: "Null without a directive in force. departure_justifiable only if the system's premise check after the directive shows a contradicted premise." },
+        },
+      },
+    },
+    facts: OPEN_ANSWER_SCHEMA.properties.facts,
+    inference: OPEN_ANSWER_SCHEMA.properties.inference,
+    questionsForYou: OPEN_ANSWER_SCHEMA.properties.questionsForYou,
+  },
+  required: ["kind", "options", "facts", "inference", "questionsForYou"],
+  propertyOrdering: ["kind", "options", "facts", "inference", "questionsForYou"],
+} as const;
+
+export type OpenAnswerSchema = typeof OPEN_ANSWER_SCHEMA | typeof OPEN_ANSWER_SCHEMA_GUIDE;
+
+/** The response schema of the prompt a request is answered with (the practice view's prompt cell is `reasoning_once`). */
+export const openAnswerSchemaFor = (promptCell: "reasoning_intent" | "reasoning_once"): OpenAnswerSchema =>
+  promptCell === "reasoning_intent" ? OPEN_ANSWER_SCHEMA_GUIDE : OPEN_ANSWER_SCHEMA;
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim().length > 0 ? v.trim() : null);
@@ -205,6 +242,11 @@ export interface OpenAnswerContext {
   readonly tagTimes: readonly string[];
   /** The authored premises (reasoning_intent with a directive in force); absent: no premises are shown. */
   readonly premises?: DirectivePremises | undefined;
+  /**
+   * SPEC/30 §3: the server's premise check at the request's records clock, in the session language (`premiseCheckShown`). With the
+   * premises it is shown in an options answer and decides whether a justified departure stands; absent, no premise line and no verdict.
+   */
+  readonly premiseCheck?: OpenPremiseCheck | undefined;
 }
 
 export interface LimitedOpenAnswer {
@@ -283,6 +325,7 @@ interface Draft {
   options: { option: string; tradeoffs: string; verdict: OpenOptionVerdict | null; tags: string[] }[];
   inference: string | null;
   questionsForYou: string[];
+  premiseCheck?: OpenPremiseCheck;
 }
 
 /**
@@ -311,7 +354,7 @@ export function limitOpenAnswer(raw: OpenStructuredAnswer, ctx: OpenAnswerContex
     d.unforeseen = null;
   }
   if (d.kind === "lookup" && d.questionsForYou.length > 1) { d.questionsForYou = d.questionsForYou.slice(0, 1); note("count_questions"); }
-  if (!ctx.directiveInForce || !ctx.premises) {
+  if (!ctx.directiveInForce || !ctx.premises || !ctx.premiseCheck) {
     if (d.premises.length > 0 || d.options.some((o) => o.verdict !== null)) note("no_directive");
     d.premises = [];
     d.unforeseen = null;
@@ -343,32 +386,26 @@ export function limitOpenAnswer(raw: OpenStructuredAnswer, ctx: OpenAnswerContex
 
   d.unforeseen = d.unforeseen ? { text: chars(d.unforeseen.text, OPEN_LIMITS.unforeseenChars, "unforeseen"), tags: known(d.unforeseen.tags) } : null;
 
-  // Revision (ar): the premises are the authored ones. Unknown ids are dropped, a repeated id keeps the first, a missing id is
-  // "not addressed", the order is the authored one, and the text shown is the authored text in the session language (never the model's).
-  if (d.kind === "options" && ctx.directiveInForce && ctx.premises) {
-    const seen = new Set<string>();
-    const byId = new Map<string, Draft["premises"][number]>();
-    for (const p of d.premises) {
-      if (!ctx.premises.premises.some((a) => a.id === p.id)) note("premise_unknown_id");
-      else if (seen.has(p.id)) note("premise_duplicate_id");
-      else { seen.add(p.id); byId.set(p.id, p); }
-    }
-    d.premises = ctx.premises.premises.map((a) => {
-      const rated = byId.get(a.id);
-      if (!rated) note("premise_missing_id");
-      return { id: a.id, premise: premiseText(a, lang), status: rated ? rated.status : "not_addressed" as OpenPremiseStatus, tags: rated ? rated.tags : [], ...(rated ? {} : { filled: true }) };
-    });
+  // SPEC/30 §3 (19 Oct 2026): the premise statuses are the server's premise check (the premise-evidence table at the request's
+  // records clock), never the model's. In an options answer with the directive in force they overwrite whatever the model wrote
+  // (logged `premises_from_model_ignored`; its `unforeseen` scan likewise, `unforeseen_ignored`): the authored premises in their
+  // order, the authored text in the session language, the table's status (a premise not contradicted is `not_addressed` in this
+  // field's domain; the exact value is `premiseCheck`), and the fixed-template lines the participant reads.
+  if (d.kind === "options" && ctx.directiveInForce && ctx.premises && ctx.premiseCheck) {
+    const check = ctx.premiseCheck;
+    if (d.premises.length > 0) note("premises_from_model_ignored");
+    if (d.unforeseen) note("unforeseen_ignored");
+    d.unforeseen = null;
+    d.premises = ctx.premises.premises.map((a) => ({
+      id: a.id, premise: premiseText(a, lang), tags: [],
+      status: (check.items.find((i) => i.id === a.id)?.status === "contradicted" ? "contradicted" : "not_addressed") as OpenPremiseStatus,
+    }));
+    d.premiseCheck = check;
   }
 
-  // Consistency of the premise check (SPEC/14 (aq) tuning): a status that claims the newest records bear on a premise needs a record
-  // tag; without one the premise is "not addressed". A justified departure is reachable only when some premise is contradicted;
-  // otherwise it is a plain departure. Both are logged. Nothing is forced the other way: a contradicted premise does not make a verdict.
-  for (const p of d.premises) {
-    if (p.status !== "not_addressed" && p.tags.length === 0) { p.status = "not_addressed"; note("premise_no_record"); }
-  }
-  // Revision (ar): logged only, nothing forced: the model found a situation the directive does not foresee yet rates P1 (the situation is as the directive describes) supported.
-  if (d.unforeseen && d.premises.some((p) => p.id === "P1" && p.status === "supported")) note("unforeseen_p1_supported");
-  if (d.options.some((o) => o.verdict === "departure_justifiable") && !d.premises.some((p) => p.status === "contradicted")) {
+  // A justified departure is reachable only when the check shows a contradicted premise; otherwise it is a plain departure, logged.
+  // Nothing is forced the other way: a contradicted premise does not make a verdict, and no verdict is moved upward.
+  if (d.options.some((o) => o.verdict === "departure_justifiable") && !d.premiseCheck?.flagShown) {
     for (const o of d.options) if (o.verdict === "departure_justifiable") o.verdict = "departs";
     note("justified_without_contradicted_premise");
   }
@@ -379,7 +416,8 @@ export function limitOpenAnswer(raw: OpenStructuredAnswer, ctx: OpenAnswerContex
   while (words() > OPEN_ANSWER_MAX_WORDS && d.kind === "options" && d.facts.length > 0) { d.facts.pop(); note("words"); }
   while (words() > OPEN_ANSWER_MAX_WORDS && d.questionsForYou.length > 1) { d.questionsForYou.pop(); note("words"); }
   if (words() > OPEN_ANSWER_MAX_WORDS && d.inference) { d.inference = null; note("words"); }
-  // Still over: whole items, the third option first, never half a sentence. The authored premises are never dropped or cut (revision (ar)).
+  // Still over: whole items, the third option first, never half a sentence. The authored premises are never dropped or cut (revision (ar)),
+  // nor is the premise check's template line (SPEC/30 §3).
   while (words() > OPEN_ANSWER_MAX_WORDS && d.options.length > 2) { d.options.pop(); note("words_item"); }
   for (let guard = 0; guard < 80 && words() > OPEN_ANSWER_MAX_WORDS; guard++) {
     const fields: { len: number; set: (n: number) => void }[] = [

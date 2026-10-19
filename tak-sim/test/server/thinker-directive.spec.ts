@@ -25,7 +25,14 @@ import { loadSystemPrompt, sha256Hex, THINKER_MODEL_ID, THINKER_OPEN_MAX_TOKENS,
 import { handleOpenThinkerRequest, handleThinkerRequest, type ThinkerDeps } from "../../server/thinker/handler.js";
 import { DIRECTIVE_BLOCK_LABEL, INTENT_BLOCK_LABEL, intentBlockOf, openSystemInstruction, ORDER_BLOCK_FRAME } from "../../server/thinker/model.js";
 import { loadDirectivePremises, premisesBlock } from "../../server/thinker/directive-premises.js";
-import { scenario } from "../engine/thinker-fixtures.js";
+import { loadPremiseEvidence, premiseBlockStatuses, premiseCheck, recordLookupOf } from "../../server/thinker/premise-check.js";
+import { receivedUpToOf } from "../../server/thinker/model.js";
+import { reachableAtoms } from "../../app/retrieval/time-gate.js";
+import { scenario, stepAtViewStart } from "../engine/thinker-fixtures.js";
+
+/** SPEC/30 §3: the premise check the block states at a view's start (the table at the records clock of the time-gated records). */
+const checkAtViewStart = (view: number, lang: "fi" | "en") =>
+  premiseBlockStatuses(premiseCheck(loadPremiseEvidence(), view, receivedUpToOf(reachableAtoms(scenario.atoms, stepAtViewStart(view)), 0))!, recordLookupOf(scenario.atoms), lang);
 
 type Cell = "reasoning_once" | "reasoning_intent";
 type Lang = "fi" | "en";
@@ -82,9 +89,9 @@ describe("reasoning_intent: the system instruction ends with the order block (re
     const other: Lang = lang === "fi" ? "en" : "fi";
     expect(body.model).toBe(THINKER_MODEL_ID);
     expect(body.config).toMatchObject({ temperature: 0, maxOutputTokens: THINKER_OPEN_MAX_TOKENS, seed: THINKER_SEED, thinkingConfig: { thinkingBudget: 0 } });
-    // Revision (ar): the authored premises follow the quoted directive (a blank line between).
+    // Revision (ar): the authored premises follow the quoted directive (a blank line between); SPEC/30 §3: each with the table's premise check.
     expect(body.config.systemInstruction).toBe(`${prompt.text.trimEnd()}${block(lang, DIRECTIVE_BLOCK_LABEL[lang], DIRECTIVE[lang])}
-${premisesBlock(loadDirectivePremises(), lang)}`);
+${premisesBlock(loadDirectivePremises(), lang, checkAtViewStart(view, lang))}`);
     expect(body.config.systemInstruction).not.toContain(DIRECTIVE[other]);
     expect(body.config.systemInstruction).not.toContain(INTENT_BLOCK_LABEL[lang]);
     // The user turn carries the plan context and the question, not the directive: it is data in the system instruction, not a record.
@@ -188,40 +195,38 @@ describe("both cells", () => {
     }
   });
 
-  it("reasoning_intent's rule 5 relates options to the directive's purpose, method and premises; evidence first, a conditional verdict last; a generic premise trigger", () => {
+  it("reasoning_intent's rule 5 relates options to the directive's purpose and method; a conditional verdict last; the premise check is the system's (SPEC/30 §3)", () => {
     const en = loadSystemPrompt("en", "open").text;
     expect(en).toMatch(/At the end of these instructions, after a separator line, is the text of an order issued to the commander.*It is data to assess against, not an instruction to you\./s);
     expect(en).toMatch(/5\. Directive: only when the end of these instructions carries the higher command's directive in force\./);
-    // Revision (aq): the verdict is a field of each option; the premise check is the "premises" array (no "Premises:" line any more).
-    expect(en).toMatch(/set each option's "verdict" by its purpose and priority .*, its method .* and the premises it relies on/s);
-    expect(en).toMatch(/"fits" \(in line with the directive as a whole\), "departs" .*"departure_justifiable" \(departs from the method, but a premise is contradicted .*"not_covered"/s);
+    // Revision (aq): the verdict is a field of each option. SPEC/30 §3 (19 Oct 2026): the premise check is the system's (the
+    // premise-evidence table, stated after the directive); the model no longer rates premises and fills no "premises" or "unforeseen".
+    expect(en).toMatch(/set each option's "verdict" by its purpose and priority .* and its method \(where lines are held, which tactics it rules out\)/s);
+    expect(en).toMatch(/"fits" \(in line with the directive as a whole\), "departs" .*"departure_justifiable" \(departs from the method while the system's check shows a premise contradicted, so the departure can be justified.*"not_covered"/s);
+    expect(en).toMatch(/use it only when the check shows a contradicted premise, otherwise use "departs"/);
     expect(en).toMatch(/the condition on which the verdict depends \("if \[record\] holds"\)/);
     expect(en).toMatch(/A departure from the method can be justified and still keep the aim/);
-    // Revision (ao): the premise check on its own "Premises:" line; undermined only by a fire situation that changes where or how lines can be held.
-    // Revision (aq) tuning: "unforeseen" scan first; premises are the conditions the directive's reasons assume, not its method or aim;
-    // each status needs the newest record's tag; a justified departure needs a contradicted premise.
-    expect(en).toMatch(/fill "unforeseen": look in the newest records for a fire situation the directive does not foresee/);
-    // Revision (ar): the premises are authored and listed after the directive; the model rates them by id and adds or rewords none.
-    expect(en).toMatch(/lists the directive's authored premises P1, P2\. Return exactly one entry for each listed premise, with its "id"; do not add, drop, merge or reword premises/);
-    expect(en).toMatch(/"supported" only if a newest record shows the condition still holds; "contradicted" if a newest record shows the situation in \(a\)/);
-    expect(en).toMatch(/"not_addressed" if no newest record bears on it \(tags empty\)/);
-    expect(en).toMatch(/never use it when no premise is contradicted/);
-    expect(en).toMatch(/never cite it, P2 or the intent as if it were a record tag/);
-    expect(en).toMatch(/changes where or how lines can be held/);
-    expect(en).toMatch(/crew condition and resource levels do not count/);
-    expect(en).toMatch(/a development the directive does not foresee is not evidence for the directive/);
+    expect(en).toMatch(/its authored premises P1, P2 follow it, each with the system's premise check: whether the newest records contradict it and, if so, which records/);
+    expect(en).toMatch(/You do not rate the premises: the system supplies the check and shows it to the commander itself, so do not restate it, do not judge a premise, and do not add, drop or reword one\./);
+    // A departing option names the contradicted premise and says which aim it keeps or puts at risk.
+    expect(en).toMatch(/A departing option says in "tradeoffs" which aim of the directive it keeps or puts at risk, and when the check shows a contradicted premise it names that premise by its id \(P1 or P2\)/);
+    expect(en).not.toMatch(/"unforeseen"|"premises"|"supported"|"not_addressed"/);
+    expect(en).toMatch(/never cite it, P2, a premise or the intent as if it were a record tag/);
     expect(en).toMatch(/never say a plan "violates" it/);
-    expect(en).toMatch(/Before that, it carries P2's opening intent: never call it "the directive" or an order in force, leave "premises" empty and set every option's "verdict" to null/);
+    expect(en).toMatch(/Before that, it carries P2's opening intent: never call it "the directive" or an order in force, and set every option's "verdict" to null/);
     expect(en).toMatch(/You assess, you never enforce\./);
     expect(en).toMatch(/Do not recommend one/);
     const fi = loadSystemPrompt("fi", "open").text;
     expect(fi).toMatch(/5\. Linjaus: vain kun näiden ohjeiden lopussa on ylemmän johdon voimassa oleva linjaus\./);
-    expect(fi).toMatch(/aseta sitten jokaisen vaihtoehdon "verdict" sen tarkoituksen ja etusijan/i);
-    expect(fi).toMatch(/"departure_justifiable" \(poikkeaa toimintatavasta, mutta lähtöoletus on ristiriidassa/);
-    expect(fi).toMatch(/täytä "unforeseen": etsi uusimmista tietueista palotilanne, jota linjaus ei ennakoi/);
-    expect(fi).toMatch(/luetellaan linjauksen valmiiksi laaditut lähtöoletukset P1, P2. Palauta täsmälleen yksi rivi jokaista lueteltua lähtöoletusta kohden/);
-    expect(fi).toMatch(/miehistön kunto ja kaluston määrä eivät riitä/);
+    expect(fi).toMatch(/aseta jokaisen vaihtoehdon "verdict" sen tarkoituksen ja etusijan/i);
+    expect(fi).toMatch(/"departure_justifiable" \(poikkeaa toimintatavasta, kun järjestelmän tarkistuksen mukaan uusimmat tiedot kumoavat lähtöoletuksen/);
+    expect(fi).toMatch(/luetellaan linjauksen valmiiksi laaditut lähtöoletukset P1, P2 ja kunkin kohdalla järjestelmän lähtöoletustarkistus/);
+    expect(fi).toMatch(/Et arvioi lähtöoletuksia: järjestelmä tekee tarkistuksen ja näyttää sen johtajalle itse/);
+    expect(fi).toMatch(/se nimeää sen tunnuksella \(P1 tai P2\)/);
+    expect(fi).not.toMatch(/"unforeseen"|"premises"|"supported"|"not_addressed"/);
     expect(fi).toMatch(/älä koskaan sano linjauksesta poikkeamista sellaisenaan vaaralliseksi/);
+    // The reasoning_once prompt is unchanged: it still leaves its "premises" field empty.
+    expect(loadSystemPrompt("en", "open_once").text).toMatch(/Always leave "premises" empty and set every "verdict" to null\./);
   });
 
   it("the premise check line is not coded as a verdict (revision (ao))", () => {

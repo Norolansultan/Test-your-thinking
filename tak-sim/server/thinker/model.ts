@@ -26,8 +26,8 @@ import {
   ANSWER_SCHEMA, ANSWER_SCHEMA_INTENT, THINKER_MAX_RETRIES, THINKER_MAX_TOKENS, THINKER_MODEL_ID, THINKER_OPEN_MAX_TOKENS, THINKER_OPEN_PARSE_RETRIES, THINKER_OPEN_PARSE_RETRY_MAX_ELAPSED_MS, THINKER_RETRY_MIN_REMAINING_MS, THINKER_SEED,
   THINKER_THINKING_BUDGET,
 } from "./config.js";
-import { OPEN_ANSWER_SCHEMA, parseOpenAnswer } from "./open-answer.js";
-import { premisesBlock, type DirectivePremises } from "./directive-premises.js";
+import { OPEN_ANSWER_SCHEMA, parseOpenAnswer, type OpenAnswerSchema } from "./open-answer.js";
+import { premisesBlock, type DirectivePremises, type PremiseBlockStatus } from "./directive-premises.js";
 import type { OpenStructuredAnswer } from "../../app/session/open-answer.js";
 
 /** The label of the directive block (D2); the English is the session language's. */
@@ -100,13 +100,15 @@ export function intentBlockOf(scenario: ScenarioContract, view: number, lang: "f
  * instruction is its own frozen prompt alone (`prompt-open.once.*.md`), in every view.
  */
 export function openSystemInstruction(
-  promptText: string, scenario: ScenarioContract, view: number, lang: "fi" | "en", cell: ThinkerCell = "reasoning_intent", premises?: DirectivePremises,
+  promptText: string, scenario: ScenarioContract, view: number, lang: "fi" | "en", cell: ThinkerCell = "reasoning_intent",
+  premises?: { readonly authored: DirectivePremises; readonly check: readonly PremiseBlockStatus[] },
 ): { readonly text: string; readonly block: IntentBlock | null } {
   const block = cell === "reasoning_intent" ? intentBlockOf(scenario, view, lang) : null;
   if (!block) return { text: promptText, block };
   // Revision (ar), 11 Oct 2026: with the directive in force, the authored premises follow the quoted directive (never P2's opening intent).
+  // SPEC/30 §3 (19 Oct 2026): each with the server's premise check (the table's status at the request's records clock), not for the model to rate.
   const withBlock = withDirective(promptText, block.text, lang, block.label);
-  return { text: block.kind === "directive" && premises ? `${withBlock}\n${premisesBlock(premises, lang)}` : withBlock, block };
+  return { text: block.kind === "directive" && premises ? `${withBlock}\n${premisesBlock(premises.authored, lang, premises.check)}` : withBlock, block };
 }
 
 const CONTEXT_LABELS = {
@@ -523,7 +525,10 @@ export async function callOpenThinkerModel(
   client: GoogleGenAI | null,
   system: string,
   userContent: string,
-  history?: readonly { role: "user" | "model"; text: string }[]
+  history?: readonly { role: "user" | "model"; text: string }[],
+  // SPEC/30 §3: the guide's cell (`reasoning_intent`) asks with `OPEN_ANSWER_SCHEMA_GUIDE` (no premises, no unforeseen scan); the
+  // `reasoning_once` cell and the practice view keep `OPEN_ANSWER_SCHEMA` unchanged (`openAnswerSchemaFor`).
+  schema: OpenAnswerSchema = OPEN_ANSWER_SCHEMA,
 ): Promise<OpenModelOutcome> {
   if (!client) return { ok: false, reason: "no_api_key" };
   const startedAt = Date.now();
@@ -541,7 +546,7 @@ export async function callOpenThinkerModel(
           systemInstruction: system,
           maxOutputTokens: THINKER_OPEN_MAX_TOKENS,
           responseMimeType: "application/json",
-          responseSchema: OPEN_ANSWER_SCHEMA as any,
+          responseSchema: schema as any,
           temperature: 0, // SPEC/14: the frozen treatment (F3, 8 Oct 2026; was 0.7)
           thinkingConfig: { thinkingBudget: THINKER_THINKING_BUDGET },
         },

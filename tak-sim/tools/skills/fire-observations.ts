@@ -23,7 +23,9 @@
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
+import { radioAtoms } from "../../app/scenario/demo-map.js";
 import { DESIGNED_LOG } from "../../app/scenario/designed-events.js";
+import { stepStartVirtual, viewOfStep, viewStartVirtual } from "../../app/scenario/views.js";
 import type { InfoAtom } from "../../app/scenario/types.js";
 import { recordEn } from "../../app/i18n/text.js";
 import { atomFi } from "./facts.js";
@@ -116,32 +118,62 @@ function atomPosition(a: InfoAtom): EN | null {
   return at ? toEN(at) : null;
 }
 
+/** A record logged in a step: who made it, when, and where it comes from (read by the observations and by `laces.ts`). */
+export interface StepRecord {
+  readonly id: string;
+  /** The step it is logged in. */
+  readonly step: number;
+  /** When it was said or logged, on the scenario's clock (virtual seconds, 0 = 13:20, step 1's start). */
+  readonly t: number;
+  /** Who made it: the traffic's `actor`, the radio's `from`, the story beat's author, the corpus atom's source. */
+  readonly source: string;
+  /** Traffic: its channel (`radio_command`, `radio_lateral`, `ask_unit`, `system_log`, `sensor_feed`); `incident_radio`; `story`; a corpus atom: its record kind. */
+  readonly channel: string;
+  readonly text_fi: string;
+  readonly xy: EN | null;
+  /** The perimeter-mapping loop, the weather station or a forecast (traffic and corpus atoms): no local fire observation. */
+  readonly skip: boolean;
+}
+
+/**
+ * Every record LOGGED in `step`, in this order: the traffic corpus, the incident radio (`atom.radio.<step>.<k>`, timed as
+ * the scenario times it, `demo-map.ts` `radioAtoms`), the story beats (`atom.demo.<step>.<k>`, `demo-story.ts`
+ * `storyAtoms`), then the corpus atoms outside those three (designed events, lateral items). Register entries
+ * (`reference`) are skipped.
+ */
+export function recordsOfStep(step: number, atoms: readonly InfoAtom[] = []): StepRecord[] {
+  const out: StepRecord[] = [];
+  const inTraffic = new Set<string>();
+  for (const t of SITE_SCENARIO.traffic) {
+    inTraffic.add(t.id);
+    if (t.cycle !== step) continue;
+    const xy = t.lat !== null && t.lon !== null ? toEN({ lat: t.lat, lon: t.lon }) : null;
+    out.push({ id: t.id, step, t: t.sim_time_s, source: t.actor, channel: t.channel, text_fi: t.content, xy, skip: SKIP.test(t.content) });
+  }
+  const view = viewOfStep(step);
+  const radioAt = radioAtoms(step, view ? viewStartVirtual(view) : stepStartVirtual(step)).atoms.map((a) => Number(a.provenance.observedAt));
+  SITE_SCENARIO.radio.filter((r) => r.cycle === step).forEach((r, k) => {
+    out.push({ id: `atom.radio.${step}.${k}`, step, t: radioAt[k]!, source: r.from, channel: "incident_radio", text_fi: r.text, xy: r.at ? toEN(r.at) : null, skip: false });
+  });
+  (CYCLE_STORY[step as CycleIndex]?.bubbles ?? []).forEach((b, k) => {
+    out.push({ id: `atom.demo.${step}.${k}`, step, t: stepStartVirtual(step) + (b.atS ?? 60 * (k + 1)), source: b.authorUnitId, channel: "story", text_fi: b.text, xy: null, skip: false });
+  });
+  for (const a of atoms) {
+    if (a.cycle !== step || inTraffic.has(a.id) || COVERED.test(a.id) || a.record.kind === "reference") continue;
+    const fi = atomFi(a);
+    out.push({ id: a.id, step, t: Number(a.provenance.observedAt), source: a.provenance.sourceId, channel: a.record.kind, text_fi: fi, xy: atomPosition(a), skip: SKIP.test(fi) });
+  }
+  return out;
+}
+
 /**
  * Every record LOGGED in `step` that states something about the fire (a flame band, a class, a rate, smouldering or smoke).
  * `atoms`: the scenario's corpus atoms; those outside the traffic, the radio and the story (designed events, lateral
  * items) are read too. Register entries (`reference`) are skipped.
  */
 export function observationsOfStep(step: number, atoms: readonly InfoAtom[] = []): Observation[] {
-  const out: Observation[] = [];
-  const inTraffic = new Set<string>();
-  for (const t of SITE_SCENARIO.traffic) {
-    inTraffic.add(t.id);
-    if (t.cycle !== step || SKIP.test(t.content)) continue;
-    out.push(observation(t.id, step, t.actor, t.content, t.lat !== null && t.lon !== null ? toEN({ lat: t.lat, lon: t.lon }) : null));
-  }
-  SITE_SCENARIO.radio.filter((r) => r.cycle === step).forEach((r, k) => {
-    out.push(observation(`atom.radio.${step}.${k}`, step, r.from, r.text, r.at ? toEN(r.at) : null));
-  });
-  (CYCLE_STORY[step as CycleIndex]?.bubbles ?? []).forEach((b, k) => {
-    out.push(observation(`atom.demo.${step}.${k}`, step, b.authorUnitId, b.text, null));
-  });
-  for (const a of atoms) {
-    if (a.cycle !== step || inTraffic.has(a.id) || COVERED.test(a.id) || a.record.kind === "reference") continue;
-    const fi = atomFi(a);
-    if (SKIP.test(fi)) continue;
-    out.push(observation(a.id, step, a.provenance.sourceId, fi, atomPosition(a)));
-  }
-  return out.filter((o) => o.band !== null || o.intensityClass !== null || o.rateMpm !== null || o.smoulder !== null || SMOKE.test(o.text_fi));
+  return recordsOfStep(step, atoms).filter((r) => !r.skip).map((r) => observation(r.id, step, r.source, r.text_fi, r.xy))
+    .filter((o) => o.band !== null || o.intensityClass !== null || o.rateMpm !== null || o.smoulder !== null || SMOKE.test(o.text_fi));
 }
 
 /** Everything that describes step `n`'s 20 minutes: records logged in it that name no other interval, and the measurements of it logged later. */

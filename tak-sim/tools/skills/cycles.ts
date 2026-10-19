@@ -156,7 +156,7 @@ export function cycleRecord(s: SiteStep, forcing: readonly CycleForcing[], src: 
   const smoulder = obs.filter((o) => o.smoulder !== null)
     .map((o) => `${o.source} ${o.id}${o.smoulder === "suspected" ? " (suspected)" : ""}: ${o.text_en ?? o.text_fi}${o.xy ? ` @ E ${o.xy[0]} N ${o.xy[1]}` : ""}`);
   const flareUps = s.fire.spot_fires.filter((x) => x.callsign.startsWith("US")).map((x) => { const p = toEN(x.position); return `flare-up ${x.callsign} (${x.confirmed ? "confirmed" : "reported, unconfirmed"}) @ E ${p[0]} N ${p[1]}`; });
-  const { units, placements } = unitsAndPlacements({ step: s, geometry: geo, edges: burningEdges(s), windFromDeg: s.wind.fromDeg, obs });
+  const { units, placements } = unitsAndPlacements({ step: s, geometry: geo, edges: burningEdges(s), windFromDeg: s.wind.fromDeg, obs, atoms: src.atoms });
   const barriers: (BarrierAhead | object)[] = [...blackBehind(geo), ...barriersAhead(wh.startXy, wh.axisDeg)];
   const next = stepByIndex(s.index + 1);
   return {

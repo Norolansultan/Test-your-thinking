@@ -41,6 +41,13 @@ function nullsByField(cycles: readonly Record<string, unknown>[], fields: readon
   return new Map(fields.map((f) => [f, cycles.filter((c) => c[f] === null).map((c) => c.cycle as number)]));
 }
 
+/** Ground placements (not `laces_exempt`) and how many have each LACES item null, for DATA_SOURCES.md. */
+function lacesCounts(cycles: readonly Record<string, unknown>[]) {
+  const ground = cycles.flatMap((c) => c.placements as Record<string, unknown>[]).filter((p) => p.laces_exempt !== true);
+  const nulls = (k: string) => ground.filter((p) => p[k] === null).length;
+  return { placements: ground.length, escapeNull: nulls("escape_route"), safetyNull: nulls("safety_zone"), lookoutNull: nulls("lookout"), commsNull: nulls("comms") };
+}
+
 /** Scenario data the export reads when the scenario has it (`scenario-extras.ts`); omitted: today's sources. */
 export interface PackageExtras {
   readonly flameTable?: FlameTable | null;
@@ -83,6 +90,8 @@ export function buildScenarioPackage(version: string, scenario: ScenarioContract
     nullCycles: nullsByField(cycles, ["fire_type", "head_bearing_deg", "fl_head_m", "fl_flank_m", "rh_pct", "temp_c", "dew_point_c", "event", "spotting_m", "reignition_source", "change_reason"]),
     unknownUnits, zeroRosCycles: cycles.filter((c) => c.ros_head_m_min === 0).map((c) => c.cycle as number),
     flameSource: sources.flameTable ? `the flame table (${sources.flameTable.source})` : null,
+    flameTableCycles: cycles.filter((c) => String(c.fl_source).startsWith("flame table")).map((c) => c.cycle as number),
+    laces: lacesCounts(cycles),
   }));
   return { scenario, files };
 }

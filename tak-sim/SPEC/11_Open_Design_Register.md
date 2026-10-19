@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **19 Oct 2026 (az)** — §7.30 (az): phase 3 of the skills review integrated; two additions to the list (an RC on the act coding's boundary sectors; the real Thinker re-index); the resume point for phase 4. See §7.30 (az).
 > - **19 Oct 2026 (ay)** — §7.30 (ay): the before-pilot list after the skills review (`31` §6) supersedes items 1–10; the researcher's confirmations (RC), the panel packet, the Pelastusopisto VERIFY list and the FMI/Prometheus items added.
 > - **19 Oct 2026 (ax)** — §7.30: the before-pilot checklist of `30` §8 (repository visibility, panel keys, premise table, new items, Finnish wording, model pin, ethics, strata) and the open items of the teaming design.
 > - **9 Oct 2026 (ai)** — §7.25: closed items (no open-ended questions in the session) — the three professor reviews, the conditions built, and the HCI reviewer's dissent on a "a tool suggested it" departure reason.
@@ -1001,3 +1002,12 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 8. **Pilot 2 measures:** item 10 above, plus freeze timeouts by position, V3.b/V6.b accuracy, knowledge-item ceilings, blocked plan intentions, C base rates per view under both codings, the `score_freezes.py` cross-check, digest reach.
 
 The notes for the domain reviewer above stand, with one correction: "V14's P2 rests on EK16's 19:22 radio" is superseded (V14 P2 is not contradicted, `31` §3.4). §7.28's question (V13 as a fit view) is answered consistently: neither V13 nor V14 counts the crossing of the forest road against P2.
+
+#### 7.30 (az) — after phase 3, and where the work resumes (19 Oct 2026)
+
+Phase 3 (`31` §7, WP-1 to WP-5) is merged and reconciled (`31` (az)); `npm run ci` passes at `0bc6a85`. Two additions to the list above:
+
+- **Item 1 (researcher, RC):** the act coding reads the core front for the primary and the boundary sectors only in the sensitivity (`31` (az) item 2); confirm with §3.1. The power reading that follows from §3.1–3.2 is `30` (az): H13 needs about +15 points at exposure .8 for 80 %.
+- **Before pilot 2 (researcher, on a machine that reaches the embedding model):** `npm run thinker:index` (both languages) and `npm run thinker:eval -- --write`; the index in the repository is PROVISIONAL (`31` (az)).
+
+**Resume point (session paused at 80 % of the five-hour usage window, by the researcher's rule).** Next is phase 4: a critical review of the integrated diff (`b884cf4..85a3c95`, by a reviewer model separate from the implementer) and the scenario-pipeline status report against Gates A–D (`wildfire-scenario-pipeline`), then the final summary with the people list. Phase 4 starts only when both usage windows are under 80 %. WP-6 waits for the Pelastusopisto answers.

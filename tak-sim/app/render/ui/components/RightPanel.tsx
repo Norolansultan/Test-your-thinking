@@ -8,6 +8,8 @@ import { useLang } from "../i18n.js";
 import { HakuPanel } from "./Drawers.js";
 import { OpenAnswerView } from "./OpenAnswerView.js";
 import { ConsultNotice } from "./ConsultNotice.js";
+import { useQueryTelemetry } from "../useQueryTelemetry.js";
+import type { QueryField } from "../../../telemetry/record-kinds-interaction.js";
 
 const panelWrap = {
   width: 360, flexShrink: 0, borderLeft: "1px solid #33383e", background: "#1b1e22",
@@ -149,14 +151,19 @@ function useQuestion(send: (query: string) => Promise<unknown>) {
   return { query, pending, notice, ask: () => void ask(), onInput, askVia: (sendOther: () => Promise<unknown>) => void askVia(sendOther) };
 }
 
-function QuestionInput({ q, placeholder }: { readonly q: ReturnType<typeof useQuestion>; readonly placeholder: string }) {
+function QuestionInput({ q, placeholder, field, orchestrator, cycle }: {
+  readonly q: ReturnType<typeof useQuestion>; readonly placeholder: string;
+  /** SPEC/30 §5.4: which chat the typing records (`query_focus` / `query_first_keystroke` / `query_edit`) belong to. */
+  readonly field: QueryField; readonly orchestrator: SessionOrchestrator; readonly cycle: number;
+}) {
   const { t } = useLang();
+  const typing = useQueryTelemetry(field, orchestrator, cycle, q.query);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 10, borderTop: "1px solid #33383e" }}>
       <div style={{ display: "flex", gap: 6 }}>
         <input
           value={q.query}
-          onInput={(e) => q.onInput((e.target as HTMLInputElement).value)}
+          {...typing.props(q.onInput)}
           onKeyDown={(e) => e.key === "Enter" && q.ask()}
           placeholder={placeholder}
           aria-invalid={q.query.length > THINKER_MAX_QUESTION_CHARS}
@@ -203,7 +210,7 @@ export function HakuChat({ snapshot, orchestrator, fill = false }: { readonly sn
         ))}
         {pending && <p style={{ opacity: 0.6, fontSize: 12.5 }}>{t.searching}</p>}
       </div>
-      <QuestionInput q={q} placeholder={t.askPlaceholder} />
+      <QuestionInput q={q} placeholder={t.askPlaceholder} field="haku_chat" orchestrator={orchestrator} cycle={snapshot.currentCycle} />
     </div>
   );
 }
@@ -244,7 +251,7 @@ export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly 
           </button>
         </div>
       )}
-      <QuestionInput q={q} placeholder={t.openThinkerPlaceholder} />
+      <QuestionInput q={q} placeholder={t.openThinkerPlaceholder} field="thinker_chat" orchestrator={orchestrator} cycle={snapshot.currentCycle} />
     </div>
   );
 }

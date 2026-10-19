@@ -23,6 +23,7 @@ import { statusOnStep, warnBeforeUnload } from "../../../telemetry/session-regis
 import { attachCheckpoints } from "../../../telemetry/session-checkpoint.js";
 import type { UiShell } from "../../../session/header.js";
 import { TakSessionLayout } from "../tak/TakSessionLayout.js";
+import { useViewTelemetry } from "../useViewTelemetry.js";
 
 export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels?: boolean;
@@ -88,6 +89,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   // V13's probe unmounts the plan panel; tied to its view, so the next view starts empty.
   const [plan, setPlan] = useState<HeldPlanDraft>({ view: null, draft: EMPTY_PLAN_DRAFT });
   const narrow = useNarrowWindow(); // before any early return: hooks run in the same order every render
+  useViewTelemetry(snapshot, orchestrator); // SPEC/30 §5.4: the pointer track and per-view frame stats
 
   if (!snapshot || !orchestrator) {
     return <div style={{ padding: 24 }}>{t.loading}</div>;

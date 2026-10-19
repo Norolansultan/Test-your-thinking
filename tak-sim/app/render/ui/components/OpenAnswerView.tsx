@@ -28,8 +28,12 @@ export function OpenAnswerView({ answer, lang }: { readonly answer: OpenStructur
       {answer.facts.map((f, i) => (
         <div key={`f${i}`}>{displayAnswerText(f.text)}<Cite tags={f.tags} tagTimes={answer.tagTimes} /></div>
       ))}
-      {answer.premises.length > 0 && <div style={heading}>{label(h.premises)}</div>}
-      {answer.premises.map((p, i) => (
+      {/* SPEC/30 §3: the premise check's fixed-template lines (the table's statuses, never model text) replace the premise rows. */}
+      {answer.premiseCheck?.lines.map((line, i) => (
+        <div key={`pc${i}`} data-testid="thinker-premise-line" style={row}><span>{line}</span></div>
+      ))}
+      {!answer.premiseCheck && answer.premises.length > 0 && <div style={heading}>{label(h.premises)}</div>}
+      {!answer.premiseCheck && answer.premises.map((p, i) => (
         <div key={`p${i}`} style={row}>
           <span>{displayAnswerText(p.premise)} <em style={{ opacity: 0.75 }}>({OPEN_PREMISE_STATUS_TEXT[lang][p.status]})</em><Cite tags={p.tags} tagTimes={answer.tagTimes} /></span>
         </div>

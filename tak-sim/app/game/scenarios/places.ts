@@ -35,6 +35,16 @@ export const PLACES = {
   LAHDENKYLA: fromIgn(135, 3.0),
   /** Command point at the R1/R3 junction. */
   CP: fromIgn(292, 1.1),
+  // "Evening wind" (the game's own story, SPEC/29 (ay)): lightning strikes in the roadless pine north of
+  // Korpioja and Karhujärvi, well outside anything the study's fire reaches.
+  /** Pine 0.8 km north of the Korpioja road. */
+  STRIKE_KORPIOJA: { x: 5600, y: 7300 },
+  /** Pine 1.8 km north-east of Mökkiranta, beyond Karhujärvi's north-east shore. */
+  STRIKE_KARHUJARVI: { x: 4300, y: 8300 },
+  /** Pine north of Koivuoja. */
+  STRIKE_KOIVUOJA: { x: 6900, y: 7000 },
+  /** The strike that smoulders in a tree and flares up later. */
+  STRIKE_LATE: { x: 5000, y: 7900 },
 } as const;
 
 /** Settlement names the scenarios protect; resolved against the world at game creation. */

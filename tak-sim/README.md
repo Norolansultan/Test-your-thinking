@@ -46,6 +46,15 @@ npm ci --ignore-scripts    # restricted networks: skips install scripts that dow
 CI: `.github/workflows/tak-sim-ci.yml` at the repository root runs `npm ci` and `npm run ci` in `tak-sim/` on every
 push and pull request that touches `tak-sim/**`. (The copy under `tak-sim/.github/` is inert in a subfolder.)
 
+## The Thinker's model build (SPEC/30 §10)
+
+Set `THINKER_EXPECTED_MODEL_VERSION` in the Thinker server's environment to the build a probe run reports
+(`npm run thinker:probe`, needs `GEMINI_API_KEY`; it prints the build and the table-driven premise statuses).
+With it set, an answer from any other build is refused as a model error (the participant sees the ordinary
+"unavailable" answer) and logged `modelVersionMismatch`; a build change inside a session is logged
+`modelVersionChanged`. Run the probe weekly during data collection and keep its log; a forced change of
+build is a treatment revision (SPEC/09 revision (ax)).
+
 ## EXCON — the white cell's display (researcher only, shows truth)
 
 `npm run excon` opens the exercise-control page of `SPEC/28` §8, after the researcher's August 2026 white-cell design

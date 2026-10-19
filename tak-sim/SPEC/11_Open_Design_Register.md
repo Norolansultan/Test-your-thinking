@@ -968,6 +968,17 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 9. **Strata sizes** of the allocation table (en 12 / fi 2 blocks are DRAFT). **Researcher.**
 10. **Pilot 2 measures** `aiStatedKey` rates (items stated in > 15 % of guide sessions are rewritten), exposure (consult opened, chip used, decision questions before the plan), and the session length (`15` (ax)); the power tools are re-run with them before the pre-registration locks. **Researcher.**
 
+**Notes for the domain reviewer from the build (19 Oct 2026):**
+
+- `crown_drops` (V4): the birch fuel along Koivuoja is not on record before step 7; the item relies on the map label and fuel knowledge.
+- `relief_next` (V7): VPK leads EK12 by only ~0.3 h in the recorded crew hours (4.0 h at 16:00 against 3.7 h at 16:20).
+- V6 SPAM second item: an older "unsafe" R1 report (V2) could be recalled stale and give the right answer for the wrong reason; the key also depends on when the road reports are generated.
+- Correlated pairs: `korpioja_spot` and `road_jump` test the same construct (spotting across a barrier); `ek14_shelter` sits close to V5 `wind_shift`.
+- `cp_safe` (V7): smoke is not modelled, so the smoke option is ruled out by wind direction alone.
+- The premise-evidence table: V10's P1 contradiction is dated from the last of its three records (DR3 17:35, `fromVirtualS` 15330); V14's P2 rests on EK16's 19:22 radio (the head crossed the Honkaharju road 19:00–19:20).
+- Analysis: `spam-measures.ts` still runs the first item's tool-use window and `itemOpenMs` to the shared `spam_closed`; split them at the first item's last record before the SPAM analyses run (the hand-over index in `teaming-measures.ts` already reads the `.b` items by their own records).
+- Deployment: set `THINKER_EXPECTED_MODEL_VERSION` from a probe run; without it the version guard is off (the README says how).
+
 **Open design questions:**
 
 - Whether an open-weights model run locally should replace the hosted model for the main study (fixed build, no network in a session, replicable; Finnish quality to probe). Decide after a probe.

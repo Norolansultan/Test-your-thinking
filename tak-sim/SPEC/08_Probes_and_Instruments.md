@@ -933,4 +933,19 @@ The V14 forced-choice backup (after the view) is unchanged in content and order,
 - **`keyStatements`** on every L2/L3 freeze item (fi/en regular-expression sources): how an AI answer would state the key, for the analysis-only `aiStatedKey` (`30` §5.3). Never shown.
 - **Plan confidence:** after every main view's plan is final, "How confident are you that your plan fits the situation?", 25/50/75/100 (`30` §5.4).
 - **Source memory (post-session):** seven session facts, each "Where did this come from for you?" — worked it out myself / a report, the message log or the map / Haku / the Thinker (Thinker cells only) / did not know (`30` §5.5; the replacement the 2 Oct 2026 withdrawal of the in-freeze source question named, `11` §7.15).
+- **The eight new L3 items as built (19 Oct 2026, `freeze-bank.ts`, `freeze-bank-core.ts`; DRAFT until the domain review):**
+
+| View | Item | Goal | Format | Key | Basis (forecast steps) |
+|---|---|---|---|---|---|
+| V2 | `spruce_behaviour` | containment | choice | Climbs into the crowns, throws embers ahead | CYCLE_STORY 14:40 and 15:00 (crown fire); no record names a crown fire by step 3 (3–6) |
+| V2 | `junction_hour` | resources | choice | 400–700 m | report-keyed ~607 m, 93 m margin; the map shows ~950 m now (the lure) (3–5) |
+| V4 | `crown_drops` | containment | choice | The broadleaf strip along Birch Creek (Koivuoja) | CYCLE_STORY 15:20; the wind turns only at step 8 (6–7) |
+| V4 | `korpioja_spot` | containment | choice | No, embers start fires across the creek | step-7 radio: Korpioja crossed by sparks (6–7) |
+| V5 | `ek14_shelter` | safety | choice | Move to safety in the burned area | forecast `evt.wx.03`; step-8 radio: EK14 withdraws downwind (7–8) |
+| V5 | `road_jump` | containment | choice | No, embers cross it at another point too | step-8 radio: a second crossing on KY21's stretch (7–8) |
+| V7 | `cp_safe` | safety | choice | No | computed: the fire stays ≥ ~760 m from the command post (the build fails under 300 m) (10–12) |
+| V7 | `relief_next` | resources | choice | VOL1 (VPK) | crew hours on record; VPK asks for a relief unit at 16:4x (10–11) |
+
+- **The SPAM second items as built** (`SPAM_SECOND_AUTHORED`, `SPAM_SECOND_KEY_ATOMS`): **V3 (L2)** "How has the fire's growth changed between the last two perimeter surveys?" — key "sped up, nearly twice as much new area" (DR3 14:15, recorded, 2.6 ha new; DR3 14:35, pushed, 4.8 ha); **V6 (L3)** "What will the state of road R1 be in an hour?" — key "Not safe to drive, flames at the roadside" (the forecast and the latest road report, "passable with care", the lure).
+- **Source-memory facts as built** (`app/scenario/source-memory.ts`, all phase A): the head's ~10.6 m/min 14:00–14:20; the forecast's SE turn 15:30–16:00; 56.6 ha at 15:35; spot fire PP3/SF3 ~600 m ahead; EK15 at the command post ~16:20; EK14's petrol request; Lakeside Cottages on Bear Lake, north-west. Facts 1–3 are ones the AI would likely state, 4–6 only in records, 7 on the map; a test checks that no freeze, SPAM or hinge text states any of them.
 - **Time:** about +2.5 min for the eight L3 items, +1.5 min for the two SPAM items, +2.5 min for fourteen plan-confidence clicks, +1.5 min for the source-memory block; `15` revision (ax) carries the budget.

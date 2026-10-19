@@ -225,3 +225,16 @@ With V11 keyed mixed (two fit views) H14 falls to 34 % (exp .8, δ 1.0) and 49 %
 2. **H13 is powered only for a large effect with the notice working.** The act coding raises the base rate in both groups, but V14's key now moves only through the secondary route (16.4 → 23.7 % at exp .8, δ 1.0), so the group difference shrinks from +13 to +20 points (§11) to +12 to +16. H13 reaches 86 % (74 % after attrition) at exp .8 and δ 1.5 and 53 % (45 %) at δ 1.0; at exposure .6 it has 34–62 %. The minimum effect H13 detects with 80 % at 50 / 50 and exp .8 is about +15 points (C 27 → 42 %). The label coding, now the sensitivity, is 15–20 points weaker; dropping V14 (fallback) costs 4–5 points, because V14 carries little of the power.
 3. **H15 stays the most sensitive test of the check** (82–97 % at exp .8) and stays blind to the amplifier (5–7 %); H14 remains the weakest (23–65 %).
 4. **What follows (researcher, RC, before the pre-registration).** H13 stays primary and two-sided (the amplifier reading makes the direction a real question); the pre-registration states the +15-point minimum detectable effect and that a null below it is uninformative; exposure is the lever, so pilot 2 measures the notice's reach (consult opened, chip, decision question before the plan) and the tools are re-run with it. Adding a no-fit view would raise power but needs new keyed content and a panel round; it is not proposed here.
+
+**H15 on the act's alignment (phase-4 review, 19 Oct 2026; RC with `31` §3.1).** The review found that H13's primary (act) and H15 (label alignment) disagreed on the same plan: the probe plan V9-f (a mop-up on the new front) was a departure for H13 and aligned for H15. H15 now reads alignment by the act in the no-fit views (`h15Aligned`); the label's alignment (`h14Aligned`) is its sensitivity. H14 (fit views only) is unchanged, since act and label agree there. `paper2-power.ts` at `19418c9` (same seeds; the label column reproduces the table above exactly), 50 / 50 · 40 / 40 · 70 / 70:
+
+| Scenario | H15 act | H15 label (sens.) | H15 act, V11 mixed | H15 act, V14 mixed |
+|---|---|---|---|---|
+| Check, exp .6, δ 1.0 | 65 · 60 · 86 % | 55 · 50 · 75 % | 52 · 46 · 73 % | 59 · 53 · 80 % |
+| Check, exp .6, δ 1.5 | 94 · 87 · 98 % | 85 · 76 · 93 % | 84 · 75 · 93 % | 90 · 81 · 95 % |
+| Check, exp .8, δ 1.0 | **90** · 83 · 98 % | 82 · 73 · 93 % | 81 · 72 · 91 % | 86 · 79 · 96 % |
+| Check, exp .8, δ 1.5 | 100 · 98 · 100 % | 97 · 94 · 100 % | 98 · 94 · 99 % | 99 · 97 · 100 % |
+| Compliance amplifier | 5 · 6 · 5 % | 6 · 5 · 7 % | 4 · 5 · 5 % | 4 · 5 · 6 % |
+| Null | 7 · 5 · 6 % | 6 · 6 · 4 % | 6 · 6 · 5 % | 7 · 5 · 5 % |
+
+Point 3 of the reading above becomes: H15 is the most sensitive test of the check (90 % at exp .8 and δ 1.0; 65 % at exp .6) and stays blind to the amplifier (4–7 %).

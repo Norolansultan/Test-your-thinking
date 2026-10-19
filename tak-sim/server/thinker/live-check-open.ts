@@ -3,6 +3,8 @@
  * a small fixed set of representative questions (lookups, decision questions, no-fit views, a
  * withdrawal question, a Finnish one) through `handleOpenThinkerRequest` with the live model and hybrid
  * retrieval, English unless stated (`--only=0,4,5` runs the listed checks by index). Needs `GEMINI_API_KEY`; 14 model calls; (ar) prints the authored premises by id (plus a retry on invalid JSON).
+ * SPEC/30 §3 (19 Oct 2026): prints the table-driven premise statuses and whether a premise flag was shown; the probe then checks
+ * only the wording (departing options name the premise; no recommendation, no imperative). SPEC/30 §10: prints the build that answered.
  * Each call's full log line goes to `logs/thinker/` (the proxy's own log, git-ignored); the table is printed.
  */
 import { createThinkerDeps } from "./deps.js";
@@ -40,9 +42,10 @@ for (const [i, c] of CHECKS.entries()) {
   if (r.status !== 200) { console.log(`${c.label}: HTTP ${r.status} ${r.body.error}`); continue; }
   const b = r.body as OpenThinkerResponse;
   const log = logs[0] ?? {};
-  console.log(`\n=== ${c.label} — kind ${String(log["kind"] ?? "-")}, ${String(log["words"] ?? "-")} words, verdicts ${JSON.stringify(log["verdictFields"] ?? null)}, ${b.latencyMs} ms, model ${JSON.stringify((log["usage"] as { modelVersion?: string } | undefined)?.modelVersion ?? null)}${b.fallback ? `, FALLBACK ${b.fallbackReason}` : ""}`);
+  console.log(`\n=== ${c.label} — kind ${String(log["kind"] ?? "-")}, ${String(log["words"] ?? "-")} words, verdicts ${JSON.stringify(log["verdictFields"] ?? null)}, ${b.latencyMs} ms, model ${JSON.stringify(log["modelVersion"] ?? null)}${log["modelVersionMismatch"] ? `, VERSION MISMATCH ${JSON.stringify(log["modelVersionMismatch"])}` : ""}${b.fallback ? `, FALLBACK ${b.fallbackReason}` : ""}`);
   console.log(`trimmed ${JSON.stringify(log["trimmed"] ?? [])}, parseRetries ${String(log["parseRetries"] ?? 0)}, citationIssues ${JSON.stringify(log["citationIssues"])}, imperatives ${JSON.stringify(log["imperativeWords"])}`);
-  const st = b.structured;
-  if (st) console.log(`unforeseen ${JSON.stringify(st.unforeseen ?? null)}; premises ${JSON.stringify(st.premises.map((p) => [p.id, p.status, p.tags.join("+")]))}`);
+  // SPEC/30 §3: the premise statuses are the table's (premise-evidence.json at the records clock), not the model's; the probe checks only the wording around them.
+  const statuses = (log["premiseStatuses"] as { id: string; status: string; atomIds: string[] }[] | undefined) ?? null;
+  console.log(`premise check (table v${String(log["premiseEvidenceVersion"] ?? "-")}, records clock ${String(log["premiseRecordsClockS"] ?? "-")} s): ${statuses ? statuses.map((s) => `${s.id} ${s.status}${s.atomIds.length ? ` [${s.atomIds.join(", ")}]` : ""}`).join("; ") : "no premise line"}; premiseFlagShown ${String(log["premiseFlagShown"] ?? false)}`);
   console.log(b.answer);
 }

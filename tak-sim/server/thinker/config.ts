@@ -35,6 +35,18 @@ export const THINKER_OPEN_MAX_TOKENS = 1536;
  */
 export const THINKER_OPEN_PARSE_RETRIES = 1;
 export const THINKER_OPEN_PARSE_RETRY_MAX_ELAPSED_MS = 12_000;
+/**
+ * SPEC/30 §10 (19 Oct 2026): the server environment variable that pins the model build. The configured id names a family that
+ * Google may answer with another build (`gemini-3.6-flash` for `gemini-3.5-flash`, `14` ar probe); with the pin set, an answer from
+ * any other build, or one that names none, is refused as a model error (`model-version.ts`) and logged `modelVersionMismatch`.
+ */
+export const EXPECTED_MODEL_VERSION_ENV = "THINKER_EXPECTED_MODEL_VERSION";
+
+/** The pinned build from the environment, trimmed; null when unset or empty (no pin). */
+export function expectedModelVersionOf(env: Readonly<Record<string, string | undefined>> = process.env): string | null {
+  const v = env[EXPECTED_MODEL_VERSION_ENV]?.trim();
+  return v ? v : null;
+}
 /** The model's internal reasoning budget, in tokens. 0 turns thinking off: it counted against the output cap and the 20 s timeout. */
 export const THINKER_THINKING_BUDGET = 0;
 
@@ -66,8 +78,8 @@ export const PROMPT_FILE_OPEN_ONCE = "server/thinker/prompt-open.once.fi.md";
 export const PROMPT_FILE_OPEN_ONCE_EN = "server/thinker/prompt-open.once.en.md";
 /** What the manifest says about the Open Thinker prompts, besides their hashes (`build-index.ts`). */
 export const OPEN_PROMPT_NOTE = {
-  usedFor: "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8) — revision (al)",
-  output: "structured JSON (revision (aq), 11 Oct 2026: kind, facts, premises, options with verdicts, inference, questionsForYou; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's",
+  usedFor: "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8, followed by the authored premises with the server's premise check, SPEC/30 §3) — revision (al)",
+  output: "structured JSON (revision (aq), 11 Oct 2026: kind, facts, options with verdicts, inference, questionsForYou; SPEC/30 §3, 19 Oct 2026: no premises and no unforeseen scan are asked of the model, the premise statuses come from content/thinker/premise-evidence.json and are shown in a fixed template; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's",
 } as const;
 /** The `reasoning_once` cell's Open Thinker prompt (revision (al)): the same rules but rule 5, no order block. */
 export const OPEN_ONCE_PROMPT_NOTE = {
@@ -91,7 +103,7 @@ export const INTENT_PROMPT_NOTE = {
   status: "DRAFT, for native and domain review",
 } as const;
 /** The manifest's description of the structured output. */
-export const THINKER_OUTPUT_NOTE = "Haku (/api/thinker): structured JSON vastaus, perusteet, varmuus, muuttaisi (a fifth field, linjaus, was withdrawn 8 Oct 2026; old logs may carry it). Open Thinker (/api/thinker-open): structured JSON since revision (aq), 11 Oct 2026 (kind, facts, premises, options, inference, questionsForYou), rendered to text by the proxy; plain text before";
+export const THINKER_OUTPUT_NOTE = "Haku (/api/thinker): structured JSON vastaus, perusteet, varmuus, muuttaisi (a fifth field, linjaus, was withdrawn 8 Oct 2026; old logs may carry it). Open Thinker (/api/thinker-open): structured JSON since revision (aq), 11 Oct 2026 (kind, facts, premises, options, inference, questionsForYou), rendered to text by the proxy; plain text before. SPEC/30 §3, 19 Oct 2026: the reasoning_intent cell's schema has no premises and no unforeseen (the server's premise check supplies the statuses)";
 export const MANIFEST_FILE = "content/thinker/manifest.json";
 export const INDEX_FILE = "content/thinker/index.json";
 export const AUTHORED_QUERIES_FILE = "content/thinker/authored-queries.json";

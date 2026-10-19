@@ -29,8 +29,10 @@ import {
 } from "../../app/session/thinker-protocol.js";
 import { tr } from "../../app/i18n/text.js";
 import { citationIssuesOfStructured, directiveQuoted, historyTurnForModel, imperativeWordsIn, provenanceHashes } from "./answer-checks.js";
-import { limitOpenAnswer } from "./open-answer.js";
+import { limitOpenAnswer, openAnswerSchemaFor } from "./open-answer.js";
 import { loadDirectivePremises, type DirectivePremises } from "./directive-premises.js";
+import { loadPremiseEvidence, premiseBlockStatuses, premiseCheck, premiseCheckShown, recordLookupOf, type PremiseEvidence } from "./premise-check.js";
+import { guardModelVersion } from "./model-version.js";
 import { renderOpenAnswer, verdictsOfOptions, wordCount } from "../../app/session/open-answer.js";
 import { clockAt } from "../../app/session/template-answer.js";
 import type { RetrievedRecord } from "../../app/retrieval/hybrid.js";
@@ -82,6 +84,15 @@ export interface ThinkerDeps {
    * (the real server checks the file against the manifest at startup, `createThinkerDeps`).
    */
   readonly directivePremises?: DirectivePremises;
+  /**
+   * SPEC/30 §3 (19 Oct 2026): the premise-evidence table (DRAFT, panel to confirm). Absent: read from `content/thinker/premise-evidence.json`
+   * (the real server checks it against the manifest, the premises and the scenario at startup, `createThinkerDeps`).
+   */
+  readonly premiseEvidence?: PremiseEvidence;
+  /** SPEC/30 §10: the pinned model build (`THINKER_EXPECTED_MODEL_VERSION`); unset or null: no pin. */
+  readonly expectedModelVersion?: string | null;
+  /** SPEC/30 §10: each session's first answer's model build, for `modelVersionChanged` (absent: kept per deps object). */
+  readonly sessionModelVersions?: Map<string, string>;
   /** Null when GEMINI_API_KEY is unset: every answer is the template, `no_api_key`. */
   readonly client: GoogleGenAI | null;
   /** Appends one JSON line to the session's log. */
@@ -247,7 +258,9 @@ export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Pr
   const prompt = promptFor(deps, p.lang, variant);
   const system = prompt.text;
   const clockLine = clockLineOf(p.lang, p.clockS, receivedUpToOf(p.gated, p.clockS));
-  const outcome = await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: ageReferenceOf(p.step) }), variant);
+  // SPEC/30 §10: an answer from a build other than the pinned one is a model error (the template answer, as for any model error).
+  const guarded = guardModelVersion(deps, p.req.sessionId, await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: ageReferenceOf(p.step) }), variant));
+  const outcome = guarded.outcome;
   const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant);
   const response: ThinkerResponse = {
     answer,
@@ -266,6 +279,7 @@ export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Pr
     loggedAt: deps.nowIso(),
     ...logBase(p, system, "haku"),
     ...response,
+    ...guarded.log,
     ...(outcome.ok ? { usage: outcome.usage } : {}),
     ...(outcome.attempts !== undefined ? { attempts: outcome.attempts } : {}),
     ...(!outcome.ok && outcome.detail ? { errorDetail: outcome.detail } : {}),
@@ -296,23 +310,36 @@ export async function handleOpenThinkerRequest(deps: ThinkerDeps, body: unknown)
   // Revision (al): the order block only in the reasoning_intent cell (`openSystemInstruction`), never in VP (`intentBlockOf`).
   // Revision (ar): the authored premises go to the model and the display only with the directive in force (reasoning_intent from V8, never VP).
   const directiveInForce = promptCell === "reasoning_intent" && p.req.view >= STRATEGY_FROM_VIEW;
-  const premises = directiveInForce ? (deps.directivePremises ?? loadDirectivePremises()) : undefined;
-  const system = openSystemInstruction(prompt.text, deps.scenario, p.req.view, p.lang, promptCell, premises);
-  const planContext = openPlanContext(deps.scenario, p.req.view, p.clockS, p.lang, receivedUpToOf(p.gated, p.clockS));
+  // SPEC/30 §3 (19 Oct 2026): with the directive in force, the premise statuses are the premise-evidence table's at the records clock (the
+  // latest observation among the time-gated records), never the model's: stated to the model after the directive, shown in the fixed template.
+  const evidence = directiveInForce ? (deps.premiseEvidence ?? loadPremiseEvidence()) : undefined;
+  const recordsClockS = receivedUpToOf(p.gated, p.clockS);
+  const checkItems = evidence ? premiseCheck(evidence, p.req.view, recordsClockS) : null;
+  // No table entry for the view (impossible with a valid table): no premises, no premise line and no verdict, rather than the model's rating.
+  const premises = checkItems ? (deps.directivePremises ?? loadDirectivePremises()) : undefined;
+  const lookup = checkItems ? recordLookupOf(deps.scenario.atoms) : null;
+  const shownCheck = evidence && checkItems && premises && lookup ? premiseCheckShown(evidence, checkItems, premises, lookup, p.lang) : undefined;
+  const system = openSystemInstruction(prompt.text, deps.scenario, p.req.view, p.lang, promptCell,
+    checkItems && premises && lookup ? { authored: premises, check: premiseBlockStatuses(checkItems, lookup, p.lang) } : undefined);
+  const planContext = openPlanContext(deps.scenario, p.req.view, p.clockS, p.lang, recordsClockS);
   const digest = latestDigest(p.gated, p.records, new Set(rosterForView(deps.scenario.allocationSpace, p.req.view).map((a) => a.id)));
   // Revision (an): every record line carries its age, counted to the end of the question's step (`ageReferenceOf`).
   const extras = { digest, recent: p.recent, ageRefS: ageReferenceOf(p.step) };
   const userContent = buildUserContent(p.req.question, p.records, p.lang, planContext, extras);
   // Revision (al): the history's record tags are rewritten ("(earlier answer)"); tags are renumbered per request.
   const history = p.req.history?.map((h) => historyTurnForModel(h, p.lang));
-  const outcome = await callOpenThinkerModel(deps.client, system.text, userContent, history);
+  // SPEC/30 §10: an answer from a build other than the pinned one is a model error (the participant sees "unavailable").
+  const guarded = guardModelVersion(deps, p.req.sessionId, await callOpenThinkerModel(deps.client, system.text, userContent, history, openAnswerSchemaFor(promptCell)));
+  const outcome = guarded.outcome;
   // Revision (aq), 11 Oct 2026: the model's structured answer is limited (kinds, item counts, field lengths, 150 words, no verdicts
   // without a directive in force) and rendered to the display text here; verdicts are read from its fields, not from the text.
   // Verdicts and premises only in reasoning_intent from V8 on, never in the practice view (`promptCell` is once there).
+  // SPEC/30 §3: the premise line only in an options answer, from the server's check (`limitOpenAnswer` drops it for every other kind).
   const tagged = taggedAtoms(p.records, extras);
   const limited = outcome.ok
-    ? limitOpenAnswer(outcome.answer, { directiveInForce, taggedCount: tagged.length, tagTimes: tagged.map((a) => clockAt(a.provenance.observedAt)), premises }, p.lang)
+    ? limitOpenAnswer(outcome.answer, { directiveInForce, taggedCount: tagged.length, tagTimes: tagged.map((a) => clockAt(a.provenance.observedAt)), premises, premiseCheck: shownCheck }, p.lang)
     : null;
+  const shownPremises = limited?.answer.premiseCheck;
   // Researcher decision (commander M1, 8 Oct 2026): a model failure is never answered with a record excerpt or free text; the browser shows the explicit "unavailable" state.
   const answer = limited ? renderOpenAnswer(limited.answer, limited.tagTimes, p.lang) : "";
   const verdicts = limited ? verdictsOfOptions(limited.answer) : null;
@@ -351,9 +378,13 @@ export async function handleOpenThinkerRequest(deps: ThinkerDeps, body: unknown)
     ...(citations ? { uncitedItems: citations.uncited, imperativeWords: imperativeWordsIn(answer, p.lang), words: wordCount(answer) } : {}),
     ...response,
     // Revision (aq): the exact verdict fields (a justified departure is `departure_justifiable` here, `departs` in the browser's three-valued log), and the model's JSON as returned.
-    // Revision (ar): the frozen premises' hash and the rating of each authored premise as returned to the browser.
+    // Revision (ar): the frozen premises' hash. SPEC/30 §3: the premise-evidence table's version and hash and the records clock it was read
+    // at (directive in force), the statuses and deciding atom ids shown (an options answer only), and whether a premise flag was shown.
     ...(premises ? { premisesSha256: premises.sha256 } : {}),
-    ...(limited && premises ? { aiPremises: limited.answer.premises.map((q) => ({ id: q.id, status: q.status, tags: q.tags, ...(q.filled ? { filled: true } : {}) })) } : {}),
+    ...(evidence ? { premiseEvidenceVersion: evidence.version, premiseEvidenceSha256: evidence.sha256, premiseRecordsClockS: recordsClockS } : {}),
+    ...(shownPremises ? { premiseStatuses: shownPremises.items } : {}),
+    premiseFlagShown: shownPremises?.flagShown ?? false,
+    ...guarded.log,
     ...(limited && outcome.ok ? { verdictFields: limited.answer.options.map((o) => o.verdict), kind: limited.answer.kind, rawJson: outcome.rawJson.slice(0, 8000) } : {}),
     ...(outcome.ok ? { usage: outcome.usage } : {}),
     ...(outcome.attempts !== undefined ? { attempts: outcome.attempts } : {}),

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "draft": true,
+  "status": "DRAFT study content (SPEC/30 §3, 19 Oct 2026): the statuses are SPEC/30 §3's draft; the expert panel confirms every entry before the pilot (SPEC/30 §8)",
+  "directivePremisesSha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
+  "clock": "fromVirtualS is virtual seconds after 13:20 on the Thinker's records clock (the latest observation among the time-gated records, server/thinker/model.ts receivedUpToOf); it is never earlier than the observation of any deciding record, so a record is cited only once the time gate has released it",
+  "views": {
+    "V8": {
+      "P1": { "status": "not_contradicted", "note": "16:40-17:00, the lull: the head's south flank does not move (EK12) and the north edge creeps (DR3); no record shows a fire the directive does not describe" },
+      "P2": { "status": "not_contradicted", "note": "the crews hold lines on roads and the burned edge; no record shows a fire without a road or water ahead of it" }
+    },
+    "V9": {
+      "P1": { "status": "contradicted", "atomIds": ["atom.demo.12.0"], "fromVirtualS": 13260, "note": "SPOT 17.01: open flame and smoke outside the old south edge, about 120 m from the point of origin, not on the map: a new fire the directive does not describe" },
+      "P2": { "status": "not_contradicted", "note": "the new fire is small and close to the burned edge; no record says a road or water line ahead of a fire is lost" }
+    },
+    "V10": {
+      "P1": { "status": "contradicted", "atomIds": ["atom.demo.12.0", "evt.c13.010", "evt.c13.034"], "fromVirtualS": 15330, "note": "the new fire of SPOT 17.01 is confirmed as a separate fire by DR2's thermal image 17.25 and DR3's mapping 17.35 (recorded); fromVirtualS is DR3's, the last of the three" },
+      "P2": { "status": "not_contradicted", "note": "the new front runs east along the old south edge with R2 still passable about 1 km ahead (DR2 17.21)" }
+    },
+    "V11": {
+      "P1": { "status": "not_contradicted", "note": "the south-east front grows steadily and the forecast's wind event is as the directive foresees; no new fire" },
+      "P2": { "status": "not_contradicted", "note": "the crews take defensive lines on the forest road and R2 ahead of the front" }
+    },
+    "V12": {
+      "P1": { "status": "not_contradicted", "note": "the head runs about 10 m/min to the south-east in the gusts, as the directive foresees" },
+      "P2": { "status": "not_contradicted", "note": "the forest road (Honkaharju) ahead of the head is held and stops the fire (EK16, KY21)" }
+    },
+    "V13": {
+      "P1": { "status": "not_contradicted", "note": "panel decision: SPOT 19.01's flare-up on the north edge (the holdover, H3's contradiction) is not counted as a fire the directive does not describe" },
+      "P2": { "status": "not_contradicted", "note": "panel decision: the forest road stopped the fire 18.40-19.00 and sparks cross it in the gusts (KY21 19.01), but the directive names no line and R2 is the next road ahead" }
+    },
+    "V14": {
+      "P1": { "status": "contradicted", "atomIds": ["atom.demo.19.2"], "fromVirtualS": 21780, "note": "SPOT 19.23: the origin's old west edge has flared up again, about 130 m west of the point of origin, where no crew works: the second flare-up" },
+      "P2": { "status": "contradicted", "atomIds": ["atom.radio.19.2"], "fromVirtualS": 21740, "note": "EK16 19.22: the head crossed the forest road (Honkaharju) at 19.00-19.20 in the gusts and EK16 had to pull back: the road line ahead of the head was not held" }
+    }
+  }
+}

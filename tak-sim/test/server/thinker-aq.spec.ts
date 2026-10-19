@@ -3,6 +3,8 @@
  * deterministic limits (item counts, field lengths, the 150-word total), the rendering to text in both
  * languages, verdicts read from fields, the citation check over tags, the parse-failure retry, and the
  * routing of lookup / safety / options (a lookup ends in exactly one question and has no options).
+ * SPEC/30 §3 (19 Oct 2026): the premise statuses are the premise-evidence table's, no longer the model's; the tests that assumed
+ * model-rated premises now check that the table's statuses overwrite them (more in `premise-check.spec.ts`, `premise-handler.spec.ts`).
  */
 import type { GoogleGenAI } from "@google/genai";
 import { describe, expect, it, vi } from "vitest";
@@ -12,15 +14,24 @@ import { readFileSync } from "node:fs";
 import { loadSystemPrompt, normaliseNewlines, repoPath, sha256Hex } from "../../server/thinker/config.js";
 import { checkDirectivePremises, loadDirectivePremises, premisesBlock, PREMISES_BLOCK_LABEL } from "../../server/thinker/directive-premises.js";
 import { handleOpenThinkerRequest, type ThinkerDeps } from "../../server/thinker/handler.js";
-import { callOpenThinkerModel, DIRECTIVE_BLOCK_LABEL } from "../../server/thinker/model.js";
+import { callOpenThinkerModel, DIRECTIVE_BLOCK_LABEL, receivedUpToOf } from "../../server/thinker/model.js";
 import { cutChars, limitOpenAnswer, OPEN_ANSWER_SCHEMA, OPEN_LIMITS, parseOpenAnswer } from "../../server/thinker/open-answer.js";
-import { scenario } from "../engine/thinker-fixtures.js";
+import { loadPremiseEvidence, premiseBlockStatuses, premiseCheck, premiseCheckShown, recordLookupOf } from "../../server/thinker/premise-check.js";
+import { reachableAtoms } from "../../app/retrieval/time-gate.js";
+import { scenario, stepAtViewStart } from "../engine/thinker-fixtures.js";
 import { openJson, twoOptions } from "./open-json.js";
 
 const TIMES = ["15.40", "15.45", "16.00"];
-const ctx = (directiveInForce: boolean) => ({ directiveInForce, taggedCount: 3, tagTimes: TIMES, premises: directiveInForce ? loadDirectivePremises() : undefined });
+// SPEC/30 §3 (19 Oct 2026): with a directive in force, the premise statuses come from the premise-evidence table at the records clock of
+// the view's start (V11: nothing contradicted; V14: P1 and P2 contradicted), never from the model.
+const evidence = loadPremiseEvidence();
+const recordsClockAt = (view: number) => receivedUpToOf(reachableAtoms(scenario.atoms, stepAtViewStart(view)), 0);
+const itemsAt = (view: number) => premiseCheck(evidence, view, recordsClockAt(view))!;
+const checkAt = (view: number, lang: "fi" | "en") => premiseCheckShown(evidence, itemsAt(view), loadDirectivePremises(), recordLookupOf(scenario.atoms), lang);
+const ctx = (directiveInForce: boolean, view = 11, lang: "fi" | "en" = "en") => ({
+  directiveInForce, taggedCount: 3, tagTimes: TIMES, premises: directiveInForce ? loadDirectivePremises() : undefined, premiseCheck: directiveInForce ? checkAt(view, lang) : undefined,
+});
 const parsed = (json: string): OpenStructuredAnswer => parseOpenAnswer(json)!;
-const TIMES_MAP = { T1: "15.40", T2: "15.45", T3: "16.00" };
 const startOf = (view: number) => scenario.cycles.find((c) => c.index === view)!.startsAtVirtual;
 
 function deps(client: GoogleGenAI | null, logs: Record<string, unknown>[] = []): ThinkerDeps {
@@ -68,43 +79,49 @@ describe("parseOpenAnswer: validation", () => {
 describe("limitOpenAnswer: the premise check's consistency and whole-item trimming (tuning)", () => {
   const prem = (status: "supported" | "contradicted" | "not_addressed", tags: string[], id = "P2") => ({ id, premise: "", status, tags });
 
-  it("a justified departure without a contradicted premise is a plain departure, logged", () => {
-    const raw = parsed(openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: [prem("supported", ["T1"])] }));
-    const out = limitOpenAnswer(raw, ctx(true), "en");
+  it("a justified departure without a contradicted premise in the table is a plain departure, logged, whatever the model rated", () => {
+    const raw = parsed(openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: [prem("contradicted", ["T1"])] }));
+    const out = limitOpenAnswer(raw, ctx(true, 11), "en");
     expect(out.answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
     expect(out.trimmed).toContain("justified_without_contradicted_premise");
   });
 
-  it("with a contradicted premise the model's justified departure stands; a contradicted premise alone forces no verdict", () => {
-    const raw = parsed(openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: [prem("contradicted", ["T1"])] }));
-    expect(limitOpenAnswer(raw, ctx(true), "en").answer.options.map((o) => o.verdict)).toEqual(["departure_justifiable", "fits"]);
-    const plain = parsed(openJson({ kind: "options", options: twoOptions("departs", "fits"), premises: [prem("contradicted", ["T1"])] }));
-    expect(limitOpenAnswer(plain, ctx(true), "en").answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
+  it("with a premise contradicted in the table the model's justified departure stands; a contradicted premise alone forces no verdict", () => {
+    const raw = parsed(openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: [prem("supported", ["T1"])] }));
+    expect(limitOpenAnswer(raw, ctx(true, 14), "en").answer.options.map((o) => o.verdict)).toEqual(["departure_justifiable", "fits"]);
+    const plain = parsed(openJson({ kind: "options", options: twoOptions("departs", "fits") }));
+    expect(limitOpenAnswer(plain, ctx(true, 14), "en").answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
   });
 
-  it("a supported or contradicted premise that cites no known record is not addressed", () => {
-    const raw = parsed(openJson({ kind: "options", options: twoOptions("fits", "fits"), premises: [prem("supported", [], "P1"), prem("contradicted", ["T9"], "P2")] }));
-    const out = limitOpenAnswer(raw, ctx(true), "en");
-    expect(out.answer.premises.map((p) => p.status)).toEqual(["not_addressed", "not_addressed"]);
-    expect(out.trimmed).toContain("premise_no_record");
+  it("the model's premise ratings are overwritten by the table's statuses, logged (SPEC/30 \u00a73)", () => {
+    const raw = parsed(openJson({ kind: "options", options: twoOptions("fits", "fits"), premises: [prem("supported", ["T1"], "P1"), prem("contradicted", ["T2"], "P2")] }));
+    const v11 = limitOpenAnswer(raw, ctx(true, 11), "en");
+    expect(v11.answer.premises.map((p) => [p.id, p.status, p.tags])).toEqual([["P1", "not_addressed", []], ["P2", "not_addressed", []]]);
+    expect(v11.trimmed).toContain("premises_from_model_ignored");
+    const v14 = limitOpenAnswer(raw, ctx(true, 14), "en");
+    expect(v14.answer.premises.map((p) => p.status)).toEqual(["contradicted", "contradicted"]);
+    expect(v14.answer.premiseCheck).toEqual(checkAt(14, "en"));
   });
 
-  it("the unforeseen scan is kept with a directive in force and dropped without one", () => {
+  it("the model's unforeseen scan is not used: dropped with the premise check (logged) and without a directive", () => {
     const json = openJson({ kind: "options", options: twoOptions("fits", "fits"), unforeseen: { text: "A new fire.", tags: ["T1"] } });
-    expect(limitOpenAnswer(parsed(json), ctx(true), "en").answer.unforeseen).toEqual({ text: "A new fire.", tags: ["T1"] });
+    const out = limitOpenAnswer(parsed(json), ctx(true), "en");
+    expect(out.answer.unforeseen).toBeNull();
+    expect(out.trimmed).toContain("unforeseen_ignored");
     expect(limitOpenAnswer(parsed(json), ctx(false), "en").answer.unforeseen).toBeNull();
   });
 
-  it("over the word budget, optional items and options go, never an authored premise; no sentence is cut", () => {
+  it("over the word budget, optional items and options go, never an authored premise or the premise line; no sentence is cut", () => {
     const long = "Gains a sound containment line along the barrier but risks letting the fire advance until it meets the line.";
     const opts = ["A", "B", "C"].map((o) => ({ option: `Option ${o} name with six words`, tradeoffs: long, verdict: "departure_justifiable" as const, tags: ["T1"] }));
     const raw = parsed(openJson({ kind: "options", options: opts, premises: [prem("supported", ["T1"], "P1"), prem("contradicted", ["T2"], "P2")], inference: null, questionsForYou: ["Does that change the posture you would take?"] }));
-    const out = limitOpenAnswer(raw, ctx(true), "en");
+    const out = limitOpenAnswer(raw, ctx(true, 14), "en");
     const text = renderOpenAnswer(out.answer, out.tagTimes, "en");
     expect(wordCount(text)).toBeLessThanOrEqual(OPEN_ANSWER_MAX_WORDS);
     expect(out.trimmed).toContain("words_item");
     expect(out.answer.premises.map((p) => p.id)).toEqual(["P1", "P2"]);
     expect(out.answer.premises.some((p) => p.status === "contradicted")).toBe(true);
+    for (const line of checkAt(14, "en").lines) expect(text).toContain(line);
     expect(text).not.toContain("\u2026");
   });
 
@@ -163,9 +180,9 @@ describe("limitOpenAnswer: deterministic limits", () => {
       options: [1, 2, 3].map((i) => ({ option: `Option number ${i}`, tradeoffs: sentence.slice(0, 140), verdict: "fits" as const, tags: ["T1", "T2"] })),
       inference: sentence, questionsForYou: [sentence.slice(0, 110), sentence.slice(0, 110), sentence.slice(0, 110)],
     };
-    for (const lang of ["en", "fi"] as const) {
-      const out = limitOpenAnswer(raw, ctx(true), lang);
-      expect(wordCount(renderOpenAnswer(out.answer, out.tagTimes, lang)), lang).toBeLessThanOrEqual(OPEN_ANSWER_MAX_WORDS);
+    for (const lang of ["en", "fi"] as const) for (const view of [11, 14]) {
+      const out = limitOpenAnswer(raw, ctx(true, view, lang), lang);
+      expect(wordCount(renderOpenAnswer(out.answer, out.tagTimes, lang)), `${lang} V${view}`).toBeLessThanOrEqual(OPEN_ANSWER_MAX_WORDS);
       expect(out.trimmed).toContain("words");
     }
   });
@@ -209,6 +226,14 @@ describe("renderOpenAnswer: one deterministic text, fi and en", () => {
     expect(fi).toContain("Oma päätelmäni:");
     expect(fi).toContain("Kysymyksiä sinulle:");
     expect(renderOpenAnswer(answer, times, "fi")).toBe(fi);
+  });
+
+  it("SPEC/30 §3: with the server's premise check the fixed-template lines replace the premises rows (no heading, no status words)", () => {
+    const check = { tableVersion: 1, items: [{ id: "P2", status: "contradicted" as const, atomIds: ["atom.radio.19.2"] }], lines: ["P2 Roads hold — no longer holds: EK16 19.22."], flagShown: true };
+    const text = renderOpenAnswer({ ...answer, premiseCheck: check }, times, "en");
+    expect(text.split("\n").slice(0, 3)).toEqual(["SF2 reports embers. [T1, 15.40]", "P2 Roads hold — no longer holds: EK16 19.22.", "Options:"]);
+    expect(text).not.toContain("Premises:");
+    expect(text).not.toContain("Wind stays westerly");
   });
 
   it("a lookup is its facts and its one question, without section headings for options or premises", () => {
@@ -265,10 +290,11 @@ describe("callOpenThinkerModel: parse failure retries once, then unavailable", (
 });
 
 describe("handler: routing, rendering and logging", () => {
-  it("an options answer in reasoning_intent at V11 is rendered, its verdicts coded from fields and the fields logged", async () => {
-    const json = openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: [{ id: "P2", premise: "Lines can hold.", status: "contradicted", tags: ["T1"] }], inference: "A guess." });
+  // SPEC/30 §3: a justified departure stands only where the table has a contradicted premise, so this runs at V14 (it was V11, model-rated).
+  it("an options answer in reasoning_intent at V14 is rendered, its verdicts coded from fields and the fields logged", async () => {
+    const json = openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), inference: "A guess." });
     const logs: Record<string, unknown>[] = [];
-    const r = await handleOpenThinkerRequest(deps(fake(json).client, logs), REQ);
+    const r = await handleOpenThinkerRequest(deps(fake(json).client, logs), { ...REQ, view: 14, virtualTimeS: startOf(14) });
     const body = r.body as { answer: string; verdicts: unknown; structured: { kind: string; tagTimes: Record<string, string> } };
     expect(body.answer).toContain("Options:");
     expect(body.answer).toMatch(/departs from the directive; a departure can be justified/);
@@ -329,22 +355,26 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     expect(manifest.directivePremises.directiveSha256).toBe(sha256Hex(normaliseNewlines(scenario.hinge.intentStatement)));
   });
 
-  it("unknown ids are dropped, a repeated id keeps the first, missing ids are not addressed; all logged and ordered P1-P2", () => {
-    const raw = parsed(optionsJson([{ id: "P9", status: "supported", tags: ["T1"] }, { id: "P2", status: "contradicted", tags: ["T1"] }, { id: "P2", status: "supported", tags: ["T2"] }, { premise: "A new premise the model made up", status: "supported", tags: ["T1"] }]));
-    const out = limitOpenAnswer(raw, ctx(true), "en");
-    expect(out.answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "not_addressed"], ["P2", "contradicted"]]);
-    expect(out.trimmed).toEqual(expect.arrayContaining(["premise_unknown_id", "premise_duplicate_id", "premise_missing_id"]));
+  // SPEC/30 §3 (19 Oct 2026): unknown, repeated or invented premises from the model no longer matter: the premises are the authored P1, P2
+  // in order with the table's statuses, whatever the model returned (logged `premises_from_model_ignored`).
+  it("whatever ids or ratings the model returns, the premises are the authored P1, P2 with the table's statuses", () => {
+    const raw = parsed(optionsJson([{ id: "P9", status: "supported", tags: ["T1"] }, { id: "P2", status: "supported", tags: ["T1"] }, { id: "P2", status: "contradicted", tags: ["T2"] }, { premise: "A new premise the model made up", status: "supported", tags: ["T1"] }]));
+    const v11 = limitOpenAnswer(raw, ctx(true, 11), "en");
+    expect(v11.answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "not_addressed"], ["P2", "not_addressed"]]);
+    expect(v11.trimmed).toContain("premises_from_model_ignored");
+    expect(limitOpenAnswer(raw, ctx(true, 14), "en").answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "contradicted"], ["P2", "contradicted"]]);
   });
 
   it("the text shown is the authored one, in the session language, never the model's", () => {
     const raw = parsed(optionsJson([{ id: "P2", premise: "Model words", status: "supported", tags: ["T1"] }]));
     for (const lang of ["en", "fi"] as const) {
-      const out = limitOpenAnswer(raw, ctx(true), lang);
+      const out = limitOpenAnswer(raw, ctx(true, 14, lang), lang);
       const text = renderOpenAnswer(out.answer, out.tagTimes, lang);
-      for (const p of authored.premises) expect(text).toContain(p[lang]);
+      // The template drops the authored sentence's full stop: "P2 Roads or water … can be held — no longer holds: EK16 19.22."
+      for (const p of authored.premises) expect(text).toContain(`${p.id} ${p[lang].replace(/\.$/, "")} — `);
+      expect(out.answer.premises.map((p) => p.premise)).toEqual(authored.premises.map((p) => p[lang]));
       expect(text).not.toContain("Model words");
     }
-    expect(renderOpenAnswer(limitOpenAnswer(raw, ctx(true), "fi").answer, TIMES_MAP, "fi")).toContain(`- ${authored.premises[1]!.fi} (tuettu) [T1, 15.40]`);
   });
 
   it("a lookup, a safety answer and an answer without a directive carry no premises", () => {
@@ -354,23 +384,26 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     expect(none.answer.premises).toEqual([]);
   });
 
-  it("logs, and forces nothing, when an unforeseen situation is found while P1 is rated supported", () => {
+  it("the model's unforeseen scan forces nothing and is not kept (SPEC/30 §3: the table decides the premises)", () => {
     const raw = parsed(openJson({ kind: "options", options: twoOptions("fits", "fits"), unforeseen: { text: "A new fire.", tags: ["T1"] }, premises: [{ id: "P1", premise: "", status: "supported" as const, tags: ["T2"] }] }));
-    const out = limitOpenAnswer(raw, ctx(true), "en");
-    expect(out.trimmed).toContain("unforeseen_p1_supported");
-    expect(out.answer.premises[0]!.status).toBe("supported");
-    const clean = limitOpenAnswer(parsed(openJson({ kind: "options", options: twoOptions("fits", "fits"), unforeseen: { text: "A new fire.", tags: ["T1"] }, premises: [{ id: "P1", premise: "", status: "contradicted" as const, tags: ["T2"] }] })), ctx(true), "en");
-    expect(clean.trimmed).not.toContain("unforeseen_p1_supported");
+    const out = limitOpenAnswer(raw, ctx(true, 11), "en");
+    expect(out.trimmed).toEqual(expect.arrayContaining(["unforeseen_ignored", "premises_from_model_ignored"]));
+    expect(out.answer.unforeseen).toBeNull();
+    expect(out.answer.premises[0]!.status).toBe("not_addressed");
+    expect(out.answer.options.map((o) => o.verdict)).toEqual(["fits", "fits"]);
   });
 
-  it("an options answer with no premises from the model still shows all three, not addressed", () => {
-    const out = limitOpenAnswer(parsed(openJson({ kind: "options", options: twoOptions("departs", "fits") })), ctx(true), "en");
-    expect(out.answer.premises.map((p) => p.status)).toEqual(["not_addressed", "not_addressed"]);
-    expect(out.answer.premises.every((p) => p.filled === true)).toBe(true);
-    expect(out.answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
+  it("an options answer with no premises from the model still shows both authored premises with the table's statuses", () => {
+    const json = openJson({ kind: "options", options: twoOptions("departs", "fits") });
+    const v11 = limitOpenAnswer(parsed(json), ctx(true, 11), "en");
+    expect(v11.answer.premises.map((p) => p.status)).toEqual(["not_addressed", "not_addressed"]);
+    expect(v11.answer.premiseCheck?.lines).toEqual(["Directive premises: no newest record contradicts P1 or P2."]);
+    expect(v11.answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
+    expect(v11.trimmed).not.toContain("premises_from_model_ignored");
+    expect(limitOpenAnswer(parsed(json), ctx(true, 14), "en").answer.premises.map((p) => p.status)).toEqual(["contradicted", "contradicted"]);
   });
 
-  it("the premises reach the model only in reasoning_intent from V8, after the quoted directive, and the log carries their hash and ratings", async () => {
+  it("the premises reach the model only in reasoning_intent from V8, after the quoted directive, with the table's check; the log carries the hashes and the statuses shown", async () => {
     const send = async (cell: string, view: number, lang: "fi" | "en" = "en") => {
       const f = fake(optionsJson([{ id: "P2", status: "contradicted", tags: ["T1"] }]));
       const logs: Record<string, unknown>[] = [];
@@ -379,9 +412,13 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     };
     for (const lang of ["en", "fi"] as const) {
       const v = await send("reasoning_intent", 11, lang);
-      expect(v.system.endsWith(premisesBlock(authored, lang))).toBe(true);
+      expect(v.system.endsWith(premisesBlock(authored, lang, premiseBlockStatuses(itemsAt(11), recordLookupOf(scenario.atoms), lang)))).toBe(true);
       expect(v.system.indexOf(scenario.hinge.intentStatement.length > 0 ? PREMISES_BLOCK_LABEL[lang] : "")).toBeGreaterThan(v.system.indexOf(DIRECTIVE_BLOCK_LABEL[lang]));
-      expect(v.logs[0]).toMatchObject({ premisesSha256: authored.sha256, aiPremises: [{ id: "P1", status: "not_addressed", tags: [], filled: true }, { id: "P2", status: "contradicted", tags: ["T1"] }] });
+      expect(v.logs[0]).toMatchObject({
+        premisesSha256: authored.sha256, premiseEvidenceSha256: evidence.sha256, premiseEvidenceVersion: evidence.version, premiseFlagShown: false,
+        premiseStatuses: [{ id: "P1", status: "not_contradicted", atomIds: [] }, { id: "P2", status: "not_contradicted", atomIds: [] }],
+      });
+      expect(v.logs[0]).not.toHaveProperty("aiPremises");
       expect(v.body.structured!.premises.map((p) => p.id)).toEqual(["P1", "P2"]);
     }
     for (const [cell, view] of [["reasoning_once", 11], ["reasoning_intent", 5], ["reasoning_intent", 0]] as const) {

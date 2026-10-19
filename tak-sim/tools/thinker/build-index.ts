@@ -33,7 +33,9 @@ import { langArg } from "./eval-common.js";
 import { buildIndexText, buildQueriesText } from "./index-build.js";
 import { declaredRetrievalBlock, englishRetrievalBlock, readManifest, recordedNeutralEval, recordedNeutralEvalEn } from "./retrieval-manifest.js";
 import { DIRECTIVE_PREMISES_FILE, loadDirectivePremises } from "../../server/thinker/directive-premises.js";
-const DIRECTIVE_PREMISES_NOTE = "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; the model rates them by id and cannot add or reword them";
+import { loadPremiseEvidence, PREMISE_EVIDENCE_FILE } from "../../server/thinker/premise-check.js";
+const DIRECTIVE_PREMISES_NOTE = "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; since SPEC/30 §3 (19 Oct 2026) each with the server's premise check (premiseEvidence), the model no longer rates them and cannot add or reword them";
+const PREMISE_EVIDENCE_NOTE = "SPEC/30 §3 (19 Oct 2026): the guide's rule-based premise check (server/thinker/premise-check.ts): per phase-B view V8-V14 and authored premise P1, P2, contradicted or not_contradicted, with the deciding records' atom ids and the records-clock time from which a contradiction holds; the server overwrites any premise status with it and shows it in a fixed template in reasoning_intent options answers while the directive is in force";
 
 function write(relative: string, text: string): void {
   const path = repoPath(relative);
@@ -63,6 +65,7 @@ function promptBlocks() {
   const promptOpenOnce = loadSystemPrompt("fi", "open_once");
   const promptOpenOnceEn = loadSystemPrompt("en", "open_once");
   const premises = loadDirectivePremises();
+  const evidence = loadPremiseEvidence();
   return {
     prompt: { file: PROMPT_FILE, sha256: prompt.sha256, newlineNormalisation: "LF" },
     promptEn: { file: PROMPT_FILE_EN, sha256: promptEn.sha256, newlineNormalisation: "LF" },
@@ -74,6 +77,11 @@ function promptBlocks() {
     promptOpenOnceEn: { file: PROMPT_FILE_OPEN_ONCE_EN, sha256: promptOpenOnceEn.sha256, newlineNormalisation: "LF", ...OPEN_ONCE_PROMPT_NOTE },
     // Revision (ar), 11 Oct 2026: the directive's authored premises are frozen like a prompt.
     directivePremises: { file: DIRECTIVE_PREMISES_FILE, sha256: premises.sha256, newlineNormalisation: "LF", directiveSha256: premises.directiveSha256, usedFor: DIRECTIVE_PREMISES_NOTE },
+    // SPEC/30 §3, 19 Oct 2026: the premise-evidence table is frozen like the premises (the server refuses to start on a mismatch).
+    premiseEvidence: {
+      file: PREMISE_EVIDENCE_FILE, sha256: evidence.sha256, newlineNormalisation: "LF", version: evidence.version, directivePremisesSha256: evidence.directivePremisesSha256,
+      status: evidence.draft ? "DRAFT study content, the expert panel to confirm (SPEC/30 §8)" : "confirmed", usedFor: PREMISE_EVIDENCE_NOTE,
+    },
   };
 }
 

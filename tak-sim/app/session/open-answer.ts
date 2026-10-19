@@ -18,9 +18,40 @@ export type OpenAnswerKind = (typeof OPEN_ANSWER_KINDS)[number];
 export const OPEN_OPTION_VERDICTS = ["fits", "departs", "departure_justifiable", "not_covered"] as const;
 export type OpenOptionVerdict = (typeof OPEN_OPTION_VERDICTS)[number];
 
-/** What the newest records say of one premise of the directive. */
+/**
+ * What the newest records say of one premise of the directive. Since SPEC/30 §3 (19 Oct 2026) the model no longer rates premises:
+ * a guide's premise comes from the server's premise check, `contradicted` as the table says, and `not_addressed` where the table
+ * finds no newest record that contradicts it (the exact table value is `premiseCheck`); `supported` occurs only in older logs.
+ */
 export const OPEN_PREMISE_STATUSES = ["supported", "contradicted", "not_addressed"] as const;
 export type OpenPremiseStatus = (typeof OPEN_PREMISE_STATUSES)[number];
+
+/** SPEC/30 §3: a premise's status in the premise-evidence table (`content/thinker/premise-evidence.json`) at the request's records clock. */
+export const PREMISE_CHECK_STATUSES = ["contradicted", "not_contradicted"] as const;
+export type PremiseCheckStatus = (typeof PREMISE_CHECK_STATUSES)[number];
+
+/** One authored premise as the server's premise check shows it. */
+export interface OpenPremiseCheckItem {
+  readonly id: string;
+  readonly status: PremiseCheckStatus;
+  /** The deciding records' atom ids (contradicted only; empty otherwise). */
+  readonly atomIds: readonly string[];
+}
+
+/**
+ * SPEC/30 §3 (19 Oct 2026): the server's rule-based premise check as shown in a guide's decision answer (cell `reasoning_intent`, the
+ * directive in force, kind `options`). The statuses are the table's, never the model's; `lines` are the fixed-template text the
+ * participant reads (session language, built from the authored premise text and the deciding records' source and time).
+ */
+export interface OpenPremiseCheck {
+  /** The premise-evidence table's version. */
+  readonly tableVersion: number;
+  readonly items: readonly OpenPremiseCheckItem[];
+  /** One line per contradicted premise, or the one "no newest record contradicts" line. */
+  readonly lines: readonly string[];
+  /** True when a premise is shown as contradicted (a premise flag). */
+  readonly flagShown: boolean;
+}
 
 export interface OpenFact {
   readonly text: string;
@@ -59,6 +90,11 @@ export interface OpenStructuredAnswer {
   /** The model's scan of the newest records for a situation the directive does not foresee, or null; only with a directive in force. */
   readonly unforeseen?: OpenUnforeseen | null;
   readonly premises: readonly OpenPremise[];
+  /**
+   * SPEC/30 §3: the server's premise check, present only in a guide's options answer with the directive in force. When present, the
+   * rendered text shows its `lines` in place of the `premises` rows (`premises` then carries the same statuses for the browser's log).
+   */
+  readonly premiseCheck?: OpenPremiseCheck;
   readonly options: readonly OpenOption[];
   readonly inference: string | null;
   readonly questionsForYou: readonly string[];
@@ -114,7 +150,9 @@ export function renderOpenAnswer(a: OpenStructuredAnswer, tagTimes: Readonly<Rec
   const h = OPEN_ANSWER_HEADINGS[lang];
   const lines: string[] = [];
   for (const f of a.facts) lines.push(`${f.text}${citationOf(f.tags, tagTimes)}`);
-  if (a.premises.length > 0) {
+  // SPEC/30 §3: the premise check's fixed-template lines (no heading: each line names its premise or says "Directive premises").
+  if (a.premiseCheck) lines.push(...a.premiseCheck.lines);
+  else if (a.premises.length > 0) {
     lines.push(h.premises);
     for (const p of a.premises) lines.push(`- ${p.premise} (${OPEN_PREMISE_STATUS_TEXT[lang][p.status]})${citationOf(p.tags, tagTimes)}`);
   }

@@ -32,4 +32,8 @@ createThinkerServer(deps).listen(port, "127.0.0.1", () => {
   console.log(`thinker: strategy-guided prompt ${deps.promptIntent?.sha256 ?? "NOT loaded"} (withdrawn 8 Oct 2026; old logs only)`);
   // Revision (al): one Open Thinker prompt per Thinker cell.
   console.log(`thinker: Open Thinker prompts ${deps.promptOpen?.sha256 ?? "NOT loaded"} (reasoning_intent), ${deps.promptOpenOnce?.sha256 ?? "NOT loaded"} (reasoning_once)`);
+  // SPEC/30 §3 and §10: the premise-evidence table in force and the model-build pin.
+  const evidence = deps.premiseEvidence;
+  console.log(`thinker: premise-evidence table ${evidence ? `v${evidence.version} ${evidence.sha256}${evidence.draft ? " (DRAFT, panel to confirm)" : ""}` : "NOT loaded"}`);
+  console.log(`thinker: model build ${deps.expectedModelVersion ? `pinned to ${deps.expectedModelVersion}` : "NOT pinned (THINKER_EXPECTED_MODEL_VERSION unset)"}`);
 });

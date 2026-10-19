@@ -20,7 +20,8 @@ import { performance } from "node:perf_hooks";
 import { vectorIndexOf, type VectorIndexFile } from "../../app/retrieval/hybrid.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { checkDirectivePremises, loadDirectivePremises } from "./directive-premises.js";
-import { INDEX_FILE, INDEX_FILE_EN, loadSystemPrompt, MANIFEST_FILE, normaliseNewlines, repoPath, sha256Hex, type ThinkerServerMode } from "./config.js";
+import { checkPremiseEvidence, loadPremiseEvidence } from "./premise-check.js";
+import { expectedModelVersionOf, INDEX_FILE, INDEX_FILE_EN, loadSystemPrompt, MANIFEST_FILE, normaliseNewlines, repoPath, sha256Hex, type ThinkerServerMode } from "./config.js";
 import { loadE5Embedder } from "./e5-embedder.js";
 import type { ThinkerDeps } from "./handler.js";
 
@@ -49,6 +50,8 @@ export interface ManifestPrompts {
   readonly promptOpenOnceEn?: { readonly sha256: string };
   /** Revision (ar): the directive's authored premises (`content/thinker/directive-premises.json`). */
   readonly directivePremises?: { readonly sha256: string };
+  /** SPEC/30 §3: the premise-evidence table (`content/thinker/premise-evidence.json`). */
+  readonly premiseEvidence?: { readonly sha256: string };
 }
 
 /**
@@ -149,6 +152,9 @@ export async function createThinkerDeps(options: { readonly lexicalOnly: boolean
   // Revision (ar): the authored premises must be the frozen ones and written for this scenario's directive; otherwise refuse to start.
   const directivePremises = loadDirectivePremises();
   checkDirectivePremises(directivePremises, manifest.directivePremises?.sha256, scenario.hinge.intentStatement);
+  // SPEC/30 §3: the premise-evidence table must be the frozen one, written for these premises, and cite only records of this scenario once received.
+  const premiseEvidence = loadPremiseEvidence();
+  checkPremiseEvidence(premiseEvidence, manifest.premiseEvidence?.sha256, directivePremises, scenario.atoms);
   const indexEnText = existsSync(repoPath(INDEX_FILE_EN)) ? readFileSync(repoPath(INDEX_FILE_EN), "utf8") : null;
   // Checked before the model loads, so a study proxy without the English index fails at once.
   if (mode === "study") englishStartup({ mode, lexicalOnly: options.lexicalOnly, indexEnText, manifest, embedderId: manifest.embedder.id });
@@ -165,6 +171,10 @@ export async function createThinkerDeps(options: { readonly lexicalOnly: boolean
   return {
     scenario,
     directivePremises,
+    premiseEvidence,
+    // SPEC/30 §10: the pinned build (THINKER_EXPECTED_MODEL_VERSION), and each session's first build for `modelVersionChanged`.
+    expectedModelVersion: expectedModelVersionOf(),
+    sessionModelVersions: new Map(),
     vector,
     vectorEn: vector && english.indexEn ? { embedder: vector.embedder, index: vectorIndexOf(english.indexEn) } : null,
     englishWithoutIndex: english.englishWithoutIndex,

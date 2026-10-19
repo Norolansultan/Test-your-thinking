@@ -9,7 +9,7 @@
     "openParseRetries": 1,
     "seed": 20261010,
     "samplingParameters": "none: temperature 0 is used for Google GenAI",
-    "output": "Haku (/api/thinker): structured JSON vastaus, perusteet, varmuus, muuttaisi (a fifth field, linjaus, was withdrawn 8 Oct 2026; old logs may carry it). Open Thinker (/api/thinker-open): structured JSON since revision (aq), 11 Oct 2026 (kind, facts, premises, options, inference, questionsForYou), rendered to text by the proxy; plain text before"
+    "output": "Haku (/api/thinker): structured JSON vastaus, perusteet, varmuus, muuttaisi (a fifth field, linjaus, was withdrawn 8 Oct 2026; old logs may carry it). Open Thinker (/api/thinker-open): structured JSON since revision (aq), 11 Oct 2026 (kind, facts, premises, options, inference, questionsForYou), rendered to text by the proxy; plain text before. SPEC/30 §3, 19 Oct 2026: the reasoning_intent cell's schema has no premises and no unforeseen (the server's premise check supplies the statuses)"
   },
   "prompt": {
     "file": "server/thinker/prompt.fi.md",
@@ -39,17 +39,17 @@
   },
   "promptOpen": {
     "file": "server/thinker/prompt-open.fi.md",
-    "sha256": "ebb1a65ed21b81456999099e1ff5ba8d899624608e9857ebd12047f57f6356c8",
+    "sha256": "0c581394b20fb22218eb2aa036a24b138d36fd1eaa5635b83c740bf1d7d59930",
     "newlineNormalisation": "LF",
-    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8) — revision (al)",
-    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, premises, options with verdicts, inference, questionsForYou; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
+    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8, followed by the authored premises with the server's premise check, SPEC/30 §3) — revision (al)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, options with verdicts, inference, questionsForYou; SPEC/30 §3, 19 Oct 2026: no premises and no unforeseen scan are asked of the model, the premise statuses come from content/thinker/premise-evidence.json and are shown in a fixed template; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
   },
   "promptOpenEn": {
     "file": "server/thinker/prompt-open.en.md",
-    "sha256": "8a9f0a34d5f8b179a03174c44965033d151d8bf83722c0559e0c1168fd2dc9ca",
+    "sha256": "6af868acb542b49fb0a01d5f029e93c4585a2fe11f87d6eeeaba54ce829166f3",
     "newlineNormalisation": "LF",
-    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8) — revision (al)",
-    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, premises, options with verdicts, inference, questionsForYou; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
+    "usedFor": "the Open Thinker of cell reasoning_intent (Thinker tab, main views): free chat with history; the server appends the order block (P2's opening intent before V8, the directive from V8, followed by the authored premises with the server's premise check, SPEC/30 §3) — revision (al)",
+    "output": "structured JSON (revision (aq), 11 Oct 2026: kind, facts, options with verdicts, inference, questionsForYou; SPEC/30 §3, 19 Oct 2026: no premises and no unforeseen scan are asked of the model, the premise statuses come from content/thinker/premise-evidence.json and are shown in a fixed template; the server limits it to 150 words and renders the display text); history of at most 10 alternating turns starting with the participant's"
   },
   "promptOpenOnce": {
     "file": "server/thinker/prompt-open.once.fi.md",
@@ -297,6 +297,15 @@
     "sha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
     "newlineNormalisation": "LF",
     "directiveSha256": "1b7d98662d52909b69e7bd99dc62b632ce9091afb6c0693020e577ee941fb48d",
-    "usedFor": "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; the model rates them by id and cannot add or reword them"
+    "usedFor": "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; since SPEC/30 §3 (19 Oct 2026) each with the server's premise check (premiseEvidence), the model no longer rates them and cannot add or reword them"
+  },
+  "premiseEvidence": {
+    "file": "content/thinker/premise-evidence.json",
+    "sha256": "a95c26634b80d9032912f2475c8e4d4f6bfb1dc016bef90453c550c9ae791307",
+    "newlineNormalisation": "LF",
+    "version": 1,
+    "directivePremisesSha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
+    "status": "DRAFT study content, the expert panel to confirm (SPEC/30 §8)",
+    "usedFor": "SPEC/30 §3 (19 Oct 2026): the guide's rule-based premise check (server/thinker/premise-check.ts): per phase-B view V8-V14 and authored premise P1, P2, contradicted or not_contradicted, with the deciding records' atom ids and the records-clock time from which a contradiction holds; the server overwrites any premise status with it and shows it in a fixed template in reasoning_intent options answers while the directive is in force"
   }
 }

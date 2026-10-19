@@ -19,7 +19,7 @@ state of their checks, not released gates.
 | Gate | Status | Evidence (script: counts) | What still blocks it | Owner |
 |---|---|---|---|---|
 | A fire | **blocked** (external Prometheus run, D10) | `fire_check.py`: 0 LIKELY_ERROR, 3 REVIEW, 1 INFO (phase 1: 0 / 9 / 0); `perimeter_compare.py` not run (no ensemble) | Prometheus ensemble and comparison; the phase-A crown run (steps 5–6) | Researcher, FMI, panel |
-| Tactics (no letter) | reference material, **review items** | `tactical_check.py`, 21 cycles: 163/163 ground placements INFEASIBLE (133 on null LACES fields only), 60/60 aircraft feasible; 262 unverifiable checks | LACES fields not exported; MPV25 lay limit, line production and hose carried missing | Panel, Pelastusopisto |
+| Tactics (no letter) | reference material, **review items** | `tactical_check.py`, 21 cycles: 140/163 ground placements INFEASIBLE (110 on LACES fields only; was 163 and 133 before the LACES export), 60/60 aircraft feasible; 262 unverifiable checks | LACES exported from the crews' own statements since `6fcb385` (null where a crew states none); MPV25 lay limit, line production and hose carried missing | Panel, Pelastusopisto |
 | B panel | **not started** | No script; packet parts exist (rating sheet DRAFT, `review:export`) | Packet assembly and instructions; the ratings (≥ 4 of 5) | Researcher/INT, panel, native speaker |
 | C parity | **pass with review items** | `parity_check.py`: between groups 0 problems (phase 1: 0); raw pushed-vs-retrievable 781 by design (phase 1: 784) | VERIFY 1–15 and the WP-6 pass; native review of WP-1 rewrites | Pelastusopisto, WP-6, native speaker |
 | D items | **pass with review items** | `parity_check.py` on items: 0 between groups, level mix exact (2/2/4 ×4, 2/2/2 ×3); `score_freezes.py` runs on the export | Domain and native review of the rewritten items; RC confirmations | Domain reviewer, native speaker, researcher |
@@ -67,7 +67,7 @@ torching") describes 15:00–15:20; DATA_SOURCES keeps class 4 as surface and no
 | D5 crew sizes | done | `persons` filled in 221 of 223 unit rows |
 | D6 hose carried, MPV25 lay limit | **open** | `hose_available_m` null in 223/223 unit rows; `max_manual_hose_lay_m` MISSING in config 0.2.0 |
 | D7 shift hours | done | `hours_on_shift` filled in 157/223 (null before a crew's first statement, aircraft) |
-| D8 LCES lines | in the records; **not exported** | KY21 18:26 `atom.radio.16.3` (escape on foot north into the burned area); EK16 19:04 `atom.radio.18.5` (why it holds); R2 crews' routes and safety zones 19:04–19:58 (`evt.c18.012` … `evt.c20.045`); placements' `escape_route`, `safety_zone`, `comms` null in 163/163 |
+| D8 LCES lines | in the records; **exported since `6fcb385`** (each crew's own statement with its record id) | KY21 18:26 `atom.radio.16.3` (escape on foot north into the burned area); EK16 19:04 `atom.radio.18.5` (why it holds); R2 crews' routes and safety zones 19:04–19:58 (`evt.c18.012` … `evt.c20.045`); placements' `escape_route` null in 82/163, `safety_zone` 118/163, `comms` 0/163 (was 163/163 each) |
 | D9 L4 precursor | rejected (`SPEC/31` §2.4) | — |
 | D10 Prometheus inputs | **open** (external) | no ensemble; request in `fire_tactical.md` |
 | D11 EK14 type | done | EK14 `hose_team` |
@@ -98,6 +98,8 @@ The phase-1 keyed steps (3, 7, 12–20) are in the table; the other cycles are i
 | 19 (V14) | 12/12 | 12 | 0 | 0 | 4/4 | 17 | burned.main |
 | 20 (V14) | 12/12 | 12 | 0 | 0 | 3/3 | 16 | burned.main |
 | All 21 cycles | 163/163 | 133 | 29 | 1 (c10 EK14, 3 m > 2.4 m) | 60/60 (3 with warnings) | 262 | none in 0–2, 8–10 |
+
+**After the LACES export (`6fcb385`, the same day).** The export now carries each crew's own escape route, safety zone, lookout and comms statements with their record ids (`tools/skills/laces.ts`; the posting rule and phrases in DATA_SOURCES.md). All 21 cycles: ground INFEASIBLE 140/163 (was 163), LACES-only 110 (was 133: 70 with neither route nor zone, 38 without a zone, 2 without a route); "no comms" 0 (was 163). 23 placements now pass (22 with warnings): EK11 and KY21 at 14:40 and 15:40, and the R2 crews at 19:00–19:40. KY21 18:20/18:40 and EK16 19:00 state their LCES lines but still fail on the downwind smoke-zone proxy. The remaining LACES-only failures are crews that state no escape route or safety zone in their current posting: a finding for the panel, not an export gap. `fire_check.py` unchanged.
 
 Thresholds: hand-tool 1.2 m and equipment 2.4 m flame length PROVISIONAL (US-based); aerial limit MISSING. Unverifiable
 (262): 151 "no CO value" (the script reads `co_ppm` only, not the zone proxy), 82 manual hose-lay limit MISSING, 16 phase-A

@@ -15,6 +15,7 @@ import type { LatLon } from "../engine/primitives.js";
 import { deriveSeed, Xorshift64Star } from "../engine/prng.js";
 import type { FreezeItem, FreezeItemLevel } from "./types.js";
 import { MAIN_VIEWS } from "./views.js";
+import { withKeyStatements } from "./freeze-key-statements.js";
 
 export type FreezeGoal = NonNullable<FreezeItem["goal"]>;
 
@@ -98,13 +99,16 @@ export function stepEndClockFi(step: number): string {
   return `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
 }
 
-/** The FreezeItem a definition stands for, its options in authored order. */
+/**
+ * The FreezeItem a definition stands for, its options in authored order, with its authored `keyStatements`
+ * (SPEC/30 §5.3, `freeze-key-statements.ts`; analysis only).
+ */
 export function toItem(idPrefix: string, d: ItemDef): FreezeItem {
   const base = { id: `${idPrefix}.${d.slug}`, level: d.level, promptFi: d.promptFi, goal: d.goal, keyAtomIds: d.keyAtomIds };
-  if (d.kind === "map_point") return { ...base, kind: "map_point", options: [], mapKey: { point: d.point, toleranceM: d.toleranceM }, ...(d.projectionPoint ? { projectionPoint: d.projectionPoint } : {}) };
+  if (d.kind === "map_point") return withKeyStatements({ ...base, kind: "map_point", options: [], mapKey: { point: d.point, toleranceM: d.toleranceM }, ...(d.projectionPoint ? { projectionPoint: d.projectionPoint } : {}) });
   if (!d.options.some(([id]) => id === d.key)) throw new Error(`${base.id}: key ${d.key} is not an option`);
   if (d.projectionOption !== undefined && (d.projectionOption === d.key || !d.options.some(([id]) => id === d.projectionOption))) throw new Error(`${base.id}: projection option ${d.projectionOption} must be another option than the key`);
-  return { ...base, kind: "choice", options: d.options.map(([id, labelFi]) => ({ id, labelFi, correct: id === d.key })), ...(d.projectionOption ? { projectionOptionId: d.projectionOption } : {}) };
+  return withKeyStatements({ ...base, kind: "choice", options: d.options.map(([id, labelFi]) => ({ id, labelFi, correct: id === d.key })), ...(d.projectionOption ? { projectionOptionId: d.projectionOption } : {}) });
 }
 
 const LEVEL_ORDER: Readonly<Record<FreezeItemLevel, number>> = { L1: 0, L2: 1, L3: 2 };
@@ -116,14 +120,16 @@ export const byLevel = (items: readonly FreezeItem[]): FreezeItem[] => [...items
  * freezes are visited in the given order (phase A first, so its balance is the tightest), and
  * each choice item's correct option goes to the position used least so far by items of its
  * level, ties broken by one seeded stream; the distractors are shuffled by the same stream.
- * Positions therefore differ by at most one between any two slots within a level.
+ * Positions therefore differ by at most one between any two slots within a level. Every item leaves with its
+ * authored `keyStatements` (SPEC/30 §5.3; analysis only): the infrastructure slot's F7 item (L2), built in
+ * `demo-probes.ts`, gets them here, the bank's items already have them from `toItem`.
  */
 export function arrangeOptions(freezes: readonly { readonly key: number; readonly items: readonly FreezeItem[] }[], seed: bigint): Map<number, FreezeItem[]> {
   const rng = new Xorshift64Star(deriveSeed(seed, "freeze-bank", "option-order"));
   const used: Record<FreezeItemLevel, number[]> = { L1: [0, 0, 0, 0], L2: [0, 0, 0, 0], L3: [0, 0, 0, 0] };
   const out = new Map<number, FreezeItem[]>();
   for (const f of freezes) {
-    out.set(f.key, f.items.map((it) => {
+    out.set(f.key, f.items.map(withKeyStatements).map((it) => {
       if ((it.kind ?? "choice") !== "choice") return it;
       const n = it.options.length;
       const counts = used[it.level].slice(0, n);

@@ -135,4 +135,40 @@ The Thinker's configured model (`gemini-3.5-flash`) was observed answering as an
 
 ## 11. Power
 
-To be filled from `tools/power/h2-power.ts` and `tools/power/paper2-power.ts` re-run for 50 / 50 and 40 / 40 (20 % attrition), 24 H2 items, and Paper 2's two-group contrast with the deterministic premise check (§3) and the notification's exposure (§4). Planning values from the 15–19 Oct runs: H2 overconfidence, 24 items, 50 / 50: small effect 67 %, medium 100 %; H13 with exposure .8 and a correct flag: 95 % for a 20-point effect, 66 % for 14 points.
+`tools/power/h2-power.ts` and `tools/power/paper2-power.ts` (shared helpers in `power-lib.ts`), re-run 19 Oct 2026 for this design: 1000 replicates per cell, seeds 20261002 (H2) and 20261004 (Paper 2), α = .05 two-sided; 50 / 50, 40 / 40 (20 % attrition) and a reference row (the old plan). The assumptions are the tools' (SPEC/09 amendment of 2 Oct 2026, SPEC/27 §6), not pilot values; pilot 2 re-estimates exposure and the stated-key rate, and the tools are re-run before the pre-registration locks.
+
+**H2 (overconfidence gap, primary) and H2r (resolution), 16 → 24 L2/L3 items, Haku / guide:**
+
+| Scenario (population Δgap) | 50 / 50 | 40 / 40 | 70 / 140 (ref.) |
+|---|---|---|---|
+| Small overconfidence, δ +0.4 (+.064) — gap | 54 → **70 %** | 50 → 59 % | 82 → 92 % |
+| Medium overconfidence, δ +0.8 (+.124) — gap | 99 → **100 %** | 96 → 99 % | 100 % |
+| Resolution λ 0.5 — GLM× (H2r) | 31 → 39 % | 26 → 34 % | 53 → 63 % |
+| Mixed (λ 0.75, δ +0.4) — gap | 31 → 41 % | 27 → 34 % | 54 → 64 % |
+| Null — gap / GLM× | 6 / 5 % | 5 / 7 % | 6 / 4 % |
+
+**H2t (30 % of the guide group's items stated by the AI; on those the guide is more accurate, +1.5 logit, and confident):**
+
+| Scenario | Gap on all items, 50 / 50 (16 → 24) | Gap on not-stated items (H2t), 50 / 50 | 40 / 40 all · not-stated |
+|---|---|---|---|
+| Not-stated δ +0.4 | 23 → 29 % | 49 → **64 %** | 27 · 54 % |
+| Not-stated δ +0.8 | 77 → 86 % | 97 → 99 % | 77 · 98 % |
+| Cancellation (not-stated δ +0.4, borrowed confidence lags, pooled Δgap ≈ 0) | **5 %** | 53 → **63 %** | 5 · 53 % |
+
+**Paper 2 (H13 justified departure in V9, V10, V14; H14 aligned in V11–V13; H15 group × fit), guide vs Haku; "exp" is the share of no-fit views in which the participant asked a decision question before the plan; the flag is always right (§3):**
+
+| Scenario | C, Haku → guide | H13 50 / 50 · 40 / 40 · 70 / 70 | H14 | H15 |
+|---|---|---|---|---|
+| Check, exp .6, δ 1.0 | 26.9 → 37.0 | 41 · 40 · 56 % | 27 · 18 · 32 % | 70 · 56 · 84 % |
+| Check, exp .6, δ 1.5 | 26.7 → 42.1 | 77 · 69 · 90 % | 40 · 33 · 49 % | 92 · 86 · 98 % |
+| Check, exp .8 (notification), δ 1.0 | 26.9 → 40.3 | **66** · 60 · 80 % | 43 · 36 · 55 % | 89 · 85 · 98 % |
+| Check, exp .8, δ 1.5 | 26.7 → 47.4 | **94** · 87 · 99 % | 67 · 57 · 81 % | 100 · 98 · 100 % |
+| Compliance amplifier, γ 0.7 | 27.1 → 17.4 | 50 · 40 · 61 % | 38 · 32 · 51 % | 4 · 5 · 6 % |
+| Null | 26.9 → 27.0 | 7 · 5 · 5 % | 5 % | 5 % |
+
+**Reading.**
+1. H2 is powered for a medium overconfidence effect (100 %; 99 % after attrition); a small effect reaches 70 % with 24 items (59 % at 40 / 40). The two added L3 items per freeze are worth 9–16 points.
+2. Resolution (H2r) and the mixed effect are under 41 %: they stay secondary.
+3. H2t is not optional: when the AI states keys and borrowed confidence lags, the all-items test shows nothing (5 %) while the not-stated test keeps 63 %; even calibrated borrowing halves the all-items power.
+4. H13 is powered only if the notification works: exposure .8 with a +20-point effect gives 94 % (87 % at 40 / 40); +13 to +15 points give 66–77 %; exposure .6 with a small effect, 41 %. The amplifier reading (−10 points) has 50 %.
+5. H15 is the most sensitive test of the check (89–100 %) but blind to the amplifier (4–6 %); H14 is the weakest (27–67 %). Most of H14's and H15's power rests on the assumption that the "no premise contradicted" line in the fit views moves posture toward aligned by the same δ; if that line has no effect, both fall. A null on H13 or H14 says little about moderate effects.

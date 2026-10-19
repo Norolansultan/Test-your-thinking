@@ -103,6 +103,21 @@ const SEGMENT_KEYS: Readonly<Record<FlameSegment, readonly string[]>> = {
 export function adaptFlameTable(mod: Raw, source: string): FlameTable | null {
   const version = typeof mod.FLAME_TABLE_VERSION === "string" ? ` ${mod.FLAME_TABLE_VERSION}` : "";
   const label = `${source}${version}`;
+  // WP-1's module (SPEC/31 §5 D1): `flameTable(steps)` builds the rows from the steps' head rates (its `flameAt(rate, landCover)` is
+  // not a step lookup). Its values are used only where the records follow the table (`recordsFollow`: phase B); elsewhere the
+  // export keeps quoting the records, so a phase-A record whose band its rate cannot give stays visible to the fire check.
+  if (typeof mod.flameTable === "function") {
+    const rows = (mod.flameTable as (steps: typeof SITE_SCENARIO.steps) => Raw[])(SITE_SCENARIO.steps);
+    const field = { head: "headM", flank: "flankM", rear: "rearM" } as const;
+    return {
+      source: label,
+      at: (step, segment) => {
+        const row = rows.find((r) => r.step === step && r.recordsFollow !== false);
+        const m = row?.[field[segment]];
+        return row && isNum(m) ? { loM: m, hiM: m, fireType: row.crown === true ? "active_crown" : "surface" } : null;
+      },
+    };
+  }
   const fn = [mod.flameLengthAt, mod.flameAt].find((f): f is (step: number, segment: string) => unknown => typeof f === "function");
   if (fn) return { source: label, at: (step, segment) => entryOf(fn(step, segment)) };
   const data = mod.FLAME_TABLE ?? mod.flameTable;

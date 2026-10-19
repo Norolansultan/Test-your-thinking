@@ -89,6 +89,16 @@ describe("D1: the flame-length table when the scenario has one, else the records
     else expect(table).toBeNull();
   });
 
+  it("WP-1's `flameTable(steps)`: the table's values in phase B, where the records follow it; phase A keeps the records' bands", async () => {
+    const table = (await loadFlameTable())!;
+    const head17 = table.at(17, "head")!;
+    expect(head17.hiM).toBeGreaterThan(4);
+    expect(head17.hiM).toBeLessThan(4.4); // inside the Kalajoki surface envelope (0.5–4.4 m), as the records' "4–5 m" band's upper bound is not
+    expect(head17.fireType).toBe("surface");
+    expect(table.at(17, "flank")!.hiM).toBeCloseTo(head17.hiM * 0.65, 1);
+    expect(table.at(3, "head")).toBeNull(); // phase A: the records do not follow the table
+  });
+
   it("without a table: every flame value is quoted from a record of the window", () => {
     for (const c of cyclesOf(today)) {
       expect(c.fl_source).toBe("records (quoted)");

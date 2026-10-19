@@ -8,7 +8,8 @@
  *                       otherwise 404
  *   /admin, /api/admin/* the researcher's data download (`admin.ts`), only when ADMIN_TOKEN is set;
  *                       otherwise 404 (and /admin is never the app's page)
- *   everything else     the built app (`dist/ui`), GET/HEAD
+ *   everything else     the built app (`dist/ui`), GET/HEAD; with RECRUITMENT_GATE=1 the page only under
+ *                       `?tuotanto` and never the game's code (`recruitment-gate.ts`, SPEC/29 (ay))
  *
  * CORS: a request without an Origin header, from the server's own origin (the Host header), or from
  * an origin in ALLOWED_ORIGINS is served; any other origin gets 403 on /api/*. HTTPS is terminated
@@ -23,6 +24,7 @@ import { BodyTooLargeError, handleSessionLogRequest, isSessionLogPath, readBodyL
 import type { SessionLogStore } from "../session-log/store.js";
 import { handleAdminRequest, isAdminPath, type AdminOptions } from "./admin.js";
 import { ASSIGN_MAX_BODY_BYTES, ASSIGN_PATH, clientAddress, type AutoAssigner } from "./auto-assign.js";
+import { gateStatic } from "./recruitment-gate.js";
 import { serveStatic } from "./static.js";
 
 export type ThinkerHandler = (body: unknown) => Promise<{ readonly status: number; readonly body: unknown }>;
@@ -38,6 +40,8 @@ export interface AppServerOptions {
   readonly admin?: AdminOptions;
   /** The shared link's code issue (`auto-assign.ts`); absent (AUTO_ASSIGN unset) = /api/assign answers 404. */
   readonly assign?: AutoAssigner;
+  /** RECRUITMENT_GATE=1 (`recruitment-gate.ts`): the app's page only under `?tuotanto`, never the game's code. */
+  readonly recruitmentGate?: boolean;
 }
 
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
@@ -116,7 +120,8 @@ export function createAppServer(options: AppServerOptions): Server {
       }
       if (!options.staticDir) return sendJson(res, 404, { error: "not found" }, {});
       if (method !== "GET" && method !== "HEAD") return sendJson(res, 405, { error: "method not allowed" }, {});
-      const file = await serveStatic(options.staticDir, path);
+      const served = await serveStatic(options.staticDir, path);
+      const file = options.recruitmentGate ? gateStatic(url, served) : served;
       res.writeHead(file.status, { ...SECURITY_HEADERS, ...file.headers });
       res.end(method === "HEAD" ? undefined : file.body);
     })().catch((e: unknown) => {

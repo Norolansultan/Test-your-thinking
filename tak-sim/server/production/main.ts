@@ -12,6 +12,7 @@ import { createThinkerDeps, LOG_DIR } from "../thinker/deps.js";
 import { handleOpenThinkerRequest, handleThinkerRequest } from "../thinker/handler.js";
 import { SessionLogStore } from "../session-log/store.js";
 import { ALLOCATION_TABLE } from "../../app/session/preview.js";
+import { gameLeaks } from "../../tools/deploy/game-gate.js";
 import { listSessions } from "./admin-data.js";
 import { AutoAssigner } from "./auto-assign.js";
 import { loadConfig } from "./config.js";
@@ -47,10 +48,14 @@ if (config.autoAssign) {
     process.exit(1);
   }
 }
+// SPEC/29 (ay): a gated server with a build that still holds the game is safe (the server refuses that file) but not
+// the intended set-up; say so.
+const gameInBuild = config.recruitmentGate ? gameLeaks(config.staticDir) : [];
 const server = createAppServer({
   staticDir: config.staticDir,
   sessionLog: new SessionLogStore({ dir: config.sessionLogDir }),
   allowedOrigins: config.allowedOrigins,
+  recruitmentGate: config.recruitmentGate,
   ...(assign ? { assign } : {}),
   ...(config.adminToken ? { admin: { token: config.adminToken, dirs: adminDirs, ...(assign ? { assignments: assign.overview.bind(assign) } : {}) } } : {}),
   ...(deps ? { thinker: (body: unknown) => handleThinkerRequest(deps, body), thinkerOpen: (body: unknown) => handleOpenThinkerRequest(deps, body) } : {}),
@@ -68,6 +73,11 @@ server.listen(config.port, config.host, () => {
     if (o.cells) console.log(`serve: PILOT cell filter ASSIGN_CELLS=${o.cells.join(",")}: only these cells are issued (the blocked balance between cells does not hold; unset it for the study)`);
   }
   console.log(`serve: allowed cross-origin callers: ${config.allowedOrigins.length > 0 ? config.allowedOrigins.join(", ") : "none (same origin only)"}`);
+  if (!config.recruitmentGate) console.log("serve: recruitment gate OFF (RECRUITMENT_GATE unset): the demonstration start page and game mode are reachable without ?tuotanto");
+  else {
+    console.log("serve: recruitment gate ON: only study links (?tuotanto) reach the app; no demonstration, no game mode");
+    if (gameInBuild.length > 0) console.warn(`serve: WARNING — ${config.staticDir} still holds the game (${gameInBuild.join(", ")}); it is not served, but build with RECRUITMENT_GATE=1 for recruitment`);
+  }
   if (!deps) console.log("serve: Thinker OFF (THINKER=off): /api/thinker answers 404");
   else {
     console.log(`serve: Thinker mode ${config.thinkerMode}; retrieval ${deps.vector ? `hybrid (${deps.vector.embedder.id})` : "LEXICAL ONLY — not the declared treatment"}`);

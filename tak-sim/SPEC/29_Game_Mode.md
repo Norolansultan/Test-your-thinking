@@ -4,6 +4,7 @@
 **Scope:** a separate mode in which the fire is simulated live, the player commands the units, and orders change the outcome. It reuses the study's terrain and TAK screen conventions. It is **not** the research instrument and changes nothing in it.
 
 > **Changelog**
+> - **19 Oct 2026 (az)** — WP-5 built: the game's timelines moved off the study's keyed moments, `RECRUITMENT_GATE` in the build and the server, balance re-run (unchanged grades). §4's scenario line is superseded. See the revision at the end.
 > - **19 Oct 2026 (ay)** — `31` P-12: §2.3 sharpened — the game's scenarios must not replay the study's keyed events ("Summer afternoon" replayed the 17:00 origin rekindle, the 15:30 de-energising that pre-answers F7 and the 17:40 recall; "Evening wind" the refusing households and the 19:00 north-westerly at Lahdenkylä); the demonstration and game are gated during recruitment; a post-session prior-use item with an exclusion rule. See the revision at the end.
 > - **14 Oct 2026** — created. The researcher asked to "think the simulation critically", to rebuild the map, environment and fire model, and to make the simulation game-like. A critical read of the instrument (summary in §1) found that nothing a participant or a crew does reaches the fire. Decision: build that as a separate game mode (§2), never as a change to the study.
 
@@ -58,3 +59,16 @@ A game needs the opposite: continuous time, a fire that responds to wind, terrai
 3. **Asked.** The post-session questionnaire asks whether the participant had used the web demonstration or the game before the session; a pre-registered exclusion with a sensitivity analysis (`09` (ay)).
 
 Balance (`npm run game:balance`) is re-run and recorded after the timeline moves. §5's open items stand; item 2 (the game as training before a session) is answered: not on this terrain.
+
+## Revision 19 Oct 2026 (az) — WP-5 built (`31` §7)
+
+**§4's "Scenarios" line is superseded** for the two story scenarios; *Training* is unchanged (its 10:30 line switch falls before the study's incident window, 11:20–20:00).
+
+- *Kesäiltapäivä / Summer afternoon* (normal, 12:00–20:00): unchanged up to 15:40. Then: the 110 kV line is live all game and nothing switches it; EK12 and DR2 are recalled at 16:15; the cabin-occupancy message comes at 17:15; the ridge fire's old edge on Kuivakangas (1 km from the origin) flares up at 17:35, reported only by a hiker's vague call at 17:48; there is no bog surfacing; the wind backs through the south to an easterly peaking at 18:20–18:35 and drives the fire west at Mökkiranta; the objective protects **Mökkiranta** (was Lahdenkylä); later reinforcements arrive on the game's own times.
+- *Iltatuuli / Evening wind* (hard, 16:00–): no longer phase B of the study's incident. Three lightning fires in the pine north of Korpioja and Karhujärvi at 16:00 and a late strike at 16:45 (the start fires beside the origin and in Rahkasuo are gone); a north-easterly turning east and peaking at 18:00–18:20 toward Mökkiranta; no "cannot de-energise" message; EK12 recalled at 17:05 (was HELI1 at 18:40); no Lahdenkylä evacuation and no refusing households.
+
+**The test.** `test/game/study-keyed-moments.ts` holds the one list (the five moments of rule 1, the Rahkasuo bog front and V13's contradiction), each as a time window and/or place, wind direction, recalls, words in messages and briefings, and named clock times; `test/game/study-separation.spec.ts` runs it over `app/game/scenarios/*` and over the old timelines (11 failures when the old scenarios are put back), so it is shown to catch a replay.
+
+**The gate.** `RECRUITMENT_GATE=1 npm run build:prod` (or `-- --recruitment-gate`) drops the game chunk from `dist/ui` and fails if any file still carries the game's marker; the study bundle and its hash are identical to an ungated build. `RECRUITMENT_GATE=1 npm run serve` answers any page request without `tuotanto` with a neutral bilingual 404 (the start page, `/about.html` and the game are never served, even from an ungated build). Docker: `--build-arg BUILD_FLAGS=--recruitment-gate` and `-e RECRUITMENT_GATE=1`. A `build:web` copy or a dev tunnel has no gate (`docs/DEPLOYMENT.md` §2.1, §9). Rule 3's question is `prior.demo` in the post-session block (exclusion rule in `POST_SESSION_RULES`).
+
+**Balance** (`npm run game:balance`, seeds 1–5, median; competent per seed in brackets): training D / S / S; summer F / F / A (AAADA); evening D / D / C (CDCCC) — the grades of §4, unchanged. Underneath: 2 of 5 naive summer games now end in a casualty when the easterly arrives (crews still on the origin); the one competent summer D is a casualty in the unchanged 15:10 crown run (the old timeline lost one game in seeds 6–12 the same way; the seed moved with the protected village).

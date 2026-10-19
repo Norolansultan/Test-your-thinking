@@ -977,6 +977,7 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 - `cp_safe` (V7): smoke is not modelled, so the smoke option is ruled out by wind direction alone.
 - The premise-evidence table: V10's P1 contradiction is dated from the last of its three records (DR3 17:35, `fromVirtualS` 15330); V14's P2 rests on EK16's 19:22 radio (the head crossed the Honkaharju road 19:00–19:20).
 - Analysis: `spam-measures.ts` still runs the first item's tool-use window and `itemOpenMs` to the shared `spam_closed`; split them at the first item's last record before the SPAM analyses run (the hand-over index in `teaming-measures.ts` already reads the `.b` items by their own records).
+- SPAM second items and the view's length: in V3 and V6 a participant who presses "ready" at 25 s and lets both 60 s windows run out keeps the probe open until 145 s, past the 130 s minimum, so a merged view's step boundary and the view's end are held until then (the hold-for-open-item rule of (ag) applied to two windows; `test/session/spam.spec.ts` documents it). Acceptable as built; shorten the second window to 45 s if pilot 2 shows it happens.
 - Deployment: set `THINKER_EXPECTED_MODEL_VERSION` from a probe run; without it the version guard is off (the README says how).
 
 **Open design questions:**

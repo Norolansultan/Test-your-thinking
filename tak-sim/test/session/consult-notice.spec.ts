@@ -107,11 +107,16 @@ describe("the consult notification (SPEC/30 §4)", () => {
     expect(ofKind(await o.logRecords(), "consult_prompt_shown", 3)).toEqual([]);
     await o.answerSpam("a");
     await vi.advanceTimersByTimeAsync(5_000);
-    await o.submitSpamConfidence(50); // closes at 70 s
+    await o.submitSpamConfidence(50); // 70 s: V3's second item follows (SPEC/30 §5.2), still holding the notice
+    await settle();
+    expect(snap()).toMatchObject({ consultPrompt: null, spam: { phase: "item", probeId: "probe.s.cycle_3.b" } });
+    await vi.advanceTimersByTimeAsync(5_000);
+    await o.answerSpam("b");
+    await o.submitSpamConfidence(50); // the probe closes at 75 s
     await settle();
     expect(snap().consultPrompt).toEqual({ tool: "haku" });
     const records = await o.logRecords();
-    expect(ofKind(records, "consult_prompt_shown", 3).map((x) => x.detail)).toEqual([{ cycle: 3, atViewSeconds: 70, tool: "haku" }]);
+    expect(ofKind(records, "consult_prompt_shown", 3).map((x) => x.detail)).toEqual([{ cycle: 3, atViewSeconds: 75, tool: "haku" }]);
     expect(indexOfKind(records, "spam_closed", 3)).toBeLessThan(indexOfKind(records, "consult_prompt_shown", 3));
 
     const other = await atView(6); // V6: the ready prompt left up over 60 s does not hold it

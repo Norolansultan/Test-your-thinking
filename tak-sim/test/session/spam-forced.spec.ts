@@ -89,6 +89,11 @@ describe("the ready prompt left up is forced at the view's end", () => {
     await o.answerSpam("a");
     expect(snap().currentCycle).toBe(3); // the confidence is still asked
     await o.submitSpamConfidence(75);
+    // SPEC/30 §5.2: V3's second item, forced too (modal, the clock still paused), holds the end until it closes.
+    expect(snap()).toMatchObject({ currentCycle: 3, step: "awaiting_view_end", secondsLeft: left, spam: { phase: "item", forced: true, probeId: `${P}.b`, itemIndex: 2, itemCount: 2 } });
+    expect(viewEnded(await o.logRecords(), 3)).toBeUndefined();
+    await o.answerSpam("b");
+    await o.submitSpamConfidence(50);
     expect(snap()).toMatchObject({ currentCycle: 3, step: "plan_confidence" }); // SPEC/30 §5.4: the view has ended; its plan's confidence
     await o.submitPlanConfidence(75);
     expect(snap().currentCycle).toBe(4);
@@ -113,11 +118,18 @@ describe("the ready prompt left up is forced at the view's end", () => {
     await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 1);
     expect(snap().currentCycle).toBe(6);
     await vi.advanceTimersByTimeAsync(1);
+    // SPEC/30 §5.2: the first item's window out (logged null), V6's second item is forced too — its own 60 s window, the clock still paused.
+    expect(snap()).toMatchObject({ currentCycle: 6, step: "allocation", spam: { phase: "item", forced: true, probeId: `${P}.b`, itemIndex: 2 } });
+    expect(viewEnded(await o.logRecords(), 6)).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 1);
+    expect(snap().currentCycle).toBe(6);
+    await vi.advanceTimersByTimeAsync(1);
     expect(snap()).toMatchObject({ currentCycle: 6, step: "plan_confidence" }); // SPEC/30 §5.4: after a cap's end too
     await o.submitPlanConfidence(25);
     expect(snap().currentCycle).toBe(7);
     const records = await o.logRecords();
     expect(ofProbe(records, "spam_answered", P).map((r) => r.detail)).toEqual([{ probeId: P, response: null, timedOut: true }]);
+    expect(ofProbe(records, "spam_answered", `${P}.b`).map((r) => r.detail)).toEqual([{ probeId: `${P}.b`, response: null, timedOut: true }]);
     expect(viewEnded(records, 6)!.detail).toEqual({ cycle: 6, viewSeconds: 150, endedBy: "time_cap", stepAtEnd: "allocation" });
     expect(spamMeasures(records, keys).find((x) => x.probeId === P)).toMatchObject({ forced: true, readyCensored: true, answerTimedOut: true, response: null, correct: null });
   });
@@ -242,6 +254,12 @@ describe("resume into a forced item (revision (ag))", () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await second.o.answerSpam("a");
     await second.o.submitSpamConfidence(100);
+    // SPEC/30 §5.2: V3's second item, forced too, follows in the resumed delivery; the view ends once it closes.
+    expect(second.snap()).toMatchObject({ currentCycle: 3, step: "awaiting_view_end", spam: { phase: "item", forced: true, probeId: "probe.s.cycle_3.b", itemIndex: 2 } });
+    await expect(second.o.submitPlanConfidence(100)).rejects.toThrow(/submitPlanConfidence in step awaiting_view_end/); // not before the view has ended
+    await second.o.answerSpam("c");
+    await second.o.submitSpamConfidence(75);
+    expect(second.snap()).toMatchObject({ currentCycle: 3, step: "plan_confidence" });
     await second.o.submitPlanConfidence(100); // SPEC/30 §5.4: the view's end, then its plan's confidence
     expect(second.snap().currentCycle).toBe(4);
     const all = await sink.readAll();

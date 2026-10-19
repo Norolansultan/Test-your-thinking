@@ -21,6 +21,8 @@ import { allocateAndConfirm, passHinge, PLAN, runOutView } from "./view-flow.js"
 
 const scenario = buildDemoScenario();
 const keyOf = (view: number) => scenario.invariants.find((i) => i.name === `spam.cycle_${view}`)!.expected as string;
+/** SPEC/30 §5.2: the key of a view's second item (`spam.cycle_<n>.b`; V3 and V6 since the content package filled them). */
+const keyOf2 = (view: number) => scenario.invariants.find((i) => i.name === `spam.cycle_${view}.b`)!.expected as string;
 const hingeKey = scenario.invariants.find((i) => i.name === scenario.hinge.manipulationCheck!.invariantName)!.expected as string;
 
 const LIVE: ThinkerResponse = {
@@ -114,18 +116,28 @@ describe("SPAM delivery", () => {
     await expect(o.answerSpam("a")).rejects.toThrow(); // final
     await expect(o.submitSpamConfidence(60)).rejects.toThrow(RangeError); // the one scale
     await o.submitSpamConfidence(75);
+    // SPEC/30 §5.2: V3's second item (`.b`) follows under the same "ready" — the panel still held, the tools at hand.
+    expect(snap().spam).toMatchObject({ phase: "item", probeId: "probe.s.cycle_3.b", itemIndex: 2, itemCount: 2, forced: false, chosen: null });
+    expect(snap()).toMatchObject({ toolsLocked: false, decisionHeld: true });
+    await expect(o.searchAtoms("DR3")).resolves.toBeDefined();
+    await expect(o.submitAllocation(PLAN)).rejects.toThrow(/SPAM item is open/);
+    await o.answerSpam(keyOf2(3));
+    expect(snap().spam).toMatchObject({ phase: "confidence", probeId: "probe.s.cycle_3.b", chosen: keyOf2(3) });
+    await o.submitSpamConfidence(50);
     expect(snap().spam).toBeNull();
     expect(snap()).toMatchObject({ toolsLocked: false, decisionHeld: false });
 
     const records = await o.logRecords();
     const spam = records.filter((r) => /^spam_|recall_confidence/.test(r.kind) && !isPractice(r));
-    expect(spam.map((r) => r.kind)).toEqual(["spam_prompt_shown", "spam_ready", "spam_answered", "recall_confidence_submitted", "spam_closed"]);
+    expect(spam.map((r) => r.kind)).toEqual(["spam_prompt_shown", "spam_ready", "spam_answered", "recall_confidence_submitted", "spam_answered", "recall_confidence_submitted", "spam_closed"]);
     expect(spam.map((r) => r.detail)).toEqual([
       { probeId: "probe.s.cycle_3", cycle: 3, atViewSeconds: offsetS },
       { probeId: "probe.s.cycle_3", timedOut: false },
       { probeId: "probe.s.cycle_3", response: keyOf(3), timedOut: false },
       { probeId: "probe.s.cycle_3", value: 75 },
-      { probeId: "probe.s.cycle_3", cycle: 3 },
+      { probeId: "probe.s.cycle_3.b", response: keyOf2(3), timedOut: false },
+      { probeId: "probe.s.cycle_3.b", value: 50 },
+      { probeId: "probe.s.cycle_3", cycle: 3 }, // once, after the second item, with the first item's id
     ]);
     for (const r of spam) expect(JSON.stringify(r.detail)).not.toMatch(/latency|correct|expected|isCorrect/i); // raw only
   });
@@ -146,10 +158,18 @@ describe("SPAM delivery", () => {
     await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 1);
     expect(s.snap().spam?.phase).toBe("item");
     await vi.advanceTimersByTimeAsync(1);
-    expect(s.snap().spam).toBeNull();
+    // SPEC/30 §5.2: the first item is closed (logged null); V6's second item follows at once, with its own 60 s window.
+    expect(s.snap().spam).toMatchObject({ phase: "item", probeId: "probe.s.cycle_6.b", itemIndex: 2, itemCount: 2 });
     records = await s.o.logRecords();
     expect(records.filter((r) => r.kind === "spam_answered" && (r.detail as { probeId: string }).probeId === "probe.s.cycle_6").map((r) => r.detail)).toEqual([{ probeId: "probe.s.cycle_6", response: null, timedOut: true }]);
-    expect(records.filter((r) => r.kind === "spam_closed" && (r.detail as { cycle: number }).cycle === 6)).toHaveLength(1);
+    expect(records.filter((r) => r.kind === "spam_closed" && (r.detail as { cycle: number }).cycle === 6)).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 1);
+    expect(s.snap().spam?.phase).toBe("item");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(s.snap().spam).toBeNull();
+    records = await s.o.logRecords();
+    expect(records.filter((r) => r.kind === "spam_answered" && (r.detail as { probeId: string }).probeId === "probe.s.cycle_6.b").map((r) => r.detail)).toEqual([{ probeId: "probe.s.cycle_6.b", response: null, timedOut: true }]);
+    expect(records.filter((r) => r.kind === "spam_closed" && (r.detail as { cycle: number }).cycle === 6).map((r) => r.detail)).toEqual([{ probeId: "probe.s.cycle_6", cycle: 6 }]);
   });
 
   it("an option without its confidence by the deadline: the answer stands, the confidence is missing", async () => {
@@ -172,19 +192,26 @@ describe("SPAM delivery", () => {
       const onTime = (await a.o.logRecords()).find((r) => r.kind === "step_boundary_reached" && (r.detail as { cycle: number }).cycle === view)!;
       expect((onTime.detail as { atViewSeconds: number }).atViewSeconds).toBe(65);
 
-      // "Ready" at once and the item left open: the boundary waits for its close at 85 s (25 s + the 60 s window).
+      // "Ready" at once and the items left open: the boundary waits for the probe's close at 25 s + the 60 s window of each
+      // item (V11: one item, 85 s; V6: its second item too, SPEC/30 §5.2, 145 s — still before the 150 s cap).
+      const items = scenario.probeSchedule.probes.filter((p) => p.type === "S" && p.cycle === view).length;
+      expect(items).toBe(view === 6 ? 2 : 1);
       const b = await at(view);
       await vi.advanceTimersByTimeAsync(SPAM_OFFSET_MS);
       await b.o.spamReady();
-      await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS);
+      await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS * items - 1);
+      expect(b.snap().spam?.phase).toBe("item");
+      expect((await b.o.logRecords()).some((r) => r.kind === "step_boundary_reached" && (r.detail as { cycle: number }).cycle === view)).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
       const all = await b.o.logRecords();
       const ofView = (k: string) => all.findIndex((r) => r.kind === k && (r.detail as { cycle: number }).cycle === view);
       const closed = ofView("spam_closed"), boundary = ofView("step_boundary_reached");
       expect(closed).toBeGreaterThan(-1);
       expect(boundary).toBeGreaterThan(closed);
-      expect((all[boundary]!.detail as { atViewSeconds: number }).atViewSeconds).toBe(85);
+      expect((all[boundary]!.detail as { atViewSeconds: number }).atViewSeconds).toBe((SPAM_OFFSET_MS + SPAM_ANSWER_TIMEOUT_MS * items) / 1000);
     }
-    // Said ready to at once, an item closes long before the minimum.
+    // Said ready to at once, an item closes long before the minimum (a second item's window, SPEC/30 §5.2, may run past
+    // it: the view's end then waits for the item, as for any open item).
     for (const c of scenario.cycles.filter((x) => SPAM_VIEWS.has(x.index))) expect((SPAM_OFFSET_MS + SPAM_ANSWER_TIMEOUT_MS) / 1000).toBeLessThan(c.minViewSeconds);
   });
 
@@ -202,6 +229,10 @@ describe("SPAM delivery", () => {
     expect(snap()).toMatchObject({ currentCycle: 3, minimumReached: true, step: "awaiting_view_end", spam: { phase: "item", forced: false } });
     await o.answerSpam("a");
     await o.submitSpamConfidence(50);
+    // SPEC/30 §5.2: V3's second item holds the end too; the view ends once it closes.
+    expect(snap()).toMatchObject({ currentCycle: 3, step: "awaiting_view_end", spam: { phase: "item", probeId: "probe.s.cycle_3.b", forced: false } });
+    await o.answerSpam("b");
+    await o.submitSpamConfidence(75);
     expect(snap()).toMatchObject({ currentCycle: 3, step: "plan_confidence" }); // SPEC/30 §5.4: the view has ended; its plan's confidence
     await o.submitPlanConfidence(50);
     expect(snap().currentCycle).toBe(4);

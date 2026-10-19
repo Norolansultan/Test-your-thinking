@@ -10,7 +10,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { secondSpamProbes } from "../../app/scenario/demo-scenario.js";
 import { SPAM_ANSWER_TIMEOUT_MS, SPAM_OFFSET_MS } from "../../app/scenario/demo-probes.js";
-import { cycleScheduleOf, secondSpamProbeId } from "../../app/scenario/views.js";
+import { cycleScheduleOf, SECOND_SPAM_SUFFIX, secondSpamProbeId } from "../../app/scenario/views.js";
+import { SPAM_SECOND_ITEMS } from "../../app/scenario/demo-probes.js";
 import type { ScenarioContract } from "../../app/scenario/types.js";
 import { planSessionResume } from "../../app/telemetry/resume.js";
 import { InMemoryLogSink, type LogRecord } from "../../app/telemetry/log.js";
@@ -22,12 +23,21 @@ afterEach(() => vi.useRealTimers());
 
 const A = "probe.s.cycle_3";
 const B = secondSpamProbeId(A);
-/** The demo scenario with a fixture second item in V3 (built by the scenario's own builder). */
+/**
+ * The demo scenario with the authored second items taken out (`SPAM_SECOND_ITEMS` holds the real V3 and V6 items since the
+ * content package filled them) and a fixture second item in V3 put in, built by the scenario's own builder: the mechanics
+ * are tested against a known item, independent of the content. The real items run at the end (`the authored items`).
+ */
+const firstItemsOnly: ScenarioContract = {
+  ...scenario,
+  probeSchedule: { probes: scenario.probeSchedule.probes.filter((p) => !p.id.endsWith(SECOND_SPAM_SUFFIX)) },
+  invariants: scenario.invariants.filter((i) => !i.name.endsWith(SECOND_SPAM_SUFFIX)),
+};
 const second = secondSpamProbes(
   { 3: { prompt: "Mihin suuntaan palon kärki etenee nyt?", options: ["Koilliseen", "Itään", "Etelään", "Länteen"], correct: "a", saLevel: 2, contentKind: "situation" } },
-  scenario.probeSchedule.probes,
+  firstItemsOnly.probeSchedule.probes,
 );
-const withSecond: ScenarioContract = { ...scenario, probeSchedule: { probes: [...scenario.probeSchedule.probes, ...second.probes] }, invariants: [...scenario.invariants, ...second.invariants] };
+const withSecond: ScenarioContract = { ...firstItemsOnly, probeSchedule: { probes: [...firstItemsOnly.probeSchedule.probes, ...second.probes] }, invariants: [...firstItemsOnly.invariants, ...second.invariants] };
 const spamKinds = new Set(["spam_prompt_shown", "spam_ready", "spam_answered", "recall_confidence_submitted", "spam_closed", "spam_collapsed", "spam_expanded"]);
 const ofDelivery = (records: readonly LogRecord[], kind: string) => records.filter((r) => r.kind === kind && (r.detail as { probeId: string }).probeId.startsWith(A)).map((r) => r.detail);
 const spamTrail = (records: readonly LogRecord[]) => records.filter((r) => spamKinds.has(r.kind) && (r.detail as { cycle?: number; probeId: string }).probeId.startsWith(A)).map((r) => [r.kind, (r.detail as { probeId: string }).probeId]);
@@ -173,6 +183,30 @@ describe("the second SPAM item (SPEC/30 §5.2)", () => {
     expect(resumed[3]!.detail).toMatchObject({ probeId: A, forced: true, resumed: true });
     expect(ofDelivery(all, "spam_closed")).toEqual([{ probeId: A, cycle: 3 }]);
     expect(planSessionResume(all, cycleScheduleOf(withSecond)).target).toEqual({ kind: "view", view: 4 });
+  });
+
+  it("the authored items (content package): V3 and V6 run both items in the demo scenario, the second with the authored prompt", async () => {
+    for (const view of [3, 6]) {
+      const first = `probe.s.cycle_${view}`;
+      const { o, snap } = await atView(view);
+      await vi.advanceTimersByTimeAsync(SPAM_OFFSET_MS);
+      await o.spamReady();
+      expect(snap().spam).toMatchObject({ phase: "item", probeId: first, itemIndex: 1, itemCount: 2 });
+      await o.answerSpam("a");
+      await o.submitSpamConfidence(50);
+      expect(snap().spam).toMatchObject({ phase: "item", probeId: secondSpamProbeId(first), itemIndex: 2, itemCount: 2, promptFi: SPAM_SECOND_ITEMS[view]!.prompt });
+      expect(JSON.stringify(snap().spam)).not.toMatch(/"(correct|expected|invariantName)"/); // I4
+      await o.answerSpam("b");
+      await o.submitSpamConfidence(75);
+      expect(snap().spam).toBeNull();
+      const records = await o.logRecords();
+      const mine = records.filter((r) => spamKinds.has(r.kind) && (r.detail as { probeId: string }).probeId.startsWith(first)).map((r) => [r.kind, (r.detail as { probeId: string }).probeId]);
+      expect(mine).toEqual([
+        ["spam_prompt_shown", first], ["spam_ready", first], ["spam_answered", first], ["recall_confidence_submitted", first],
+        ["spam_answered", secondSpamProbeId(first)], ["recall_confidence_submitted", secondSpamProbeId(first)], ["spam_closed", first],
+      ]);
+      expect(scenario.invariants.some((i) => i.name === `spam.cycle_${view}.b`)).toBe(true); // its key, TRUTH, off the screen
+    }
   });
 
   it("a view with no second item (V8, the practice view) closes after its one item, as before", async () => {

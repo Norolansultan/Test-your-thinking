@@ -18,7 +18,8 @@ import type { ScenarioContract } from "../../app/scenario/types.js";
 import { SCENARIO_18_FORCING } from "../fire-ca/scenario-18.js";
 import { buildChannels } from "./facts.js";
 import { buildItems } from "./items.js";
-import { buildCycles } from "./cycles.js";
+import { buildCycles, defaultCycleSources, type CycleSources } from "./cycles.js";
+import type { FlameTable, StationRecord } from "./scenario-extras.js";
 import { barrierLayer, barriersGeoJson, perimetersGeoJson } from "./spatial.js";
 import { dataSourcesMd } from "./data-sources.js";
 
@@ -40,11 +41,18 @@ function nullsByField(cycles: readonly Record<string, unknown>[], fields: readon
   return new Map(fields.map((f) => [f, cycles.filter((c) => c[f] === null).map((c) => c.cycle as number)]));
 }
 
-export function buildScenarioPackage(version: string, scenario: ScenarioContract = buildDemoScenario()): ScenarioPackage {
+/** Scenario data the export reads when the scenario has it (`scenario-extras.ts`); omitted: today's sources. */
+export interface PackageExtras {
+  readonly flameTable?: FlameTable | null;
+  readonly station?: readonly StationRecord[];
+}
+
+export function buildScenarioPackage(version: string, scenario: ScenarioContract = buildDemoScenario(), extras: PackageExtras = {}): ScenarioPackage {
   const scenarioInfo = { id: scenario.id, version: scenario.version, seed: String(scenario.seed), site_seed: SITE_SCENARIO.seed };
   const { facts, radio, packages } = buildChannels(scenario);
   const items = buildItems(scenario);
-  const cycles = buildCycles(SCENARIO_18_FORCING) as Record<string, unknown>[];
+  const sources: CycleSources = { ...defaultCycleSources(scenario.atoms), ...(extras.station ? { station: extras.station } : {}), flameTable: extras.flameTable ?? null };
+  const cycles = buildCycles(SCENARIO_18_FORCING, sources) as Record<string, unknown>[];
   const files = new Map<string, string>();
   files.set("ground_truth/facts.json", pretty({
     version, scenario: scenarioInfo, cycle_minutes: 20,
@@ -72,8 +80,9 @@ export function buildScenarioPackage(version: string, scenario: ScenarioContract
   files.set("DATA_SOURCES.md", dataSourcesMd({
     version, scenarioId: scenario.id, scenarioVersion: scenario.version, seed: String(scenario.seed), siteSeed: SITE_SCENARIO.seed,
     files, counts,
-    nullCycles: nullsByField(cycles, ["fire_type", "fl_head_m", "fl_flank_m", "rh_pct", "event", "spotting_m", "reignition_source", "change_reason"]),
+    nullCycles: nullsByField(cycles, ["fire_type", "head_bearing_deg", "fl_head_m", "fl_flank_m", "rh_pct", "temp_c", "dew_point_c", "event", "spotting_m", "reignition_source", "change_reason"]),
     unknownUnits, zeroRosCycles: cycles.filter((c) => c.ros_head_m_min === 0).map((c) => c.cycle as number),
+    flameSource: sources.flameTable ? `the flame table (${sources.flameTable.source})` : null,
   }));
   return { scenario, files };
 }

@@ -1,18 +1,22 @@
 /**
  * Session logs → the inputs of `score_freezes.py` (wildfire-sagat-probes):
- *   responses.csv  participant,item_id,answer,confidence,rt_s
- *   exposure.csv   participant,fact_id,first_seen_cycle
+ *   responses.csv                participant,item_id,answer,confidence,rt_s
+ *   exposure.csv                 participant,fact_id,first_seen_cycle,route   (pre-registered: retrieved ∪ digest ∪ recent)
+ *   exposure_retrieved_only.csv  the same without the model-context routes (the retrieved-only sensitivity, SPEC/31 §3.6)
  *
  * Read with the analysis' own folds, never re-implemented: the first answer per freeze item with a replayed view dropped
  * (`firstFreezeAnswers`), each SPAM probe's answer, confidence and answer latency (`spamMeasures`), the hinge check
  * (`hingeCheckMeasure`), and exposure from the freeze measures' fold (`atomExposure`: pushed bubbles, Haku results,
- * Haku-chat and Thinker retrievals). Unanswered items (a SPAM item that timed out, a freeze item left missing) get no row:
- * missing is not wrong. Confidence 25/50/75/100 → 0.25–1.00; a map answer is "E;N" in EPSG:3067.
+ * Haku-chat and Thinker retrievals, and since format 0.11.0 what reached the model without a search — the Open Thinker's
+ * digest and both chats' recent matches, routes `digest` and `recent`; `includeModelContext: false` drops those two).
+ * `score_freezes.py` reads the first three exposure columns; `route` is how the fact first reached the participant.
+ * Unanswered items (a SPAM item that timed out, a freeze item left missing) get no row: missing is not wrong. Confidence
+ * 25/50/75/100 → 0.25–1.00; a map answer is "E;N" in EPSG:3067.
  */
 
 import type { LogHeader, LogRecord } from "../../app/telemetry/log.js";
 import { assertGapless } from "../../app/telemetry/log.js";
-import { atomExposure, firstFreezeAnswers, replayedViews } from "../../app/telemetry/freeze-measures.js";
+import { atomExposure, firstFreezeAnswers, replayedViews, type ExposureOptions, type ExposureRoute } from "../../app/telemetry/freeze-measures.js";
 import { hingeCheckMeasure, spamMeasures } from "../../app/telemetry/spam-measures.js";
 import type { CycleStartDetail, RecallConfidenceSubmittedDetail, SpamAnsweredDetail } from "../../app/telemetry/record-kinds.js";
 import { stepAtVirtualTime } from "../../app/retrieval/time-gate.js";
@@ -52,6 +56,8 @@ export interface ExposureRow {
   readonly participant: string;
   readonly fact_id: string;
   readonly first_seen_cycle: number;
+  /** The route of the fact's first arrival (`bubble`, `haku`, `haku_chat`, `thinker`, `digest`, `recent` …). */
+  readonly route: ExposureRoute;
 }
 
 const participantOf = (h: LogHeader): string => h.participantCode || h.sessionId;
@@ -132,19 +138,22 @@ export function recordCycles(records: readonly LogRecord[], scenario: ScenarioCo
   });
 }
 
-/** For every atom that reached the participant: the first cycle by whose end it had (the fold `atomExposure`, cut at each cycle's end). */
-export function exposureRows(session: SessionLogFile, scenario: ScenarioContract): ExposureRow[] {
+/**
+ * For every atom that reached the participant: the first cycle by whose end it had, and by which route (the fold
+ * `atomExposure`, cut at each cycle's end). `opts.includeModelContext: false` is the retrieved-only sensitivity.
+ */
+export function exposureRows(session: SessionLogFile, scenario: ScenarioContract, opts: ExposureOptions = {}): ExposureRow[] {
   const participant = participantOf(session.header);
   const ids = scenario.atoms.map((a) => a.id);
   const cycles = recordCycles(session.records, scenario);
   const maxCycle = Math.max(0, ...cycles);
-  const first = new Map<string, number>();
+  const first = new Map<string, { readonly cycle: number; readonly route: ExposureRoute }>();
   for (let c = 0; c <= maxCycle; c++) {
     const cut = cycles.findIndex((x) => x > c);
     const beforeSeq = cut === -1 ? session.records.length : (session.records[cut]!.seq as number);
-    for (const e of atomExposure(session.records, ids, beforeSeq)) if (e.reached && !first.has(e.atomId)) first.set(e.atomId, c);
+    for (const e of atomExposure(session.records, ids, beforeSeq, opts)) if (e.reached && !first.has(e.atomId)) first.set(e.atomId, { cycle: c, route: e.route! });
   }
-  return ids.filter((id) => first.has(id)).map((id) => ({ participant, fact_id: id, first_seen_cycle: first.get(id)! }))
+  return ids.filter((id) => first.has(id)).map((id) => ({ participant, fact_id: id, first_seen_cycle: first.get(id)!.cycle, route: first.get(id)!.route }))
     .sort((a, b) => a.first_seen_cycle - b.first_seen_cycle || (a.fact_id < b.fact_id ? -1 : a.fact_id > b.fact_id ? 1 : 0));
 }
 
@@ -160,18 +169,26 @@ export function toCsv<T extends object>(rows: readonly T[], columns: readonly (k
 
 export interface ConvertedResponses {
   readonly responsesCsv: string;
+  /** The pre-registered exposure: retrieved ∪ digest ∪ recent (SPEC/31 §3.6). */
   readonly exposureCsv: string;
+  /** The retrieved-only sensitivity: without the routes `digest` and `recent`. */
+  readonly exposureRetrievedOnlyCsv: string;
   readonly responses: readonly ResponseRow[];
   readonly exposure: readonly ExposureRow[];
+  readonly exposureRetrievedOnly: readonly ExposureRow[];
 }
+
+const EXPOSURE_COLUMNS: readonly (keyof ExposureRow & string)[] = ["participant", "fact_id", "first_seen_cycle", "route"];
 
 export function convertSessions(texts: readonly string[], scenario: ScenarioContract): ConvertedResponses {
   const sessions = texts.map(parseSessionFile);
   const responses = sessions.flatMap(responseRows);
   const exposure = sessions.flatMap((s) => exposureRows(s, scenario));
+  const exposureRetrievedOnly = sessions.flatMap((s) => exposureRows(s, scenario, { includeModelContext: false }));
   return {
-    responses, exposure,
+    responses, exposure, exposureRetrievedOnly,
     responsesCsv: toCsv(responses, ["participant", "item_id", "answer", "confidence", "rt_s"]),
-    exposureCsv: toCsv(exposure, ["participant", "fact_id", "first_seen_cycle"]),
+    exposureCsv: toCsv(exposure, EXPOSURE_COLUMNS),
+    exposureRetrievedOnlyCsv: toCsv(exposureRetrievedOnly, EXPOSURE_COLUMNS),
   };
 }

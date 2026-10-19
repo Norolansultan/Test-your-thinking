@@ -136,10 +136,10 @@ describe("the wildfire-skills scenario package", () => {
       // An RH value is a weather-station reading in that step, never interpolated.
       if (c.rh_pct !== null) expect(typeof c.rh_source).toBe("string");
     }
-    // The step-6 crown run: flames above the treetops have no number, so the type is set and the length is null.
-    const six = cycles.find((c) => c.cycle === 6)!;
-    expect(six.fire_type).toBe("active_crown");
-    expect(six.fl_head_m).toBeNull();
+    // The crown run: flames above the treetops have no number, so the type is set and the length is null.
+    const crown = cycles.filter((c) => /latvojen yli/.test(String(c.fl_head_phrase)));
+    expect(crown.length).toBeGreaterThan(0);
+    for (const c of crown) expect([c.fire_type, c.fl_head_m], `cycle ${c.cycle}`).toEqual(["active_crown", null]);
   });
 
   it("splits segments on the origin–head axis: ahead = head, behind the origin = rear, left and right as seen toward the head", () => {

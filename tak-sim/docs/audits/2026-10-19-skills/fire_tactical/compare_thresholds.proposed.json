@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0-proposed",
+  "_status": "DESIGN CHOICES proposed by the Phase-1b fire audit (19 Oct 2026), to be fixed (pre-registered) before any Prometheus output is seen and reported in the methods. Not values from a source. perimeter_compare.py reads only the four numeric keys below; the _scope rules are applied by preparing the input GeoJSON files (which cycles, which part, which ignition).",
+  "area_ratio": {"ok_range": [0.67, 1.5], "note": "unchanged from 0.1.0; skipped as a flag when the scripted cycle is suppressed and smaller"},
+  "iou": {"min": 0.5, "note": "unchanged; applied only to free-burning cycles whose scripted area is >= 5 ha (25 m CA cells against a vector perimeter make IoU meaningless for a 1 ha fire: the pipeline smoke test gives IoU 0.45 at 1.3 ha between two scripted outlines of the same fire)"},
+  "head_direction_deg": {"max_diff": 30, "note": "unchanged"},
+  "head_rate_ratio": {"ok_range": [0.5, 2.0], "note": "unchanged; tested against the ensemble envelope including the gust member"},
+  "_scope": {
+    "run_A_main_fire": "cycles 0-8, ignition E 519000 N 6746000 (IGN), the truth MultiPolygon's main part only; Prometheus started from the scripted 12:00 polygon (cycle 0 start) as a polygon ignition so the ignition shape does not enter the comparison",
+    "run_B_south_east_front": "cycles 13-20, ignition at the step-12 rekindle (E ~519050 N ~6745950, the US1 disk; exact centre from scenario-18.ts step 12), the US1 part only (split the MultiPolygon: the second-largest part from cycle 12); Prometheus started from the scripted 17:20 US1 polygon",
+    "excluded_from_rate_and_direction": "cycles 3, 6, 7, 8 (scripted spot fires merge with the head: the advance is not a front rate; checked against the Kalajoki envelope instead) and 9-12 (wind backing and the flank-as-head; the ignition-to-farthest-point metric of perimeter_compare.py stays on the dead NE tip, smoke test: bearing 44 deg and advance 0 from cycle 9)",
+    "suppressed_upper_bound_only": "main fire from cycle 10 (control events L2 at 16:20, L1 and L4 at 16:40) and cycle 4 (R1 verge wetted); south-east front cycles 17-18 (road held with sprinklers at contact)",
+    "not_validated_by_prometheus": "the three rekindles (12, 18, 19), the RIDGE ignition (3), crown-run spotting (6-7), the step-8 joins, the 15:00 crown transition, deep burning (15): Kalajoki envelope via fire_check.py"
+  },
+  "_ensemble": {
+    "members": ["baseline: hourly mean wind and direction from the forcing", "WD -15 deg", "WD +15 deg", "WS -25 %", "WS +25 %", "gust: wind speed = the forcing's gust (the CA's truth runs on the gust, SPEC/24 sec. 5)", "machine fuel grid (spruce shown thinned, fuel_machine.asc) at baseline"],
+    "size": 7,
+    "note": "a member set, not a probability sample; report it as such"
+  }
+}

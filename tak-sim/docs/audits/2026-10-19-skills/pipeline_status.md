@@ -72,8 +72,8 @@ torching") describes 15:00–15:20; DATA_SOURCES keeps class 4 as surface and no
 | D10 Prometheus inputs | **open** (external) | no ensemble; request in `fire_tactical.md` |
 | D11 EK14 type | done | EK14 `hose_team` |
 
-**Remaining for Gate A.** The proposed comparison thresholds (`compare_thresholds.proposed.json`, 0.2.0-proposed) exist only
-in the phase-1 scratch folder, not in the repository; the skill requires them fixed before any comparison (researcher).
+**Remaining for Gate A.** The proposed comparison thresholds (`fire_tactical/compare_thresholds.proposed.json`, 0.2.0-proposed)
+are now committed beside this report (integrator, after this report was written); the researcher fixes them (pre-registration) before any Prometheus output is seen.
 Sending the Prometheus request is open in `SPEC/31` §6 item 1, and (az) does not record it sent (researcher, D10). FMI/PromS: the ensemble, the flame table against HFI,
 FWI 55 / ISI 23, the evening RH 26 % and dew-point drop, US3 on the upwind edge (`SPEC/31` §6 item 6). Panel and FMI: the
 step-5/6 flags (§6 items 2, 6). Panel and WP-6: the 24 phase-A flame records. Domain reviewer: the flame table's credibility.
@@ -208,7 +208,7 @@ None. Every script ran with exit 0 on the export's shape. Two shape notes, docum
 ## Before the pilot (ordered, per gate)
 
 **Gate A (fire)**
-1. Researcher: commit the comparison thresholds (0.2.0-proposed) to the repository and send the Prometheus request (D10).
+1. Researcher: fix (pre-register) the comparison thresholds, committed as `fire_tactical/compare_thresholds.proposed.json` (0.2.0-proposed), and send the Prometheus request (D10).
 2. FMI/PromS: run the 7-member ensemble with the Finnish lookup; return HFI, the flame-table check, FWI/ISI, evening RH, US3.
 3. Researcher: `perimeter_compare.py` on the ensemble per the scope rules; revise the forcing if out of tolerance; re-run
    `fire_check.py`; write the methods paragraph with real numbers.

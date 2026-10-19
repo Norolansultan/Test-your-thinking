@@ -1,8 +1,8 @@
 {
-  "version": 3,
+  "version": 4,
   "directiveSha256": "1b7d98662d52909b69e7bd99dc62b632ce9091afb6c0693020e577ee941fb48d",
   "premises": [
-    { "id": "P1", "fi": "Alueen palotilanne on sellainen kuin linjaus kuvaa.", "en": "The region's fire situation is as the directive describes." },
+    { "id": "P1", "fi": "Linjauksen jälkeen ei ole syttynyt uutta paloa tai uudelleensyttymää, jonka edessä ei ole linjaa.", "en": "No new fire or rekindle without a line ahead of it has started since the directive." },
     { "id": "P2", "fi": "Jokaisen palon edessä on yhä tie tai vesistö, jonka varaan linja voidaan pitää.", "en": "Roads or water ahead of each fire still give a line that can be held." }
   ]
 }

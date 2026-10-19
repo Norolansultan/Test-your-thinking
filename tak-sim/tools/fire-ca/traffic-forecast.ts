@@ -43,7 +43,7 @@ const FORECASTS: readonly Forecast[] = [
     // VP (12:07): the afternoon outlook.
     step: -3, offsetS: 420,
     fi: "Ennuste: Ilmatieteen laitos, paikallisennuste palon alueelle klo 12–20 (annettu klo 12.00): iltapäivällä poutaa ja lounaistuulta 4–6 m/s, puuskissa 8–10 m/s. Lämpötila 27–29 °C, ilmankosteus 25–30 %. Alueelle on annettu metsäpalovaroitus. Myöhään iltapäivällä heikko, kuiva sääalue: tuuli kääntyy etelän puolelle ja heikkenee, sadetta ei ole odotettavissa. Illalla tuuli kääntyy länteen ja luoteeseen ja voimistuu.",
-    en: "Forecast: Finnish Meteorological Institute, local forecast for the fire area 12–20 (issued at 12.00): dry in the afternoon, wind from the south-west 4–6 m/s, gusts 8–10 m/s. Temperature 27–29 °C, humidity 25–30 %. A forest fire warning has been issued for the area. Late in the afternoon a weak, dry front: the wind turns to the south and eases; no rain is expected. In the evening the wind turns to the west and north-west and strengthens.",
+    en: "Forecast: Finnish Meteorological Institute, local forecast for the fire area 12–20 (issued at 12.00): dry in the afternoon, wind from the south-west 4–6 m/s, gusts 8–10 m/s. Temperature 27–29 °C, humidity 25–30 %. A forest fire warning has been issued for the area. Late in the afternoon a weak, dry front: the wind turns to the south and eases; no rain is expected. In the evening the wind becomes westerly and north-westerly and strengthens.",
   },
   {
     // V1 (13:21): the front's timing, still broad.
@@ -67,13 +67,13 @@ const FORECASTS: readonly Forecast[] = [
     // V9 (17:01): the front has passed, the wind is west-north-west ((ah): was "turns west 17–18"); the evening's north-westerly announced.
     step: 12, offsetS: 60,
     fi: "Ennuste: Ilmatieteen laitos, ennusteen päivitys (annettu klo 17.00): poutaa. Rintama on ohittanut alueen, tuuli on kääntynyt länsiluoteeseen, 3–5 m/s, klo 17–18 länsiluoteesta 4–6 m/s. Kylmän rintaman takana tuuli kääntyy illalla luoteeseen ja voimistuu, puuskissa yli 10 m/s. Ilmankosteus 35–40 %.",
-    en: "Forecast: Finnish Meteorological Institute, forecast update (issued at 17.00): dry. The front has passed and the wind has turned west-north-west, 3–5 m/s; 17–18 from the west-north-west 4–6 m/s. Behind the cold front the wind turns to the north-west in the evening and strengthens, gusts over 10 m/s. Humidity 35–40 %.",
+    en: "Forecast: Finnish Meteorological Institute, forecast update (issued at 17.00): dry. The front has passed and the wind is now from the west-north-west, 3–5 m/s; 17–18 from the west-north-west 4–6 m/s. Behind the cold front the wind becomes north-westerly in the evening and strengthens, gusts over 10 m/s. Humidity 35–40 %.",
   },
   {
     // V11, second step (18:01): the second wind event (18.40 NW 9 m/s, gusts 14), gusts under-forecast (M2).
     step: 15, offsetS: 60,
     fi: "Ennuste: Ilmatieteen laitos, ennusteen päivitys (annettu klo 18.00): tuuli kääntyy luoteeseen ja voimistuu klo 18.30–19.00 välillä 7–9 m/s:iin, puuskissa 12 m/s. Klo 19.30 jälkeen tuuli heikkenee 5–6 m/s:iin. Poutaa, luoteesta tulee kuivaa mannerilmaa ja kastepiste laskee; ilmankosteus laskee 25–30 %:iin, lämpötila 20–22 °C.",
-    en: "Forecast: Finnish Meteorological Institute, forecast update (issued at 18.00): the wind turns to the north-west and strengthens between 18.30 and 19.00 to 7–9 m/s, gusts 12 m/s. After 19.30 the wind eases to 5–6 m/s. Dry; the north-westerly brings dry continental air and the dew point falls; humidity drops to 25–30 %, temperature 20–22 °C.",
+    en: "Forecast: Finnish Meteorological Institute, forecast update (issued at 18.00): the wind becomes north-westerly and strengthens between 18.30 and 19.00 to 7–9 m/s, gusts 12 m/s. After 19.30 the wind eases to 5–6 m/s. Dry; the north-westerly brings dry continental air and the dew point falls; humidity drops to 25–30 %, temperature 20–22 °C.",
   },
 ];
 

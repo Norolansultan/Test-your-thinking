@@ -8,7 +8,7 @@
  * before step 12.
  */
 
-import { actorTypeOf, dirFrom as dirFromFi, fmt1, hm, L, LL, r50, say, stepStartS } from "./traffic-text.js";
+import { actorTypeOf, dirFrom as dirFromFi, fmt1, hm, L, LL, r50, say, stepStartS, vary } from "./traffic-text.js";
 import { hoursOnScene } from "./traffic-lateral.js";
 import { HELD_FOR_REGION } from "./deployment.js";
 import { isShuttle } from "./traffic-water.js";
@@ -39,16 +39,25 @@ export function requestTraffic(inp: TrafficCycleInput, state: TrafficState, out:
     // Saw work on a fire edge (round 2, 5 Oct 2026: not the crews holding a road line, who clear its verge only).
     if (u.task === "firebreak" && u.onEdge && once(`saws:${u.id}`)) ask(u, L(`palokatkon raivaukseen tarvitaan lisää teräketjuja ja sahabensaa, kaksi sahaa seisoo.`, `we need more saw chains and saw fuel to cut the firebreak, two saws are idle.`));
     // Long hose lines need more hose and pressure.
-    if ((u.hoseM ?? 0) >= 500 && once(`hosereq:${u.id}:${u.anchor}`)) ask(u, ((m: number) => L(`letkulinja ${u.hoseM} m, letkua varalla alle ${m} m. Pyydämme lisää 76 mm ja 42 mm letkua sekä jakoliittimen.`, `hose line ${u.hoseM} m, under ${m} m of spare hose. We request more 76 mm and 42 mm hose and a dividing breeching.`))(r50(150 + rnd() * 100)), "vesi_reitit");
+    // Radio ST-08 (SPEC/31): the request in the crew's own words, fixed by unit and step (the same sentence came four times).
+    if ((u.hoseM ?? 0) >= 500 && once(`hosereq:${u.id}:${u.anchor}`)) ask(u, ((m: number) => vary(u.id, n, [
+      L(`letkulinja ${u.hoseM} m, letkua varalla alle ${m} m. Pyydämme lisää 76 mm ja 42 mm letkua sekä jakoliittimen.`, `hose line ${u.hoseM} m, under ${m} m of spare hose. We request more 76 mm and 42 mm hose and a dividing breeching.`),
+      // Function words as in the first phrasing (one "ja"): a lexical match on "on"/"ja" moved V5's frozen retrieval (thinker-review-ah C2).
+      L(`linjaa jo ${u.hoseM} m, varaletkua alle ${m} m. Tarvitsemme lisää 76 mm syöttöletkua, 42 mm työletkua sekä jakoliittimen.`, `the line is already ${u.hoseM} m, under ${m} m of spare hose. We need more 76 mm supply hose, 42 mm attack hose and a dividing breeching.`),
+      L(`letku loppuu: linja ${u.hoseM} m, varalla alle ${m} m. Lähettäkää 76 mm ja 42 mm letkua sekä jakoliitin.`, `we are running out of hose: the line is ${u.hoseM} m, under ${m} m spare. Send 76 mm and 42 mm hose and a dividing breeching.`),
+    ]))(r50(150 + rnd() * 100)), "vesi_reitit");
   }
 
   // Food and drink after the shower (SPEC/19 §5 step 10: food request).
-  if (n === 10) for (const u of crews.filter((x) => x.onEdge).slice(0, 2)) {
-    if (once(`food:${u.id}`)) ask(u, pick([
+  if (n === 10) for (const [k, u] of crews.filter((x) => x.onEdge).slice(0, 2).entries()) {
+    // Radio ST-08 (SPEC/31): two crews in one step no longer say one sentence (EK11 16:31, EK14 16:33): each its own phrasing, by its
+    // place in the step (the draw the `pick` made is still made). Review fixes (ah): every variant is a supply request ("huoltoa",
+    // "muonaa"), whichever comes (neutral eval n32's question).
+    if (once(`food:${u.id}`)) ask(u, vary("", n + k, [
       L("pyydämme huoltoa linjalle: muonaa ja juomaa, miehet eivät ole syöneet aamun jälkeen.", "we request supplies on the line: food and drink, the men have not eaten since the morning."),
-      // Review fixes (ah): a supply request ("huoltoa", "muonaa") in both variants, whichever is drawn (neutral eval n32's question).
       L(`pyydämme huoltoa: juomavettä ja muonaa linjalle, ${crews.length > 4 ? "useampi yksikkö samassa tilanteessa" : "kuusi miestä"}.`, `we request supplies: drinking water and food on the line, ${crews.length > 4 ? "several units in the same situation" : "six men"}.`),
-    ]));
+      L("tarvitsemme huoltoa tänne: muonaa ja juomavettä, viimeisin ateria oli aamulla.", "we need supplies here: food and drinking water, the last meal was in the morning."),
+    ], rnd));
   }
 
   // A wind forecast after the wind turns, from the crew nearest the head.
@@ -87,8 +96,12 @@ export function requestTraffic(inp: TrafficCycleInput, state: TrafficState, out:
 
   // Out-of-region crews do not know the forest roads (SPEC/18 §8.1).
   if (n === 16 || n === 17) for (const u of crews.filter((x) => x.id === "OUT1" || x.id === "OUT2")) {
+    // Radio ST-08 (SPEC/31): OUT1 and OUT2 asked in one sentence four minutes apart; each now in its own words.
     if (once(`guide:${u.id}`)) ask(u, n === 16
-      ? L("pyydämme paikallista opasta tai VPK:n miestä mukaan, metsäautotiet eivät ole kartalla oikein.", "we request a local guide or a VPK man to come with us; the forest roads are not right on the map.")
+      ? vary(u.id, 0, [
+        L("pyydämme paikallista opasta tai VPK:n miestä mukaan, metsäautotiet eivät ole kartalla oikein.", "we request a local guide or a VPK man to come with us; the forest roads are not right on the map."),
+        L("tarvitsemme oppaan, joka tuntee metsäautotiet; kartan tiet eivät täsmää maastoon.", "we need a guide who knows the forest roads; the roads on our map do not match the ground."),
+      ])
       : L(`kiertotie maantien kautta ok. Mistä kohtaa pääsemme kaakkoisrintamalle raskaalla autolla?`, `the detour along the main road is OK. Where can we reach the south-east front with a heavy vehicle?`), "vesi_reitit");
   }
 

@@ -28,9 +28,11 @@ import { requestTraffic } from "./traffic-requests.js";
 import { isShuttle, SHUTTLE_ID, shuttleDoing, stepWater, vehicleFilling, waterAnswer } from "./traffic-water.js";
 import { sectorOfPoint } from "./traffic-places.js";
 import {
-  actorTypeOf, bearing, cap, clockAt, dirFrom, dirTo, dist, drawFrom, FLAME_FI, fmt1, FUEL_FI, hm, intensityClass, isBog, L, LL, pl, r50, say, stepStartS,
-  TASK_FI, voiceOf, type LandCoverFi,
+  actorTypeOf, bearing, cap, clockAt, dirFrom, dirTo, dist, drawFrom, FLAME_FI, flameWords, fmt1, FUEL_FI, hm, intensityClass, isBog, L, LL, pl, r50, say, stepStartS,
+  TASK_FI, vary, voiceOf, type LandCoverFi,
 } from "./traffic-text.js";
+import { PHASE_B_FIRST_STEP } from "./flame-table.js";
+import { stationReading } from "./station-weather.js";
 import { NEW_FIRE_STEPS, recordTape, type Lane, type Out, type Tape, type TrafficCycleInput, type TrafficEvent, type TrafficState, type TrafficUnit } from "./traffic-types.js";
 
 export { actorTypeOf, clockAt, dirTo, type LandCoverFi };
@@ -231,6 +233,8 @@ function crewSees(u: TrafficUnit, inp: TrafficCycleInput, out: Out): { text: str
   const rate = measured * (0.8 + rnd() * 0.4);
   const active = inp.fire.freshHa(u.pos, OWN_EDGE_M) > 0 || inp.fire.currentFreshHa(u.pos, OWN_EDGE_M) > 0;
   const cls = intensityClass(lc, measured, active);
+  // The flame the crew states: from the hinge, the provisional table's at its own edge's rate (SPEC/31 §3.11); the class still drives the wording.
+  const fw = flameWords(cls, measured, lc, inp.n);
   const hedge = chance(0.3) ? ` (${pick(voiceOf(u.id).hedge)})` : "";
   const moveDeg = cen.old && cen.fresh ? bearing(cen.old, cen.fresh) : atHead ? inp.headingDeg : bearing(inp.head, u.pos);
   const dir = dirTo(moveDeg);
@@ -249,11 +253,12 @@ function crewSees(u: TrafficUnit, inp: TrafficCycleInput, out: Out): { text: str
   else if (!active) text = isBog(lc)
     ? out.fresh([L("turvepinta savuaa paikoin, liekkejä ei näy", "the peat surface smokes in places, no flames"), L("suon pinta höyryää, avotulta ei ole", "the bog surface is steaming, no open fire"), L("turvepinnassa savuavia kohtia, kastelemme", "smoking spots in the peat, we are soaking them")])
     : out.fresh([L("reuna pysynyt paikallaan, savuaa vain", "the edge has stayed put, only smoking"), L("ei liekkejä, kantoja ja kariketta savuaa", "no flames, stumps and litter smoking"), L("reuna rauhallinen, jälkisammutusta riittää", "the edge is calm, plenty of mop-up"), L("reunalla ei liikettä, kuumia kantoja kaivetaan auki", "no movement on the edge, digging out hot stumps"), L("palanut reuna jäähtyy, yksittäisiä savuja", "the burned edge is cooling, a few smokes")]);
-  else if (isBog(lc)) text = out.fresh([L(`palo menee turpeeseen, pinnalla savuavia laikkuja, ${FLAME_FI[cls]}`, `the fire is going into the peat, smoking patches on the surface, ${FLAME_FI[cls]}`), L("turve palaa pinnan alla, savua paljon, liekkejä vähän", "the peat is burning under the surface, a lot of smoke, few flames"), L(`suon reuna savuaa leveältä alalta, ${rateFi}`, `the bog edge is smoking over a wide area, ${rateFi}`), L(`turpeesta nousee savua ojan varresta, ${FLAME_FI[cls]}`, `smoke rising from the peat along the ditch, ${FLAME_FI[cls]}`)]);
+  else if (isBog(lc)) text = out.fresh([L(`palo menee turpeeseen, pinnalla savuavia laikkuja, ${fw}`, `the fire is going into the peat, smoking patches on the surface, ${fw}`), L("turve palaa pinnan alla, savua paljon, liekkejä vähän", "the peat is burning under the surface, a lot of smoke, few flames"), L(`suon reuna savuaa leveältä alalta, ${rateFi}`, `the bog edge is smoking over a wide area, ${rateFi}`), L(`turpeesta nousee savua ojan varresta, ${fw}`, `smoke rising from the peat along the ditch, ${fw}`)]);
   else if (cls <= 1) text = out.fresh([L(`matalaa pintapaloa, ${FLAME_FI[1]}, reuna ryömii hitaasti`, `low surface fire, ${FLAME_FI[1]}, the edge creeping slowly`), L(`hehkuvaa kariketta ja pientä liekkiä, ${rateFi}`, `glowing litter and small flames, ${rateFi}`), L(`pieni liekki sammalessa, ${rateFi}`, `small flames in the moss, ${rateFi}`)]);
-  else if (cls === 2) text = ((f) => out.fresh([L(`pintapaloa ${f}, ${FLAME_FI[2]}`, `surface fire in ${f}, ${FLAME_FI[2]}`), L(`reuna ${rateFi}, ${FLAME_FI[2]}`, `edge ${rateFi}, ${FLAME_FI[2]}`), L(`sivulla tasaista pintapaloa, ${FLAME_FI[2]}`, `steady surface fire on the flank, ${FLAME_FI[2]}`), L(`kanerva palaa tasaisesti, ${rateFi}`, `the heather is burning steadily, ${rateFi}`), L(`liekki kulkee maata pitkin, ${FLAME_FI[2]}; ${rateFi}`, `flames running along the ground, ${FLAME_FI[2]}; ${rateFi}`)]))(pick(FUEL_FI[lc]));
-  else if (cls === 3) text = ((f) => out.fresh([L(`voimakas pintapalo, ${FLAME_FI[3]}, yksittäisiä puita syttyy`, `intense surface fire, ${FLAME_FI[3]}, single trees catching`), L(`reuna painuu ${dir}, ${FLAME_FI[3]}; ${rateFi}`, `the edge is pushing ${dir}, ${FLAME_FI[3]}; ${rateFi}`), L(`kova pintapalo ${f}, ${rateFi}`, `hard surface fire in ${f}, ${rateFi}`), L(`liekit pari metriä, alikasvos syttyy, ${rateFi}`, `flames a couple of metres, the undergrowth is catching, ${rateFi}`)]))(pick(FUEL_FI[lc]));
-  else if (cls === 4) text = ((f) => out.fresh([L(`puita syttyy latvoiltaan, ${FLAME_FI[4]}, suora hyökkäys ei onnistu`, `trees torching, ${FLAME_FI[4]}, no direct attack possible`), L(`rajua paloa ${f}, ${rateFi}`, `fierce fire in ${f}, ${rateFi}`), L(`yksittäisiä latvoja leimahtaa, kuumuus ajaa meidät taaksepäin; ${rateFi}`, `single crowns flaring up, the heat is driving us back; ${rateFi}`)]))(pick(FUEL_FI[lc]));
+  else if (cls === 2) text = ((f) => out.fresh([L(`pintapaloa ${f}, ${fw}`, `surface fire in ${f}, ${fw}`), L(`reuna ${rateFi}, ${fw}`, `edge ${rateFi}, ${fw}`), L(`sivulla tasaista pintapaloa, ${fw}`, `steady surface fire on the flank, ${fw}`), L(`kanerva palaa tasaisesti, ${rateFi}`, `the heather is burning steadily, ${rateFi}`), L(`liekki kulkee maata pitkin, ${fw}; ${rateFi}`, `flames running along the ground, ${fw}; ${rateFi}`)]))(pick(FUEL_FI[lc]));
+  // "liekit pari metriä" before the hinge; from it the table's band (FT-C16: KY21 18:26 and DR2 18:25 now state the same physics).
+  else if (cls === 3) text = ((f) => out.fresh([L(`voimakas pintapalo, ${fw}, yksittäisiä puita syttyy`, `intense surface fire, ${fw}, single trees catching`), L(`reuna painuu ${dir}, ${fw}; ${rateFi}`, `the edge is pushing ${dir}, ${fw}; ${rateFi}`), L(`kova pintapalo ${f}, ${rateFi}`, `hard surface fire in ${f}, ${rateFi}`), L(`${inp.n >= PHASE_B_FIRST_STEP ? fw : "liekit pari metriä"}, alikasvos syttyy, ${rateFi}`, `${inp.n >= PHASE_B_FIRST_STEP ? fw : "flames a couple of metres"}, the undergrowth is catching, ${rateFi}`)]))(pick(FUEL_FI[lc]));
+  else if (cls === 4) text = ((f) => out.fresh([L(`puita syttyy latvoiltaan, ${fw}, suora hyökkäys ei onnistu`, `trees torching, ${fw}, no direct attack possible`), L(`rajua paloa ${f}, ${rateFi}`, `fierce fire in ${f}, ${rateFi}`), L(`yksittäisiä latvoja leimahtaa, kuumuus ajaa meidät taaksepäin; ${rateFi}`, `single crowns flaring up, the heat is driving us back; ${rateFi}`)]))(pick(FUEL_FI[lc]));
   else text = out.fresh([L(`latvapaloa, ${FLAME_FI[5]}, kipinöitä satoja metrejä eteen`, `crown fire, ${FLAME_FI[5]}, embers hundreds of metres ahead`), L(`kuusikko palaa latvoissa, ${rateFi}`, `the spruce stand is burning in the crowns, ${rateFi}`), L(`latvoissa jatkuva tulirintama, ${rateFi}`, `a continuous fire front in the crowns, ${rateFi}`)]);
   if (atHead && cls >= 4 && chance(0.35)) text += L(", en näe kärkeä savun takia", ", I cannot see the head for the smoke");
   else if (atHead && chance(0.5)) text += L(`, kärki noin ${r50(dist(u.pos, inp.head))} m meistä ${toward}`, `, the head about ${r50(dist(u.pos, inp.head))} m to our ${toward}`) + (chance(0.3) ? L(" (varmistamatta)", " (unconfirmed)") : "");
@@ -290,7 +295,9 @@ function roadLineWork(u: TrafficUnit, inp: TrafficCycleInput, out: Out, moveDeg:
   if (!Number.isFinite(d) || d > SPRINKLER_ON_M) return out.fresh([
     L(`sadetinlinja (noin ${m} m) valmiina tien varressa, vesi kytketään altaasta kun palo on noin ${SPRINKLER_ON_M} m päässä tai kipinät ylittävät tien; allas riittää noin 10 min, ${SHUTTLE_ID} täydentää`, `the sprinkler line (about ${m} m) is ready along the road; the water goes on from the basin when the fire is about ${SPRINKLER_ON_M} m away or embers cross the road; the basin lasts about 10 min and ${SHUTTLE_ID} tops it up`),
     L(`suuttimilla varustettu letkulinja tien reunassa valmiina, noin ${m} m, allas täynnä`, `a hose line with nozzles laid along the road edge, about ${m} m, the basin full`),
-    L(`palo noin ${r50(Number.isFinite(d) ? d : 4000)} m päässä; linja ${m} m tien varressa valmiina, vesi kytketään kun palo lähestyy`, `the fire is about ${r50(Number.isFinite(d) ? d : 4000)} m away; ${m} m of line ready along the road, the water goes on when the fire comes closer`),
+    // Radio ST-03 (SPEC/31): the crew's own report before this tail already says how far the fire is; the tail no longer repeats it
+    // ("… palo noin 550 m länteen. Palo noin 550 m päässä; linja …", c20.033, c17.004, c14.025).
+    L(`linja ${m} m tien varressa valmiina, vesi kytketään kun palo lähestyy`, `${m} m of line ready along the road, the water goes on when the fire comes closer`),
   ]);
   const flow = 500 + Math.round(((300 - Math.min(300, d)) / 300) * 7) * 100;
   // Whether this stretch of the front comes at the road (within 60° of the way from the fire to the crew) or runs along it.
@@ -358,16 +365,54 @@ function burnoutTraffic(inp: TrafficCycleInput, state: TrafficState, out: Out): 
   }
 }
 
+/** The hose robot is stuck from OUT1's report at step 19 (~19:23, `deployment.ts` EXTRA_RADIO) to the handover (radio ST-06). */
+const robotStuck = (id: string, n: number): boolean => id === "UGV1" && n >= 19;
+
+/** The log landing in the R2/forest-road junction's south-east corner (revision (al): 60 × 40 m, drawn on the map). */
+const LOG_LANDING: P = { x: FEATURES.R2_FR.x + 30, y: FEATURES.R2_FR.y - 20 };
+/**
+ * SPEC/31 D8 (FT-T19/T20): every crew holding road R2 states, when asked from 19:00 to 20:00, its escape route and a named safety
+ * zone — the crews at and north of the forest-road junction the log landing in the junction's corner, the crews south of it the
+ * fields of Lahdenkylä, both away from the south-east front's path (the panel judges them: `fire_tactical.md` "For the expert
+ * panel"). Deterministic (no draw); DRAFT Finnish for the native check.
+ */
+function r2SafetyLine(u: TrafficUnit, n: number): string {
+  if (n < 18 || u.onEdge || u.task !== "road_line" || !/^at:R2_/.test(u.anchor ?? "")) return "";
+  if (u.anchor === "at:R2_FR" || u.anchor === "at:R2_BOG") {
+    const near = dist(u.pos, LOG_LANDING) < 150;
+    return near
+      ? L("Turva-alue: R2:n risteyksen puutavaran varastoalue vieressämme, auto käännettynä, perääntymistie sinne tietä pitkin.", "Safety zone: the log landing at the R2 junction right beside us, vehicle turned round, escape route there along the road.")
+      : L(`Perääntymistie: autolla tietä R2 pitkin ${dirTo(bearing(u.pos, LOG_LANDING))} R2:n risteyksen puutavaran varastoalueelle (turva-alue), auto käännettynä.`, `Escape route: by vehicle along road R2 ${dirTo(bearing(u.pos, LOG_LANDING))} to the log landing at the R2 junction (safety zone), vehicle turned round.`);
+  }
+  return L("Perääntymistie: autolla tietä R2 pitkin etelään Lahdenkylän pelloille (turva-alue), auto käännettynä.", "Escape route: by vehicle south along road R2 to the Lahdenkylä fields (safety zone), vehicle turned round.");
+}
+
 /** Builds one step's traffic. `state` carries tanks, batteries and coverage between steps. */
 /**
  * What the spotter sees besides the main fire: spot fires (embers) and old edges flaring up again (rekindles, the north edge's
  * holdover at 19:00) are said apart (F4, review fixes (ah): the holdover is not a spot fire).
  */
+/** Which old edge a flare-up is on (radio CO-02): the edge the crews nearest it hold, as their place names it. */
+const OLD_EDGE: Readonly<Record<string, readonly [string, string]>> = {
+  pohjoisreuna: ["Pohjoisreuna", "The north edge"], itäreuna: ["Itäreuna", "The east edge"], eteläreuna: ["Eteläreuna", "The south edge"], länsireuna: ["Länsireuna", "The west edge"],
+};
+const EDGE_PLACE = /^(pohjoisreuna|itäreuna|eteläreuna|länsireuna)/;
+/** The flare-up's edge: the place of the nearest crew within 400 m that holds a named edge; undefined when none does. */
+function edgeOf(inp: TrafficCycleInput, p: P): readonly [string, string] | undefined {
+  const near = inp.units.filter((u) => u.place !== null && EDGE_PLACE.test(u.place) && dist(u.pos, p) <= 400).sort((a, b) => dist(a.pos, p) - dist(b.pos, p) || (a.id < b.id ? -1 : 1))[0];
+  return near ? OLD_EDGE[EDGE_PLACE.exec(near.place!)![1]!] : undefined;
+}
 function spotCountText(inp: TrafficCycleInput): string {
-  const rk = inp.spotFires.filter((s) => isRekindleCallsign(s.callsign)).length;
+  const rks = inp.spotFires.filter((s) => isRekindleCallsign(s.callsign));
+  const rk = rks.length;
   const sp = inp.spotFires.length - rk;
   const spots = sp === 1 ? L("Yksi pistepalo näkyvissä.", "One spot fire in sight.") : sp > 1 ? L(`${sp} pistepaloa näkyvissä.`, `${sp} spot fires in sight.`) : "";
-  const flares = rk === 1 ? L("Vanha reuna leimahtanut uudelleen yhdessä kohdassa.", "An old edge has flared up again in one place.") : rk > 1 ? L(`Vanha reuna leimahtanut uudelleen ${rk} kohdassa.`, `Old edges have flared up again in ${rk} places.`) : "";
+  // Radio CO-02 (SPEC/31): a flare-up is placed (SPOT 19:15 in V13: the north edge, the holdover US2 beside KY23's firebreak), so it
+  // cannot be read as a fire the directive does not describe or as an early report of V14's west-edge flare-up.
+  const edge = rk === 1 ? edgeOf(inp, rks[0]!.pos) : undefined;
+  const flares = rk === 1
+    ? (edge ? L(`${edge[0]} leimahtanut uudelleen yhdessä kohdassa.`, `${edge[1]} has flared up again in one place.`) : L("Vanha reuna leimahtanut uudelleen yhdessä kohdassa.", "An old edge has flared up again in one place."))
+    : rk > 1 ? L(`Vanha reuna leimahtanut uudelleen ${rk} kohdassa.`, `Old edges have flared up again in ${rk} places.`) : "";
   return [spots, flares].filter(Boolean).join(" ") || L("Ei muita savuja alueella.", "No other smoke in the area.");
 }
 
@@ -396,7 +441,7 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
         L(`Etenemisnopeus arviolta ${Math.round(rate)} m/min. ${cap(windTxt)}.`, `Rate of spread roughly ${Math.round(rate)} m/min. ${cap(windTxt)}.`),
         L(`Lähin asutus: ${inp.settlements.map((s) => `${s.fi} ${fmt1(dist(inp.head, s.at) / 1000)} km ${dirTo(bearing(inp.head, s.at))}`).join(", ")} kärjestä.`, `Nearest homes: ${inp.settlements.map((s) => `${s.fi} ${fmt1(dist(inp.head, s.at) / 1000)} km ${dirTo(bearing(inp.head, s.at))}`).join(", ")} of the head.`),
         L(`Aloitamme kärjen pohjoissivustasta letkulinjalla, EK12 eteläsivustaan, VPK eteläreunalle. Johtopaikka R1:n ja R3:n risteyksessä.`, `We start on the north flank of the head with a hose line, EK12 on the south flank, VPK on the south edge. Command post at the R1/R3 junction.`),
-        L(`Pyydän lisää vettä ja maastopaloyksikön pohjoisreunalle; perääntymistie: ${escapeRoute(lead.pos, inp.head, inp.fire, lead.vehicle).fi}.`, `I request more water and a forest-fire unit for the north flank; escape route: ${routeEn(escapeRoute(lead.pos, inp.head, inp.fire, lead.vehicle).fi)}.`),
+        L(`Pyydän lisää vettä ja maastopaloyksikön pohjoisreunalle; perääntymistie: ${escapeRoute(lead.pos, inp.head, inp.fire, lead.vehicle).fi}.`, `I request more water and a forest-fire unit for the north edge; escape route: ${routeEn(escapeRoute(lead.pos, inp.head, inp.fire, lead.vehicle).fi)}.`),
       ];
       lines.forEach((content, k) => out.push({ offsetS: 15 + k * 22, actor: lead.id, actor_type: "fire_team", addressee: "JOHTO", ...at(lead), event_type: k < 5 ? "size_up" : "request", task: lead.task, content, tier: "T1_pushed", channel: "radio_command", nav: k === 3 ? "saa" : k === 4 ? "kohteet" : "palo" }));
     }
@@ -469,9 +514,15 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
       // computed from the head's run): its intensity class and its own rate; a low edge throws none worth a distance.
       const ember = r50([0, 20, 40, 100, 200, 350][seen.cls]! + seen.measured * 6 + (seen.lc === "spruce" ? 80 : 0) + (rnd() - 0.5) * 60);
       if (seen.cls <= 2) {
+        // Radio ST-08 (SPEC/31): the watch is said in the crew's own words, fixed by unit and step (EK12 14:08 and EK11 14:28 said one sentence).
+        const watch = vary(u.id, n, [
+          L("Tähystäjä seuraa kipinöitä.", "The lookout is watching for embers."),
+          L("Yksi mies katsoo kipinöitä palaneen puolelta.", "One man is watching for embers from the burned side."),
+          L("Tähystäjä tien varressa katsoo kipinöitä.", "The lookout by the road is watching for embers."),
+        ]);
         const passing = out.capped("head-passing", [
           L(`kärki menee ohitsemme ${dirTo(inp.headingDeg)}, meidän kohdallamme reuna palaa matalana. Tarkkailemme kipinöitä ja pistepaloja.`, `the head is going past us to the ${dirTo(inp.headingDeg)}; on our stretch the edge burns low. We are watching for embers and spot fires.`),
-          L(`kärki etenee ${dirTo(inp.headingDeg)} meidän ohi, omalla pätkällämme matalaa paloa. Tähystäjä seuraa kipinöitä.`, `the head is running ${dirTo(inp.headingDeg)} past us, low fire on our own stretch. The lookout is watching for embers.`),
+          L(`kärki etenee ${dirTo(inp.headingDeg)} meidän ohi, omalla pätkällämme matalaa paloa. ${watch}`, `the head is running ${dirTo(inp.headingDeg)} past us, low fire on our own stretch. ${watch}`),
         ]);
         if (passing !== null) out.push({ actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: "JOHTO", ...at(u), event_type: "warning", task: u.task,
           content: say(u.id, u.place, passing), tier: "T1_pushed", channel: "radio_command", nav: "palo" });
@@ -502,8 +553,15 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
     const where = off <= 45
       ? L(`olemme kärjen edessä tuulen alapuolella, noin ${r50(d)} m kärjestä ${dirTo(bearing(inp.head, u.pos))}`, `we are ahead of the head, downwind, about ${r50(d)} m ${dirTo(bearing(inp.head, u.pos))} of it`)
       : L(`olemme kärjen ${rel < 0 ? "vasemmalla" : "oikealla"} sivustalla tuulen suuntaan katsoen, noin ${r50(d)} m kärjestä ${dirTo(bearing(inp.head, u.pos))}`, `we are on the head's ${rel < 0 ? "left" : "right"} flank looking downwind, about ${r50(d)} m ${dirTo(bearing(inp.head, u.pos))} of it`);
+    // Radio TE-04 (one form, "perääntymistie", the corpus's majority) and ST-08 (EK11 said this sentence word for word at 13:23 and
+    // 14:03): three phrasings, fixed by unit and step (no draw).
+    const lces = vary(u.id, n, [
+      L(`Perääntymistie palaneelle alalle ${back} m, tähystäjä nimetty, radioyhteys kaikkiin.`, `Escape route into the burned area ${back} m, lookout posted, radio contact with everyone.`),
+      L(`Perääntymistie palaneelle alalle, noin ${back} m. Tähystäjä paikallaan, yhteys kaikkiin kunnossa.`, `Escape route into the burned area, about ${back} m. The lookout is in place, radio contact with everyone.`),
+      L(`Turva-alue palaneella alalla ${back} m takanamme, sinne perääntymistie. Tähystäjä nimetty, kaikki kuulolla.`, `Safety zone in the burned area ${back} m behind us, our escape route leads there. Lookout posted, everyone listening.`),
+    ]);
     out.push({ offsetS: 200, actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: "JOHTO", ...at(u), event_type: "report", task: u.task,
-      content: say(u.id, u.place, `${where}. ${L(`Perääntymisreitti palaneelle alalle ${back} m, tähystäjä nimetty, radioyhteys kaikkiin.`, `Escape route into the burned area ${back} m, lookout posted, radio contact with everyone.`)}`),
+      content: say(u.id, u.place, `${where}. ${lces}`),
       tier: "T1_pushed", channel: "radio_command", nav: "yksikot" });
   }
 
@@ -526,18 +584,21 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
   // updated from crew reports and drone images, and its area is the reported area the map shows (review item 9).
   if (n >= 15 && !inp.aircraft.some((a) => a.flight === "loop")) {
     out.push({ offsetS: 940, actor: "TILANNEKUVA", actor_type: "command", addressee: null, pos: FEATURES.CP, place: "johtopaikka", location: null, event_type: "status", task: null,
-      content: L(`Tilannekuva klo ${hm(stepStartS(n) + 930)}: palorajan kartta päivitetty yksiköiden ilmoitusten${inp.aircraft.some((a) => a.kind === "drone") ? " ja dronekuvien" : ""} perusteella. Palanut ala noin ${fmt1(inp.areaHa)} ha, pituus noin ${r50(inp.lengthM)} m.`,
+      content: L(`Tilannekuva klo ${hm(stepStartS(n) + 930)}: palorajan kartta päivitetty yksiköiden ilmoitusten${inp.aircraft.some((a) => a.kind === "drone") ? " ja droonikuvien" : ""} perusteella. Palanut ala noin ${fmt1(inp.areaHa)} ha, pituus noin ${r50(inp.lengthM)} m.`,
         `Situation picture at ${hm(stepStartS(n) + 930)}: the perimeter map updated from the units' reports${inp.aircraft.some((a) => a.kind === "drone") ? " and drone images" : ""}. Burned area about ${fmt1(inp.areaHa)} ha, length about ${r50(inp.lengthM)} m.`),
       tier: "T2_system", channel: "system_log", nav: "palo" });
   }
 
   // --- System logs: weather station, AVL positions ---------------------------------------------------
-  // Fix pass 6 (FF5): at 16.20, 18.00 and 19.20 the station also gives temperature and humidity, as the forecast does (dry continental air, 20–22 °C with 25–30 %).
-  const SAA_TH: Readonly<Record<number, readonly [number, number]>> = { 10: [25, 38], 15: [22, 28], 19: [20, 26] };
-  const saaTh = SAA_TH[n];
+  // Fix pass 6 (FF5): at 16.20, 18.00 and 19.20 the station also gave temperature and humidity. SPEC/31 D3 (FT-C12/C18/C20): its
+  // reading at every step's start gives temperature, humidity and dew point (`station-weather.ts`: the design values to 16.00, then
+  // the evening drying with no recovery), so the reignition check has RH at 17:00, 19:00 and 19:40.
+  const th = stationReading(n);
+  const thFi = th ? `, lämpötila ${th.tempC} °C, ilmankosteus ${th.rhPct} %, kastepiste ${fmt1(th.dewC).replace("-", "−")} °C` : "";
+  const thEn = th ? `, temperature ${th.tempC} °C, humidity ${th.rhPct} %, dew point ${fmt1(th.dewC).replace("-", "−")} °C` : "";
   for (const k of [0, 1]) {
     out.push({ offsetS: k === 0 ? 5 : 600, actor: "SAA", actor_type: "weather_station", addressee: null, pos: FEATURES.CP, place: "johtopaikka", event_type: "weather", task: null,
-      content: `${L("Sääasema johtopaikalla", "Weather station at the command post")}: ${windTxt}${k === 0 && saaTh ? L(`, lämpötila ${saaTh[0]} °C, ilmankosteus ${saaTh[1]} %`, `, temperature ${saaTh[0]} °C, humidity ${saaTh[1]} %`) : ""}${k === 1 ? L(", suunta vaihtelee ±15°", ", direction varying ±15°") : ""}${k === 1 && n === 10 ? L("; kaakkoistuuli on paikallinen: rintaman edellä purkautuva ilma ja virtaus Karhujärven ja harjun suuntaisesti", "; the south-easterly is local: outflow ahead of the front and channelling along Karhujärvi and the esker") : ""}.`, tier: "T2_system", channel: "system_log", nav: "saa" });
+      content: `${L("Sääasema johtopaikalla", "Weather station at the command post")}: ${windTxt}${k === 0 ? L(thFi, thEn) : ""}${k === 1 ? L(", suunta vaihtelee ±15°", ", direction varying ±15°") : ""}${k === 1 && n === 10 ? L("; kaakkoistuuli on paikallinen: rintaman edellä purkautuva ilma ja virtaus Karhujärven ja harjun suuntaisesti", "; the south-easterly is local: outflow ahead of the front and channelling along Karhujärvi and the esker") : ""}.`, tier: "T2_system", channel: "system_log", nav: "saa" });
   }
   for (const u of inp.units.filter((x) => x.arrivedCycle <= n)) {
     // The water shuttle's AVL is logged at the step's start, where the map draws it, and says what its run has it doing
@@ -550,8 +611,10 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
     }
     // M8 (review fixes (ah)): after a move the stale map does not show yet, the AVL record follows the move (`TrafficUnit.avl`).
     const v = u.avl ?? u;
+    // Radio ST-06 (SPEC/31): after OUT1's pushed report that UGV1 is stuck (step 19, ~19:23) its AVL says it has stopped, not "laying hose".
+    const taskFi = robotStuck(u.id, n) ? TASK_FI["blocked"]! : TASK_FI[v.task] ?? v.task;
     out.push({ actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: null, pos: v.pos, place: v.place, location: v.sector, event_type: "status", task: v.task,
-      content: `AVL ${u.id}: ${pl(v.place ?? inp.placeNear(v.pos) ?? "maastossa")}, ${L("tehtävä", "task")} ${TASK_FI[v.task] ?? v.task}.`, tier: "T2_system", channel: "system_log", nav: "yksikot" }, "feed");
+      content: `AVL ${u.id}: ${pl(v.place ?? inp.placeNear(v.pos) ?? "maastossa")}, ${L("tehtävä", "task")} ${taskFi}.`, tier: "T2_system", channel: "system_log", nav: "yksikot" }, "feed");
   }
 
   // --- Ask a unit (T3): what only the crew knows -------------------------------------------------------
@@ -561,8 +624,11 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
     const road = inp.roadNear(u.vehicle ?? u.pos);
     const h = hoursOnScene(u, n);
     const robot = u.id.startsWith("UGV");
+    // Radio ST-06 (SPEC/31): the robot's answer follows its state — on OUT1's trailer (blocked at the bridge), laying hose, or stuck.
     const facts = robot
-      ? [L(`Robotti vetää letkua, maapohja ${isBog(inp.landCoverAt(u.pos)) ? "pehmeää" : "kantavaa"}${u.hoseM ? `, letkulinja ${u.hoseM} m` : ""}.`, `The robot is laying hose, the ground is ${isBog(inp.landCoverAt(u.pos)) ? "soft" : "firm"}${u.hoseM ? `, hose line ${u.hoseM} m` : ""}.`)]
+      ? [robotStuck(u.id, n) ? L("Robotti juuttunut ojanvarteen, letkunveto seis.", "The robot is stuck in the ditch beside the road, hose laying has stopped.")
+        : u.task === "blocked" ? L("Robotti OUT1:n perävaunussa, ei tehtävää.", "The robot is on OUT1's trailer, no task.")
+          : L(`Robotti vetää letkua, maapohja ${isBog(inp.landCoverAt(u.pos)) ? "pehmeää" : "kantavaa"}${u.hoseM ? `, letkulinja ${u.hoseM} m` : ""}.`, `The robot is laying hose, the ground is ${isBog(inp.landCoverAt(u.pos)) ? "soft" : "firm"}${u.hoseM ? `, hose line ${u.hoseM} m` : ""}.`)]
       : [
           waterAnswer(state, u.id, stepStartS(n) + askAt),
           // A vehicle away for water says so (review 6 Oct 2026, A6: "nyt soratiellä" while it was filling);
@@ -571,6 +637,7 @@ export function cycleTraffic(inp: TrafficCycleInput, state: TrafficState, tape: 
             ? L(`Ajoneuvo täyttämässä (${filling})${u.hoseM ? `, letkulinja ${u.hoseM} m` : ""}.`, `Vehicle away filling (${pl(filling)})${u.hoseM ? `, hose line ${u.hoseM} m` : ""}.`)
             : L(`${u.vehicleMovedM > 150 ? `Auto siirretty noin ${r50(u.vehicleMovedM)} m, nyt` : "Ajoneuvo"} ${road.cls === "forest" ? "metsäautotiellä" : road.cls === "gravel" ? "soratiellä" : road.cls === "main" ? "maantiellä" : "ajouralla"}${u.hoseM ? `, letkulinja ${u.hoseM} m` : ""}.`, `${u.vehicleMovedM > 150 ? `Vehicle moved about ${r50(u.vehicleMovedM)} m, now` : "Vehicle"} on ${road.cls === "forest" ? "a forest road" : road.cls === "gravel" ? "a gravel road" : road.cls === "main" ? "the main road" : "a track"}${u.hoseM ? `, hose line ${u.hoseM} m` : ""}.`))(vehicleFilling(state, u.id, stepStartS(n) + askAt)),
           L(`Miehistö ollut kentällä ${fmt1(Math.max(0.3, h))} h${h > 5 ? ", väsymystä alkaa näkyä" : h > 3 ? ", juomataukoja pidetty" : ""}.`, `Crew in the field for ${fmt1(Math.max(0.3, h))} h${h > 5 ? ", fatigue starting to show" : h > 3 ? ", drink breaks taken" : ""}.`),
+          r2SafetyLine(u, n),
           u.onEdge ? pick([L(`Perääntymistie: ${escapeRoute(u.pos, inp.head, inp.fire, u.vehicle).fi}.`, `Escape route: ${routeEn(escapeRoute(u.pos, inp.head, inp.fire, u.vehicle).fi)}.`), L("Tähystäjä nimetty.", "Lookout posted."), ((m: number) => L(`Letkua varalla ${m} m.`, `${m} m of spare hose.`))(r50(100 + rnd() * 200))]) : "",
         ].filter((x) => x.length > 0);
     out.push({ offsetS: askAt, actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: "JOHTO", ...at(u), event_type: "status", task: u.task,

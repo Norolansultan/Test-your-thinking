@@ -23,9 +23,10 @@ const REQ = { sessionId: "premise", condition: "substitutive", question: "What a
 const req = (view: number, extra: Record<string, unknown> = {}) => ({ ...REQ, view, virtualTimeS: view === 0 ? 0 : startOf(view), ...extra });
 
 const LINE_NONE = { en: "Directive premises: no newest record contradicts P1 or P2.", fi: "Linjauksen lähtöoletukset: mikään uusin tieto ei kumoa oletuksia P1 ja P2." };
+// SPEC/31 §3.4 (coa F3/F4, RC; panel to confirm): at V14 only P1 (re-worded, DRAFT) is contradicted; P2 stands (R2 ahead of the head is held).
 const LINE_V14 = {
-  en: ["P1 The region's fire situation is as the directive describes — no longer holds: SPOT 19.23.", "P2 Roads or water ahead of each fire still give a line that can be held — no longer holds: EK16 19.22."],
-  fi: ["P1 Alueen palotilanne on sellainen kuin linjaus kuvaa — ei enää päde: SPOT klo 19.23.", "P2 Jokaisen palon edessä on yhä tie tai vesistö, jonka varaan linja voidaan pitää — ei enää päde: EK16 klo 19.22."],
+  en: ["P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 19.23."],
+  fi: ["P1 Linjauksen jälkeen ei ole syttynyt uutta paloa tai uudelleensyttymää, jonka edessä ei ole linjaa — ei enää päde: SPOT klo 19.23."],
 };
 
 function fakeClient(...texts: string[]) {
@@ -57,18 +58,19 @@ async function ask(view: number, modelJson: string, extra: Record<string, unknow
 const modelPremises = [{ id: "P1", premise: "", status: "supported" as const, tags: ["T1"] }, { id: "P2", premise: "", status: "supported" as const, tags: ["T1"] }];
 
 describe("the premise line in a guide's options answer (directive in force)", () => {
-  it("V14: both premises flagged in the fixed template; the model's own ratings are overwritten; logged with the table's version, hash and atom ids", async () => {
+  it("V14: P1 flagged in the fixed template, P2 not (SPEC/31 §3.4); the model's own ratings are overwritten; logged with the table's version, hash and atom ids", async () => {
     const { body, log } = await ask(14, openJson({ kind: "options", options: twoOptions("departure_justifiable", "fits"), premises: modelPremises }));
     const structured = body.structured as OpenStructuredView;
     for (const line of LINE_V14.en) expect(body.answer).toContain(line);
     expect(body.answer).not.toContain("Premises:");
-    expect(body.answer.indexOf(LINE_V14.en[1]!)).toBeLessThan(body.answer.indexOf("Options:"));
+    expect(body.answer).not.toContain("P2 Roads");
+    expect(body.answer.indexOf(LINE_V14.en[0]!)).toBeLessThan(body.answer.indexOf("Options:"));
     expect(structured.premiseCheck).toMatchObject({ tableVersion: evidence.version, flagShown: true, lines: LINE_V14.en });
-    expect(structured.premises.map((p) => [p.id, p.status, p.tags.length])).toEqual([["P1", "contradicted", 0], ["P2", "contradicted", 0]]);
+    expect(structured.premises.map((p) => [p.id, p.status, p.tags.length])).toEqual([["P1", "contradicted", 0], ["P2", "not_addressed", 0]]);
     expect(structured.premises.map((p) => p.premise)).toEqual(loadDirectivePremises().premises.map((p) => p.en));
     expect(log).toMatchObject({
       premiseEvidenceVersion: evidence.version, premiseEvidenceSha256: evidence.sha256, premiseFlagShown: true,
-      premiseStatuses: [{ id: "P1", status: "contradicted", atomIds: ["atom.demo.19.2"] }, { id: "P2", status: "contradicted", atomIds: ["atom.radio.19.2"] }],
+      premiseStatuses: [{ id: "P1", status: "contradicted", atomIds: ["atom.demo.19.2"] }, { id: "P2", status: "not_contradicted", atomIds: [] }],
       trimmed: expect.arrayContaining(["premises_from_model_ignored"]),
     });
     expect(log).not.toHaveProperty("aiPremises");
@@ -93,7 +95,7 @@ describe("the premise line in a guide's options answer (directive in force)", ()
 
   it("V9 and V10: P1 flagged with its deciding records; never forces a verdict upward", async () => {
     const v9 = await ask(9, openJson({ kind: "options", options: twoOptions("departs", "fits") }));
-    expect(v9.body.answer).toContain("P1 The region's fire situation is as the directive describes — no longer holds: SPOT 17.01.");
+    expect(v9.body.answer).toContain("P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 17.01.");
     expect(v9.body.answer).not.toContain("P2 Roads");
     expect(v9.log["verdictFields"]).toEqual(["departs", "fits"]);
     expect(v9.log["premiseFlagShown"]).toBe(true);
@@ -108,14 +110,14 @@ describe("the premise line in a guide's options answer (directive in force)", ()
     const opts = ["A", "B", "C"].map((o) => ({ option: `Option ${o} name with six words`, tradeoffs: long, verdict: "departure_justifiable" as const, tags: ["T1"] }));
     const { body, log } = await ask(10, openJson({ kind: "options", options: opts, facts: [{ text: long, tags: ["T1"] }], inference: long.slice(0, 100), questionsForYou: ["Does that change the posture you would take?", "Is the road still open?"] }));
     expect(wordCount(body.answer)).toBeLessThanOrEqual(OPEN_ANSWER_MAX_WORDS);
-    expect(body.answer).toContain("P1 The region's fire situation is as the directive describes — no longer holds: SPOT 17.01, DR2 17.25, DR3 17.35.");
+    expect(body.answer).toContain("P1 No new fire or rekindle without a line ahead of it has started since the directive — no longer holds: SPOT 17.01, DR2 17.25, DR3 17.35.");
     expect(log["trimmed"]).toEqual(expect.arrayContaining(["words"]));
   });
 
   it("the model is told the check after the directive, and is asked for no premises and no unforeseen scan", async () => {
     const v14 = await ask(14, openJson({ kind: "options", options: twoOptions() }));
-    expect(v14.system).toContain("P1: The region's fire situation is as the directive describes. — contradicted by the newest records: SPOT 19.23");
-    expect(v14.system).toContain("P2: Roads or water ahead of each fire still give a line that can be held. — contradicted by the newest records: EK16 19.22");
+    expect(v14.system).toContain("P1: No new fire or rekindle without a line ahead of it has started since the directive. — contradicted by the newest records: SPOT 19.23");
+    expect(v14.system).toContain("P2: Roads or water ahead of each fire still give a line that can be held. — not contradicted by the newest records");
     expect(v14.schema).toEqual(OPEN_ANSWER_SCHEMA_GUIDE);
     expect(Object.keys(OPEN_ANSWER_SCHEMA_GUIDE.properties)).not.toContain("premises");
     expect(Object.keys(OPEN_ANSWER_SCHEMA_GUIDE.properties)).not.toContain("unforeseen");

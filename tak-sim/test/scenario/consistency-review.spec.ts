@@ -154,8 +154,9 @@ describe("items 7–8: ground and flames", () => {
     for (const e of generated.filter((x) => /ojanpenkat ja turve/.test(x.content))) expect(e.cycle, e.id).toBeGreaterThanOrEqual(12);
   });
 
+  // SPEC/31 D1: from step 11 the bands are the flame table's (tools/fire-ca/flame-table.ts: 2–3, 3–4, 4–5, over 5 m).
   it("a drone calls a road unsafe only where its camera measures flames above 0.3 m at the road", () => {
-    for (const e of generated.filter((x) => /ajo ei turvallista/.test(x.content))) expect(e.content, e.id).toMatch(/liekit (0,3–1 m|1–2 m|2–4 m|puiden)/);
+    for (const e of generated.filter((x) => /ajo ei turvallista/.test(x.content))) expect(e.content, e.id).toMatch(/liekit (0,3–1 m|1–2 m|2–3 m|2–4 m|3–4 m|4–5 m|yli 5 m|puiden)/);
   });
 });
 

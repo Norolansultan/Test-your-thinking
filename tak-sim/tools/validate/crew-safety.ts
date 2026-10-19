@@ -79,7 +79,8 @@ export const SAFETY_LINES: Readonly<Record<string, { readonly re: RegExp; readon
   // waited and that all are accounted for (revision (aj): it withdrew into the black at 15:40, so steps 8–9 have no finding).
   "10:EK14": { re: /^EK14: yhteys palasi/ },
   // V8, 16:40: EK15's firebreak on the north edge, downwind of the stretch that ran before the lull (revision (aj)).
-  "11:EK15": { re: /^EK15 siirtyy pohjoisreunalle Karhujärven suuntaan \(lohko L1\) \(palokatko .*perääntymistie palaneelle alueelle, tähystäjä nimetty\)/ },
+  // SPEC/31 (radio, the move said as speech): "EK15: siirrymme …" (was "EK15 siirtyy … (lohko L1) (…)").
+  "11:EK15": { re: /^EK15: siirrymme pohjoisreunalle Karhujärven suuntaan, lohko L1; palokatko .*perääntymistie palaneelle alueelle, tähystäjä nimetty/ },
   // V12, 18:20–19:00: the road lines ahead of the south-east front — KY21's trigger point (it leaves at 18:40), EK16's escape
   // route along the road (stated at 18:4x, the head crosses at 19:00–19:20 and EK16 withdraws) (revision (aj)).
   "16:KY21": { re: /^KY21: rintama lähestyy metsäautotietä/ },
@@ -90,7 +91,8 @@ export const SAFETY_LINES: Readonly<Record<string, { readonly re: RegExp; readon
   // Revision (al): EK16 150 m west along the road (off the 110 kV corridor) stands ~185 m downwind of the running head already on
   // the 18:40 map; the same 18:4x report (trigger point, escape route east to the log landing, lookout) covers it.
   "17:EK16": { re: /^Kärki lähestyy metsäautotietä luoteesta/ },
-  "18:EK16": { re: /^Kärki lähestyy metsäautotietä luoteesta/, inStep: 17 },
+  // SPEC/31 D8: at 19:0x, its trigger point met, EK16 states why it stays and its LCES (escape route east, lookout, the new trigger).
+  "18:EK16": { re: /^EK16: laukaisupiste täyttyi klo 19\.00, .*perääntymistie itään .*tähystäjä seuraa/ },
 };
 
 const R = 6_371_000;

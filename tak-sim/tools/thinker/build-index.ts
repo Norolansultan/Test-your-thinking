@@ -14,12 +14,19 @@
  *
  *   npm run thinker:index                 # both languages
  *   npm run thinker:index -- --lang en    # English only: the Finnish files and manifest blocks are kept as they are
+ *   npm run thinker:index -- --manifest-only   # prompt, premise and model blocks re-hashed; indexes kept
+ *   npm run thinker:index -- --carry      # no model: a PROVISIONAL index carried from the previous one (`carry-index.ts`)
  *
  * Downloads the embedding model into `.cache/thinker-models` on first run.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { passageText, type VectorIndexFile } from "../../app/retrieval/hybrid.js";
+import type { InfoAtom } from "../../app/scenario/types.js";
+import { carryIndexText, previousTexts } from "./carry-index.js";
+/** The corpus the previous index was built from, read by `--carry` before `npm run corpus:export` rewrites it. */
+const PREVIOUS_CORPUS_FILE = "content/corpus/interaction-log.jsonl";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { THINKER_CLIENT_TIMEOUT_MS, THINKER_LATENCY_FLOOR_MS, THINKER_MODEL_TIMEOUT_MS } from "../../app/session/thinker-protocol.js";
 import {
@@ -94,6 +101,11 @@ async function main(): Promise<void> {
     console.log("thinker:index --manifest-only — prompt hashes and model block rewritten (indexes kept)");
     return;
   }
+  // SPEC/31 §7 WP-1: `--carry` writes a PROVISIONAL index without the embedder (`carry-index.ts`); run it before `npm run corpus:export`.
+  if (process.argv.includes("--carry")) {
+    carryMain();
+    return;
+  }
   const englishOnly = process.argv.includes("--lang") || process.argv.some((a) => a.startsWith("--lang=")) ? langArg(process.argv.slice(2)) === "en" : false;
   const scenario = buildDemoScenario();
   const embedder = await loadE5Embedder({ allowRemote: true });
@@ -135,6 +147,36 @@ async function main(): Promise<void> {
   };
   write(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`thinker:index — ${fi.count} atoms × 2 languages, ${queries.count}+${enQueries.count} authored queries, prompt ${promptBlocks().prompt.sha256.slice(0, 12)}…, index ${manifest.index.sha256.slice(0, 12)}…, index.en ${indexEn.sha256.slice(0, 12)}…`);
+}
+
+/** The status the manifest gives a carried index (it is not the declared treatment). */
+const CARRIED_STATUS = "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session";
+
+/** `--carry`: both languages' indexes from the previous ones, the manifest's prompt, premise and index blocks rewritten (`carry-index.ts`). */
+function carryMain(): void {
+  const previous = readManifest();
+  if (!previous) throw new Error("no manifest; run `npm run thinker:index` (both languages) first");
+  const scenario = buildDemoScenario();
+  const read = (relative: string) => JSON.parse(readFileSync(repoPath(relative), "utf8")) as VectorIndexFile;
+  const prevFi = read(INDEX_FILE), prevEn = read(INDEX_FILE_EN);
+  const texts = previousTexts(repoPath(PREVIOUS_CORPUS_FILE), prevFi);
+  const fiOf = (a: InfoAtom) => passageText(a, "fi");
+  const fi = carryIndexText(scenario.atoms, "fi", prevFi, texts, fiOf);
+  const en = carryIndexText(scenario.atoms, "en", prevEn, texts, fiOf);
+  write(INDEX_FILE, fi.text);
+  write(INDEX_FILE_EN, en.text);
+  const old = previous as { index?: Record<string, unknown>; indexEn?: Record<string, unknown> };
+  const carried = (n: number, prevSha: unknown) => ({ carriedVectors: n, carriedFromIndexSha256: prevSha, status: CARRIED_STATUS });
+  const manifest = {
+    ...previous, model: modelBlock(), ...promptBlocks(),
+    index: { file: INDEX_FILE, sha256: sha256Hex(fi.text), atomCount: fi.count, scenarioId: scenario.id, scenarioVersion: scenario.version, ...carried(fi.carried, old.index?.["sha256"]) },
+    indexEn: {
+      file: INDEX_FILE_EN, sha256: sha256Hex(en.text), atomCount: en.count, language: "en", scenarioId: scenario.id, scenarioVersion: scenario.version,
+      authoredQueries: AUTHORED_QUERIES_FILE_EN, ...carried(en.carried, old.indexEn?.["sha256"]),
+    },
+  };
+  write(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(`thinker:index --carry — ${fi.count} atoms; carried ${fi.carried} (fi) and ${en.carried} (en) vectors from the previous index (PROVISIONAL); index ${manifest.index.sha256.slice(0, 12)}…, index.en ${manifest.indexEn.sha256.slice(0, 12)}…`);
 }
 
 main().catch((e: unknown) => {

@@ -11,7 +11,7 @@
 
 import { FEATURES, type P } from "./deployment.js";
 import { ROADS } from "../topo-map/roads.js";
-import { actorTypeOf, bearing, dirAdj, dirFrom, dirTo, dist, fmt1, hm, intensityClass, L, r50, stepStartS } from "./traffic-text.js";
+import { actorTypeOf, bearing, dirAdj, dirFrom, dirTo, dist, fmt1, hm, intensityClass, L, r50, stepStartS, vary } from "./traffic-text.js";
 import type { FireProbe } from "./traffic-fire.js";
 import { isShuttle, tankLevelAt, type WaterOutcome } from "./traffic-water.js";
 import { isRekindleCallsign } from "./fire-display.js";
@@ -70,6 +70,23 @@ export function escapeRoute(p: P, head: P, fire?: FireProbe, vehicle?: P | null)
 
 interface Candidate { readonly prio: number; readonly topic: string; readonly from: TrafficUnit; readonly to: TrafficUnit; readonly text: string; readonly offsetS?: number }
 
+/**
+ * A crew's talk group (SPEC/19 §2): TOIMINTA-1 for the units in L1 and L2, TOIMINTA-2 for L3 and L4; null for a unit with no
+ * sector (at a point). Radio TG-02 (SPEC/31): lateral traffic runs only between neighbours on one group — the L3/L4 crews do not
+ * agree a boundary with the L1/L2 crews over the radio. The water shuttle works every line and talks to whichever crew it serves.
+ */
+export function talkGroupOf(sector: string | null): 1 | 2 | null {
+  if (!sector) return null;
+  if (sector.startsWith("L1") || sector.startsWith("L2")) return 1;
+  if (sector.startsWith("L3") || sector.startsWith("L4")) return 2;
+  return null;
+}
+export function sameTalkGroup(a: TrafficUnit, b: TrafficUnit): boolean {
+  if (isShuttle(a.id) || isShuttle(b.id)) return true;
+  const ga = talkGroupOf(a.sector), gb = talkGroupOf(b.sector);
+  return ga === null || gb === null || ga === gb;
+}
+
 /** The road (index into `ROADS`) a vehicle stands on: the nearest within 30 m, or -1. */
 function roadOf(p: P): number {
   let best = -1, bestD = 30;
@@ -84,6 +101,8 @@ function roadOf(p: P): number {
   });
   return best;
 }
+/** How far a lookout on the ground sees a head through forest (m; radio ST-04). */
+const LOOKOUT_SIGHT_M = 300;
 /** Hose is laid at about 40 m a minute (FF7, 7 Oct 2026: a 100 m supply line took "noin 10 min"). */
 const LAY_MPM = 40;
 
@@ -102,7 +121,9 @@ export function lateralTraffic(inp: TrafficCycleInput, state: TrafficState, out:
   };
   const nearest = (u: TrafficUnit, maxM: number, ok: (v: TrafficUnit) => boolean = () => true) => nearestTo(u.pos, maxM, ok, u.id);
   const c: Candidate[] = [];
-  const add = (prio: number, topic: string, from: TrafficUnit, to: TrafficUnit | null, text: string | null, offsetS?: number) => { if (to && text !== null) c.push({ prio, topic, from, to, text, ...(offsetS !== undefined ? { offsetS } : {}) }); };
+  // Radio TG-02 (SPEC/31): crew-to-crew traffic only between neighbours on one talk group (`sameTalkGroup`). A call to a crew on the
+  // other group is dropped here, after its wording is drawn, so every other call keeps its draw and wording (identical stimulus).
+  const add = (prio: number, topic: string, from: TrafficUnit, to: TrafficUnit | null, text: string | null, offsetS?: number) => { if (to && text !== null && sameTalkGroup(from, to)) c.push({ prio, topic, from, to, text, ...(offsetS !== undefined ? { offsetS } : {}) }); };
 
   // Hand-offs: a crew that takes a new stretch of edge agrees the boundary with its new neighbour.
   for (const u of crews.filter((x) => x.moved && x.onEdge && x.moved !== "water")) {
@@ -188,7 +209,16 @@ export function lateralTraffic(inp: TrafficCycleInput, state: TrafficState, out:
     if (!u) continue;
     const v = nearest(u, 1500);
     const rk = isRekindleCallsign(s.callsign);
-    add(9, `spot:${s.callsign}`, u, v, L(`${v?.id}, ${u.id}: näemme savua ${dirTo(bearing(u.pos, s.pos))}, noin ${r50(dist(u.pos, s.pos))} m meistä. ${rk ? "Uudelleensyttymä" : "Pistepalo"} ${s.confirmed ? s.callsign : "varmistamatta"}. Näkyykö teille?`, `${v?.id}, ${u.id}: we see smoke to the ${dirTo(bearing(u.pos, s.pos))}, about ${r50(dist(u.pos, s.pos))} m from us. ${rk ? "Rekindle" : "Spot fire"} ${s.confirmed ? s.callsign : "unconfirmed"}. Can you see it?`));
+    // Radio CO-04 (SPEC/31): a crew does not use the map's label before a drone has confirmed and labelled the fire ("Pistepalo PP1" at
+    // 15:24, DR1's confirmation at 15:28): it says what it sees, unconfirmed. ST-08: three phrasings by unit and step (EK15 said one
+    // sentence at 17:24, 19:26 and 19:51).
+    const where = dirTo(bearing(u.pos, s.pos)), howFar = r50(dist(u.pos, s.pos));
+    const what = rk ? L("Mahdollinen uudelleensyttymä, varmistamatta.", "Possibly a rekindle, unconfirmed.") : L("Pistepalo, varmistamatta.", "A spot fire, unconfirmed.");
+    add(9, `spot:${s.callsign}`, u, v, vary(u.id, n, [
+      L(`${v?.id}, ${u.id}: näemme savua ${where}, noin ${howFar} m meistä. ${what} Näkyykö teille?`, `${v?.id}, ${u.id}: we see smoke to the ${where}, about ${howFar} m from us. ${what} Can you see it?`),
+      L(`${v?.id}, ${u.id}: ${where} noin ${howFar} m päässä nousee savua. ${what} Onko teillä näkyvyys sinne?`, `${v?.id}, ${u.id}: smoke rising about ${howFar} m to the ${where}. ${what} Can you see that way?`),
+      L(`${v?.id}, ${u.id}: tähystäjä näkee savua ${where}, arviolta ${howFar} m. ${what} Näettekö sen?`, `${v?.id}, ${u.id}: our lookout sees smoke to the ${where}, roughly ${howFar} m. ${what} Do you see it?`),
+    ]));
   }
 
   // Roads and access: a crew near a road the fire is close to warns the crew that uses it.
@@ -239,7 +269,10 @@ export function lateralTraffic(inp: TrafficCycleInput, state: TrafficState, out:
       L(`${v?.id}, ${u.id}: meillä tähystäjä ${dirAdj(bearing(u.pos, inp.head))}puolella, perääntymistie: ${r.fi}. Mikä on teidän reittinne?`, `${v?.id}, ${u.id}: our lookout is on the ${dirAdj(bearing(u.pos, inp.head))} side, escape route: ${re}. What is your route?`),
       L(`${v?.id}, ${u.id}: kärki ${hd} m meistä. Jos se kääntyy, kokoontumispaikka: ${r.fi}. Pitäkää radio auki.`, `${v?.id}, ${u.id}: the head is ${hd} m from us. If it turns, the assembly point is ${re}. Keep your radio on.`),
       L(`${v?.id}, ${u.id}: kärki noin ${hd} m päässä. Jos joudumme lähtemään, reitti: ${r.fi}.`, `${v?.id}, ${u.id}: the head is about ${hd} m away. If we have to leave, the route is ${re}.`),
-      L(`${v?.id}, ${u.id}: tähystäjällä näkyvyys kärkeen, ${hd} m. Kokoontuminen: ${r.fi}, kuulolla koko ajan.`, `${v?.id}, ${u.id}: the lookout can see the head, ${hd} m. Assembly at ${re}, listening all the time.`),
+      // Radio ST-04 (SPEC/31): a lookout sees a head through forest only a few hundred metres off (was "3000 m"); further away it follows the smoke.
+      hd <= LOOKOUT_SIGHT_M
+        ? L(`${v?.id}, ${u.id}: tähystäjällä näkyvyys kärkeen, ${hd} m. Kokoontuminen: ${r.fi}, kuulolla koko ajan.`, `${v?.id}, ${u.id}: the lookout can see the head, ${hd} m. Assembly at ${re}, listening all the time.`)
+        : L(`${v?.id}, ${u.id}: tähystäjä ei näe kärkeä, seuraamme savua. Kokoontuminen: ${r.fi}, kuulolla koko ajan.`, `${v?.id}, ${u.id}: the lookout cannot see the head, we are following the smoke. Assembly at ${re}, listening all the time.`),
       // The rate said is the one that makes it too hot (review 6 Oct 2026, A2: "4 m/min, liian kuuma" near the head).
       // "Too hot" only within ~300 m of the edge or head and with flames that warrant it (fix pass 5, 8 Oct 2026); otherwise the crew watches.
       tooHotEdge ? L(`${v?.id}, ${u.id}: reuna juoksee meillä noin ${Math.round(local)} m/min, liian kuuma suoraan hyökkäykseen. Turva-alue palaneella alalla takanamme.`, `${v?.id}, ${u.id}: the edge is running at about ${Math.round(local)} m/min here, too hot for a direct attack. Safety zone in the burned area behind us.`)
@@ -255,7 +288,9 @@ export function lateralTraffic(inp: TrafficCycleInput, state: TrafficState, out:
   // Hose: a long line from the vehicle loses pressure; the neighbour may have a closer road.
   for (const u of crews.filter((x) => (x.hoseM ?? 0) >= 400 && !state.said.has(`hose:${x.id}:${x.place}`))) {
     state.said.add(`hose:${u.id}:${u.place}`);
-    add(5, `hose:${u.id}`, u, nearest(u, 1200), L(`${nearest(u, 1200)?.id}, ${u.id}: letkulinjamme on ${u.hoseM} m, paine jää heikoksi. Onko teillä ylimääräistä jatkopumppua tai lyhyempää reittiä autolle?`, `${nearest(u, 1200)?.id}, ${u.id}: our hose line is ${u.hoseM} m, the pressure stays low. Do you have a spare booster pump or a shorter route for the vehicle?`));
+    // TG-02: no wording is drawn here, so the call goes to the nearest crew on the caller's own talk group (or the water shuttle).
+    const v = nearest(u, 1200, (x) => sameTalkGroup(u, x));
+    add(5, `hose:${u.id}`, u, v, L(`${v?.id}, ${u.id}: letkulinjamme on ${u.hoseM} m, paine jää heikoksi. Onko teillä ylimääräistä jatkopumppua tai lyhyempää reittiä autolle?`, `${v?.id}, ${u.id}: our hose line is ${u.hoseM} m, the pressure stays low. Do you have a spare booster pump or a shorter route for the vehicle?`));
   }
 
   const cap = n <= 3 ? 9 : 7;

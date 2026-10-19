@@ -278,33 +278,39 @@
   },
   "index": {
     "file": "content/thinker/index.json",
-    "sha256": "ae5287d13d2e4394b1c44332fdaa70eefde0bc70a966752c650fe528be8ebfc2",
-    "atomCount": 1005,
+    "sha256": "d21bc54b58822c187afaa442e9fab8405fd6caab518bae61ed80034a5e0355a3",
+    "atomCount": 1002,
     "scenarioId": "demo-scenario",
-    "scenarioVersion": "0.1.0-demo"
+    "scenarioVersion": "0.1.0-demo",
+    "carriedVectors": 210,
+    "carriedFromIndexSha256": "ae5287d13d2e4394b1c44332fdaa70eefde0bc70a966752c650fe528be8ebfc2",
+    "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "indexEn": {
     "file": "content/thinker/index.en.json",
-    "sha256": "debb75f67bd5771e371a2c8fec31032951b301623680c81eada62e4cfbfbf08e",
-    "atomCount": 1005,
+    "sha256": "c066fe930201b06c699a67db6f5010a7ceebe70ab4e05acf56f121376ff30a6e",
+    "atomCount": 1002,
     "language": "en",
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
-    "authoredQueries": "content/thinker/authored-queries.en.json"
+    "authoredQueries": "content/thinker/authored-queries.en.json",
+    "carriedVectors": 281,
+    "carriedFromIndexSha256": "debb75f67bd5771e371a2c8fec31032951b301623680c81eada62e4cfbfbf08e",
+    "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "directivePremises": {
     "file": "content/thinker/directive-premises.json",
-    "sha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
+    "sha256": "f6ea5946b77930769171b11e738e2468d91a647bee643d5f741a0972a1ba3ae2",
     "newlineNormalisation": "LF",
     "directiveSha256": "1b7d98662d52909b69e7bd99dc62b632ce9091afb6c0693020e577ee941fb48d",
     "usedFor": "the directive's authored premises (SPEC/14 revision (ar), 11 Oct 2026): DRAFT study material, to be checked by instructors and a native Finnish speaker before the pilot; appended to the Open Thinker's system instruction after the directive in the reasoning_intent cell from V8; since SPEC/30 §3 (19 Oct 2026) each with the server's premise check (premiseEvidence), the model no longer rates them and cannot add or reword them"
   },
   "premiseEvidence": {
     "file": "content/thinker/premise-evidence.json",
-    "sha256": "a95c26634b80d9032912f2475c8e4d4f6bfb1dc016bef90453c550c9ae791307",
+    "sha256": "2f309578a0114c52e6089dee49148f9b5d4718b1bde737e736bdca13e1b4e305",
     "newlineNormalisation": "LF",
-    "version": 1,
-    "directivePremisesSha256": "28c3f09f51fe6d011be820a6ecef76f3301dfb069e207a35a3385c3cbec54af0",
+    "version": 2,
+    "directivePremisesSha256": "f6ea5946b77930769171b11e738e2468d91a647bee643d5f741a0972a1ba3ae2",
     "status": "DRAFT study content, the expert panel to confirm (SPEC/30 §8)",
     "usedFor": "SPEC/30 §3 (19 Oct 2026): the guide's rule-based premise check (server/thinker/premise-check.ts): per phase-B view V8-V14 and authored premise P1, P2, contradicted or not_contradicted, with the deciding records' atom ids and the records-clock time from which a contradiction holds; the server overwrites any premise status with it and shows it in a fixed template in reasoning_intent options answers while the directive is in force"
   }

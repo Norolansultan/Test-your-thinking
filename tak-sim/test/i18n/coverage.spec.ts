@@ -97,9 +97,11 @@ describe("source names in English (6 Oct 2026)", () => {
     expect(sourceName("en", "P2")).toBe("Duty fire chief");
   });
 
-  it("keeps unit call signs, and every name in a Finnish session", () => {
+  it("keeps unit call signs, and every name in a Finnish session but the two display names (radio TE-12, CS-06; SPEC/31)", () => {
     expect(sourceName("en", "EK11")).toBe("EK11");
-    for (const id of sources) expect(sourceName("fi", id)).toBe(id);
+    const display: Readonly<Record<string, string>> = { SAA: "Sääasema", DRONERYHMÄ: "Drooniryhmä" };
+    for (const id of sources) expect(sourceName("fi", id)).toBe(display[id] ?? id);
+    expect(sources).toEqual(expect.arrayContaining(Object.keys(display)));
   });
 });
 

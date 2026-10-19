@@ -20,6 +20,7 @@
 import type { Lang } from "./lang.js";
 import type { Cell } from "../scenario/types.js";
 import type { PreflightFailure } from "../session/preflight.js";
+import { SOURCE_MEMORY_FACTS, sourceItemId } from "../scenario/source-memory.js";
 
 /** Which consent text was shown (logged in `consent_decided`). Change it whenever the text changes. */
 export const CONSENT_TEXT_ID = "consent.placeholder.v0";
@@ -108,6 +109,25 @@ export const DEBRIEF_VIEW_COUNT = 14;
 const yesNoUnsureFi = { yes: "Kyllä", no: "Ei", unsure: "En osaa sanoa" };
 const yesNoUnsureEn = { yes: "Yes", no: "No", unsure: "Not sure" };
 
+/**
+ * The source-memory block (SPEC/30 §5.5, 19 Oct 2026; `questionnaire.ts` SOURCE_ITEMS): each fact's statement (`source-memory.ts`),
+ * then the one question, and the five sources ("Thinker" is offered in the Thinker cells only). The English names the tool as the
+ * English screen does (Search). DRAFT: Finnish for the native-speaker check, the facts for the domain review (SPEC/30 §8).
+ */
+const SOURCE_TEXT = {
+  fi: {
+    section: "Mistä tieto tuli?", question: "Mistä tämä tieto tuli sinulle?",
+    options: { self: "Päättelin sen itse", records: "Ilmoituksesta, viestilokista tai kartalta", haku: "Haulta", thinker: "Thinkeriltä", unknown: "En tiennyt tätä" },
+  },
+  en: {
+    section: "Where your information came from", question: "Where did this come from for you?",
+    options: { self: "I worked it out myself", records: "A report, the message log or the map", haku: "Search", thinker: "Thinker", unknown: "I did not know this" },
+  },
+} as const;
+const sourceItems = (lang: Lang): Record<string, ItemText> => Object.fromEntries(SOURCE_MEMORY_FACTS.map((f) => [
+  sourceItemId(f.id), { prompt: `${lang === "fi" ? f.statementFi : f.statementEn} ${SOURCE_TEXT[lang].question}`, options: SOURCE_TEXT[lang].options },
+]));
+
 // ---------------------------------------------------------------------------------------------------
 // Finnish
 // ---------------------------------------------------------------------------------------------------
@@ -167,7 +187,7 @@ const FI: StudyText = {
     preIntro: "Yksi kysymys ennen tilannekuvausta.",
     postTitle: "Kysely istunnon jälkeen",
     postIntro: "Vastaa kysymyksiin istunnon perusteella. Kysely kestää noin 15 minuuttia.",
-    sections: { recall: "Muistatko", workload: "Kuormitus", session: "Istunto", background: "Taustatiedot" },
+    sections: { recall: "Muistatko", source: SOURCE_TEXT.fi.section, workload: "Kuormitus", session: "Istunto", background: "Taustatiedot" },
     submit: "Lähetä vastaukset",
     optionalNote: "Voit jättää kysymyksen vastaamatta.",
     items: {
@@ -175,6 +195,7 @@ const FI: StudyText = {
       "retention.hinge": { prompt: "Mikä oli istunnon lopussa voimassa oleva toimintalinja?" },
       "ai.directive_relation": { prompt: "Liittyikö Thinkerin kanssa käymäsi keskustelu päivystävän palopäällikön (P2) antamaan linjaukseen?", options: { yes: "Kyllä", no: "Ei", dont_know: "En tiedä" } },
       "directive.fit": { prompt: "Sopiko päivystävän palopäällikön linjaus tilanteeseen sen kehittyessä?", options: { fitted: "Sopi koko ajan", not_at_times: "Ei sopinut ajoittain", not_mostly: "Ei sopinut suurimman osan ajasta", dont_know: "En osaa sanoa" } },
+      ...sourceItems("fi"),
       "tlx.mental": { prompt: "Henkinen vaativuus: kuinka henkisesti vaativa tehtävä oli?", low: "Hyvin vähäinen", high: "Hyvin suuri" },
       "tlx.physical": { prompt: "Fyysinen vaativuus: kuinka fyysisesti vaativa tehtävä oli?", low: "Hyvin vähäinen", high: "Hyvin suuri" },
       "tlx.temporal": { prompt: "Aikapaine: kuinka kiireiseltä tehtävän tahti tuntui?", low: "Hyvin vähäinen", high: "Hyvin suuri" },
@@ -290,7 +311,7 @@ const EN: StudyText = {
     preIntro: "One question before the situation briefing.",
     postTitle: "Questionnaire after the session",
     postIntro: "Answer from your experience of the session. The questionnaire takes about 15 minutes.",
-    sections: { recall: "Recall", workload: "Workload", session: "The session", background: "About you" },
+    sections: { recall: "Recall", source: SOURCE_TEXT.en.section, workload: "Workload", session: "The session", background: "About you" },
     submit: "Submit answers",
     optionalNote: "You may leave a question unanswered.",
     items: {
@@ -298,6 +319,7 @@ const EN: StudyText = {
       "retention.hinge": { prompt: "What was the line of action in force at the end of the session?" },
       "ai.directive_relation": { prompt: "Did your discussion with Thinker relate to the directive given by the duty fire chief (P2)?", options: { yes: "Yes", no: "No", dont_know: "Don't know" } },
       "directive.fit": { prompt: "Did the duty fire chief's directive fit the situation as it developed?", options: { fitted: "It fitted throughout", not_at_times: "It did not fit at times", not_mostly: "It did not fit most of the time", dont_know: "Don't know" } },
+      ...sourceItems("en"),
       "tlx.mental": { prompt: "Mental demand: how mentally demanding was the task?", low: "Very low", high: "Very high" },
       "tlx.physical": { prompt: "Physical demand: how physically demanding was the task?", low: "Very low", high: "Very high" },
       "tlx.temporal": { prompt: "Temporal demand: how hurried or rushed was the pace of the task?", low: "Very low", high: "Very high" },

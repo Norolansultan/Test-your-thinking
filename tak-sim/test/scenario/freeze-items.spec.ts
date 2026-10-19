@@ -34,14 +34,18 @@ const texts = (it: FreezeItem) => [it.promptFi, ...it.options.map((o) => o.label
 const TOOL_WORDS = /\bhaku|haulla|hakua|thinker|tekoäly|\bAI\b|search|chat/i;
 
 describe("the goal-based bank's structure", () => {
-  it("every main freeze has six items, 2×L1, 2×L2, 2×L3, each with a goal", () => {
+  it("every phase-A freeze has eight items, 2×L1, 2×L2, 4×L3 (SPEC/30 §5.1); every phase-B freeze six, 2×L1, 2×L2, 2×L3; each with a goal", () => {
     // 8 Oct 2026 (researcher): V2 fuel_ahead and V10 cabins_distance became L2 (their keys are on record); V2 nearest_settlement and
     // V10 r2_meaning gave way to true L3 projections (area_40, area_total_hour), so every freeze keeps the mix.
+    // SPEC/30 §5.1 (19 Oct 2026): two more L3 items in each phase-A freeze (H2's window 16 → 24 L2/L3 items); phase B unchanged.
     for (const f of mains) {
-      expect(f.items, `V${f.cycle}`).toHaveLength(6);
+      const phaseAFreeze = f.cycle <= 7;
+      expect(f.items, `V${f.cycle}`).toHaveLength(phaseAFreeze ? 8 : 6);
       for (const it of f.items) expect(["safety", "values", "containment", "resources"], it.id).toContain(it.goal);
-      expect(f.items.map((it) => it.level).sort(), `V${f.cycle}`).toEqual(["L1", "L1", "L2", "L2", "L3", "L3"]); // choice items in level order, map items last (2 Oct 2026)
+      // choice items in level order, map items last (2 Oct 2026)
+      expect(f.items.map((it) => it.level).sort(), `V${f.cycle}`).toEqual(phaseAFreeze ? ["L1", "L1", "L2", "L2", "L3", "L3", "L3", "L3"] : ["L1", "L1", "L2", "L2", "L3", "L3"]);
     }
+    expect(phaseA.flatMap((f) => f.items).filter((it) => it.level !== "L1")).toHaveLength(24); // H2's phase-A window
   });
 
   it("covers every goal of the draft goal set, and each level, across the bank", () => {

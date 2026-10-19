@@ -198,6 +198,15 @@ describe("no L3 key is stated by a record on hand before the freeze (fix pass 5,
     front_r2_2h: { subject: /R2/ },
     // V2 fuel_ahead and V10 cabins_distance, whose keys are on record, are L2 since 8 Oct 2026 (researcher): no exemption remains.
     village_distance: { subject: /Lahdenkyl/ },
+    // SPEC/30 §5.1 (19 Oct 2026): the eight new phase-A L3 items.
+    spruce_behaviour: { states: /latva/i }, // no record to step 3 names a crown fire
+    junction_hour: { subject: /risteyk|risteys/ },
+    crown_drops: { states: /latvapalo laskeutu|Koivuoj|koivik|lehtimets/i }, // Koivuoja is first on record at step 7 ("savu laskeutuu" is smoke)
+    korpioja_spot: { states: /Korpioj/i },
+    ek14_shelter: { states: /EK14[^.]*(?:vetäyty|turva-alue|turvaan)/i },
+    road_jump: { states: /toisessa kohdassa|toisessakin kohdassa/i },
+    cp_safe: { states: /johtopaik\w*[^.]*(?:turvassa|uhattu|vaarassa|ei tarvitse siirt)|ei paloa näköetäisyydellä/i },
+    relief_next: { states: /VPK[^.]*(?:lepo|korvaav|vuoronvaih)/i },
     // The distance of a fire to R2 as a record states it ("palo 400 m länteen", "palo noin 380 m tiestä"); a hose line's length ("noin 250 m")
     // or a back-burn trigger ("kun rintama on noin 200 m päässä") is not a statement of where the front is.
     se_front_r2: { subject: /R2|tie/, value: /palo (?:noin )?(\d+) m/g },
@@ -319,11 +328,11 @@ describe("projection reliance (revision (x), 6 Oct 2026; exploratory)", () => {
     expect(withProjection.map(({ view, it }) => [view, it.id])).toEqual([[4, "freeze.4.head_later"], [14, "freeze.14.head_later"]]);
   });
 
-  it("V5's area item replaces the head-later map item (fix pass 3) and the rate item (fix pass 5): still L3 and containment, the freeze still 2×L1, 2×L2, 2×L3", () => {
+  it("V5's area item replaces the head-later map item (fix pass 3) and the rate item (fix pass 5): still L3 and containment, the freeze 2×L1, 2×L2, 4×L3 (SPEC/30 §5.1)", () => {
     const v5 = scenario.freezes.find((f) => f.cycle === 5)!;
     expect(v5.items.some((it) => it.id === "freeze.5.head_later" || it.id === "freeze.5.growth_trend")).toBe(false);
     const levels = v5.items.map((it) => it.level).sort();
-    expect(levels).toEqual(["L1", "L1", "L2", "L2", "L3", "L3"]);
+    expect(levels).toEqual(["L1", "L1", "L2", "L2", "L3", "L3", "L3", "L3"]);
     expect(v5.items.find((it) => it.id === "freeze.5.area_hour")).toMatchObject({ level: "L3", kind: "choice", goal: "containment" });
   });
 

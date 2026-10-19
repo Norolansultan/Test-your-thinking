@@ -3,7 +3,8 @@
  * `npm run game:balance`): one seed of each scenario played by the `idle` and `naive` bots
  * (tools/game/bots.ts) on the real world and fire model, at 60 s ticks, against the coarse targets —
  * doing nothing never grades above D, the naive player gets B or better in training, and in the summer
- * afternoon the naive player is not done before the scripted 17:00 rekindle and grades C or worse. Also
+ * afternoon the naive player is not done before its last scripted fire (the ridge's flare-up, SPEC/29 (ay))
+ * and grades C or worse. Also
  * the summer afternoon's pre-burn on the real map: a fire of hectares at noon, known only from the first
  * report.
  */
@@ -40,11 +41,12 @@ describe("game balance on the real world (one seed, 60 s ticks)", () => {
     expect(atLeast(r.grade, "B")).toBe(true);
   }, LIMIT_MS);
 
-  it("summer afternoon: the naive player is not done before 17:00 and grades C or worse", () => {
+  it("summer afternoon: the naive player is not done before the last scripted fire and grades C or worse", () => {
     const s = gameScenario("summer-afternoon")!;
+    const lastFire = Math.max(...s.events.filter((e) => e.kind === "ignite").map((e) => e.atS));
+    expect(lastFire).toBeGreaterThanOrEqual(at(s.startClockMin, "17:30"));
     const r = playGame(s, world, defaultDeps, SEED, "naive", { tickS: 60 });
-    if (r.phase === "won") expect(r.tS).toBeGreaterThanOrEqual(at(s.startClockMin, "17:00"));
-    expect(r.tS).toBeGreaterThanOrEqual(at(s.startClockMin, "17:00"));
+    expect(r.tS).toBeGreaterThanOrEqual(lastFire);
     expect(atLeast(r.grade, "B")).toBe(false);
   }, LIMIT_MS);
 

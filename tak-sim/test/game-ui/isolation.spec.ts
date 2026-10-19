@@ -115,6 +115,25 @@ describe("game mode isolation — imports (SPEC/29 §2)", () => {
   });
 });
 
+describe("the recruitment gate's marker (SPEC/29 (ay) rule 2)", () => {
+  const MARKER_FILE = join(GAME_DIR, "ui", "marker.ts");
+  const literal = /export const GAME_CHUNK_MARKER = "([^"]+)"/.exec(readFileSync(MARKER_FILE, "utf8"))![1]!;
+
+  it("only the game screen imports it, so it lands in the game's chunk and nowhere else", () => {
+    const importers: string[] = [];
+    for (const f of filesUnder(join(ROOT, "app"))) {
+      for (const spec of [...staticSpecifiers(f), ...dynamicSpecifiers(f)]) if (resolveSpecifier(f, spec) === MARKER_FILE) importers.push(rel(f));
+    }
+    expect(importers).toEqual(["app/game/ui/GameApp.tsx"]);
+    expect(readFileSync(join(GAME_DIR, "ui", "GameApp.tsx"), "utf8")).toMatch(/data-build=\{GAME_CHUNK_MARKER\}/);
+  });
+
+  it("no file of the study carries the literal (the gated server would refuse the study's own code)", () => {
+    const carriers = filesUnder(join(ROOT, "app")).filter((f) => f !== MARKER_FILE && readFileSync(f, "utf8").includes(literal)).map(rel);
+    expect(carriers).toEqual([]);
+  });
+});
+
 describe("the start page entry", () => {
   const src = readFileSync(APP_TSX, "utf8");
 

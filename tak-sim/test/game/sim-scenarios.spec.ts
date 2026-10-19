@@ -115,7 +115,7 @@ describe("the scenarios", () => {
     expect(new Set(GAME_SCENARIOS.map((s) => s.id)).size).toBe(3);
   });
 
-  it("Summer afternoon: noon start at the origin, the line live to 15:30, two units recalled at 17:40, contain by 20:00", () => {
+  it("Summer afternoon: noon start at the origin, the line live all game, two units recalled at 16:15, an easterly at Mökkiranta, contain by 20:00", () => {
     const s = SUMMER_AFTERNOON;
     expect(s.startClockMin).toBe(720);
     expect(s.ignitions).toEqual([{ x: 5000, y: 5000 }]);
@@ -127,34 +127,37 @@ describe("the scenarios", () => {
     expect(arrive("VPK")).toBeGreaterThan(0);
     expect(arrive("EK12")).toBeGreaterThan(arrive("VPK"));
     expect(arrive("EK12")).toBeLessThanOrEqual(30 * 60);
-    // Three separate fires to find and catch after the first: the ridge (14:00), the rekindle (17:00), the bog (17:20).
-    expect(s.events.filter((e) => e.kind === "ignite").map((e) => e.atS)).toEqual([at(720, "14:00"), at(720, "17:00"), at(720, "17:20")]);
+    // Two separate fires to find and catch after the first (SPEC/29 (ay): the game's own, not the study's): the ridge
+    // (14:00, unreported) and the ridge's old edge flaring up as the wind backs (17:35, a vague call only).
+    expect(s.events.filter((e) => e.kind === "ignite").map((e) => [e.atS, e.at])).toEqual([[at(720, "14:00"), PLACES.KUIVAKANGAS], [at(720, "17:35"), PLACES.KUIVAKANGAS]]);
     expect(s.endAtS).toBe(at(720, "20:00"));
+    // The line is live from the start to the end; nothing switches it (SPEC/29 (ay) rule 1).
     expect(s.powerLineLiveAtStart).toBe(true);
-    expect(s.events.find((e) => e.kind === "power_line_dead")!.atS).toBe(at(720, "15:30"));
+    expect(s.events.some((e) => e.kind === "power_line_dead")).toBe(false);
     const recall = s.events.find((e) => e.kind === "units_recalled")!;
-    expect(recall.atS).toBe(at(720, "17:40"));
-    expect(recall.unitIds!.length).toBe(2);
+    expect(recall.atS).toBe(at(720, "16:15"));
+    expect(recall.unitIds).toEqual(["EK12", "DR2"]);
     expect(s.units.slice(0, 4).map((u) => u.id)).toEqual(["EK11", "VPK", "EK12", "DR1"]);
     for (const id of ["EK13", "EK14", "KY21", "DR2", "DR3", "HELI1", "VD1", "UGV1", "EK15", "EK16", "KY23"]) expect(s.units.some((u) => u.id === id && u.arriveAtS > 0)).toBe(true);
     expect(s.objectives).toContainEqual({ kind: "contain", byS: at(720, "20:00") });
-    expect(s.objectives).toContainEqual({ kind: "protect_settlement", settlementId: "Lahdenkylä" });
-    const w18 = s.weather.find((w) => w.atS === at(720, "18:00"))!;
-    expect(w18.windFromDeg).toBeGreaterThanOrEqual(250);
-    // From 16:00 the same afternoon as "Evening wind": the north-westerly peaks at 11 m/s around 19:00.
-    for (const w of EVENING_WIND.weather) {
-      const same = s.weather.find((x) => x.atS === w.atS + (960 - 720) * 60);
-      expect(same).toEqual({ ...w, atS: w.atS + (960 - 720) * 60 });
-    }
-    expect(Math.max(...s.weather.map((w) => w.windMs))).toBe(11);
+    expect(s.objectives).toContainEqual({ kind: "protect_settlement", settlementId: "Mökkiranta" });
+    // The south-westerly until mid-afternoon, then an easterly that peaks at 10 m/s around 18:20–18:35.
+    expect(s.weather.find((w) => w.atS === at(720, "15:00"))!.windFromDeg).toBe(225);
+    const evening = s.weather.filter((w) => w.atS >= at(720, "18:00"));
+    for (const w of evening) expect(w.windFromDeg).toBeGreaterThanOrEqual(80);
+    for (const w of evening) expect(w.windFromDeg).toBeLessThanOrEqual(110);
+    expect(Math.max(...s.weather.map((w) => w.windMs))).toBe(10);
   });
 
-  it("Evening wind: 16:00 start, three ignitions, 11 m/s at 19:00, fewer units", () => {
+  it("Evening wind: 16:00 start, three lightning fires and a late one in the north, an easterly at Mökkiranta, fewer units", () => {
     const s = EVENING_WIND;
     expect(s.startClockMin).toBe(960);
     expect(s.ignitions.length).toBe(3);
-    const w19 = s.weather.find((w) => w.atS === at(960, "19:00"))!;
-    expect(w19.windMs).toBe(11);
+    for (const p of [...s.ignitions, ...s.events.flatMap((e) => (e.kind === "ignite" && e.at ? [e.at] : []))]) expect(p.y).toBeGreaterThanOrEqual(6900); // north of Korpioja
+    expect(s.events.filter((e) => e.kind === "ignite").length).toBe(1);
+    for (const w of s.weather) expect(w.windFromDeg).toBeLessThanOrEqual(110); // north-east to east all evening
+    expect(Math.max(...s.weather.map((w) => w.windMs))).toBe(10);
+    expect(s.objectives).toContainEqual({ kind: "protect_settlement", settlementId: "Mökkiranta" });
     expect(s.units.length).toBeLessThan(SUMMER_AFTERNOON.units.length);
     expect(s.events.some((e) => e.kind === "power_line_dead")).toBe(false);
   });
@@ -182,9 +185,9 @@ describe("the scenarios", () => {
     expect(findSettlement(world, "Bay Village")?.id).toBe("village_e");
     expect(findSettlement(world, "mokkiranta")?.id).toBe("mokkiranta");
     expect(findSettlement(world, "Atlantis")).toBeUndefined();
-    expect(resolveScenario(SUMMER_AFTERNOON, world).objectives).toContainEqual({ kind: "protect_settlement", settlementId: "village_e" });
-    const elsewhere: GameWorld = { ...world, settlements: [world.settlements[0]!] };
-    expect(resolveScenario(SUMMER_AFTERNOON, elsewhere).objectives).toContainEqual({ kind: "protect_settlement", settlementId: "mokkiranta" });
+    expect(resolveScenario(SUMMER_AFTERNOON, world).objectives).toContainEqual({ kind: "protect_settlement", settlementId: "mokkiranta" });
+    const elsewhere: GameWorld = { ...world, settlements: [world.settlements[1]!] };
+    expect(resolveScenario(SUMMER_AFTERNOON, elsewhere).objectives).toContainEqual({ kind: "protect_settlement", settlementId: "village_e" });
     const none: GameWorld = { ...world, settlements: [] };
     expect(resolveScenario(SUMMER_AFTERNOON, none).objectives.some((o) => o.kind === "protect_settlement")).toBe(false);
   });

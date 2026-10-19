@@ -11,6 +11,7 @@ import { Briefing } from "./Briefing.js";
 import { Debrief, type GameResult } from "./Debrief.js";
 import { gameScenarios, gameWorld } from "./game-source.js";
 import { GameScreen } from "./GameScreen.js";
+import { GAME_CHUNK_MARKER } from "./marker.js";
 import { ScenarioSelect } from "./ScenarioSelect.js";
 import { injectGameCss } from "./styles.js";
 import { GAME_TEXT } from "./text.js";
@@ -38,7 +39,8 @@ export function GameApp({ lang, onExit }: { readonly lang: Lang; readonly onExit
     setScreen({ kind: "play", scenario, seed: runCounter, run: runCounter });
   };
   return (
-    <div class="gm-root" lang={lang} data-testid="game-root">
+    // The marker keeps the recruitment gate able to find this chunk in a build (marker.ts).
+    <div class="gm-root" lang={lang} data-testid="game-root" data-build={GAME_CHUNK_MARKER}>
       {screen.kind === "select" && (
         <ScenarioSelect lang={lang} scenarios={gameScenarios()} onChoose={(scenario) => setScreen({ kind: "briefing", scenario })} onBack={onExit} />
       )}

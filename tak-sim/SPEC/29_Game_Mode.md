@@ -4,6 +4,7 @@
 **Scope:** a separate mode in which the fire is simulated live, the player commands the units, and orders change the outcome. It reuses the study's terrain and TAK screen conventions. It is **not** the research instrument and changes nothing in it.
 
 > **Changelog**
+> - **19 Oct 2026 (ay)** — `31` P-12: §2.3 sharpened — the game's scenarios must not replay the study's keyed events ("Summer afternoon" replayed the 17:00 origin rekindle, the 15:30 de-energising that pre-answers F7 and the 17:40 recall; "Evening wind" the refusing households and the 19:00 north-westerly at Lahdenkylä); the demonstration and game are gated during recruitment; a post-session prior-use item with an exclusion rule. See the revision at the end.
 > - **14 Oct 2026** — created. The researcher asked to "think the simulation critically", to rebuild the map, environment and fire model, and to make the simulation game-like. A critical read of the instrument (summary in §1) found that nothing a participant or a crew does reaches the fire. Decision: build that as a separate game mode (§2), never as a change to the study.
 
 ---
@@ -47,3 +48,13 @@ A game needs the opposite: continuous time, a fire that responds to wind, terrai
 
 1. All fuel, rate-of-spread, intensity, unit and scoring numbers are PROVISIONAL game values with a one-line rationale each in code; a domain reviewer may tune them.
 2. Whether game mode should later serve as training before a study session (it would then have to use different terrain).
+
+## Revision 19 Oct 2026 (ay) — separation in knowledge, not only in code (`31` §2.5 P-12)
+
+§2.3 said the scenarios "do not replay the study's incident minute by minute"; they replayed its keyed moments. A professional who has played holds L3 foreknowledge for H2 and H10 (the 17:00 origin rekindle), a wrong prior for H9 (the 110 kV line live until 15:30 tells a player the planted "de-energised" record is false — pushing F7 toward the right value for the wrong reason, and the F7 item is H9's), and phase-B anticipation for H13 (the 17:40 recall, the refusing households, the 19:00 wind at Lahdenkylä). With recruitment running for months in a small community and a public demonstration, "never shown before a session" is a hope. Three rules, built in WP-5:
+
+1. **No keyed event at the study's time or place.** The game's scripted events keep their mechanics but move: no rekindle at the origin's edge around 17:00, no line de-energising at 15:30 (the line is live or dead from the start), no recall at 17:40, no refusing households at Lahdenkylä, no 19:00 north-westerly aimed at Lahdenkylä. A test over `app/game/scenarios/*` lists the study's keyed moments and fails on a match; the call signs and terrain stay shared (§2.3).
+2. **Gated during recruitment.** A `RECRUITMENT_GATE` setting on the production server hides the demonstration start page and the game; `?tuotanto` is unchanged. The game returns as an after-action debrief once recruitment has closed.
+3. **Asked.** The post-session questionnaire asks whether the participant had used the web demonstration or the game before the session; a pre-registered exclusion with a sensitivity analysis (`09` (ay)).
+
+Balance (`npm run game:balance`) is re-run and recorded after the timeline moves. §5's open items stand; item 2 (the game as training before a session) is answered: not on this terrain.

@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **19 Oct 2026 (ay)** — the skills review (`31`) amends §3 (V14 P2 not contradicted; P1 re-worded, DRAFT; "sparks over the Honkaharju forest road"), §4 (the notice yields to a freeze due within 15 s), §5.1 (V12's freeze after the plan; "now" = the view's end for view-end freezes; the 240 s cap; the V4 and V14 items re-authored), §5.2 (tool-aided probes; H-T as an item-level model), §5.3 (three-way told split; digest and recent matches logged), §5.5 (two lure facts), §6 (H13 codes the act, RC; V14 sound only via the secondary route, RC; fallbacks), §8 (replaced by `31` §6), §11 (re-runs). See the revision at the end.
 > - **19 Oct 2026** — created. Researcher decisions of 14–19 Oct 2026: only 100 participants; two groups instead of three; the study is framed as human–AI teaming (how teaming with an AI changes the commander's own situational understanding and metacognition, and whether an AI can act as a facilitator and strategic guide); a critical review cut the additions that cost more than they bring (§9).
 
 ---
@@ -172,3 +173,20 @@ The Thinker's configured model (`gemini-3.5-flash`) was observed answering as an
 3. H2t is not optional: when the AI states keys and borrowed confidence lags, the all-items test shows nothing (5 %) while the not-stated test keeps 63 %; even calibrated borrowing halves the all-items power.
 4. H13 is powered only if the notification works: exposure .8 with a +20-point effect gives 94 % (87 % at 40 / 40); +13 to +15 points give 66–77 %; exposure .6 with a small effect, 41 %. The amplifier reading (−10 points) has 50 %.
 5. H15 is the most sensitive test of the check (89–100 %) but blind to the amplifier (4–6 %); H14 is the weakest (27–67 %). Most of H14's and H15's power rests on the assumption that the "no premise contradicted" line in the fit views moves posture toward aligned by the same δ; if that line has no effect, both fall. A null on H13 or H14 says little about moderate effects.
+
+---
+
+## Revision 19 Oct 2026 (ay) — after the skills review (`31`)
+
+`31` governs where it differs from the text above. In short:
+
+- **§3.** V14 P2 is `not_contradicted` (the directive names no line; R2 is held, as V13's own note reasons); V14 P1 stays contradicted (SPOT 19:23), so the flag still fires in V14 and §11's exposure assumption holds. P1 is re-worded (DRAFT, panel and native speaker) so that a new fire or rekindle since the directive contradicts it in V9, V10 and V14 and nothing else does; crew safety is not made a premise (V11 stays fit). Item 1's "V13's sparks over R2" reads "over the Honkaharju forest road". Both are **RC** (researcher to confirm before the pre-registration); the table is re-hashed after the panel.
+- **§4.** The consult notice is deferred past a freeze due within 15 s (sagat F23).
+- **§5.1.** The V4 `growth_next` item is re-authored so its basis is delivered and its report and truth bands agree (RC); V14's `se_front_r2` and `head_later` are replaced; every L3 stem names its horizon; ordinal bands ascend; the cap is 240 s for 8-item freezes. **V12's freeze also runs after the plan** (its items cue the aligned cell in a fit view; H14), so the sentence "V2, V4, V5, V7 and V12 keep their pre-planned random moment" reads "V2, V4, V5 and V7". For a view-end freeze "now" is the view's end, stated in the header.
+- **§5.2.** The second items are "tool-aided probes" (accuracy with the tools; no latency-as-SA claim); H-T is an item-level mixed model, not a two-item difference; pilot 2 decides on more items.
+- **§5.3.** Items are classed stream-told / AI-told / neither; H2t contrasts the last two (RC). The guide's digest and both tools' recent matches are logged in the browser and count as exposure (retrieved ∪ digest ∪ recent; sensitivity retrieved-only). `aiStatedKey` counts only answers after the basis record and in the freeze's view or the one before; `statedLure` is reported.
+- **§5.5.** Two false lure facts; the `ai_likely` facts are recorded-only and uncued.
+- **§6.** **H13 codes the act (RC):** a plan attends the keyed front when its main effort attacks it directly or its secondary task on its sector is direct attack, mop-up or hold-line (panel to rate the probe plans); an attending plan codes C; the label-based coding is the sensitivity. **V14 is sound only through the secondary route (RC):** a main effort on the flare-up codes D. Fallback: a view keyed mixed or without 4-of-5 agreement is reported, not coded. H2 adds a dual-key sensitivity on the report-keyed numeric items, a format covariate and a chance-corrected sensitivity.
+- **§8** is replaced by `31` §6 (one ordered list, merged with `11` §7.30).
+- **§11.** The H2 rows stand (24 items unchanged). The H2t figure is an upper bound under the three-way split; `h2-power.ts` is re-run. `paper2-power.ts` is re-run with act-based base rates per view, V14's secondary route and a two-view fallback case. Point 4's reading does not cover the fallback.
+- **The scenario.** A provisional flame-length table (Byram, Kalajoki pairs) replaces the phase-B flame bands before the panel sees the record sets (RC for the keys); the station's T/RH every step; LCES lines for the R2 crews; the game's scenarios no longer replay keyed events and the demonstration is gated during recruitment (`31` §5, §2.5).

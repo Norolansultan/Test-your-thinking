@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **19 Oct 2026 (ay)** — §7.30 (ay): the before-pilot list after the skills review (`31` §6) supersedes items 1–10; the researcher's confirmations (RC), the panel packet, the Pelastusopisto VERIFY list and the FMI/Prometheus items added.
 > - **19 Oct 2026 (ax)** — §7.30: the before-pilot checklist of `30` §8 (repository visibility, panel keys, premise table, new items, Finnish wording, model pin, ethics, strata) and the open items of the teaming design.
 > - **9 Oct 2026 (ai)** — §7.25: closed items (no open-ended questions in the session) — the three professor reviews, the conditions built, and the HCI reviewer's dissent on a "a tool suggested it" departure reason.
 > - **9 Oct 2026 (ag)** — §7.23: SPAM forced at the view's end and answered with the tools — the measurement change (censored ready latency, forced answers after the view's information, the joint system's knowledge) and its analysis, for the supervisors.
@@ -985,3 +986,18 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 - Whether an open-weights model run locally should replace the hosted model for the main study (fixed build, no network in a session, replicable; Finnish quality to probe). Decide after a probe.
 - Whether the plan-confidence item changes plan behaviour (reactivity): compare pilot-2 plan timing against pilot-1 logs.
 - The student / bridge sample's own spec (told vs facilitated check-ins; Paper 3's external test), and the professor's environment study (AI drafts with planned errors).
+
+#### 7.30 (ay) — the before-pilot list after the skills review (19 Oct 2026; supersedes items 1–10 above)
+
+`31` §6 is the one ordered list; it is repeated here in short so this register stays complete. The six phase-1 audits are in `docs/audits/2026-10-19-skills/`; every finding's decision is in `31` §2.
+
+1. **Researcher.** Repository private or keys out; the demonstration and game gated during recruitment (`29` (ay)); **confirm before the pre-registration (RC):** H13 codes the act (`31` §3.1), V14 sound only through the secondary route (§3.2), V14 P2 not contradicted and P1's new wording (§3.4), the re-authored V4 `growth_next` key (§3.5), the three-way told split for H2t (§3.6), the provisional flame-length table (§3.11); send the Prometheus request; model pin and weekly probe; strata sizes; command experience as a covariate; the pre-registration additions of `09` (ay); re-run the power tools (`31` §3.12).
+2. **Expert panel, one packet after WP-1:** rating sheets V9–V14 with the probe plans (`docs/audits/2026-10-19-skills/coa_rating_sheet.csv`, DRAFT); each view's full record set after the flame table, pushed and recorded marked; horizon 20–40 min; edge state and crew presence for flare-ups; CO unknown; burnouts not rated; ≥ 4 of 5; the key derived from the ratings (`16` (ay)); the premise table and P1 before hashing.
+3. **Domain reviewer:** the items `31` §2.1 marks DR; the R1 stretch; the V14 backup pair; the source-memory facts and lures; rule (d) as restated (`08` (ay)); `27` §7.1 and DF-01/02's framing; TE-11, CA-01/02/04, TG-04; coa F7 and F14; a non-locational cue before US3; the flame table's credibility.
+4. **Native speaker:** every new or changed Finnish text (`31` §6 item 4).
+5. **Pelastusopisto:** VERIFY 1–15 of `radio.md`; the answers feed the deferred call-sign and terminology pass (WP-6).
+6. **FMI / PromS:** the Prometheus ensemble, the flame table, the evening humidity, FWI 55 / ISI 23, US3, MPV25 tables.
+7. **Ethics board:** as item 8 above, plus the lure facts and the new post-session items (believability, recognition, prior demo or game use, perceived reliability).
+8. **Pilot 2 measures:** item 10 above, plus freeze timeouts by position, V3.b/V6.b accuracy, knowledge-item ceilings, blocked plan intentions, C base rates per view under both codings, the `score_freezes.py` cross-check, digest reach.
+
+The notes for the domain reviewer above stand, with one correction: "V14's P2 rests on EK16's 19:22 radio" is superseded (V14 P2 is not contradicted, `31` §3.4). §7.28's question (V13 as a fit view) is answered consistently: neither V13 nor V14 counts the crossing of the forest road against P2.

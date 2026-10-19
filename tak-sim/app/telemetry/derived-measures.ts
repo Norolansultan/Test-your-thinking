@@ -533,6 +533,12 @@ export interface DirectivePostureCoding {
   readonly cellByAct: DirectiveCell | null;
   /** The act coding with the boundary-accepted sectors (its sensitivity, as `cellWithBoundary` is the label coding's). */
   readonly cellByActWithBoundary: DirectiveCell | null;
+  /**
+   * H15's outcome under the act coding (integration of SPEC/31 §3.1, 19 Oct 2026, RC with §3.1): 1 aligned by the act, 0 against; null
+   * where alignment is not coded. Equal to `h14Aligned` except in the no-fit views V9, V10, V14, where an attending plan (e.g. a mop-up
+   * on the keyed front) is against the directive, as H13's primary reads it; `h14Aligned` there is H15's label sensitivity.
+   */
+  readonly h15Aligned: 0 | 1 | null;
 }
 
 export interface DirectiveAdherence {
@@ -618,6 +624,7 @@ export function codePosture(
     ...attendance(posture, mainEffort, secondary, key),
     alignedByAct: act.aligned, soundByAct: act.primary.sound, soundViaByAct: act.primary.soundVia, cellByAct: cellOf(act.aligned, act.primary.sound),
     cellByActWithBoundary: cellOf(actWide.aligned, actWide.wide.sound),
+    h15Aligned: act.aligned === null ? null : act.aligned ? 1 : 0,
   };
 }
 

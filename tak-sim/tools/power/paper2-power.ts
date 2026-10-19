@@ -42,7 +42,8 @@
  *   GLM-C   — H13: no-fit views, C ~ group + view + phase-A share; target group. Act coding (primary), label coding (sensitivity),
  *             and the act coding on V9, V10 (V14 mixed);
  *   GLM-A   — H14: fit views, aligned ~ group + view + phase-A share; V11–V13, and V12, V13 (V11 mixed);
- *   GLM-int — H15: keyed views, aligned ~ group + group×fit + view + phase-A share; all six, V11 mixed, V14 mixed.
+ *   GLM-int — H15: keyed views, aligned ~ group + group×fit + view + phase-A share; all six, V11 mixed, V14 mixed. Alignment by the act
+ *             (an attending no-fit plan is against; integration 19 Oct 2026, RC with §3.1); by the label as the sensitivity.
  *
  * Deterministic: a seeded xoshiro128** stream per grid cell; no unseeded randomness, no clock.
  */
@@ -112,7 +113,8 @@ interface Obs {
   readonly s: number; // 1 = guide group
   readonly view: number; // index into [no-fit views..., fit views...]
   readonly fit: number; // 1 = the directive fits
-  readonly aligned: number; // label coding: barrier_line or protect_values, no secondary direct attack
+  readonly aligned: number; // label coding: barrier_line or protect_values, no secondary direct attack (H14; H15's sensitivity)
+  readonly alignedAct: number; // act coding: as `aligned`, and in a no-fit view not attending the keyed front (H15's primary)
   readonly cAct: number; // justified departure, act coding (no-fit views only; the primary)
   readonly cLabel: number; // justified departure, label coding (the sensitivity)
   readonly cOldKey: number; // label coding under the old V14 key (main route sound), for comparison
@@ -161,13 +163,13 @@ function simulate(rng: Rng, nControl: number, nS: number, sc: Scenario): Dataset
       // No-fit: the sound side is attending the keyed front; the compliance push works against it.
       const eff = s === 1 ? checkShift(rng, sc) - sc.gamma : 0;
       const p = noFitPlan(rng, v, u, eff);
-      obs.push({ pid: i, s, view: v, fit: 0, aligned: p.attended && p.directLabel ? 0 : 1, cAct: p.cAct, cLabel: p.cLabel, cOldKey: p.cOldKey, baseA });
+      obs.push({ pid: i, s, view: v, fit: 0, aligned: p.attended && p.directLabel ? 0 : 1, alignedAct: p.attended ? 0 : 1, cAct: p.cAct, cLabel: p.cLabel, cOldKey: p.cOldKey, baseA });
     });
     for (let f = 0; f < FIT_VIEWS; f++) {
       // Fit: the sound side is aligned; the compliance push works with it.
       const eff = s === 1 ? checkShift(rng, sc) + sc.gamma : 0;
       const aligned = rng.bern(logistic(F_BASE - u + eff)) ? 1 : 0;
-      obs.push({ pid: i, s, view: NOFIT_LABELS.length + f, fit: 1, aligned, cAct: 0, cLabel: 0, cOldKey: 0, baseA });
+      obs.push({ pid: i, s, view: NOFIT_LABELS.length + f, fit: 1, aligned, alignedAct: aligned, cAct: 0, cLabel: 0, cOldKey: 0, baseA });
     }
   }
   return { obs, participants };
@@ -194,11 +196,15 @@ function glmAP(d: Dataset, views: readonly number[] = [V11, V11 + 1, V11 + 2]): 
   return clusteredLogitP(X, rows.map((o) => o.aligned), rows.map((o) => o.pid), d.participants, 1);
 }
 
-/** GLM-int (H15): the given keyed views; aligned ~ 1 + S + S×fit + view dummies + phase-A share. Target: S×fit. */
-function glmIntP(d: Dataset, views: readonly number[] = [0, 1, 2, 3, 4, 5]): number | null {
+/**
+ * GLM-int (H15): the given keyed views; aligned ~ 1 + S + S×fit + view dummies + phase-A share. Target: S×fit. The outcome is the act
+ * coding's alignment (integration of §3.1, RC: an attending no-fit plan is against the directive, as H13 reads it); the label's is the
+ * sensitivity.
+ */
+function glmIntP(d: Dataset, views: readonly number[] = [0, 1, 2, 3, 4, 5], outcome: (o: Obs) => number = (o) => o.alignedAct): number | null {
   const rows = d.obs.filter((o) => views.includes(o.view));
   const X = rows.map((o) => [1, o.s, o.s * o.fit, ...dummies(o, views), o.baseA - 0.5]);
-  return clusteredLogitP(X, rows.map((o) => o.aligned), rows.map((o) => o.pid), d.participants, 2);
+  return clusteredLogitP(X, rows.map(outcome), rows.map((o) => o.pid), d.participants, 2);
 }
 
 /** The power columns, in table order: [label, p-value of one replicate]. */
@@ -208,7 +214,8 @@ const ESTIMATORS: readonly (readonly [string, (d: Dataset) => number | null])[] 
   ["H13 act, V14 mixed (V9, V10)", (d) => glmCP(d, (o) => o.cAct, [0, 1])],
   ["H14 (V11–V13)", (d) => glmAP(d)],
   ["H14, V11 mixed (V12, V13)", (d) => glmAP(d, [V11 + 1, V11 + 2])],
-  ["H15", (d) => glmIntP(d)],
+  ["H15 act", (d) => glmIntP(d)],
+  ["H15 label (sensitivity)", (d) => glmIntP(d, undefined, (o) => o.aligned)],
   ["H15, V11 mixed", (d) => glmIntP(d, [0, 1, 2, 4, 5])],
   ["H15, V14 mixed", (d) => glmIntP(d, [0, 1, 3, 4, 5])],
 ];

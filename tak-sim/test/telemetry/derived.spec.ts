@@ -514,6 +514,16 @@ describe("SPEC/31 §3.1 (RC): H13 codes the act — the panel's probe plans unde
     expect(await coded(10, ["L2", "direct_attack", null, null])).toMatchObject({ attended: false, cellByAct: "D", cellByActWithBoundary: "C", cell: "D", cellWithBoundary: "C" });
   });
 
+  it("H15 reads the act's alignment (integration, 19 Oct 2026, RC with §3.1); the label's is its sensitivity", async () => {
+    // The probe plan V9-f: a mop-up on the new front attends it, so it is against the directive for H15 as it is a departure for H13.
+    expect(await coded(9, ["L1", "barrier_line", "L3", "task.mopup"])).toMatchObject({ cellByAct: "C", h15Aligned: 0, h14Aligned: 1, cell: "B" });
+    // Not attending (a mop-up on the boundary sector L2): aligned on both.
+    expect(await coded(9, ["L1", "barrier_line", "L2", "task.mopup"])).toMatchObject({ h15Aligned: 1, h14Aligned: 1 });
+    // A fit view: the act coding is the label coding.
+    const fit = await coded(11, ["L3", "barrier_line", "L1", "task.mopup"]);
+    expect(fit.h15Aligned).toBe(fit.h14Aligned);
+  });
+
   it("names no keyed front in the fit views, V8 and phase A: there the act coding is the label coding", async () => {
     for (const v of [8, 11, 12, 13]) {
       const c = await coded(v, ["L3", "barrier_line", "L1", "task.mopup"]);

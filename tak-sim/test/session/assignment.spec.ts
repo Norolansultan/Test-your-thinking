@@ -1,7 +1,7 @@
 /**
  * Assignment bound to the participant code (SPEC/27 §2.2, U4; reconciled 5 Oct 2026): the committed
- * allocation table regenerates byte for byte, its blocks are 14 : 14 : 14 within each language
- * stratum, the study link takes `?koodi=` and looks the cell up, `?solu=` is for demonstrations and
+ * allocation table regenerates byte for byte, its blocks are 5 : 5 (Haku : guide, SPEC/30 §2) within
+ * each language stratum, the study link takes `?koodi=` and looks the cell up, `?solu=` is for demonstrations and
  * pilots only, the header logs the code and where the cell came from, and the Thinker server refuses
  * a cell that does not match the code's row.
  */
@@ -38,22 +38,22 @@ describe("the allocation table", () => {
     expect(ALLOCATION_TABLE.rowsSha256).toBe(table.rowsSha256); // the app reads the same file
   });
 
-  it("has the strata of researcher decision R3: English 6 blocks (252 codes), Finnish 1 block (42 codes, pilots)", () => {
-    expect(ASSIGNMENT_PLAN.strata).toEqual([{ language: "en", blocks: 6 }, { language: "fi", blocks: 1 }]);
+  it("has the strata of SPEC/30 §2: English 12 blocks (120 codes), Finnish 2 blocks (20 codes, pilots)", () => {
+    expect(ASSIGNMENT_PLAN.strata).toEqual([{ language: "en", blocks: 12 }, { language: "fi", blocks: 2 }]);
     expect(table.strata).toEqual(ASSIGNMENT_PLAN.strata);
-    expect(table.rows.filter((r) => r.language === "en")).toHaveLength(252);
-    expect(table.rows.filter((r) => r.language === "fi")).toHaveLength(42);
-    expect(table.rows).toHaveLength(294);
+    expect(table.rows.filter((r) => r.language === "en")).toHaveLength(120);
+    expect(table.rows.filter((r) => r.language === "fi")).toHaveLength(20);
+    expect(table.rows).toHaveLength(140);
     // English first: its rows do not depend on the Finnish stratum's size.
-    expect(generateAssignmentRows({ ...ASSIGNMENT_PLAN, strata: [{ language: "en", blocks: 6 }] })).toEqual(table.rows.filter((r) => r.language === "en"));
-    expect(table.rowsSha256).toBe("3f813613adba63320c963f76c4f879c09f37638170f98c4c5e929020f2fb8ccd");
+    expect(generateAssignmentRows({ ...ASSIGNMENT_PLAN, strata: [{ language: "en", blocks: 12 }] })).toEqual(table.rows.filter((r) => r.language === "en"));
+    expect(table.rowsSha256).toBe("4a4b080bca1177e81811cddea6b5d3f3e3e5deb8f56248a953f79d74b3d038f2"); // SPEC/30 §2 (was 3f813613…8ccd, three cells)
   });
 
   it("another seed gives another table (the seed is what fixes it)", () => {
     expect(generateAssignmentRows({ ...ASSIGNMENT_PLAN, seed: ASSIGNMENT_PLAN.seed + 1 })).not.toEqual(table.rows);
   });
 
-  it("is permuted blocks of 42, 14 : 14 : 14, within each language stratum", () => {
+  it("is permuted blocks of 10, 5 : 5, within each language stratum; no code carries reasoning_once (SPEC/30 §2)", () => {
     for (const { language, blocks } of ASSIGNMENT_PLAN.strata) {
       const rows = table.rows.filter((r) => r.language === language);
       expect(rows).toHaveLength(blocks * BLOCK_SIZE);
@@ -61,11 +61,13 @@ describe("the allocation table", () => {
         const block = rows.filter((r) => r.block === b);
         expect(block).toHaveLength(BLOCK_SIZE);
         const count = (cell: string) => block.filter((r) => r.cell === cell).length;
-        expect([count("radio"), count("reasoning_once"), count("reasoning_intent")]).toEqual([14, 14, 14]);
+        expect([count("radio"), count("reasoning_intent")]).toEqual([5, 5]);
       }
     }
-    // Shuffled, not in composition order: the first block does not open with fourteen Haku rows.
-    expect(table.rows.slice(0, 14).every((r) => r.cell === "radio")).toBe(false);
+    expect(table.rows.some((r) => r.cell === "reasoning_once")).toBe(false);
+    // Shuffled, not in composition order: not every block opens with five Haku rows.
+    const blockStarts = table.rows.filter((_, i) => i % BLOCK_SIZE === 0).map((_, b) => table.rows.slice(b * BLOCK_SIZE, b * BLOCK_SIZE + 5));
+    expect(blockStarts.every((five) => five.every((r) => r.cell === "radio"))).toBe(false);
   });
 
   it("has unique opaque codes: the stratum's letter and five characters, nothing from the cell", () => {
@@ -118,14 +120,12 @@ describe("the start page with a participant code", () => {
 
 describe("the Thinker server checks the cell against the code", () => {
   const intent = table.rows.find((r) => r.cell === "reasoning_intent")!;
-  const once = table.rows.find((r) => r.cell === "reasoning_once")!;
   const haku = table.rows.find((r) => r.cell === "radio")!;
 
   it("accepts the code's own cell, refuses another or an unknown code; no code, no check", () => {
     expect(allocationError({ cell: "reasoning_intent", participantCode: intent.code })).toBeNull();
-    expect(allocationError({ cell: "reasoning_once", participantCode: once.code })).toBeNull();
     expect(allocationError({ cell: "reasoning_once", participantCode: intent.code })).toMatch(/does not match/);
-    expect(allocationError({ cell: "reasoning_once", participantCode: haku.code })).toMatch(/does not match/);
+    expect(allocationError({ cell: "reasoning_intent", participantCode: haku.code })).toMatch(/does not match/);
     expect(allocationError({ cell: "reasoning_once", participantCode: "FXXXXX" })).toMatch(/unknown/);
     expect(allocationError({ cell: "reasoning_intent" })).toBeNull();
   });

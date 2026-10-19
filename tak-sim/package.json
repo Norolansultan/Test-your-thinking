@@ -28,6 +28,7 @@
     "thinker:eval": "tsx tools/thinker/eval-neutral.ts",
     "thinker:server": "tsx server/thinker/main.ts",
     "thinker:live-check": "tsx server/thinker/live-check.ts",
+    "thinker:probe": "tsx server/thinker/live-check-open.ts",
     "assignment:generate": "tsx tools/assignment/generate.ts",
     "session-log:server": "tsx server/session-log/main.ts",
     "bundle:hash": "tsx tools/deploy/bundle-hash.ts",

@@ -43,8 +43,8 @@ describe("the code issue", () => {
     const got = [];
     for (let i = 0; i < 6; i++) got.push(codeOf(await a.assign({ sessionId: sid(i), language: "en" }, "1.1.1.1")));
     expect(got).toEqual(en.filter((r) => r.cell === "reasoning_intent").slice(0, 6).map((r) => r.code));
-    // Plenty for a pilot: 14 per block of 42, six English blocks.
-    expect(a.overview().remaining.en).toBe(6 * 14 - 6);
+    // Plenty for a pilot: 5 per block of 10, twelve English blocks (SPEC/30 §2).
+    expect(a.overview().remaining.en).toBe(12 * 5 - 6);
     expect(a.overview().cells).toEqual(["reasoning_intent"]);
   });
 
@@ -88,7 +88,7 @@ describe("the code issue", () => {
     await a.assign({ sessionId: sid(2), language: "en" }, "x");
     expect((await a.assign({ sessionId: sid(3), language: "en" }, "x")).status).toBe(410);
     const b = await AutoAssigner.open({ table, dir: join(dir, "b"), cells: ["radio"], maxIssued: null, ratePerHour: 1000 });
-    for (let i = 0; i < 14; i++) expect((await b.assign({ sessionId: sid(i), language: "fi" }, "x")).status).toBe(200);
+    for (let i = 0; i < 10; i++) expect((await b.assign({ sessionId: sid(i), language: "fi" }, "x")).status).toBe(200); // 2 Finnish blocks × 5 Haku codes
     expect((await b.assign({ sessionId: sid(99), language: "fi" }, "x")).status).toBe(410);
   });
 

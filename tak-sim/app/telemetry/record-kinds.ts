@@ -31,6 +31,7 @@ import type {
   ClickDetail, ElementEnterLeaveDetail, LayerToggledDetail, ViewportChangedDetail, TextScrolledDetail, PointerTrackDetail,
   FreezeMapPickDetail, MapLabelsPlacedDetail, WindowSizeWarningDetail,
   TakPaneDetail, TakContactSelectedDetail, TakOverlayToggledDetail, TakRbMeasuredDetail, TakChatRoomViewedDetail, TakVideoViewedDetail,
+  QueryFieldDetail,
   DrawerOpenedDetail, DrawerClosedDetail, DrawerTabChangedDetail, DrawerStateAtCycleBoundaryDetail,
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
@@ -723,8 +724,8 @@ export type TelemetryEvent =
   | { readonly kind: "drawer_tab_changed"; readonly detail: DrawerTabChangedDetail }
   | { readonly kind: "drawer_state_at_cycle_boundary"; readonly detail: DrawerStateAtCycleBoundaryDetail }
   // §2.5
-  | { readonly kind: "query_focus"; readonly detail: Record<string, never> }
-  | { readonly kind: "query_first_keystroke"; readonly detail: Record<string, never> }
+  | { readonly kind: "query_focus"; readonly detail: QueryFieldDetail }
+  | { readonly kind: "query_first_keystroke"; readonly detail: QueryFieldDetail }
   | { readonly kind: "query_edit"; readonly detail: QueryEditDetail }
   | { readonly kind: "query_submitted"; readonly detail: QuerySubmittedDetail }
   | { readonly kind: "query_cleared"; readonly detail: QueryClearedDetail }
@@ -812,7 +813,46 @@ export type TelemetryEvent =
   | { readonly kind: "tak_overlay_toggled"; readonly detail: TakOverlayToggledDetail }
   | { readonly kind: "tak_rb_measured"; readonly detail: TakRbMeasuredDetail }
   | { readonly kind: "tak_chat_room_viewed"; readonly detail: TakChatRoomViewedDetail }
-  | { readonly kind: "tak_video_viewed"; readonly detail: TakVideoViewedDetail };
+  | { readonly kind: "tak_video_viewed"; readonly detail: TakVideoViewedDetail }
+  // SPEC/30 (19 Oct 2026): the consult notification and the plan confidence
+  | { readonly kind: "consult_prompt_shown"; readonly detail: ConsultPromptShownDetail }
+  | { readonly kind: "consult_prompt_opened"; readonly detail: ConsultPromptDetail }
+  | { readonly kind: "consult_prompt_dismissed"; readonly detail: ConsultPromptDismissedDetail }
+  | { readonly kind: "plan_confidence_presented"; readonly detail: PlanConfidencePresentedDetail }
+  | { readonly kind: "plan_confidence_submitted"; readonly detail: PlanConfidenceSubmittedDetail };
+
+// ---------------------------------------------------------------------------
+// SPEC/30 (19 Oct 2026)
+// ---------------------------------------------------------------------------
+
+/** The tool the consult notification opens: Haku in the Haku group, the Thinker in the guide group (SPEC/30 §4). */
+export type ConsultTool = "haku" | "thinker";
+/** The content-free notice "New reports since your last plan", at a fixed moment of every main view (SPEC/30 §4). */
+export interface ConsultPromptShownDetail {
+  readonly cycle: CycleIndex;
+  /** The moment on the view's clock it was shown (60 s, later if a freeze or a SPAM item was open then). */
+  readonly atViewSeconds: number;
+  readonly tool: ConsultTool;
+}
+export interface ConsultPromptDetail {
+  readonly cycle: CycleIndex;
+  readonly tool: ConsultTool;
+}
+export interface ConsultPromptDismissedDetail {
+  readonly cycle: CycleIndex;
+  readonly tool: ConsultTool;
+  /** `participant`: closed by hand; `view_end`: still open when the view ended. */
+  readonly cause: "participant" | "view_end";
+}
+/** "How confident are you that your plan fits the situation?", after the view's plan is final (SPEC/30 §5.4). */
+export interface PlanConfidencePresentedDetail {
+  readonly cycle: CycleIndex;
+}
+export interface PlanConfidenceSubmittedDetail {
+  readonly cycle: CycleIndex;
+  /** 25, 50, 75 or 100 (the study's confidence scale). */
+  readonly value: number;
+}
 
 export type RecordKind = TelemetryEvent["kind"];
 
@@ -915,7 +955,13 @@ export type RecordKind = TelemetryEvent["kind"];
  * (revision (av)): a pane open when the shell unmounts is closed with cause `unmount`, and the mount's `default` opening
  * carries the full overlay state (`overlays`, keys sorted).
  */
-export const TELEMETRY_FORMAT_VERSION = "0.9.4";
+/*
+ * SPEC/30 (19 Oct 2026): `consult_prompt_shown` / `_opened` / `_dismissed` and `plan_confidence_presented` / `_submitted`
+ * are added; `ai_chat_query_submitted` may carry `viaChip`; the first emitters of `pointer_track` (with `cycle`,
+ * `viewportPx`), `query_focus` / `query_first_keystroke` / `query_edit` (with `field`, `cycle`), `decision_option_hovered`,
+ * `probe_option_hovered`, `probe_answer_changed` and `frame_stats` are built.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.10.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -943,4 +989,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "ai_literacy_started", "ai_literacy_answered", "ai_literacy_submitted",
   "freeze_map_pick", "map_labels_placed", "window_size_warning",
   "tak_pane_opened", "tak_pane_closed", "tak_contact_selected", "tak_overlay_toggled", "tak_rb_measured", "tak_chat_room_viewed", "tak_video_viewed",
+  "consult_prompt_shown", "consult_prompt_opened", "consult_prompt_dismissed", "plan_confidence_presented", "plan_confidence_submitted",
 ];

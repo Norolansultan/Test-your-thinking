@@ -142,6 +142,15 @@ export interface TextScrolledDetail {
 export interface PointerTrackDetail {
   readonly x: number;
   readonly y: number;
+  /** SPEC/30 §5.4 (19 Oct 2026, the first emitter): the view the sample belongs to and the viewport size it is relative to. */
+  readonly cycle?: number;
+  readonly viewportPx?: readonly [number, number];
+}
+/** SPEC/30 §5.4: which text field a `query_focus` / `query_first_keystroke` / `query_edit` belongs to. */
+export type QueryField = "haku_search" | "haku_chat" | "thinker_chat" | "nav";
+export interface QueryFieldDetail {
+  readonly field?: QueryField;
+  readonly cycle?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +185,9 @@ export interface DrawerStateAtCycleBoundaryDetail {
 
 export interface QueryEditDetail {
   readonly count: number; // NOT per-keystroke content (SPEC/07 §3)
+  /** SPEC/30 §5.4: the field (absent in logs before the first emitter, 19 Oct 2026). */
+  readonly field?: QueryField;
+  readonly cycle?: number;
 }
 /**
  * A free-text query (Haku's free-text field, the Thinker cells; final review 6 Oct 2026: it was not
@@ -241,6 +253,8 @@ export interface AiChatQuerySubmittedDetail {
   readonly virtualTimeS: number;
   readonly phase: "exploration" | "decision";
   readonly tool?: AiChatTool;
+  /** SPEC/30 §4: the question was the guide's suggested-question chip, submitted as shown. */
+  readonly viaChip?: true;
 }
 /**
  * SPEC/07 revision (q): Thinker's answer — the exposure record for H9 and H10. Retrieved ids with

@@ -802,6 +802,12 @@ export interface FreezeItem {
    */
   readonly keyAtomIds?: readonly string[];
   /** The goal the item serves (draft goal set before a GDTA, SPEC/08 amendment 2 Oct): safety | values | containment | resources. */
+  /**
+   * SPEC/30 §5.3: how an AI answer would state this item's key, for `aiStatedKey` (analysis only, never shown):
+   * regular-expression sources, matched case-insensitively against Haku and Thinker answers shown before the
+   * freeze, per session language. Absent: the generic band and sector matching applies.
+   */
+  readonly keyStatements?: { readonly fi: readonly string[]; readonly en: readonly string[] };
   readonly goal?: "safety" | "values" | "containment" | "resources";
 }
 

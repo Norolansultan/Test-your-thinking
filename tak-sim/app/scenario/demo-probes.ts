@@ -393,6 +393,15 @@ export function arrangeSpamOptions(items: Readonly<Record<number, SpamAuthored>>
 export const SPAM_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions(SPAM_AUTHORED, SPAM_VIEW_ORDER, FREEZE_BANK_SEED);
 
 /**
+ * SPEC/30 §5.2 (19 Oct 2026): the second SPAM item of V3 and V6 — L2 or L3, answered with the tools at hand
+ * (team understanding), shown after the first item under the same "ready". Keys rest on records reachable
+ * with Haku or the Thinker (`SPAM_SECOND_KEY_ATOMS`). DRAFT content, domain review (SPEC/30 §8).
+ */
+export const SPAM_SECOND_VIEWS: readonly number[] = [3, 6];
+export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {};
+export const SPAM_SECOND_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions(SPAM_SECOND_AUTHORED, SPAM_SECOND_VIEWS.filter((v) => v in SPAM_SECOND_AUTHORED), FREEZE_BANK_SEED, "spam-items-2");
+
+/**
  * TRUTH: the id of the one record of `step` whose text matches `re` — a traffic record, a radio item
  * (`atom.radio.<step>.<k>`) or a story bubble (`atom.demo.<step>.<k>`). The rule of `recordAtomId` in
  * `demo-directive.ts` (which nothing under app/ may import): no match, or more than one, throws, so a
@@ -413,6 +422,9 @@ export function spamRecordId(step: number, re: RegExp): string {
  * message log by the item's moment (`test/scenario/spam.spec.ts`): a first-step message of the view or
  * an earlier view's.
  */
+/** SPEC/30 §5.2: the records each second-item key rests on (recorded or pushed; reachable with the tools). */
+export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {};
+
 export const SPAM_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   3: [spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha/)],
   // Safety re-check (ah): EK11's crew is in the black at 15:40, so the crossing radio says it had to pull back (not to the road: the

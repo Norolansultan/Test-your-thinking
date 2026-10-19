@@ -173,6 +173,12 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "tak_rb_measured", detail: { from: { lat: 60.85, lon: 27.33 }, to: { lat: 60.86, lon: 27.35 }, metres: 1543.2, bearingDeg: 47.12, view: 3 } },
   { kind: "tak_chat_room_viewed", detail: { room: "air", view: 3 } },
   { kind: "tak_video_viewed", detail: { platformId: "DR2", view: 3, cause: "select" } },
+  // SPEC/30 (19 Oct 2026)
+  { kind: "consult_prompt_shown", detail: { cycle: 3, atViewSeconds: 60, tool: "thinker" } },
+  { kind: "consult_prompt_opened", detail: { cycle: 3, tool: "thinker" } },
+  { kind: "consult_prompt_dismissed", detail: { cycle: 4, tool: "thinker", cause: "view_end" } },
+  { kind: "plan_confidence_presented", detail: { cycle: 3 } },
+  { kind: "plan_confidence_submitted", detail: { cycle: 3, value: 75 } },
 ];
 
 export interface ScriptedSessionResult {

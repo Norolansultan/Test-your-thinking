@@ -79,6 +79,29 @@ export function signedAngle(from: number, to: number): number {
   return d > 180 ? d - 360 : d;
 }
 
+/** The point `m` metres from `p` along compass bearing `deg`. */
+export function offset(p: EN, deg: number, m: number): EN {
+  const r = (deg * Math.PI) / 180;
+  return [p[0] + m * Math.sin(r), p[1] + m * Math.cos(r)];
+}
+
+/** Distance from `p` to the segment a–b (to `a` when the segment is a point). */
+export function distToSegment(p: EN, a: EN, b: EN): number {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2));
+  return dist(p, [a[0] + t * dx, a[1] + t * dy]);
+}
+
+/** Distance from `p` to a polygon ring: 0 inside it, else to its nearest edge. */
+export function distToRing(p: EN, ring: readonly EN[]): number {
+  if (ring.length === 0) return Infinity;
+  if (ring.length >= 3 && insideRing(p, ring)) return 0;
+  let best = dist(p, ring[0]!);
+  for (let i = 0; i + 1 < ring.length; i++) best = Math.min(best, distToSegment(p, ring[i]!, ring[i + 1]!));
+  return best;
+}
+
 /** Ray casting; `ring` closed or not. */
 export function insideRing(p: EN, ring: readonly EN[]): boolean {
   let inside = false;
@@ -114,4 +137,9 @@ export function cycleOfStep(step: number): number {
 /** The skills' cycle of a virtual second. */
 export function cycleOfVirtual(virtualS: number): number {
   return cycleOfStep(stepOfVirtual(virtualS));
+}
+
+/** The step a clock time "hh.mm" falls in (13.20 starts step 1; 12.00 is the practice step −3). */
+export function stepOfClock(hours: number, minutes: number): number {
+  return Math.floor((hours * 60 + minutes - START_MINUTES) / 20) + 1;
 }

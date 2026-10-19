@@ -92,7 +92,7 @@ describe("session logs as score_freezes.py's responses and exposure", () => {
 
   it("folds exposure into first-seen cycles: known facts only, cycles 0–20, a pushed fact first seen in the cycle it is pushed", () => {
     const { exposure, exposureCsv } = convertSessions([files[0]!.text], scenario);
-    expect(exposureCsv.split("\n")[0]).toBe("participant,fact_id,first_seen_cycle");
+    expect(exposureCsv.split("\n")[0]).toBe("participant,fact_id,first_seen_cycle,route");
     const known = new Set(facts.map((f) => f.id));
     expect(exposure.length).toBeGreaterThan(100);
     for (const e of exposure) {
@@ -122,6 +122,27 @@ describe("session logs as score_freezes.py's responses and exposure", () => {
     const a = convertSessions(files.map((f) => f.text), scenario), b = convertSessions(files.map((f) => f.text), scenario);
     expect(a.responsesCsv).toBe(b.responsesCsv);
     expect(a.exposureCsv).toBe(b.exposureCsv);
+    expect(a.exposureRetrievedOnlyCsv).toBe(b.exposureRetrievedOnlyCsv);
     expect(new Set(a.responses.map((r) => r.participant))).toEqual(new Set(["P-SK1", "scripted-participant"]));
+  });
+
+  it("counts the model's context (routes digest and recent, format 0.11.0) in exposure.csv, and leaves it out of the retrieved-only file", () => {
+    const s = parseSessionFile(files[0]!.text);
+    const before = convertSessions([files[0]!.text], scenario);
+    const unseen = scenario.atoms.map((a) => a.id).filter((id) => !before.exposure.some((e) => e.fact_id === id));
+    const [digestId, recentId, fallbackId] = unseen;
+    const last = s.records[s.records.length - 1]!;
+    const answer = (seq: number, fallback: boolean, digest: string[], recent: string[]): LogRecord => ({
+      seq: seq as LogRecord["seq"], tVirtual: last.tVirtual, tWallOffsetMs: last.tWallOffsetMs + seq, kind: "ai_chat_answer_received",
+      detail: { tool: "open_thinker", retrieved: [], fallback, fallbackReason: fallback ? "timeout" : null, digestAtomIds: digest, recentAtomIds: recent },
+    });
+    const records = [...s.records, answer(s.records.length, false, [digestId!], [recentId!]), answer(s.records.length + 1, true, [fallbackId!], [])];
+    const withIds = convertSessions([exportSessionFile(s.header, records, true)], scenario);
+    const row = (rows: readonly { fact_id: string; route: string }[], id: string) => rows.find((r) => r.fact_id === id)?.route ?? null;
+    expect([row(withIds.exposure, digestId!), row(withIds.exposure, recentId!), row(withIds.exposure, fallbackId!)]).toEqual(["digest", "recent", null]);
+    expect([row(withIds.exposureRetrievedOnly, digestId!), row(withIds.exposureRetrievedOnly, recentId!)]).toEqual([null, null]);
+    expect(withIds.exposureRetrievedOnlyCsv).toBe(before.exposureRetrievedOnlyCsv);
+    expect(withIds.exposure.length).toBe(before.exposure.length + 2);
+    for (const e of before.exposureRetrievedOnly) expect(["digest", "recent"]).not.toContain(e.route);
   });
 });

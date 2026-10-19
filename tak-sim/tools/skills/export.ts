@@ -3,11 +3,13 @@
  * `dist/skills/scenario/` (gitignored; `package.ts` lists the files, DATA_SOURCES.md documents them).
  *
  * `npm run skills:export -- --responses <session files…> [--out <dir>]` — converts session logs
- * (`fire-sim-session-jsonl/1`) into `responses.csv` and `exposure.csv` for `score_freezes.py`, in `dist/skills/responses/`
+ * (`fire-sim-session-jsonl/1`) into `responses.csv`, `exposure.csv` (retrieved ∪ digest ∪ recent, the pre-registered
+ * definition) and `exposure_retrieved_only.csv` (the sensitivity) for `score_freezes.py`, in `dist/skills/responses/`
  * unless `--out` names another folder (`responses.ts`).
  *
  * `--out <dir>` also moves the scenario package. The version written into every file is the git commit tak-sim was
- * built from (`-dirty` with uncommitted changes under tak-sim/), so the files bind to an exact source.
+ * built from (`-dirty` with uncommitted changes under tak-sim/), so the files bind to an exact source. The scenario's
+ * flame table (`tools/fire-ca/flame-table.ts`, SPEC/31 §5 D1) is read when it exists (`scenario-extras.ts`).
  */
 
 import { execFileSync } from "node:child_process";
@@ -17,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { buildScenarioPackage } from "./package.js";
 import { convertSessions } from "./responses.js";
+import { loadFlameTable } from "./scenario-extras.js";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 export const DEFAULT_PACKAGE_DIR = join(ROOT, "dist", "skills", "scenario");
@@ -52,7 +55,7 @@ function argsAfter(argv: readonly string[], flag: string): string[] {
   return out;
 }
 
-export function main(argv: readonly string[]): void {
+export async function main(argv: readonly string[]): Promise<void> {
   const out = argsAfter(argv, "--out")[0];
   if (argv.includes("--responses")) {
     const paths = argsAfter(argv, "--responses");
@@ -63,14 +66,19 @@ export function main(argv: readonly string[]): void {
     }
     const converted = convertSessions(paths.map((p) => readFileSync(resolve(p), "utf8")), buildDemoScenario());
     const dir = out ? resolve(out) : DEFAULT_RESPONSES_DIR;
-    writeFiles(dir, new Map([["responses.csv", converted.responsesCsv], ["exposure.csv", converted.exposureCsv]]));
-    console.log(`${paths.length} session file(s): ${converted.responses.length} responses, ${converted.exposure.length} exposure rows -> ${dir}`);
+    writeFiles(dir, new Map([
+      ["responses.csv", converted.responsesCsv], ["exposure.csv", converted.exposureCsv], ["exposure_retrieved_only.csv", converted.exposureRetrievedOnlyCsv],
+    ]));
+    console.log(`${paths.length} session file(s): ${converted.responses.length} responses, ${converted.exposure.length} exposure rows (${converted.exposureRetrievedOnly.length} retrieved-only) -> ${dir}`);
     return;
   }
-  const pkg = buildScenarioPackage(sourceVersion());
+  const flameTable = await loadFlameTable();
+  const pkg = buildScenarioPackage(sourceVersion(), buildDemoScenario(), { flameTable });
   const dir = out ? resolve(out) : DEFAULT_PACKAGE_DIR;
   const written = writeFiles(dir, pkg.files);
-  console.log(`wrote ${written.length} files to ${dir}`);
+  console.log(`wrote ${written.length} files to ${dir}${flameTable ? ` (flame values from ${flameTable.source})` : " (flame bands quoted from the records)"}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2));
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main(process.argv.slice(2)).catch((e: unknown) => { console.error(e); process.exitCode = 1; });
+}

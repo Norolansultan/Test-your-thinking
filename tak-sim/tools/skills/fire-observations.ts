@@ -1,23 +1,33 @@
 /**
- * What the scenario's own observers say about the fire during one step, read from its records: flame-height bands,
- * intensity classes, spread rates and smouldering, each with the record id and, where the record has one, its position.
- * The scenario has no flame-length, intensity or fire-type FIELD: the CA (SPEC/24, an Alexandridis-type cellular
- * automaton) models spread only, and the traffic generator writes what a crew or a camera would see from the local rate
- * and ground (`tools/fire-ca/traffic-text.ts` `intensityClass`: 1 smouldering/creeping … 4 intense surface fire with
- * torching, 5 crown fire; flame bands "alle 0,3 m", "0,3–1 m", "1–2 m", "2–4 m", "puiden latvojen yli"). So every flame
- * value the export gives is a band QUOTED from a record; nothing here is computed from fire physics.
+ * What the scenario's own observers say about the fire, read from its records: flame-height bands, intensity classes,
+ * spread rates and smouldering, each with the record id, its position where the record has one, and the WINDOW it
+ * describes. The scenario has no flame-length, intensity or fire-type FIELD: the CA (SPEC/24, an Alexandridis-type
+ * cellular automaton) models spread only, and the traffic generator writes what a crew or a camera would see from the
+ * local rate and ground (`tools/fire-ca/traffic-text.ts` `intensityClass`: 1 smouldering/creeping … 4 intense surface
+ * fire with torching, 5 crown fire; flame bands "alle 0,3 m", "0,3–1 m", "1–2 m", "2–4 m", "puiden latvojen yli"). So,
+ * unless the scenario's flame table is present (`scenario-extras.ts`), every flame value the export gives is a band
+ * QUOTED from a record; nothing here is computed from fire physics.
  *
- * Sources per step: the traffic corpus (`site-scenario.json` `traffic`, positioned), the incident radio (`radio`,
- * positioned when it has `at`) and the story bubbles (`demo-story.ts`, no position). The perimeter-mapping loop
- * (`kehäkartoitus`: the whole perimeter, sector maxima), the weather station and the forecasts carry no local fire
- * observation and are skipped.
+ * Sources: the traffic corpus (`site-scenario.json` `traffic`, positioned), the incident radio (`radio`, positioned when
+ * it has `at`), the story bubbles (`demo-story.ts`, no position) and the scenario's other corpus atoms (designed events
+ * such as VPK's "voivat vielä kyteä" warning, the lateral items; placed where their source unit stands, as the corpus
+ * export places them). The perimeter-mapping loop (`kehäkartoitus`: the whole perimeter, sector maxima), the weather
+ * station and the forecasts carry no local fire observation and are skipped.
+ *
+ * Windows (SPEC/31 §5 D2): a measurement or thermal image names the interval it measured ("(klo 14.20–14.40)") and
+ * describes that 20-minute step, which is the step BEFORE the one it is logged in; every other record describes the
+ * moment it is made, inside its own step. `observationsOfWindow(n)` collects what describes step n's 20 minutes, the
+ * window `ros_head_m_min` is measured over.
  */
 
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
+import { DESIGNED_LOG } from "../../app/scenario/designed-events.js";
+import type { InfoAtom } from "../../app/scenario/types.js";
 import { recordEn } from "../../app/i18n/text.js";
-import { bearing, dist, signedAngle, toEN, type EN } from "./geo.js";
+import { atomFi } from "./facts.js";
+import { bearing, dist, signedAngle, stepOfClock, toEN, type EN } from "./geo.js";
 
 export interface FlameBand {
   /** Metres; both null for "flames above the treetops" (no number given). */
@@ -30,7 +40,10 @@ export interface FlameBand {
 
 export interface Observation {
   readonly id: string;
+  /** The step the record is logged in. */
   readonly step: number;
+  /** The step whose 20 minutes it describes: the interval it names, else its own step. */
+  readonly window: number;
   readonly source: string;
   readonly text_fi: string;
   readonly text_en: string | null;
@@ -40,7 +53,8 @@ export interface Observation {
   readonly intensityClass: number | null;
   /** A spread rate quoted in m/min, when the record states one. */
   readonly rateMpm: number | null;
-  readonly smoulder: boolean;
+  /** Smouldering said in so many words (`stated`) or as a possibility ("voivat vielä kyteä": `suspected`). */
+  readonly smoulder: "stated" | "suspected" | null;
 }
 
 const num = (s: string): number => Number(s.replace(",", "."));
@@ -65,21 +79,53 @@ export function parseClass(text: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** The step a record describes: the interval it names ("klo 14.20–14.40" → the step starting 14.20), else its own step. */
+export function windowOf(text: string, ownStep: number): number {
+  const m = text.match(/klo (\d{1,2})\.(\d{2})–(\d{1,2})\.(\d{2})/);
+  return m ? stepOfClock(Number(m[1]), Number(m[2])) : ownStep;
+}
+
+/** Smouldering as a possibility: "voivat (vielä) kyteä", "voi kyteä". */
+const SUSPECTED = /\bvoi(?:vat)? (?:vielä )?kyteä/;
 /** Smouldering said in so many words: stumps and litter smoking, residual heat, burning deep in the humus, smouldering. */
-const SMOULDER = /savuaa|jälkilämpöä|kunttakerroksessa|kytee|kyteä|kytevät/;
+const SMOULDER = /savuaa|jälkilämpöä|kunttakerroksessa|kytee|kyteä|kytevät|kytöpesäke/;
 const SKIP = /kehäkartoitus|^Sääasema|^Ennuste/;
+/** Smoke where someone is (read by the CO-zone proxy, `smoke-zone.ts`). */
+const SMOKE = /savu/i;
+
+function smoulderOf(fi: string): Observation["smoulder"] {
+  if (SUSPECTED.test(fi)) return "suspected";
+  return SMOULDER.test(fi) ? "stated" : null;
+}
 
 function observation(id: string, step: number, source: string, fi: string, xy: EN | null): Observation {
   return {
-    id, step, source, text_fi: fi, text_en: recordEn(id) ?? null, xy,
-    band: parseFlame(fi), intensityClass: parseClass(fi), rateMpm: parseRate(fi), smoulder: SMOULDER.test(fi),
+    id, step, window: windowOf(fi, step), source, text_fi: fi, text_en: recordEn(id) ?? null, xy,
+    band: parseFlame(fi), intensityClass: parseClass(fi), rateMpm: parseRate(fi), smoulder: smoulderOf(fi),
   };
 }
 
-/** Every record of `step` that states something about the fire there (a flame band, a class, a rate, or smouldering). */
-export function observationsOfStep(step: number): Observation[] {
+const COVERED = /^(?:evt\.|atom\.radio\.\d|atom\.demo\.\d)/;
+
+/** Where a corpus atom's source stands: the unit or aircraft at the designed event's position step, else at the atom's own step. */
+function atomPosition(a: InfoAtom): EN | null {
+  const stepIndex = DESIGNED_LOG[a.id]?.positionStep ?? a.cycle;
+  const s = SITE_SCENARIO.steps.find((x) => x.index === stepIndex);
+  const actor = a.provenance.sourceId;
+  const at = s?.units[actor] ?? s?.aircraft.find((x) => x.platformId === actor)?.position ?? null;
+  return at ? toEN(at) : null;
+}
+
+/**
+ * Every record LOGGED in `step` that states something about the fire (a flame band, a class, a rate, smouldering or smoke).
+ * `atoms`: the scenario's corpus atoms; those outside the traffic, the radio and the story (designed events, lateral
+ * items) are read too. Register entries (`reference`) are skipped.
+ */
+export function observationsOfStep(step: number, atoms: readonly InfoAtom[] = []): Observation[] {
   const out: Observation[] = [];
+  const inTraffic = new Set<string>();
   for (const t of SITE_SCENARIO.traffic) {
+    inTraffic.add(t.id);
     if (t.cycle !== step || SKIP.test(t.content)) continue;
     out.push(observation(t.id, step, t.actor, t.content, t.lat !== null && t.lon !== null ? toEN({ lat: t.lat, lon: t.lon }) : null));
   }
@@ -89,7 +135,18 @@ export function observationsOfStep(step: number): Observation[] {
   (CYCLE_STORY[step as CycleIndex]?.bubbles ?? []).forEach((b, k) => {
     out.push(observation(`atom.demo.${step}.${k}`, step, b.authorUnitId, b.text, null));
   });
-  return out.filter((o) => o.band !== null || o.intensityClass !== null || o.rateMpm !== null || o.smoulder);
+  for (const a of atoms) {
+    if (a.cycle !== step || inTraffic.has(a.id) || COVERED.test(a.id) || a.record.kind === "reference") continue;
+    const fi = atomFi(a);
+    if (SKIP.test(fi)) continue;
+    out.push(observation(a.id, step, a.provenance.sourceId, fi, atomPosition(a)));
+  }
+  return out.filter((o) => o.band !== null || o.intensityClass !== null || o.rateMpm !== null || o.smoulder !== null || SMOKE.test(o.text_fi));
+}
+
+/** Everything that describes step `n`'s 20 minutes: records logged in it that name no other interval, and the measurements of it logged later. */
+export function observationsOfWindow(n: number, atoms: readonly InfoAtom[] = []): Observation[] {
+  return [n, n + 1, n + 2].flatMap((k) => observationsOfStep(k, atoms)).filter((o) => o.window === n);
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -103,10 +160,11 @@ export const SEGMENT_IDS: readonly SegmentId[] = ["head", "left_flank", "right_f
 export const HEAD_RADIUS_M = 300;
 
 /**
- * The segment a point lies on, on the axis from the ignition point (origin) in the head's direction of travel: the head
- * within 300 m of the observed head or ahead of it (±45° of its bearing, seen from the head); the rear behind the origin
- * (±45° of the back bearing, seen from the origin); otherwise a flank, right or left of the axis (seen from the origin
- * toward the head). A geometric convention of this export: the scenario names sectors L1–L4, not segments.
+ * The segment a point lies on, on the axis from a front's origin in the head's direction of travel: the head within
+ * 300 m of the head or ahead of it (±45° of its bearing, seen from the head); the rear behind the origin (±45° of the back
+ * bearing, seen from the origin); otherwise a flank, right or left of the axis (seen from the origin toward the head). A
+ * geometric convention of this export: the scenario names sectors L1–L4, not segments. `window.ts` applies it to the
+ * active front (its origin, its head over the window) and leaves points off that front without a segment.
  */
 export function segmentOf(p: EN, origin: EN, head: EN, headBearingDeg: number): SegmentId {
   if (dist(p, head) <= HEAD_RADIUS_M) return "head";
@@ -147,20 +205,24 @@ export interface HeadFire {
 }
 
 /**
- * The head's flames this step: the band in the records of the step's head observer (`observedHead.observerId`: the drone,
- * aircraft or crew the scenario names as measuring the head), its measurement (`mittaus`) first, then its thermal image,
- * then anything else it said; failing that, the highest band among the step's positioned observations on the head
- * segment; else none.
+ * The head's flames over a window: the band in the window's head observer's measurement (`mittaus`) of it, else its
+ * thermal image of it (the observer is the one the scenario names as measuring the head over that window: the next
+ * step's `observedHead.observerId`); else another observer's measurement of the window whose rate is the head's observed
+ * rate (the same head, measured by another drone); failing that, the highest band among the window's positioned
+ * observations on the head segment; else none. `obs` are the window's observations; `segments` maps their ids to segments.
  */
-export function headFire(obs: readonly Observation[], observerId: string, segments: ReadonlyMap<string, SegmentId>): HeadFire {
-  const own = obs.filter((o) => o.source === observerId && (o.band !== null || o.intensityClass !== null));
+export function headFire(obs: readonly Observation[], observerId: string, segments: ReadonlyMap<string, SegmentId | null>, observedRateMpm: number | null = null): HeadFire {
   const rank = (o: Observation) => (/ mittaus:/.test(o.text_fi) ? 0 : /lämpökuva/.test(o.text_fi) ? 1 : 2);
+  const own = obs.filter((o) => o.source === observerId && (o.band !== null || o.intensityClass !== null) && rank(o) < 2);
   const pick = [...own].sort((a, b) => rank(a) - rank(b))[0];
   if (pick) return { band: pick.band, cls: pick.intensityClass ?? (pick.band ? classOfBand(pick.band) : null), sourceIds: [pick.id], basis: `the head observer ${observerId}` };
+  // Another drone's measurement of the same head: its measured rate is the head's observed rate over the window.
+  const same = observedRateMpm === null ? undefined : obs.find((o) => rank(o) === 0 && o.band !== null && o.rateMpm !== null && Math.abs(o.rateMpm - observedRateMpm) < 0.05);
+  if (same) return { band: same.band, cls: same.intensityClass ?? classOfBand(same.band!), sourceIds: [same.id], basis: `${same.source}'s measurement of the head (its rate is the head's observed ${observedRateMpm} m/min)` };
   const onHead = obs.filter((o) => o.band !== null && segments.get(o.id) === "head");
   const top = maxBand(onHead);
   if (top) return { band: top.band, cls: top.intensityClass ?? classOfBand(top.band!), sourceIds: [top.id], basis: "the highest band reported on the head segment" };
-  return { band: null, cls: null, sourceIds: [], basis: `no flame band from the head observer ${observerId} or on the head segment` };
+  return { band: null, cls: null, sourceIds: [], basis: `no record of the window from the head observer ${observerId} or on the head segment` };
 }
 
 /** The observation with the highest band (a crown band counts highest); null when none has a band. */

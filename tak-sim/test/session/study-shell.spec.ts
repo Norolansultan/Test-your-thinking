@@ -210,7 +210,7 @@ describe("the questionnaires and the debrief", () => {
     // Revision (ai): the multi items' orders are logged when shown, and with each answer.
     const basis = q.items.find((i) => i.id === "last.basis")!;
     const basisOrder = basis.kind === "multi" ? basis.options.map((x) => x.id) : [];
-    expect(records.filter((r) => r.kind === "questionnaire_presented").at(-1)!.detail).toMatchObject({ multiOptionOrders: [{ itemId: "last.basis", optionIds: basisOrder }, { itemId: "disagreement.action", optionIds: expect.any(Array) }] });
+    expect(records.filter((r) => r.kind === "questionnaire_presented").at(-1)!.detail).toMatchObject({ multiOptionOrders: [{ itemId: "last.basis", optionIds: basisOrder }, { itemId: "disagreement.action", optionIds: expect.any(Array) }, { itemId: "recognition.what", optionIds: expect.any(Array) }] });
     await o.submitQuestionnaire({
       "retention.hinge": q.retentionOptions[0]!.id, "ai.directive_relation": "dont_know", "directive.fit": "not_at_times", "tlx.mental": 14, "last.possibilities": "2",
       "last.basis": ["thinker", "projection"], "last.basis.main": "thinker", "disagreement.recall": "no", "felt.wrong": "unsure", "role.rank": "platoon_commander",

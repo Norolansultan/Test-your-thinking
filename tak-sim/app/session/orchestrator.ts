@@ -21,7 +21,7 @@
 import { toRenderable, type RenderableAtom } from "../boundary/render-boundary.js";
 import { DEFAULT_LANG, type Lang } from "../i18n/lang.js";
 import { EngineRunLoop } from "../engine/run-loop.js";
-import { cycleScheduleOf, FREEZE_MAX_SECONDS, PRACTICE_VIEW_INDEX, PRACTICE_VIEW_MAX_SECONDS, SECOND_SPAM_SUFFIX, secondSpamProbeId, STEP_SECONDS, VIEW_MAX_SECONDS, viewLabelFi } from "../scenario/views.js";
+import { cycleScheduleOf, freezeMaxSecondsFor, PRACTICE_VIEW_INDEX, PRACTICE_VIEW_MAX_SECONDS, SECOND_SPAM_SUFFIX, secondSpamProbeId, STEP_SECONDS, VIEW_MAX_SECONDS, viewLabelFi } from "../scenario/views.js";
 import type { CycleIndex, GeoExtent, LatLon, Polygon } from "../engine/primitives.js";
 import type { NavQuery } from "../retrieval/navigation.js";
 import { appendTelemetryEvent } from "../telemetry/emit.js";
@@ -41,7 +41,7 @@ import { SessionQueries, type ThinkerOptions } from "./queries.js";
 import { allocationViewOf, assertValidPlan, copyPlan, droneTaskingEvents } from "./allocation.js";
 import { recordText, type TemplateAnswer } from "./template-answer.js";
 import { capCues, finalCountdownCues, performanceClock, ViewClock, viewTimingOf, type RealClockMs, type ViewTiming } from "./view-clock.js";
-import { checkFreezeResponses } from "./freeze-answers.js";
+import { checkFreezeResponses, freezeNowClock, screenFreezeItem } from "./freeze-answers.js";
 import { ProbeToolsLockedError, VisibleProbes } from "./visible-probes.js";
 import { readingGraceMsFor, type AttentionDetail, type AttentionKind } from "./attention.js";
 import { evaluatePreflight, preflightRecord, type PreflightEnv, type PreflightOutcome } from "./preflight.js";
@@ -336,7 +336,13 @@ export class SessionOrchestrator {
   private cycleSpec(): ViewSpec { return this.isPractice() ? this.scenario.practice.cycle : this.scenario.cycles.find((c) => c.index === this.currentCycle)!; }
 
   private freezeSpec(): { readonly items: readonly FreezeItem[] } | null { return !this.cycleSpec().hasFreeze ? null : this.isPractice() ? this.scenario.practice.freeze : this.scenario.freezes.find((f) => f.cycle === this.currentCycle) ?? null; }
-  private freezeOf(): FreezeView | null { const f = this.freezeSpec(); return f && { items: f.items.map(({ mapKey: _k, projectionPoint: _p, projectionOptionId: _po, keyAtomIds: _a, options, ...item }) => ({ ...item, options: options.map(({ id, labelFi }) => ({ id, labelFi })) })) }; } // the screen's: the TRUTH keys (and each option's `correct`) left out
+  private freezeOf(): FreezeView | null { const f = this.freezeSpec(); return f && { items: f.items.map(screenFreezeItem) }; } // the screen's: a whitelist, no TRUTH or analysis metadata (`31` §3.9)
+  /** `31` F13: the clock the open freeze's header states as "now" (`freezeNowClock`); null when no freeze is open. */
+  freezeNowLabel(): string | null {
+    if (this.step !== "freeze") return null;
+    const spec = this.cycleSpec();
+    return freezeNowClock(13 * 60 + 20 + Number(spec.startsAtVirtual) / 60, spec.steps, this.endFreeze);
+  }
   /**
    * The scenario's extent: the freeze's blank map (`FreezeMap`) opens on it, the same neutral frame as the live map
    * (SPEC/12 revision (aj); never framed on the fire as reported, which was the rule from 2 Oct to 9 Oct 2026), and
@@ -545,12 +551,19 @@ export class SessionOrchestrator {
       ...this.spamCues(freezeAtSeconds),
       ...this.visibleProbeCues(),
       // SPEC/30 §4: after the freeze's cue when both fall at the same moment, so the freeze holds it (the clock stands still).
-      ...(consultPromptAtSeconds !== null ? [{ atSeconds: consultPromptAtSeconds, fire: () => void this.consult.due(consultPromptAtSeconds, this.step === "freeze" || this.spam.itemOpen) }] : []),
+      // `31` F23: held until the freeze has closed when the freeze falls due less than 15 s after it (`consultHeldForFreeze`) and is still ahead.
+      ...(consultPromptAtSeconds !== null ? [{ atSeconds: consultPromptAtSeconds, fire: () => void this.consult.due(consultPromptAtSeconds, this.step === "freeze" || this.spam.itemOpen || this.freezeDueSoonAfter(consultPromptAtSeconds)) }] : []),
       ...finalCountdownCues(minViewSeconds, (s) => { this.minSecondsLeft = s; this.notify(); }),
       { atSeconds: minViewSeconds, fire: () => void this.reachMinimum() },
       ...capCues(this.isPractice() ? PRACTICE_VIEW_MAX_SECONDS : VIEW_MAX_SECONDS, (s) => { this.capSecondsLeft = s; this.notify(); }, () => void this.reachCap()), // freeze time does not count (r.12)
     ]);
     audioManager.play();
+  }
+
+  /** `31` F23: this view's freeze falls due within 15 s after `atSeconds` and has not yet come (a freeze at that same moment came first). */
+  private freezeDueSoonAfter(atSeconds: number): boolean {
+    const { consultHeldForFreeze, freezeAtSeconds } = this.timing;
+    return consultHeldForFreeze && freezeAtSeconds !== null && atSeconds < freezeAtSeconds && this.freezeOf() !== null;
   }
 
   /** What the countdown shows: the cap, or once the period is confirmed, whichever of the minimum and the cap comes first. */
@@ -613,7 +626,7 @@ export class SessionOrchestrator {
     });
     this.freezeShownMs = this.realMs(); this.freezeItemAnsweredMs.clear(); this.freezeConfirmed.clear();
     this.clearFreezeCap();
-    this.freezeCapTimer = setTimeout(() => { this.freezeCapTimer = null; void this.timeOutFreeze(); }, FREEZE_MAX_SECONDS * 1000);
+    this.freezeCapTimer = setTimeout(() => { this.freezeCapTimer = null; void this.timeOutFreeze(); }, freezeMaxSecondsFor(this.freezeSpec()?.items.length ?? 0) * 1000); // `31` F12: 240 s for 8 items
     this.notify();
   }
 

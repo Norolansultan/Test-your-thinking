@@ -15,6 +15,10 @@
  * both languages; each choice item's statements match its key option's own text (fi and en) and no
  * distractor's. Map items' statements (`head_later`) are coarse (the head at a named place at the clock).
  *
+ * `31` F16 (19 Oct 2026): patterns are tied to the item's element (no bare "not over" or "no gap"), every rewritten L2/L3 item has its
+ * own, `elementPatterns` name the element an answer must be about, and a band item's `lureStatements` give its distractors'
+ * statements for the analysis's `statedLure` class (all on the item, analysis only, never on screen).
+ *
  * DRAFT for the two coders' audit and Pilot 2 (SPEC/30 §5.3); English place names follow `place-names.ts`.
  */
 
@@ -91,13 +95,18 @@ const R2_CTX: KeyStatements = { fi: ["R2", "huoltotie"], en: ["R2", "service roa
 
 const SPECS: Readonly<Record<string, Spec>> = {
   // ---- V2 ----
-  "freeze.2.nearest_head": {
-    fi: ["EK11[^.]{0,80}(?:lähimpänä|lähinnä)[^.]{0,30}kärke", "(?:lähimpänä|lähinnä) (?:palon )?kärke\\w*[^.]{0,40}EK11", "EK11[^.]{0,60}\\d+ m kärjestä", anchored("yksikkö EK11")],
-    en: ["EK11[^.]{0,80}(?:nearest|closest)[^.]{0,30}head", "(?:nearest|closest) (?:to )?the head[^.]{0,40}EK11", "EK11[^.]{0,60}\\d+ m from the head", anchored("unit EK11")],
+  // `31` F10: ek11_between and south_flank replace nearest_head and fuel_ahead (F16: fuel_ahead's "kuusik\w*" matched the place name).
+  "freeze.2.ek11_between": {
+    fi: ["EK11[^.]{0,80}(?:kärjen ja (?:uuden|harjun) palon väli|väliin)", "(?:kärjen ja (?:uuden|harjun) palon|kahden palon) väli\\w*[^.]{0,60}EK11", "(?:saarr|eristy)[^.]{0,60}EK11", "EK11[^.]{0,60}(?:saarr|eristy)"],
+    en: ["EK11[^.]{0,80}(?:between the head and the (?:new|second) fire|caught between|cut off|trapped)", "between the head and the (?:new|second) fire[^.]{0,60}EK11"],
   },
-  "freeze.2.fuel_ahead": { fi: ["kuusik\\w*", "kuusivaltai", "kuusimetsä"], en: ["spruce(?! hill)", "conifer"] },
+  "freeze.2.south_flank": {
+    fi: ["(?:eteläsivust\\w*|EK12)[^.]{0,80}(?:matala\\w*|pidetään|pitää|kiinni)[^.]{0,80}kär(?:ki|jen)[^.]{0,40}ohi", "kärki\\w*[^.]{0,40}(?:pääsee|menee|etenee)[^.]{0,30}ohi[^.]{0,80}(?:eteläsivust|EK12)", "reuna pysyy matalana"],
+    en: ["(?:south flank|EK12)[^.]{0,80}(?:kept low|held low|holding)[^.]{0,80}head[^.]{0,40}(?:past|by)", "head[^.]{0,40}(?:gets|got|runs|ran|goes|went|passing|passes) (?:past|by)[^.]{0,80}(?:south flank|EK12)", "edge is kept low"],
+  },
   "freeze.2.area_40": { band: "ha" },
-  "freeze.2.head_later": { fi: ["kär[kj]\\w*[^.]{0,80}kuusikon reuna", "kuusikon reuna\\w*[^.]{0,80}kär[kj]"], en: ["head[^.]{0,80}edge of the (?:spruce hill )?spruce", "edge of the (?:spruce hill )?spruce[^.]{0,80}head"] },
+  // A map item's statements are coarse: the head at a named place at the item's clock (15.00: in the Spruce Hill spruce, crowning).
+  "freeze.2.head_later": { fi: ["kär[kj]\\w*[^.]{0,80}(?:kuusiko|kuusikossa|kuusikon|Kuusimäe)", "(?:kuusiko|kuusikossa|kuusikon|Kuusimäe)\\w*[^.]{0,80}kär[kj]"], en: ["head[^.]{0,80}(?:spruce|Spruce Hill)", "(?:spruce|Spruce Hill)[^.]{0,80}head"] },
   "freeze.2.spruce_behaviour": { fi: ["latvapalo", "latvoihin", "latvoissa", "latvojen (?:yli|kautta)"], en: ["crown(?:ing| fire| run|s)", "into the (?:tree ?)?crowns", "torch(?:ing|es)"] },
   "freeze.2.junction_hour": { band: "m", context: { fi: ["risteyk", "risteys", "R2"], en: ["junction", "R2"] } },
   // ---- V4 ----
@@ -105,10 +114,13 @@ const SPECS: Readonly<Record<string, Spec>> = {
     fi: ["\\bL2\\b[^.]{0,60}(?:nopeim|nopeasti|leviää|etenee)", "(?:nopeim\\w*|nopeasti)[^.]{0,60}(?:\\bL2\\b|koillise)", "koillisessa \\(lohko L2\\)"],
     en: ["\\bL2\\b[^.]{0,60}(?:fastest|spreading|advancing)", "fastest[^.]{0,60}(?:\\bL2\\b|north-?east)", "north-?east \\(sector L2\\)"],
   },
-  "freeze.4.work_danger": { fi: ["latvapalo", "latvoissa", "latvojen yli"], en: ["crown(?:ing| fire|s)", "treetops"] },
-  "freeze.4.growth_next": {
-    band: "ha",
-    context: { fi: ["kasva\\w*", "kasvu\\w*", "uutta", "lisää"], en: ["grow\\w*", "new", "more", "add\\w*"] },
+  "freeze.4.head_unattended": {
+    fi: ["kär(?:keä|ki)[^.]{0,40}ei (?:nyt )?(?:sammuteta|hyökätä|ole ketään)", "(?:kukaan|ketään|yksikään)[^.]{0,40}(?:ei )?(?:sammuta|ole)[^.]{0,30}kärje", "kärki\\w*[^.]{0,40}etenee vapaasti"],
+    en: ["(?:no one|nobody|no crew)[^.]{0,40}(?:attack|work|fight)\\w*[^.]{0,20}(?:the )?head", "head[^.]{0,60}(?:spreads?|runs?|advances?) (?:freely|unchecked|unopposed)", "head is (?:now )?unattended"],
+  },
+  "freeze.4.return_danger": {
+    fi: ["pistepalo\\w*[^.]{0,60}(?:taakse|takana|perääntymis)", "(?:taakse|takana|perääntymis\\w*)[^.]{0,60}pistepalo", "\\bPP1\\b"],
+    en: ["spot ?fires?[^.]{0,60}(?:behind|escape route|retreat)", "(?:behind|escape route)[^.]{0,60}spot ?fires?", "\\b(?:SF1|PP1)\\b"],
   },
   "freeze.4.head_later": { fi: ["kär[kj]\\w*[^.]{0,80}Koivuoj", "Koivuoj\\w*[^.]{0,80}kär[kj]"], en: ["head[^.]{0,80}Birch Creek", "Birch Creek[^.]{0,80}head"] },
   "freeze.4.crown_drops": {
@@ -117,47 +129,53 @@ const SPECS: Readonly<Record<string, Spec>> = {
   },
   "freeze.4.korpioja_spot": {
     fi: ["Korpioj\\w*[^.]{0,80}(?:yli|toisel\\w* puolel)", "(?:kipinä\\w*|pistepalo\\w*)[^.]{0,60}(?:ojan|Korpiojan) (?:yli|toisel)", "kipinät sytyttävät paloja ojan yli"],
-    en: ["Alder Creek[^.]{0,80}(?:across|over|far side|other side|jump)", "(?:sparks?|spot fires?|embers?)[^.]{0,60}(?:across|over)[^.]{0,20}(?:the )?(?:brook|creek|Alder Creek)"],
+    en: ["Alder Creek[^.]{0,80}(?:across it|far side|other side|jump)", "(?:sparks?|spot fires?|embers?)[^.]{0,60}(?:across|over)[^.]{0,20}(?:the )?(?:brook|creek|Alder Creek)"],
   },
   // ---- V5 ----
-  "freeze.5.spot_cause": { fi: ["pistepalo", "kipinät? lensi", "kipinä\\w*[^.]{0,40}\\byli"], en: ["spot ?fires?", "sparks? (?:flew|blew|carried)", "embers?[^.]{0,40}across"] },
-  "freeze.5.units_enough": {
-    fi: ["(?:yksiköt|yksiköitä|voimat)[^.]{0,40}(?:eivät riitä|ei riitä|riittämättö)", "(?:tarvitaan|pyydetään|pyydämme) lisä(?:yksiköi|voim)", "uusia paloja on jo linjojen takana"],
-    en: ["(?:not enough|insufficient)[^.]{0,30}(?:units|crews|resources)", "(?:more|additional) (?:units|crews|resources) (?:are )?(?:needed|requested)", "new fires are already beyond the lines"],
+  "freeze.5.lines_breached": {
+    fi: ["(?:tie|metsäautotie)[^.]{0,30}(?:ja|eikä)[^.]{0,20}(?:oja|Korpioja)[^.]{0,40}(?:eivät|ei) (?:enää )?(?:rajaa|pidä|pysäytä)", "(?:eivät|ei) (?:enää )?(?:rajaa|pidä|pysäytä)[^.]{0,60}(?:tie|oja)", "linjojen (?:yli|taakse)[^.]{0,40}uusi\\w* palo"],
+    en: ["(?:road|forest road)[^.]{0,30}(?:and|nor)[^.]{0,20}(?:brook|creek|Alder Creek)[^.]{0,60}(?:no longer|not|doesn't|don't) (?:contain|hold|stop)", "neither the road nor the brook", "(?:no longer|not any more) (?:contain|hold)\\w*[^.]{0,60}(?:road|brook|creek)"],
+  },
+  "freeze.5.hose_short": {
+    fi: ["letku\\w*[^.]{0,40}(?:liian vähän|loppu\\w*|ei riitä|vähissä)", "(?:liian vähän|ei riitä)[^.]{0,30}letku", "lisää letkua", "letkua varalla alle"],
+    en: ["(?:too little|not enough|short of|running out of) hose", "hose[^.]{0,40}(?:runs? out|running out|in reserve|is short)", "more hose"],
+  },
+  "freeze.5.ek14_shelter": {
+    fi: ["EK14[^.]{0,100}(?:vetäyty|turva-alue|turvaan|palaneelle alueelle|palaneen alueen)", "(?:vetäyty\\w*|turva-alue\\w*|turvaan)[^.]{0,60}EK14", "turvaan palaneelle alueelle"],
+    en: ["EK14[^.]{0,100}(?:withdraw|pull(?:s|ed)? back|safety zone|to safety|burn(?:ed|t) area)", "(?:withdraw\\w*|safety zone)[^.]{0,60}EK14", "safety in the burn(?:ed|t) area"],
   },
   "freeze.5.wind_shift": {
     fi: ["pohjoisreuna\\w*[^.]{0,60}(?:aktivoi|kiihty|leviä|etene|painu)", "(?:aktivoi\\w*|kiihty\\w*)[^.]{0,60}pohjoisreuna", anchored("pohjoisreuna")],
     en: ["north edge[^.]{0,60}(?:active|pick|spread|advanc|flare)", "(?:activ\\w*|pick\\w* up)[^.]{0,60}north edge", anchored("the north edge")],
   },
   "freeze.5.area_hour": { band: "ha" },
-  "freeze.5.ek14_shelter": {
-    fi: ["EK14[^.]{0,100}(?:vetäyty|turva-alue|turvaan|palaneelle alueelle|palaneen alueen)", "(?:vetäyty\\w*|turva-alue\\w*|turvaan)[^.]{0,60}EK14", "turvaan palaneelle alueelle"],
-    en: ["EK14[^.]{0,100}(?:withdraw|pull(?:s|ed)? back|safety zone|to safety|burn(?:ed|t) area)", "(?:withdraw\\w*|safety zone)[^.]{0,60}EK14", "safety in the burn(?:ed|t) area"],
-  },
+  // `31` F16: the English "cross … again" is tied to the road.
   "freeze.5.road_jump": {
     fi: ["toise\\w* kohda\\w*[^.]{0,60}(?:\\byli|ylit)", "(?:\\byli|ylit\\w*)[^.]{0,60}toise\\w* kohda", "metsäautotie\\w*[^.]{0,80}(?:uudestaan|toise\\w* kohda)"],
-    en: ["(?:another|a second|second) (?:point|place|spot|crossing)", "cross\\w*[^.]{0,60}(?:again|elsewhere)"],
+    en: ["(?:another|a second|second) (?:point|place|spot|crossing)", "(?:road|track)[^.]{0,60}cross\\w*[^.]{0,40}(?:again|elsewhere)"],
   },
   // ---- V7 ----
+  // `31` F16: tied to the element (the edges calming, the fire not over), not a bare "not under control".
   "freeze.7.lull_meaning": {
-    fi: ["palo ei ole (?:vielä )?ohi", "ei ole (?:vielä )?sammunut", "ei (?:ole )?vielä hallinnassa", "reunat rauhoittuvat hetkeksi"],
-    en: ["(?:fire|it) is not (?:yet )?(?:over|out)", "not (?:yet )?(?:out|extinguished|under control)", "calm for now"],
+    fi: ["reun\\w*[^.]{0,40}rauhoittu\\w*[^.]{0,60}(?:ei ole (?:vielä )?(?:ohi|sammunut)|palaa (?:yhä|edelleen))", "(?:tuul\\w*|reun\\w*)[^.]{0,60}(?:heikkene|rauhoittu)\\w*[^.]{0,60}palo ei ole (?:vielä )?(?:ohi|sammunut)", "reunat rauhoittuvat hetkeksi"],
+    en: ["edges?[^.]{0,40}calm\\w*[^.]{0,60}(?:not (?:yet )?(?:over|out)|still burn)", "(?:wind|edges?)[^.]{0,60}(?:eas|calm|weaken)\\w*[^.]{0,60}(?:fire|it) is not (?:yet )?(?:over|out)"],
   },
-  "freeze.7.why_north": {
-    fi: ["Mökkiran\\w*[^.]{0,80}(?:uhat|uhka|tiellä|vaara)", "(?:uhat\\w*|vaara\\w*)[^.]{0,60}Mökkiran", "Karhujärven mök\\w*[^.]{0,40}uhat"],
-    en: ["Lakeside Cottages[^.]{0,80}(?:threat|at risk|in the (?:fire's )?path|danger)", "(?:threat\\w*|at risk)[^.]{0,60}Lakeside Cottages", "Bear Lake[^.]{0,30}(?:cabins|cottages)[^.]{0,40}threat"],
+  "freeze.7.north_help": {
+    fi: ["EK14[^.]{0,80}(?:saa|saavat)[^.]{0,30}(?:lisää|apua|tuke)", "(?:KY21|VPK)[^.]{0,80}(?:avuksi|tueksi|vahvistuk)[^.]{0,40}(?:EK14|pohjoisreun)"],
+    en: ["EK14[^.]{0,80}(?:gets|get|receives?)[^.]{0,30}(?:more crews?|help|reinforcement|support)", "(?:KY21|VOL1)[^.]{0,80}(?:reinforc|help|support)\\w*[^.]{0,40}(?:EK14|north edge)"],
   },
   "freeze.7.rekindle_sector": {
     fi: ["\\bL3\\b[^.]{0,80}(?:uudelleen|syty|kyt|riski)", "(?:uudelleen\\w*|syttyä|kyteä|kytee)[^.]{0,80}(?:\\bL3\\b|syttymäkohdan eteläreun)", "\\bL3\\W{1,3}etelä"],
     en: ["\\bL3\\b[^.]{0,80}(?:flare|rekindl|reignit|smoulder)", "(?:flare\\w*|rekindl\\w*|reignit\\w*|smoulder\\w*)[^.]{0,80}(?:\\bL3\\b|south edge)", "\\bL3\\W{1,3}south"],
   },
+  // `31` F16: the bare "ei tunnin aikana" / "not within the hour" is gone (any answer about any hour matched it).
   "freeze.7.cabins_reach": {
-    fi: ["(?:palo|reuna)[^.]{0,60}ei (?:ehdi|ulotu|saavuta)[^.]{0,40}mök", "mök\\w*[^.]{0,60}ei (?:ole )?(?:välitöntä )?(?:uhkaa|vaaraa)", "ei tunnin aikana"],
-    en: ["(?:fire|edge)[^.]{0,60}(?:will not|won't|does not) reach[^.]{0,40}(?:cottages|cabins)", "(?:cottages|cabins)[^.]{0,60}(?:not|no) (?:immediate )?(?:threat|danger|risk)", "not within the hour"],
+    fi: ["(?:palo|reuna)[^.]{0,60}ei (?:ehdi|ulotu|saavuta)[^.]{0,40}mök", "mök\\w*[^.]{0,60}ei (?:ole )?(?:välitöntä )?(?:uhkaa|vaaraa)", "matkaa (?:on )?(?:liikaa|liian pitkä)[^.]{0,60}(?:nopeu|vauhdi)"],
+    en: ["(?:fire|edge)[^.]{0,60}(?:will not|won't|does not|cannot) reach[^.]{0,40}(?:cottages|cabins)", "(?:cottages|cabins)[^.]{0,60}(?:not|no) (?:immediate )?(?:threat|danger|risk)", "too far at the (?:present|current) rate"],
   },
   "freeze.7.cp_safe": {
-    fi: ["johtopai\\w*[^.]{0,80}(?:turvassa|ei (?:ole )?(?:uhattu|vaarassa)|ei tarvitse siirt|voi jäädä|pysyy paikallaan)", "(?:palo|savu)[^.]{0,30}ei (?:ulotu|yllä)[^.]{0,30}johtopai", "palo ja savu eivät ulotu sinne"],
-    en: ["command post[^.]{0,80}(?:safe|not (?:at risk|threatened)|need not|does not need to (?:move|relocate)|can stay)", "(?:fire|smoke)[^.]{0,40}(?:not|n't) reach[^.]{0,30}command post", "neither fire nor smoke will reach it"],
+    fi: ["johtopai\\w*[^.]{0,80}(?:turvassa|ei (?:ole )?(?:uhattu|vaarassa)|ei tarvitse siirt|voi jäädä|pysyy paikallaan)", "(?:palo|savu)[^.]{0,30}(?:ei|eivät) (?:ulotu|yllä)[^.]{0,30}johtopai", "palo ja savu pysyvät siitä kaukana"],
+    en: ["command post[^.]{0,80}(?:is safe|stays safe|not (?:at risk|threatened)|need not|does not need to (?:move|relocate)|can stay)", "(?:fire|smoke)[^.]{0,40}(?:not|n't) reach[^.]{0,30}command post", "fire and smoke stay far from it"],
   },
   "freeze.7.relief_next": {
     fi: ["VPK[^.]{0,100}(?:lepo|korvaav|vuoronvaih|tauko|huoltoon)", "(?:lepo\\w*|korvaav\\w*|vuoronvaih\\w*)[^.]{0,60}VPK", anchored("VPK:n miehistö")],
@@ -170,7 +188,7 @@ const SPECS: Readonly<Record<string, Spec>> = {
   },
   "freeze.10.cabins_distance": { band: "m", context: { fi: ["Mökkiran"], en: ["Lakeside Cottages", "cottages", "cabins"] } },
   "freeze.10.area_total_hour": { band: "ha" },
-  "freeze.10.front_r2_2h": { band: "m", context: R2_CTX },
+  "freeze.10.front_r2_80": { band: "m", context: R2_CTX },
   // ---- V12 ----
   "freeze.12.f7": {
     fi: ["(?:johto|voimajohto|110 kV)[^.]{0,60}(?:on jännitteinen|on jännitteellä|ei ole (?:kytketty pois|jännitteetön))", "\\bjännitteinen"],
@@ -181,21 +199,25 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["(?:towards?|heading for|in the direction of)[^.]{0,20}Bay Village", "south-?east\\w*[^.]{0,60}Bay Village", anchored("bay village")],
   },
   "freeze.12.village_distance": { band: "m", context: { fi: ["Lahdenkyl"], en: ["Bay Village", "village"] } },
-  "freeze.12.head_later": {
-    fi: ["kär[kj]\\w*[^.]{0,80}(?:metsäautotie\\w*|Honkaharju\\w*)", "(?:metsäautotie\\w*|Honkaharju\\w*)[^.]{0,80}kär[kj]"],
-    en: ["head[^.]{0,80}(?:forest road|Pine Ridge)", "(?:forest road|Pine Ridge)[^.]{0,80}head"],
-  },
+  // 20.00: the head near service road R2 (coarse, as every map item's).
+  "freeze.12.head_later": { fi: ["kär[kj]\\w*[^.]{0,80}(?:\\bR2\\b|huoltotie)", "(?:\\bR2\\b|huoltotie\\w*)[^.]{0,80}kär[kj]"], en: ["head[^.]{0,80}(?:\\bR2\\b|service road)", "(?:\\bR2\\b|service road)[^.]{0,80}head"] },
   // ---- V14 ----
   "freeze.14.road_crossed": {
-    fi: ["(?:ylitti|ylittänyt|pääsi)[^.]{0,40}(?:metsäautotie|Honkaharju|tien)", "tie ei (?:enää )?pysäytä", "(?:metsäautotie|Honkaharju)\\w*[^.]{0,60}(?:ei (?:enää )?pidä|ylitetty|ylitti)"],
-    en: ["(?:crossed|got across|jumped)[^.]{0,40}(?:forest road|Pine Ridge|road)", "road (?:no longer|does not|doesn't) (?:stop|hold)", "(?:forest road|Pine Ridge)[^.]{0,60}(?:no longer holds|was crossed)"],
+    fi: ["seuraava\\w* este[^.]{0,60}(?:\\bR2\\b|huoltotie)", "(?:\\bR2\\b|huoltotie\\w*)[^.]{0,60}seuraava\\w* este", "kärj\\w*[^.]{0,40}(?:edessä|tiellä)[^.]{0,30}(?:tie R2|R2:n linj|huoltotie)"],
+    en: ["next barrier[^.]{0,60}(?:\\bR2\\b|service road)", "(?:\\bR2\\b|service road)[^.]{0,60}next barrier", "head[^.]{0,40}(?:faces|meets|now reaches)[^.]{0,30}(?:road R2|R2's lines)"],
   },
-  "freeze.14.shift_meaning": {
-    fi: ["(?:uusi|seuraava) vuoro[^.]{0,80}(?:samoilla autoilla|otti[^.]{0,30}(?:auton|linjan))", "ei (?:jää )?(?:aukkoa|katkosta)", "linjat pysyvät"],
-    en: ["(?:new|next) shift[^.]{0,80}(?:same vehicles|took over[^.]{0,30}(?:vehicle|line))", "no gap", "lines stay"],
+  "freeze.14.residents": {
+    fi: ["(?:Lahdenkyl\\w*|kylä\\w*)[^.]{0,60}(?:yhä|edelleen|vielä) (?:asukkaita|ihmisiä)", "(?:asukkaita|ihmisiä|talo\\w*)[^.]{0,60}(?:kieltäyty|ei lähde)[^.]{0,80}(?:linj\\w*|R2)"],
+    en: ["(?:people|residents)[^.]{0,30}(?:are )?still in (?:the village|Bay Village)", "(?:Bay Village|the village)[^.]{0,60}still (?:has )?(?:people|residents)", "(?:households?|houses?)[^.]{0,40}(?:refus\\w*|will not leave)[^.]{0,80}(?:lines?|R2)"],
   },
-  "freeze.14.se_front_r2": { band: "m", context: R2_CTX },
-  "freeze.14.head_later": { fi: ["kär[kj]\\w*[^.]{0,80}(?:\\bR2\\b|huoltotie)", "(?:\\bR2\\b|huoltotie\\w*)[^.]{0,80}kär[kj]"], en: ["head[^.]{0,80}(?:\\bR2\\b|service road)", "(?:\\bR2\\b|service road)[^.]{0,80}head"] },
+  "freeze.14.se_front_r2": {
+    fi: ["satojen metrien päässä", "(?:sadetin\\w*|sadettim\\w*|vettä|vesi)[^.]{0,60}(?:ei (?:vielä|tarvitse)|ei kytketä)", "(?:ei (?:vielä|tarvitse)|ei kytketä)[^.]{0,40}(?:kytke|päälle)"],
+    en: ["hundreds of metres (?:away|from)", "(?:sprinkler|water)[^.]{0,60}(?:not yet|no need|need not|not be needed)", "not yet[^.]{0,40}(?:switched|turned) on"],
+  },
+  "freeze.14.flare_next": {
+    fi: ["(?:uudelleensyttym\\w*|länsipuolen palo|leimahd\\w*)[^.]{0,80}(?:laajenee|leviää|etenee)[^.]{0,30}kaakko", "(?:laajenee|leviää|etenee)[^.]{0,30}kaakko\\w*[^.]{0,40}tuul"],
+    en: ["(?:flare-up|rekindl\\w*|new fire)[^.]{0,80}(?:spread|grow|run)\\w*[^.]{0,30}south-?east", "(?:spreads?|grows?|runs?)[^.]{0,30}south-?east\\w*[^.]{0,40}wind"],
+  },
 };
 
 /** The ids of the items that carry authored statements, sorted. */
@@ -212,9 +234,83 @@ export function keyStatementsFor(item: FreezeItem): KeyStatements | undefined {
   return bandStatements(Number(m[1]), Number(m[2]), spec);
 }
 
+/** An option's lure statements (`FreezeItem.lureStatements`). */
+export interface LureStatements { readonly optionId: string; readonly fi: readonly string[]; readonly en: readonly string[] }
+
+/**
+ * `31` F16 (19 Oct 2026; analysis only, for `statedLure`): statements of an ordinal band item's wrong bands, per option — an AI answer that
+ * states a number inside a distractor band (the map-now figure, a stale survey) states a lure. Closed bands are read as `bandStatements`
+ * reads the key's; an open lower band (`lt<n>`) as 0 … n, an open upper band (`gt<n>`) as n … 2n; with the key's context words.
+ * Undefined for an item without band statements.
+ */
+export function lureStatementsFor(item: FreezeItem): readonly LureStatements[] | undefined {
+  const spec = SPECS[item.id];
+  if (!spec || !isBand(spec)) return undefined;
+  return item.options.filter((o) => !o.correct).map((o) => {
+    const closed = /^m(\d+)_(\d+)$/.exec(o.id), lt = /^lt(\d+)$/.exec(o.id), gt = /^gt(\d+)$/.exec(o.id);
+    const st = closed ? bandStatements(Number(closed[1]), Number(closed[2]), spec)
+      : lt ? bandStatements(0, Number(lt[1]), spec)
+      : gt ? bandStatements(Number(gt[1]), 2 * Number(gt[1]), spec)
+      : null;
+    if (!st) throw new Error(`${item.id}: option ${o.id} is not a band`);
+    return { optionId: o.id, fi: st.fi, en: st.en };
+  });
+}
+
+/**
+ * `31` F16 (19 Oct 2026; analysis only): the item's ELEMENT — what an AI answer must be about for a statement in it to count for the item
+ * (the unit, the place, the quantity the item asks about). `aiStatedKey` ties its statements to it (WP-3); each set matches the item's own
+ * prompt (`freeze-key-statements.spec.ts`).
+ */
+const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
+  "freeze.2.ek11_between": { fi: ["EK11"], en: ["EK11"] },
+  "freeze.2.south_flank": { fi: ["eteläsivust", "EK12"], en: ["south flank", "EK12"] },
+  "freeze.2.area_40": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
+  "freeze.2.spruce_behaviour": { fi: ["kuusik", "Kuusimä", "latv"], en: ["spruce", "crown"] },
+  "freeze.2.junction_hour": { fi: ["risteyk", "risteys"], en: ["junction"] },
+  "freeze.2.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
+  "freeze.4.fastest_spread": { fi: ["leviä", "nopeim", "\\bL2\\b", "koillis"], en: ["spread", "fastest", "\\bL2\\b", "north-?east"] },
+  "freeze.4.head_unattended": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
+  "freeze.4.return_danger": { fi: ["pistepalo", "perääntymis", "miehist"], en: ["spot ?fire", "escape route", "crew"] },
+  "freeze.4.crown_drops": { fi: ["latvapalo", "pintapalo", "Koivuoj"], en: ["crown", "surface fire", "Birch Creek"] },
+  "freeze.4.korpioja_spot": { fi: ["Korpioj"], en: ["Alder Creek"] },
+  "freeze.4.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
+  "freeze.5.lines_breached": { fi: ["metsäautotie", "Korpioj", "ylity"], en: ["forest road", "Alder Creek", "cross"] },
+  "freeze.5.hose_short": { fi: ["EK11", "letku"], en: ["EK11", "hose"] },
+  "freeze.5.ek14_shelter": { fi: ["EK14"], en: ["EK14"] },
+  "freeze.5.wind_shift": { fi: ["pohjoisreuna", "reuna"], en: ["north edge", "edge"] },
+  "freeze.5.area_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
+  "freeze.5.road_jump": { fi: ["metsäautotie", "Kuusimä"], en: ["forest road", "Spruce Hill"] },
+  "freeze.7.lull_meaning": { fi: ["tuul", "reun"], en: ["wind", "edge"] },
+  "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna"], en: ["EK14", "north edge"] },
+  "freeze.7.rekindle_sector": { fi: ["uudelleen", "syty", "kyt", "lohko"], en: ["flar", "rekindl", "smoulder", "sector"] },
+  "freeze.7.cabins_reach": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
+  "freeze.7.cp_safe": { fi: ["johtopai"], en: ["command post"] },
+  "freeze.7.relief_next": { fi: ["lepo", "vuoronvaih", "korvaav", "huolto"], en: ["\\brest\\b", "relief", "shift change", "replacement"] },
+  "freeze.10.ek12_water": { fi: ["EK12"], en: ["EK12"] },
+  "freeze.10.cabins_distance": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
+  "freeze.10.area_total_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
+  "freeze.10.front_r2_80": { fi: ["\\bR2\\b", "huoltotie"], en: ["\\bR2\\b", "service road"] },
+  "freeze.12.f7": { fi: ["110 kV", "voimajoh", "johdo?n?\\b"], en: ["110 kV", "power line"] },
+  "freeze.12.front_toward": { fi: ["kaakkoisrintam", "asutu", "Lahdenkyl"], en: ["south-?east(?:ern)? front", "settlement", "Bay Village"] },
+  "freeze.12.village_distance": { fi: ["Lahdenkyl"], en: ["Bay Village", "village"] },
+  "freeze.12.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
+  "freeze.14.road_crossed": { fi: ["metsäautotie", "Honkaharju", "\\bR2\\b"], en: ["forest road", "Pine Ridge", "\\bR2\\b"] },
+  "freeze.14.residents": { fi: ["Lahdenkyl", "kylä", "asuk"], en: ["Bay Village", "village", "resident"] },
+  "freeze.14.se_front_r2": { fi: ["\\bR2\\b", "sadetin", "sadettim"], en: ["\\bR2\\b", "sprinkler"] },
+  "freeze.14.flare_next": { fi: ["uudelleensyttym", "länsipuol", "leimah"], en: ["flare-up", "west of the point of origin", "rekindl"] },
+};
+
+/** The item's element patterns (analysis only), undefined when none are authored. */
+export function elementPatternsFor(item: Pick<FreezeItem, "id">): KeyStatements | undefined {
+  return ELEMENTS[item.id];
+}
+
 /** The item with its statements (analysis only); an item that already has them, or has none authored, is returned as it is. */
 export function withKeyStatements(item: FreezeItem): FreezeItem {
   if (item.keyStatements) return item;
   const keyStatements = keyStatementsFor(item);
-  return keyStatements ? { ...item, keyStatements } : item;
+  if (!keyStatements) return item;
+  const elementPatterns = elementPatternsFor(item), lureStatements = lureStatementsFor(item);
+  return { ...item, keyStatements, ...(elementPatterns ? { elementPatterns } : {}), ...(lureStatements ? { lureStatements } : {}) };
 }

@@ -88,3 +88,44 @@ describe("the band statements (generated from the key option's band)", () => {
     expect(matches(area.en, "The burnt area will be 22–30 ha.")).toBe(false);
   });
 });
+
+describe("`31` F16: the element patterns and the lure statements (analysis only: WP-3's `aiStatedKey` and `statedLure`)", () => {
+  const isBand = (it: FreezeItem) => isChoice(it) && it.options.every((o) => /^(lt|gt)\d+$|^m\d+_\d+$/.test(o.id));
+
+  it("every L2/L3 item names its element in both languages, and each set matches the item's own prompt, in Finnish and English", () => {
+    for (const it of items) {
+      const el = it.elementPatterns;
+      expect(el?.fi.length, it.id).toBeGreaterThan(0);
+      expect(el?.en.length, it.id).toBeGreaterThan(0);
+      for (const s of [...el!.fi, ...el!.en]) expect(() => new RegExp(s, "i"), `${it.id}: ${s}`).not.toThrow();
+      expect(matches(el!.fi, it.promptFi), `${it.id} fi: ${it.promptFi}`).toBe(true);
+      expect(matches(el!.en, tr("en", it.promptFi)), `${it.id} en: ${tr("en", it.promptFi)}`).toBe(true);
+    }
+  });
+
+  it("every band item carries one lure entry per wrong option; a closed band's lure reads a number inside it, which the key's statements do not", () => {
+    const bands = items.filter(isBand);
+    expect(bands.length).toBeGreaterThanOrEqual(6);
+    for (const it of bands) {
+      const lures = it.lureStatements!;
+      expect(lures.map((l) => l.optionId).sort(), it.id).toEqual(it.options.filter((o) => !o.correct).map((o) => o.id).sort());
+      for (const l of lures) {
+        expect(l.fi.length, `${it.id} ${l.optionId}`).toBeGreaterThan(0);
+        expect(l.en.length, `${it.id} ${l.optionId}`).toBeGreaterThan(0);
+        const closed = /^m(\d+)_(\d+)$/.exec(l.optionId);
+        if (!closed) continue;
+        const mid = (Number(closed[1]) + Number(closed[2])) / 2;
+        const unit = /\bha\b|hehtaari/.test(it.promptFi) || /pinta-ala|palanut ala/.test(it.promptFi) ? "ha" : "m";
+        const fi = `${it.promptFi.replace(/\?$/, "")}: noin ${String(mid).replace(".", ",")} ${unit}.`;
+        const en = `${tr("en", it.promptFi).replace(/\?$/, "")}: about ${mid} ${unit}.`;
+        expect(matches(l.fi, fi), `${it.id} ${l.optionId}: ${fi}`).toBe(true);
+        expect(matches(l.en, en), `${it.id} ${l.optionId}: ${en}`).toBe(true);
+        expect(matches(it.keyStatements!.fi, fi), `${it.id}: the key's statements read ${l.optionId}`).toBe(false);
+      }
+    }
+  });
+
+  it("no item but a band item carries lure statements", () => {
+    for (const it of items.filter((x) => !isBand(x))) expect(it.lureStatements, it.id).toBeUndefined();
+  });
+});

@@ -144,9 +144,9 @@ describe("SPEC/26 §4: probes and responses", () => {
 describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
   const views = [scenario.practice.cycle, ...scenario.cycles];
 
-  it("are set exactly on the views with a freeze at a moment (the practice view and FREEZE_VIEWS but V10 and V14), whole seconds in [25, minimum − 20]", () => {
-    // SPEC/30 §5.1: V10 and V14's freeze comes at the view's end, after the plan is final — no moment on the clock.
-    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([0, 2, 4, 5, 7, 12]);
+  it("are set exactly on the views with a freeze at a moment (the practice view and FREEZE_VIEWS but V10, V12 and V14), whole seconds in [25, minimum − 20]", () => {
+    // SPEC/30 §5.1, `31` §3.8: V10, V12 and V14's freeze comes at the view's end, after the plan is final — no moment on the clock.
+    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([0, 2, 4, 5, 7]);
     for (const c of views) {
       expect(c.freezeAtSeconds !== null).toBe(c.hasFreeze && c.freezeAtViewEnd !== true);
       if (c.freezeAtSeconds === null) continue;
@@ -156,16 +156,16 @@ describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
     }
   });
 
-  it("SPEC/30 §5.1: V10 and V14 (FREEZE_AT_VIEW_END) freeze at the view's end — the property set on exactly those, with a freeze and no moment", () => {
-    expect([...FREEZE_AT_VIEW_END].sort((a, b) => a - b)).toEqual([10, 14]);
-    expect(views.filter((c) => c.freezeAtViewEnd === true).map((c) => c.index)).toEqual([10, 14]);
+  it("SPEC/30 §5.1, `31` §3.8 (coa F10): V10, V12 and V14 (FREEZE_AT_VIEW_END) freeze at the view's end — the property set on exactly those, with a freeze and no moment", () => {
+    expect([...FREEZE_AT_VIEW_END].sort((a, b) => a - b)).toEqual([10, 12, 14]);
+    expect(views.filter((c) => c.freezeAtViewEnd === true).map((c) => c.index)).toEqual([10, 12, 14]);
     for (const c of views.filter((x) => x.freezeAtViewEnd === true)) {
       expect(c.hasFreeze).toBe(true);
       expect(c.freezeAtSeconds).toBeNull();
       expect(scenario.freezes.some((f) => f.cycle === c.index)).toBe(true); // the same freeze, its items unchanged
     }
     // The other freeze views keep their pre-planned moments (each drawn on its own stream, so none moved).
-    expect(scenario.cycles.filter((c) => c.hasFreeze && c.freezeAtViewEnd !== true).map((c) => c.index)).toEqual([2, 4, 5, 7, 12]);
+    expect(scenario.cycles.filter((c) => c.hasFreeze && c.freezeAtViewEnd !== true).map((c) => c.index)).toEqual([2, 4, 5, 7]);
   });
 
   it("the practice freeze is fixed at 69 s after the tour, and VP lasts 180 s (researcher, 11 Oct 2026)", () => {

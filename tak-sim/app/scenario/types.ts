@@ -815,6 +815,37 @@ export interface FreezeItem {
    */
   readonly keyStatements?: { readonly fi: readonly string[]; readonly en: readonly string[] };
   readonly goal?: "safety" | "values" | "containment" | "resources";
+  /**
+   * TRUTH, analysis only (`31` §3.9, 19 Oct 2026; L3 items): what an L3 key rests on, for the error-class fold of `freeze-measures.ts`
+   * (CORRECT, NOT_EXPOSED, EXPOSED_WRONG, STATED_WRONG, STATED_LURE, NOT_APPLICABLE): `record` — delivered records (`basisAtomIds`),
+   * read against the log's exposure; `map` — what the view's map draws (counts as exposed); `knowledge` — general fire knowledge applied
+   * to the situation, and `ca_truth` — the fire model's later state (both NOT_APPLICABLE). Never sent to the screen.
+   */
+  readonly basisKind?: "record" | "map" | "knowledge" | "ca_truth";
+  /** TRUTH, analysis only (`31` §3.9): the delivered records an L3 key rests on (pushed or recorded by the freeze); empty for `knowledge` and `ca_truth`. */
+  readonly basisAtomIds?: readonly string[];
+  /**
+   * Analysis only (`31` F16): what an AI answer must be about for a key statement in it to count for this item — the item's element
+   * (unit, place, quantity), regular-expression sources per session language (`freeze-key-statements.ts` ELEMENTS). Never shown.
+   */
+  readonly elementPatterns?: { readonly fi: readonly string[]; readonly en: readonly string[] };
+  /**
+   * Analysis only (`31` F16, `statedLure`): per wrong option, how an AI answer would state it (a band item's distractor bands, generated as
+   * its key's are). Never shown.
+   */
+  readonly lureStatements?: readonly { readonly optionId: string; readonly fi: readonly string[]; readonly en: readonly string[] }[];
+  /**
+   * TRUTH, analysis only (`31` §3.5, rule (5)): on a report-keyed numeric L3 item whose report-keyed band differs from the band the fire
+   * model's truth falls in, the truth's option — the dual-key sensitivity credits either. Absent where the two agree (the bank's aim).
+   */
+  readonly truthOptionId?: string;
+  /**
+   * Analysis only (`31` proposal (a)): `verification` — an item only answerable by checking the raw records (F7, the rekindle's sector),
+   * read conditional on whether an AI answer before the freeze relayed the planted or omitted record. Never sent to the screen.
+   */
+  readonly family?: "verification";
+  /** Analysis only (`31` F18, F30): every key record is recorded-only (none pushed): the item measures retrieval as well as perception. */
+  readonly retrievalDependent?: true;
 }
 
 export interface FreezeSpec {

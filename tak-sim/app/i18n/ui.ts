@@ -8,7 +8,7 @@ import type { Lang } from "./lang.js";
 import type { DepartureReason, MainEffortPosture, PlanDroneTaskId, SecondaryTaskId } from "../scenario/plan-types.js";
 import {
   HAKU_CHAT_EN, HAKU_CHAT_FI, PRACTICE_THINKER_EN, PRACTICE_THINKER_EXAMPLE_EN, PRACTICE_THINKER_EXAMPLE_FI, PRACTICE_THINKER_FI, PROJECTION_CAVEAT_EN, PROJECTION_CAVEAT_FI,
-  SECTORS_EN, SECTORS_FI, TOOLS_THINKER_AGAIN_EN, TOOLS_THINKER_AGAIN_FI, TOOLS_THINKER_INTENT_AGAIN_EN, TOOLS_THINKER_INTENT_AGAIN_FI, TOUR_SETTING_EN, TOUR_SETTING_FI,
+  SECONDARY_TASK_DEFINITIONS_EN, SECONDARY_TASK_DEFINITIONS_FI, SECTORS_EN, SECTORS_FI, TOOLS_THINKER_AGAIN_EN, TOOLS_THINKER_AGAIN_FI, TOOLS_THINKER_INTENT_AGAIN_EN, TOOLS_THINKER_INTENT_AGAIN_FI, TOUR_SETTING_EN, TOUR_SETTING_FI,
 } from "../scenario/briefing.js";
 import type { TourStepId } from "../render/ui/tour.js";
 import type { TakOverlayLayer, TakPaneId } from "../telemetry/record-kinds.js";
@@ -253,6 +253,8 @@ export interface UiText {
   readonly done: string;
   readonly freezeTitle: string;
   readonly freezeNote: string;
+  /** `31` F13 (19 Oct 2026): the freeze's "now", the clock on screen when it opened (the view's end for a view-end freeze). DRAFT, native check. */
+  readonly freezeNow: (clock: string) => string;
   readonly freezeSubmit: string;
   /** A map item (SPEC/15 r.12): the blank map's hint, the note once a point is marked, and the answered count by the submit. */
   readonly freezeMapHint: string;
@@ -408,7 +410,7 @@ const FI: UiText = {
   postures: { direct_attack: "Suora hyökkäys palon reunaan", barrier_line: "Puolustuslinja tien tai vesistön varaan", protect_values: "Asutuksen suojaus" }, // review round 2 (4 Oct 2026, DEFAULT): one term each, no lexical pull
   secondaryLabel: "Toissijainen lohko",
   noSecondary: "Ei toissijaista lohkoa",
-  secondaryTasks: { "task.direct-attack": "Suora hyökkäys palon reunaan", "task.hold-line": "Linjan pito", "task.mopup": "Jälkisammutus ja varmistus" }, // 6 Oct 2026: direct attack the posture's term
+  secondaryTasks: { "task.direct-attack": "Suora hyökkäys palon reunaan", "task.hold-line": "Linjan pito tiellä tai vesistöllä", "task.mopup": "Jälkisammutus ja varmistus" }, // 6 Oct 2026: direct attack the posture's term; `31` coa F8: which line (DRAFT, native check)
   dronesLabel: "Drooniryhmien tehtävä",
   dronesCarryOn: "Ei uutta tehtävää",
   droneTasks: { "task.thermal-survey": "Lämpökuvaus", "task.perimeter-map": "Palon rajan kartoitus", "task.watch": "Lohkon tähystys" },
@@ -417,7 +419,7 @@ const FI: UiText = {
   departureReasonLabel: "Pääasiallinen syy",
   departureReasons: {
     crew_safety: "Miehistön turvallisuus", protect_people_property: "Ihmisten tai rakennusten suojaaminen",
-    new_fire_info: "Uusi tieto palosta (leviäminen, uusi pesäke)", directive_unfit: "Linjaus ei sovi nykytilanteeseen",
+    new_fire_info: "Uusi tieto palosta", directive_unfit: "Linjaus ei sovi nykytilanteeseen",
     resources: "Voimavarat eivät riitä linjauksen mukaiseen toimintaan", other: "Muu",
   },
   confirmAllocation: "Vahvista kohdennus",
@@ -443,7 +445,7 @@ const FI: UiText = {
       units: { title: "Yksiköt", body: "Yksiköiden merkit näyttävät niiden viimeksi ilmoitetun sijainnin ja työn. Droonien kohdalla näkyy myös kuvausalue." },
       log: { title: "Viestiloki", body: "Yksiköiden ja muiden toimijoiden ilmoitukset tulevat viestilokiin lähettäjän ja kellonajan kanssa." },
       haku: { title: "Haku", body: `Avaa Haku tästä. ${HAKU_CHAT_FI}` },
-      decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy." },
+      decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy.\n" + SECONDARY_TASK_DEFINITIONS_FI.join("\n") },
       freeze: { title: "Muistikatko", body: "Välillä kuva piilotetaan ja saat kysymyksiä tilanteesta. Vastaa muistin varassa (joskus napauttamalla kohtaa tyhjältä kartalta), ja arvioi varmuutesi. Kello on pysähdyksissä katkon ajan, ja jatkat siitä, mihin jäit." },
       spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kysymys \"Valmis vastaamaan?\". Paina Valmis, kun ehdit; vasta silloin näet kysymyksen ja sen neljä vaihtoehtoa. Kysymys odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole vastannut jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Harjoituksessa saat kokeilla yhtä." },
       ready: { title: "Valmis", body: "Harjoitus alkaa, kun painat Aloita. Kokeile rauhassa karttaa, viestilokia ja hakua." },
@@ -467,6 +469,7 @@ const FI: UiText = {
   done: "Istunto valmis — kaikki 14 jaksoa suoritettu. Älä kerro istunnon kulusta kollegoillesi ennen kuin tutkimus on päättynyt.",
   freezeTitle: "MUISTIKATKO — kuva piilotettu",
   freezeNote: "Vastaa muistin varassa. Kello on pysähtynyt.",
+  freezeNow: (clock) => `Kello pysähtyi klo ${clock}. ”Nyt” tarkoittaa tätä hetkeä.`,
   freezeSubmit: "LÄHETÄ JA JATKA",
   freezeMapHint: "Napauta kartalta kohta. Voit siirtää merkkiä napauttamalla uudelleen.",
   freezeMapMarked: "Kohta merkitty. Napauta uudelleen siirtääksesi.",
@@ -591,7 +594,7 @@ const EN: UiText = {
   postures: { direct_attack: "Direct attack on the fire's edge", barrier_line: "Defensive line on a road or water", protect_values: "Protecting settlements" },
   secondaryLabel: "Secondary sector",
   noSecondary: "No secondary sector",
-  secondaryTasks: { "task.direct-attack": "Direct attack on the fire's edge", "task.hold-line": "Holding the line", "task.mopup": "Mop-up and securing" },
+  secondaryTasks: { "task.direct-attack": "Direct attack on the fire's edge", "task.hold-line": "Holding the line on a road or water", "task.mopup": "Mop-up and securing" },
   dronesLabel: "Drone teams' task",
   dronesCarryOn: "No new task",
   droneTasks: { "task.thermal-survey": "Thermal imaging", "task.perimeter-map": "Mapping the fire edge", "task.watch": "Watching the sector" },
@@ -600,7 +603,7 @@ const EN: UiText = {
   departureReasonLabel: "Main reason",
   departureReasons: {
     crew_safety: "Crew safety", protect_people_property: "Protecting people or buildings",
-    new_fire_info: "New information about the fire (spread, new spot fire)", directive_unfit: "The directive does not fit the current situation",
+    new_fire_info: "New information about the fire", directive_unfit: "The directive does not fit the current situation",
     resources: "Not enough resources to carry out the directive", other: "Other",
   },
   confirmAllocation: "Confirm the allocation",
@@ -623,7 +626,7 @@ const EN: UiText = {
       units: { title: "Units", body: "The unit symbols show each unit's last reported position and work. For the drones, their imaging area is shown too." },
       log: { title: "Message log", body: "Reports from the units and other actors arrive in the message log with their sender and time." },
       haku: { title: "Search", body: `Open Search here. ${HAKU_CHAT_EN}` },
-      decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends." },
+      decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends.\n" + SECONDARY_TASK_DEFINITIONS_EN.join("\n") },
       freeze: { title: "Memory check", body: "Now and then the picture is hidden and you get questions about the situation. Answer from memory (sometimes by tapping a point on a blank map), and rate your confidence. The clock stands still during the check, and you continue where you left off." },
       spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. Press Ready when you can; only then do you see the question and its four options. The question waits for you: you can minimise it, and it does not go away. If you have not answered by the end of the period, it appears before the period ends. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in the practice." },
       ready: { title: "Ready", body: "The practice starts when you press Start. Try out the map, the message log and the search at your own pace." },
@@ -645,6 +648,7 @@ const EN: UiText = {
   done: "Session complete — all 14 periods done. Please do not describe the session to colleagues until the study has ended.",
   freezeTitle: "MEMORY CHECK — picture hidden",
   freezeNote: "Answer from memory. The clock has stopped.",
+  freezeNow: (clock) => `The clock stopped at ${clock}. “Now” means this moment.`,
   freezeSubmit: "SUBMIT AND CONTINUE",
   freezeMapHint: "Tap a point on the map. You can move the marker by tapping again.",
   freezeMapMarked: "Point marked. Tap again to move it.",

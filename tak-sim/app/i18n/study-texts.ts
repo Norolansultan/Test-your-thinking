@@ -228,6 +228,19 @@ const FI: StudyText = {
       },
       "felt.wrong": { prompt: "Tuntuiko jokin tilannekuvassa väärältä?", options: yesNoUnsureFi },
       "prior.knowledge": { prompt: "Tiesitkö ennen tätä istuntoa jotain tämän harjoituksen sisällöstä (esimerkiksi aiemmin osallistuneelta)?", options: yesNoUnsureFi },
+      // `31` §3.10 (19 Oct 2026). DRAFT, native check.
+      believability: { prompt: "Kuinka uskottavalta harjoituksen palotilanne tuntui?", low: "1 — ei lainkaan uskottavalta", high: "7 — täysin uskottavalta" },
+      "recognition.real_fire": { prompt: "Muistuttiko harjoituksen palo jotain todellista paloa, jonka tunnet?", options: yesNoUnsureFi },
+      "recognition.what": {
+        prompt: "Mitä siitä tunnistit? Valitse kaikki, jotka pitävät paikkansa.",
+        options: { fire: "Itse palon", department: "Pelastuslaitoksen", units: "Yksiköt tai niiden tunnukset", course: "Vain tapahtumien kulun" },
+      },
+      "prior.demo": { prompt: "Olitko käyttänyt tämän harjoituksen verkkoesittelyä tai pelitilaa ennen tätä päivää?", options: { no: "En", demo: "Verkkoesittelyä", game: "Pelitilaa", both: "Molempia", unsure: "En ole varma" } },
+      "reliability.answers": {
+        prompt: "Kuinka suuri osa saamistasi työkalujen vastauksista piti mielestäsi paikkansa?",
+        options: { lt25: "Alle neljännes", m25_50: "Neljänneksestä puoleen", m50_75: "Puolesta kolmeen neljännekseen", gt75: "Yli kolme neljännestä", no_use: "En käyttänyt työkaluja" },
+      },
+      "reliability.projection": { prompt: "Kuinka usein kartan leviämisennuste mielestäsi piti paikkansa?", options: { rarely: "Harvoin", sometimes: "Joskus", mostly: "Useimmiten", always: "Aina" } },
       "role.rank": { prompt: "Nykyinen tehtäväsi", options: { crew: "Pelastaja / miehistö", crew_commander: "Yksikönjohtaja", platoon_commander: "Pelastusjoukkueen johtaja / palomestari (P3)", duty_chief: "Päivystävä palopäällikkö (P2) tai ylempi", student: "Opiskelija", other: "Muu" } },
       "years.service": { prompt: "Palvelusvuodet pelastustoimessa (0–50)" },
       "incidents.commanded": { prompt: "Kuinka monta maastopalotehtävää olet johtanut?", options: { none: "Ei yhtään", "1_5": "1–5", "6_20": "6–20", "21_50": "21–50", over_50: "Yli 50" } },
@@ -352,6 +365,18 @@ const EN: StudyText = {
       },
       "felt.wrong": { prompt: "Did anything in the picture of the situation feel wrong?", options: yesNoUnsureEn },
       "prior.knowledge": { prompt: "Before this session, did you know anything about the content of this exercise (for example from someone who took part earlier)?", options: yesNoUnsureEn },
+      believability: { prompt: "How believable did the fire situation in the exercise feel?", low: "1 — not believable at all", high: "7 — fully believable" },
+      "recognition.real_fire": { prompt: "Did the fire in the exercise remind you of a real fire you know?", options: yesNoUnsureEn },
+      "recognition.what": {
+        prompt: "What did you recognise? Choose all that apply.",
+        options: { fire: "The fire itself", department: "The rescue department", units: "The units or their call signs", course: "Only the course of events" },
+      },
+      "prior.demo": { prompt: "Had you used this exercise's web demonstration or its game mode before today?", options: { no: "No", demo: "The web demonstration", game: "The game mode", both: "Both", unsure: "Not sure" } },
+      "reliability.answers": {
+        prompt: "What share of the answers you got from the tools do you think were right?",
+        options: { lt25: "Less than a quarter", m25_50: "A quarter to a half", m50_75: "A half to three quarters", gt75: "More than three quarters", no_use: "I did not use the tools" },
+      },
+      "reliability.projection": { prompt: "How often do you think the map's spread projection was right?", options: { rarely: "Rarely", sometimes: "Sometimes", mostly: "Mostly", always: "Always" } },
       "role.rank": { prompt: "Your current role", options: { crew: "Firefighter / crew member", crew_commander: "Crew commander", platoon_commander: "Platoon commander / fire master", duty_chief: "Duty fire chief (P2 level) or above", student: "Student", other: "Other" } },
       "years.service": { prompt: "Years of service in the fire and rescue services (0–50)" },
       "incidents.commanded": { prompt: "How many wildfire incidents have you commanded?", options: { none: "None", "1_5": "1–5", "6_20": "6–20", "21_50": "21–50", over_50: "More than 50" } },

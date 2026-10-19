@@ -96,7 +96,7 @@ describe("the departure note (fix pass 6, D5; from V8, identical in both conditi
     expect(UI_TEXT.en.departureReasonLabel).toBe("Main reason");
     expect(UI_TEXT.fi.departureReasons).toEqual({
       crew_safety: "Miehistön turvallisuus", protect_people_property: "Ihmisten tai rakennusten suojaaminen",
-      new_fire_info: "Uusi tieto palosta (leviäminen, uusi pesäke)", directive_unfit: "Linjaus ei sovi nykytilanteeseen",
+      new_fire_info: "Uusi tieto palosta", directive_unfit: "Linjaus ei sovi nykytilanteeseen", // `31` coa F11: no examples (they cued the deciding fronts)
       resources: "Voimavarat eivät riitä linjauksen mukaiseen toimintaan", other: "Muu",
     });
     for (const lang of ["fi", "en"] as const) expect(DEPARTURE_REASONS.map((r) => UI_TEXT[lang].departureReasons[r]).join(" ")).not.toMatch(/haku|search|thinker|tekoäly|työkalu|tool|\bAI\b/i);

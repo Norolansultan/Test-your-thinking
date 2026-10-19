@@ -10,7 +10,7 @@
  * length (`view_ended`), through an injected clock; it times the participant, never the world.
  */
 
-import { CONSULT_PROMPT_AT_S, DECISION_OPENS_AFTER_S, PRACTICE_VIEW_INDEX } from "../scenario/views.js";
+import { CONSULT_PROMPT_AT_S, consultHeldForFreeze, DECISION_OPENS_AFTER_S, PRACTICE_VIEW_INDEX } from "../scenario/views.js";
 import type { ViewSpec } from "../scenario/types.js";
 import { scaleViewSeconds, type PreviewOverride } from "./preview.js";
 
@@ -32,17 +32,25 @@ export interface ViewTiming {
   readonly stepBoundaryAtSeconds: number | null;
   /** SPEC/30 §4: the consult notification's moment (every main view); null in the practice view. */
   readonly consultPromptAtSeconds: number | null;
+  /**
+   * `31` F23: the view's freeze falls due less than `CONSULT_FREEZE_GAP_S` after the notification's moment, so the notification
+   * waits until the freeze has closed. Decided on the unscaled moments, so a preview defers exactly where the study does.
+   */
+  readonly consultHeldForFreeze: boolean;
 }
 
 export function viewTimingOf(spec: ViewSpec, override: PreviewOverride | null): ViewTiming {
   const scaled = (seconds: number) => scaleViewSeconds(seconds, override);
+  const freezeAt = spec.hasFreeze && spec.freezeAtViewEnd !== true ? spec.freezeAtSeconds : null;
+  const consultAt = spec.index === PRACTICE_VIEW_INDEX ? null : CONSULT_PROMPT_AT_S;
   return {
     minViewSeconds: scaled(spec.minViewSeconds),
     decisionOpensAtSeconds: scaled(DECISION_OPENS_AFTER_S),
-    freezeAtSeconds: spec.hasFreeze && spec.freezeAtViewEnd !== true && spec.freezeAtSeconds !== null ? scaled(spec.freezeAtSeconds) : null,
+    freezeAtSeconds: freezeAt !== null ? scaled(freezeAt) : null,
     freezeAtViewEnd: spec.hasFreeze && spec.freezeAtViewEnd === true,
     stepBoundaryAtSeconds: spec.stepBoundary ? scaled(spec.minViewSeconds) / 2 : null,
-    consultPromptAtSeconds: spec.index === PRACTICE_VIEW_INDEX ? null : scaled(CONSULT_PROMPT_AT_S),
+    consultPromptAtSeconds: consultAt !== null ? scaled(consultAt) : null,
+    consultHeldForFreeze: consultHeldForFreeze(consultAt, freezeAt),
   };
 }
 

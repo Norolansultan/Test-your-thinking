@@ -33,7 +33,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
       const def = FREEZE_BANK[Number(view)]!.find((d) => d.slug === slug)!;
       expect(def, `V${view} ${slug}`).toBeDefined();
       expect(def).toMatchObject({ level: "L3", kind: "choice" });
-      expect(def.basis, slug).toMatch(/SPEC\/30 §5\.1 \(DRAFT\)/);
+      expect(def.basis, slug).toMatch(/SPEC\/30 §5\.1 \(DRAFT[;)]/); // `31` re-authorings cite their finding after the DRAFT mark
       expect(item(Number(view), slug).options, slug).toHaveLength(4);
     }
     const goals = Object.entries(NEW).flatMap(([v, slugs]) => slugs.map((s) => item(Number(v), s).goal));

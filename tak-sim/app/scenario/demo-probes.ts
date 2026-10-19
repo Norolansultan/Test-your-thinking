@@ -7,8 +7,8 @@
  * | Probe | Views |
  * |---|---|
  * | Type J (containment judgement) | none — withdrawn (revision (x), 6 Oct 2026): a view asks only for the sector plan |
- * | Blanked freeze (SAGAT) | V2, V4, V5, V7 \| V10, V12, V14: 6 items each, 2×L1 (one the infrastructure item), 2×L2 (F7 at V12), 2×L3, from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each; plus a 4-item practice freeze in VP (L1 infrastructure, L1 map point, L2, L3) |
- * | SPAM (Type S, online) | V3, V6, V8, V11 — rewritten 4 Oct 2026 (round 2, agent C) to be answerable from the display with Haku and Thinker locked; the manipulation check is on the hinge screen (`buildHingeCheck`) |
+ * | Blanked freeze (SAGAT) | V2, V4, V5, V7: 8 items each, 2×L1 (one the infrastructure item), 2×L2, 4×L3 (SPEC/30 §5.1) \| V10, V12, V14: 6 items each, 2×L1, 2×L2 (F7 at V12), 2×L3 — all at the view's end (`31` §3.8) — from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each but V7 and V14; plus a 4-item practice freeze in VP (L1 infrastructure, L1 map point, L2, L3) |
+ * | SPAM (Type S, online) | V3, V6, V8, V11 — rewritten 4 Oct 2026 (round 2, agent C) to be answerable from the display; the tools stay usable since `27` (ag), and V3 and V6 add a second, tool-aided item (SPEC/30 §5.2, `31` §3.7); the manipulation check is on the hinge screen (`buildHingeCheck`) |
  * | No SA probe | V1, V9 (omission), V13 (contradiction) |
  * | Type E | none — withdrawn with H6 (researcher decision, 6 Oct 2026) |
  * | Type F | none — withdrawn with Type J (revision (x), 6 Oct 2026) |
@@ -20,6 +20,7 @@ import { CANONICAL_FLAG_SEQUENCE, DESIGNED_EVENT_IDS, type ExpectedInvariant, ty
 import { FREEZE_LATEST_BEFORE_END_S, MAIN_VIEWS, PRACTICE_VIEW_INDEX, VIEW_MIN_SECONDS } from "./views.js";
 import { arrangeOptions, byLevel, FREEZE_BANK_SEED, toItem } from "./freeze-bank-core.js";
 import { FREEZE_BANK, PRACTICE_BANK } from "./freeze-bank.js";
+import { withRetrievalFlag } from "./freeze-bank-retrieval.js";
 import { radioId, trafficId } from "./freeze-keys.js";
 import { deriveSeed, Xorshift64Star } from "../engine/prng.js";
 import { SITE_SCENARIO } from "./site-scenario.js";
@@ -111,7 +112,8 @@ const WATER_PROMPT_FI = {
   W1: "Onko vesipiste W1 (Haukilampi) tällä hetkellä käytettävissä säiliöautojen täyttöön?",
   W3: "Onko vesipiste W3 (Kotkanjoki) tällä hetkellä käytettävissä säiliöautojen täyttöön?", // (al): no "sillan" before V12 (the bridge limit is first on record at step 16)
 } as const;
-const R1_PROMPT_FI = "Mikä on tien R1 tila tällä hetkellä?";
+/** `31` F18 (19 Oct 2026): the stretch named — the drone road reports describe R1 south of Kuivakangas, while other stretches differ. */
+const R1_PROMPT_FI = "Mikä on tien R1 tila Kuivakankaan eteläpuolella tällä hetkellä?";
 const R2_PROMPT_FI = "Mikä on tien R2 tila vesiajon reittinä tällä hetkellä?";
 const BRIDGE_PROMPT_FI = "Pääseekö raskas säiliöauto R3:n sillan yli?";
 
@@ -156,28 +158,33 @@ const INFRA_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   14: [radioId(16, /^OUT1 saapunut R3:n sillan .*raskas säiliö ei pääse/), radioId(16, /^OUT2 saapunut R3:n sillan .*raskas säiliö ei pääse/)],
 };
 
-/** The view's infrastructure item (F7 at V12), or null for a view without a main freeze. Options in authored order; `buildFreezes` arranges them. */
+/**
+ * The view's infrastructure item (F7 at V12), or null for a view without a main freeze. Options in authored order; `buildFreezes` arranges them.
+ * `31` F18, F30 (analysis only): flagged `retrievalDependent` when every key record is recorded-only (`freeze-bank-retrieval.ts`).
+ */
 export function infrastructureItem(view: number): FreezeItem | null {
   const slot = INFRA_SCHEDULE[view];
   if (!slot) return null;
-  if (slot.topic === "f7") return { id: `freeze.${view}.f7`, ...F7_ITEM, goal: "safety", keyAtomIds: INFRA_KEY_ATOMS[view]! };
+  const keyAtomIds = INFRA_KEY_ATOMS[view]!;
+  // `31` proposal (a): F7 is a verification item (only the raw records tell the planted value from the line's true state).
+  if (slot.topic === "f7") return withRetrievalFlag({ id: `freeze.${view}.f7`, ...F7_ITEM, goal: "safety", keyAtomIds, family: "verification" });
   const promptFi = slot.topic === "water" ? WATER_PROMPT_FI[slot.point!] : slot.topic === "r1" ? R1_PROMPT_FI : slot.topic === "r2" ? R2_PROMPT_FI : BRIDGE_PROMPT_FI;
-  return {
+  return withRetrievalFlag({
     id: view === PRACTICE_VIEW_INDEX ? "freeze.practice.infra" : `freeze.${view}.infra`,
     level: "L1",
     kind: "choice",
     goal: "resources",
-    keyAtomIds: INFRA_KEY_ATOMS[view]!,
+    keyAtomIds,
     promptFi,
     options: INFRA_OPTIONS[slot.topic].map(([id, labelFi]) => ({ id, labelFi, correct: id === slot.correct })),
-  };
+  });
 }
 
-/** A view's items before the option arrangement: the infrastructure item (or F7) and the bank's, in level order. */
+/** A view's items before the option arrangement: the infrastructure item (or F7) and the bank's, in level order, each with its retrieval flag. */
 function unarranged(view: number): FreezeItem[] {
   const prefix = view === PRACTICE_VIEW_INDEX ? "freeze.practice" : `freeze.${view}`;
   const bank = view === PRACTICE_VIEW_INDEX ? PRACTICE_BANK : FREEZE_BANK[view]!;
-  return byLevel([infrastructureItem(view)!, ...bank.map((d) => toItem(prefix, d))]);
+  return byLevel([infrastructureItem(view)!, ...bank.map((d) => withRetrievalFlag(toItem(prefix, d)))]);
 }
 
 /**
@@ -310,7 +317,7 @@ interface SpamAuthored {
   readonly prompt: string;
   readonly key: string;
   readonly distractors: readonly [string, string, string];
-  /** SPEC/30 §5.2: the second items of V3 and V6 are L2 and L3. */
+  /** SPEC/30 §5.2: the second items of V3 and V6 are L2 (`31` F04: V6's, an L3 before, is L2). */
   readonly saLevel: 1 | 2 | 3;
   readonly contentKind: ProbeSpec["contentKind"];
   /** A quantity: the options in ascending order, shown so (the key's place follows from its value; chosen to match the draw). */
@@ -328,14 +335,16 @@ export interface SpamItem {
 export const SPAM_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
   3: {
     prompt: "Kuinka suuri palanut ala on viimeisimmän kehäkartoituksen mukaan?",
-    key: "Noin 18 ha", distractors: ["Noin 13 ha", "Noin 25 ha", "Noin 35 ha"],
-    scale: ["Noin 13 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"],
+    // `31` F25: the stale lure is DR3's 13.55 survey (~10 ha), no longer the 14.15 one (12.9 ha), which with the key gave V3.b its basis.
+    key: "Noin 18 ha", distractors: ["Noin 10 ha", "Noin 25 ha", "Noin 35 ha"],
+    scale: ["Noin 10 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"],
     saLevel: 1, contentKind: "situation",
   },
   6: {
     prompt: "Mikä on EK11:n linjan tilanne Koivuojalla?",
     key: "Palo on ylittänyt ojan, linja on murtunut",
-    distractors: ["Palo on pysähtynyt ojaan, linja pitää", "Palo ei ole vielä ojalla, linja pitää", "EK11 on vetäytynyt tielle, linja on jätetty"],
+    // `31` F20: "EK11 withdrawn to the road, line abandoned" differed from the record only by "to the road"; a clearly different state.
+    distractors: ["Palo on pysähtynyt ojaan, linja pitää", "Palo ei ole vielä ojalla, linja pitää", "EK11 on huollossa, linja on luovutettu EK12:lle"],
     saLevel: 1, contentKind: "situation",
   },
   8: {
@@ -401,11 +410,12 @@ export const SPAM_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions
  *   survey (recorded, step 3: 2,6 ha uutta) against its pushed 14.35 survey (4,8 ha uutta): nearly twice as
  *   much new area. Comprehension of two records, one reached only with the tools; the first item asks the
  *   latest area (one record). No freeze asks a growth trend; V4's growth_next asks the next 20 minutes' growth.
- * - V6 (L3, step 8, 15:40): road R1's state in an hour — the forecast (evt.wx.03, 15:00: the wind backs to
- *   the south-east 15.30–16.00) turns the burned area's north-west side into a flank along R1's stretch south
- *   of Kuivakangas; the latest report on hand (DR2, step 8, recorded) reads "passable with care" (the lure),
- *   and the next ones (DR3, steps 10–11, 16.2x and 16.4x) read "flames at the roadside, not safe to drive" (the
- *   key, TRUTH). The infrastructure item's labels (English in `labels.en.json`); no later freeze asks R1.
+ * - V6 (L2, step 8, 15:40; `31` F04, F18, 19 Oct 2026, re-authored: the L3 "R1 in an hour" keyed on records not reachable at 25 s
+ *   and its reachable records supported the lure as much): how road R1 south of Kuivakangas changed between DR2's two latest road
+ *   reports — 15.28 "burnt area at the roadside, no flames, passable" (step 7, recorded) and 15.47 "low fire at the roadside, passable
+ *   with care" (step 8, recorded; every step-8 record is reachable from V6's start): the fire is back at the verge. Comprehension of two
+ *   records, both reached only with the tools (retrieval-dependent, `RETRIEVAL_DEPENDENT_PROBE_IDS`); the stale change (the flames went
+ *   out, true at 15.28) is the lure. No later freeze asks R1.
  * Neither names a designed event, the south-east, the origin or a tool; neither rests on a directive key record
  * or a later freeze's key (`test/scenario/spam-second.spec.ts`). The probe id is `<first probe id>.b` (session code).
  */
@@ -418,10 +428,10 @@ export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
     saLevel: 2, contentKind: "situation",
   },
   6: {
-    prompt: "Mikä on tien R1 tila tunnin kuluttua?",
-    key: "Ei turvallinen ajaa, liekit tien reunassa",
-    distractors: ["Ajettavissa, ei paloa tien reunassa", "Ajettavissa varoen, matalaa paloa tien reunassa", "Ei ajettavissa, palo on katkaissut tien"],
-    saLevel: 3, contentKind: "situation",
+    prompt: "Miten tien R1 tila Kuivakankaan eteläpuolella on muuttunut viimeisimmissä tiehavainnoissa?",
+    key: "Paloa on taas tien reunassa, ajettavissa vain varoen",
+    distractors: ["Ei muutosta, tie on yhä ajettavissa ilman paloa", "Liekit ovat sammuneet, tie on taas ajettavissa", "Tie on nyt poikki, palo on katkaissut sen"],
+    saLevel: 2, contentKind: "situation",
   },
 };
 export const SPAM_SECOND_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions(SPAM_SECOND_AUTHORED, SPAM_SECOND_VIEWS.filter((v) => v in SPAM_SECOND_AUTHORED), FREEZE_BANK_SEED, "spam-items-2");
@@ -449,15 +459,28 @@ export function spamRecordId(step: number, re: RegExp): string {
  */
 /**
  * SPEC/30 §5.2: the records each second-item key rests on (recorded or pushed; reachable with the tools by the item's moment: of the
- * view's first step or earlier). V6's is an L3 key: its basis records (the forecast, the latest road report), not the later outcome.
+ * view's first step or earlier). `31` F04: V6's key follows from its two road reports, both reachable at the item's moment.
  */
 export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   3: [
     spamRecordId(3, /^DR3 kehäkartoitus valmis klo 14\.15: palanut ala noin 12,9 ha; .*2,6 ha uutta/),
     spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha; .*4,8 ha uutta/),
   ],
-  6: ["evt.wx.03", spamRecordId(8, /^DR2 tiehavainto: tie R1 .*ajettavissa varoen/)],
+  6: [spamRecordId(7, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, palanut alue tien reunassa — ei liekkejä, ajettavissa/), spamRecordId(8, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, .*ajettavissa varoen/)],
 };
+
+/**
+ * `31` F18, F30 (analysis only): the probes whose key records are all recorded-only — answerable only with the tools, so they measure
+ * retrieval too. The freeze items carry the same flag (`retrievalDependent`).
+ */
+export const RETRIEVAL_DEPENDENT_PROBE_IDS: readonly string[] = ["probe.s.cycle_6.b"];
+
+/**
+ * `31` proposal (a) (analysis only): the items only answerable by checking the raw records — F7 (`freeze.12.f7`, the planted record),
+ * the rekindle's sector (`freeze.7.rekindle_sector`, VPK's objection ranked low for broad questions) and V14's forced-choice backup
+ * (`probe.u.cycle_14`). The two freeze items also carry `family: "verification"`; the backup is a probe, so it is named here.
+ */
+export const VERIFICATION_ITEM_IDS: readonly string[] = ["freeze.12.f7", "freeze.7.rekindle_sector", "probe.u.cycle_14"];
 
 export const SPAM_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   3: [spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha/)],
@@ -587,7 +610,7 @@ export const AREA_OPTIONS: readonly { readonly id: string; readonly fi: string }
   { id: "north_edge", fi: "Pohjoisreuna" },
   { id: "east_old_head", fi: "Itäpuoli (vanhan kärjen puoli)" },
   { id: "southeast_front", fi: "Kaakkoisrintama" },
-  { id: "west_bog", fi: "Länsipuoli ja suo" },
+  { id: "west_bog", fi: "Länsipuoli" }, // `31` coa F11: terrain-neutral (was "… ja suo", one view before V14's west flare-up)
   { id: "units", fi: "Yksiköiden sijainnit tai tila" },
   { id: "weather", fi: "Sää" },
   { id: "projection", fi: "Leviämisennuste" },

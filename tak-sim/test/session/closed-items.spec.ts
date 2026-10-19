@@ -74,7 +74,12 @@ describe("the multi-select kind (questionnaire.ts)", () => {
       expect(optionIds(item(questionnaireItems("post", "radio", seed(c)), "last.basis")).at(-1)).toBe("other");
       expect(optionIds(item(questionnaireItems("post", "reasoning_intent", seed(c)), "disagreement.action")).at(-1)).toBe("nothing");
     }
-    expect(multiOptionOrders(radio)).toEqual([{ itemId: "last.basis", optionIds: optionIds(item(radio, "last.basis")) }, { itemId: "disagreement.action", optionIds: optionIds(item(radio, "disagreement.action")) }]);
+    expect(multiOptionOrders(radio)).toEqual([
+      { itemId: "last.basis", optionIds: optionIds(item(radio, "last.basis")) },
+      { itemId: "disagreement.action", optionIds: optionIds(item(radio, "disagreement.action")) },
+      { itemId: "recognition.what", optionIds: optionIds(item(radio, "recognition.what")) }, // `31` §3.10 (parity P-6), seeded like the rest
+    ]);
+    expect([...optionIds(item(radio, "recognition.what"))].sort()).toEqual(["course", "department", "fire", "units"]);
   });
 
   it("validates: known options, no repeats, the exclusive option alone; logs the ticked ids in the order shown with that order; empty is null", () => {

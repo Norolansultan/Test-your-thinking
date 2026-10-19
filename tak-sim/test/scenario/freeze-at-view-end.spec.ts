@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { ScenarioConstructionError, createScenarioContract } from "../../app/scenario/contract.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { FREEZE_VIEWS } from "../../app/scenario/demo-probes.js";
-import { CONSULT_PROMPT_AT_S, FREEZE_AT_VIEW_END } from "../../app/scenario/views.js";
+import { CONSULT_FREEZE_GAP_S, CONSULT_PROMPT_AT_S, consultHeldForFreeze, FREEZE_AT_VIEW_END } from "../../app/scenario/views.js";
 import type { ScenarioContract } from "../../app/scenario/types.js";
 import { viewTimingOf } from "../../app/session/view-clock.js";
 import { buildValidScenario } from "./fixtures/valid-scenario.js";
@@ -27,8 +27,8 @@ function withView(index: number, patch: Record<string, unknown>): ScenarioContra
 }
 
 describe("the end-of-view freeze in the scenario (SPEC/30 §5.1)", () => {
-  it("is V10 and V14 only, both freeze views, and the builder sets it from that one set", () => {
-    expect([...FREEZE_AT_VIEW_END].sort((a, b) => a - b)).toEqual([10, 14]);
+  it("is V10, V12 and V14 only (`31` §3.8: V12 joins, coa F10), all freeze views, and the builder sets it from that one set", () => {
+    expect([...FREEZE_AT_VIEW_END].sort((a, b) => a - b)).toEqual([10, 12, 14]);
     for (const v of FREEZE_AT_VIEW_END) expect(FREEZE_VIEWS.has(v)).toBe(true);
     const flagged = [scenario.practice.cycle, ...scenario.cycles].filter((c) => c.freezeAtViewEnd === true).map((c) => c.index);
     expect(flagged).toEqual([...FREEZE_AT_VIEW_END].sort((a, b) => a - b));
@@ -62,6 +62,25 @@ describe("the end-of-view freeze in the scenario (SPEC/30 §5.1)", () => {
 });
 
 describe("the consult notification's moment (SPEC/30 §4)", () => {
+  it("`31` F23: is held past a freeze due less than 15 s after it (deterministic: both moments are fixed at build time), and only then", () => {
+    expect(CONSULT_FREEZE_GAP_S).toBe(15);
+    expect(consultHeldForFreeze(60, 60)).toBe(true);
+    expect(consultHeldForFreeze(60, 74)).toBe(true);
+    expect(consultHeldForFreeze(60, 75)).toBe(false);
+    expect(consultHeldForFreeze(60, 59)).toBe(false); // a freeze before the notice: the notice comes after it anyway
+    expect(consultHeldForFreeze(60, null)).toBe(false);
+    for (const c of scenario.cycles) {
+      const t = viewTimingOf(c, null);
+      const gap = c.freezeAtSeconds === null ? null : c.freezeAtSeconds - CONSULT_PROMPT_AT_S;
+      expect(t.consultHeldForFreeze, `V${c.index}`).toBe(gap !== null && gap >= 0 && gap < 15);
+      // A preview scales both moments but defers exactly where the study does.
+      expect(viewTimingOf(c, { minViewSeconds: 12 }).consultHeldForFreeze, `V${c.index} preview`).toBe(t.consultHeldForFreeze);
+    }
+    // The study's seeded moments: the freezes that fall within 15 s after 60 s are held (V5 at 61 s, V7 at 73 s on 588908b's seed).
+    const held = scenario.cycles.filter((c) => viewTimingOf(c, null).consultHeldForFreeze).map((c) => c.index);
+    expect(held).toEqual(scenario.cycles.filter((c) => c.freezeAtSeconds !== null && c.freezeAtSeconds >= 60 && c.freezeAtSeconds < 75).map((c) => c.index));
+  });
+
   it("is 60 s on every main view's clock, scaled by a preview like every view moment, and absent in the practice view", () => {
     expect(CONSULT_PROMPT_AT_S).toBe(60);
     for (const c of scenario.cycles) expect(viewTimingOf(c, null).consultPromptAtSeconds).toBe(60);

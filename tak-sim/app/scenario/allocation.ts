@@ -32,7 +32,7 @@ const CREW_TYPES: readonly AssetType[] = ["pelastusyksikko", "sailioauto", "maas
  */
 export const ALLOCATION_TASKS: readonly TaskOption[] = [
   { id: "task.direct-attack", label: "Sammutus palon reunalla", appliesToTypes: CREW_TYPES },
-  { id: "task.hold-line", label: "Linjan pito", appliesToTypes: CREW_TYPES },
+  { id: "task.hold-line", label: "Linjan pito tiellä tai vesistöllä", appliesToTypes: CREW_TYPES },
   { id: "task.mopup", label: "Jälkisammutus ja varmistus", appliesToTypes: CREW_TYPES },
   { id: "task.thermal-survey", label: "Lämpökuvaus", appliesToTypes: ["drone"] },
   { id: "task.perimeter-map", label: "Palon rajan kartoitus", appliesToTypes: ["drone"] },

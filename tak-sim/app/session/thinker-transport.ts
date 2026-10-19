@@ -31,6 +31,14 @@ export class ThinkerBadResponseError extends Error {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** SPEC/31 §3.6 (format 0.11.0): `digestAtomIds` and `recentAtomIds` are optional (an older proxy has neither), else arrays of ids. */
+function assertContextIds(body: Record<string, unknown>): void {
+  for (const field of ["digestAtomIds", "recentAtomIds"] as const) {
+    const v = body[field];
+    if (v !== undefined && !(Array.isArray(v) && v.every((x) => typeof x === "string"))) throw new ThinkerBadResponseError(`${field} is not an array of ids`);
+  }
+}
+
 /** Checks what the screen and the log read from a proxy answer: the answer's fields are strings, `retrieved` is an array of {id, score}. */
 export function assertThinkerResponseShape(body: unknown): asserts body is ThinkerResponse {
   if (!isRecord(body)) throw new ThinkerBadResponseError("not an object");
@@ -44,6 +52,7 @@ export function assertThinkerResponseShape(body: unknown): asserts body is Think
   }
   if (!Array.isArray(retrieved)) throw new ThinkerBadResponseError("retrieved is not an array");
   if (!retrieved.every((r) => isRecord(r) && typeof r.id === "string" && typeof r.score === "number")) throw new ThinkerBadResponseError("retrieved holds an entry that is not {id, score}");
+  assertContextIds(body);
 }
 
 /** The Open Thinker's reply (F1): `answer` is a string and `retrieved` an array of {id, score}. */
@@ -59,6 +68,7 @@ export function assertOpenThinkerResponseShape(body: unknown): asserts body is O
   const { retrieved } = body;
   if (!Array.isArray(retrieved)) throw new ThinkerBadResponseError("retrieved is not an array");
   if (!retrieved.every((r) => isRecord(r) && typeof r.id === "string" && typeof r.score === "number")) throw new ThinkerBadResponseError("retrieved holds an entry that is not {id, score}");
+  assertContextIds(body);
 }
 
 export function httpThinkerTransport(endpoint = THINKER_ENDPOINT, timeoutMs = THINKER_CLIENT_TIMEOUT_MS): ThinkerTransport {

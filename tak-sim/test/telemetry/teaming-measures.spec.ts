@@ -12,7 +12,7 @@ import { freezeItemScores, H2_PRIMARY_WINDOW, type FreezeContentLike, type Freez
 import type { AiStatedKey } from "../../app/telemetry/ai-stated-key.js";
 import { InMemoryLogSink, SessionLog, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import type { TelemetryEvent } from "../../app/telemetry/record-kinds.js";
-import { h2tSplit, handOverIndex, isSecondSpamItem, overconfidenceGap } from "../../app/telemetry/teaming-measures.js";
+import { h2tSplit, handOverIndex, handOverItemRows, isSecondSpamItem, overconfidenceGap } from "../../app/telemetry/teaming-measures.js";
 
 const HEADER: LogHeader = {
   formatVersion: "0.10.0", sessionId: "teaming", participantCode: "p", condition: "substitutive", scenarioId: "s", scenarioVersion: "0",
@@ -41,9 +41,11 @@ function phaseAScores(): FreezeItemScore[] {
   return out;
 }
 
-const stated = (view: number, itemId: string, s: boolean, rules: AiStatedKey["rules"] = ["band"]): AiStatedKey => ({
+const stated = (view: number, itemId: string, s: boolean, rules: AiStatedKey["rules"] = ["band"], keyPushed = false): AiStatedKey => ({
   view, itemId, level: "L3", stated: s, firstStatedSeq: s ? 1 : null, statedInView: s ? view : null, tool: s ? "thinker" : null,
   matchedBy: s ? rules[0] ?? null : null, matchedText: s ? "x" : null, rules, freezeStartedSeq: 2,
+  statedLure: false, lureOptionIds: [], firstLureSeq: null, lureMatchedText: null,
+  keyPushed, toldClass: keyPushed ? "stream_told" : s ? "ai_told" : "neither", window: "f16", basisReleasedAtS: null,
 });
 
 describe("H2: the overconfidence gap", () => {
@@ -75,6 +77,31 @@ describe("H2t: own versus borrowed", () => {
     expect(h2tSplit(scores, keys).notStated.n).toBe(2);
     const dropped = h2tSplit(scores, keys, { dropUnscreenable: true });
     expect([dropped.notStated.n, dropped.unscreened]).toEqual([1, [{ view: 2, itemId: "map" }]]);
+  });
+
+  it("SPEC/31 §3.6: splits three ways — stream-told (key pushed; even if an AI restated it), AI-told and neither — and gives H2 without the stream-told", () => {
+    const scores = [
+      score(2, "pushed.restated", "L2", 100, true), score(2, "pushed", "L2", 75, true), // the stream told everyone: stream-told
+      score(4, "told", "L3", 100, true), // AI-told
+      score(4, "own.a", "L3", 100, false), score(5, "own.b", "L3", 50, true), // neither
+      score(5, "map", "L3", 75, false), // neither, unscreenable
+    ];
+    const keys = [
+      stated(2, "pushed.restated", true, ["band"], true), stated(2, "pushed", false, ["band"], true),
+      stated(4, "told", true), stated(4, "own.a", false), stated(5, "own.b", false), stated(5, "map", false, []),
+    ];
+    const split = h2tSplit(scores, keys);
+    expect([split.streamTold.n, split.aiTold.n, split.neither.n, split.withoutStreamTold.n]).toEqual([2, 1, 3, 4]);
+    expect(split.streamToldGap).toEqual({ n: 2, meanConfidence: 87.5, proportionCorrect: 1, gap: -0.125 });
+    expect(split.aiToldGap).toEqual({ n: 1, meanConfidence: 100, proportionCorrect: 1, gap: 0 });
+    expect(split.neitherGap.proportionCorrect).toBeCloseTo(1 / 3, 10);
+    expect(split.neitherGap.gap).toBeCloseTo(0.75 - 1 / 3, 10);
+    // The two-way split is unchanged: the restated pushed item is "stated" there.
+    expect([split.stated.n, split.notStated.n]).toEqual([2, 4]);
+    // dropUnscreenable drops the unscreenable map item from "neither", never a stream-told one.
+    const dropped = h2tSplit(scores, [...keys.slice(0, 5), stated(5, "map", false, []), { ...stated(2, "x", false, [], true) }], { dropUnscreenable: true });
+    expect([dropped.neither.n, dropped.toldUnscreened]).toEqual([2, [{ view: 5, itemId: "map" }]]);
+    expect(h2tSplit([score(2, "pushed.map", "L3", 50, true)], [stated(2, "pushed.map", false, [], true)], { dropUnscreenable: true }).streamTold.n).toBe(1);
   });
 });
 
@@ -115,5 +142,21 @@ describe("H-T: the hand-over index", () => {
     expect(isSecondSpamItem("probe.s.cycle_6.b", "A")).toBe(true);
     expect(isSecondSpamItem("probe.s.cycle_6", "A")).toBe(false);
     expect(isSecondSpamItem("probe.s.cycle_8.b", "B")).toBe(false);
+  });
+
+  it("SPEC/31 §3.7: gives the item-level rows of the H-T model — own window items and answered, keyed team items, with the participant and cell", async () => {
+    const records = await buildLog([
+      { kind: "session_started", detail: { ...HEADER, cell: "reasoning_intent", condition: "substitutive" } },
+      start(2, "A"),
+      { kind: "freeze_submitted", detail: { cycle: 2, responses: [{ itemId: "f2.l1", optionId: "a", confidence: 50 }, { itemId: "f2.l2", optionId: "a", confidence: 75 }, { itemId: "f2.l3", optionId: "b", confidence: 25 }] } },
+      start(3, "A"), spam("probe.s.cycle_3", "a"), spam("probe.s.cycle_3.b", "b"),
+      { kind: "recall_confidence_submitted", detail: { probeId: "probe.s.cycle_3.b", value: 75 } },
+      start(6, "A"), spam("probe.s.cycle_6.b", null),
+    ]);
+    const rows = handOverItemRows(records, FREEZES, KEYS, { teamLevels: new Map([["probe.s.cycle_3.b", "L2" as const]]) });
+    expect(rows.map((r) => [r.measure, r.view, r.itemId, r.level, r.correct, r.confidence])).toEqual([
+      ["own", 2, "f2.l2", "L2", true, 75], ["own", 2, "f2.l3", "L3", false, 25], ["team", 3, "probe.s.cycle_3.b", "L2", false, 75],
+    ]);
+    expect(rows.every((r) => r.cell === "reasoning_intent" && r.sessionId === "teaming" && r.participantCode === "p")).toBe(true);
   });
 });

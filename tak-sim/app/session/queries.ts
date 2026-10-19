@@ -306,6 +306,9 @@ export class SessionQueries {
         ...(aiVerdicts !== undefined ? { aiVerdicts: aiVerdicts === null ? null : aiVerdicts.map(({ line, verdict }) => ({ line, verdict })) } : {}),
         // Revision (aq): the structured answer's kind, exact verdicts and premise statuses.
         ...(structured ? { aiKind: structured.kind, aiVerdictsExact: structured.options.map((o) => o.verdict), aiPremiseStatuses: structured.premises.map((p) => p.status), aiPremiseIds: structured.premises.map((p) => p.id) } : {}),
+        // SPEC/31 §3.6 (format 0.11.0): what the proxy put in the model's context without a search; absent from an older proxy and the local fallback.
+        ...(response.digestAtomIds !== undefined ? { digestAtomIds: [...response.digestAtomIds] } : {}),
+        ...(response.recentAtomIds !== undefined ? { recentAtomIds: [...response.recentAtomIds] } : {}),
       },
     });
   }

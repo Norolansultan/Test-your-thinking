@@ -22,6 +22,7 @@ export { aiStatedKey, shownAnswers, type AiStatedKey, type AiStatedKeyOptions, t
 
 import type { LatLon } from "../engine/primitives.js";
 import { DESIGNED_EVENT_IDS, type FreezeItem, type FreezeItemLevel } from "../scenario/types.js";
+import type { StatementFields } from "./key-statement-match.js";
 import type { LogRecord } from "./log.js";
 import type {
   AiChatAnswerReceivedDetail,
@@ -36,10 +37,27 @@ import type {
   TrafficReturnedDetail,
 } from "./record-kinds.js";
 
+/**
+ * What an L3 item's projection rests on (SPEC/31 §3.9; WP-2 adds the fields to the bank's items, analysis metadata never in the session
+ * or the render layer): `record` — the delivered records `basisAtomIds`; `map` — the map, an identical stimulus (counts as exposed);
+ * `knowledge`, `ca_truth` — no record (the error-class fold gives NOT_APPLICABLE).
+ */
+export type BasisKind = "record" | "map" | "knowledge" | "ca_truth";
+export const BASIS_KINDS: readonly BasisKind[] = ["record", "map", "knowledge", "ca_truth"];
+
+/** The basis fields an item may carry (optional: the fold and the stated-key window read them when present). */
+export interface BasisFields {
+  readonly basisAtomIds?: readonly string[];
+  readonly basisKind?: BasisKind;
+}
+
+/** A freeze item as the analysis reads it: the bank's item with its optional analysis-only fields (statements, basis). */
+export type AnalysisFreezeItem = FreezeItem & StatementFields & BasisFields;
+
 /** A freeze's content as scoring needs it: `FreezeSpec`, or the practice freeze (cycle 0). */
 export interface FreezeContentLike {
   readonly cycle: number;
-  readonly items: readonly FreezeItem[];
+  readonly items: readonly AnalysisFreezeItem[];
 }
 
 // ---------------------------------------------------------------------------
@@ -217,11 +235,15 @@ export interface PlantedExposure {
   readonly grid: KeyAtomExposure;
 }
 
-/** Null when the V12 freeze was never shown. The F7 view is `F7_ITEM_ID`'s (12). */
-export function plantedExposure(records: readonly LogRecord[], view = 12): PlantedExposure | null {
+/**
+ * Null when the V12 freeze was never shown. The F7 view is `F7_ITEM_ID`'s (12). SPEC/31 §3.6: the same exposure definition as the
+ * freeze items' — retrieved ∪ digest ∪ recent (the guide's digest carries the grid record at steps 6–7 and the planted one at step 8,
+ * parity P-2); `includeModelContext: false` is the retrieved-only sensitivity.
+ */
+export function plantedExposure(records: readonly LogRecord[], view = 12, opts: ExposureOptions = {}): PlantedExposure | null {
   const start = records.find((r) => r.kind === "freeze_started" && (r.detail as FreezeStartedDetail).cycle === view);
   if (!start) return null;
-  const [planted, grid] = atomExposure(records, [F7_PLANTED_ATOM_ID, F7_GRID_ATOM_ID], start.seq as number) as [KeyAtomExposure, KeyAtomExposure];
+  const [planted, grid] = atomExposure(records, [F7_PLANTED_ATOM_ID, F7_GRID_ATOM_ID], start.seq as number, opts) as [KeyAtomExposure, KeyAtomExposure];
   const exposure = planted.reached ? (grid.reached ? "planted_and_grid" : "planted_only") : grid.reached ? "grid_only" : "neither";
   return { view, metPlanted: planted.reached, metGrid: grid.reached, exposure, planted, grid };
 }
@@ -308,8 +330,22 @@ export function projectionChoiceReliance(records: readonly LogRecord[], freezes:
  * - `traffic`, `result_expanded`: older records (`traffic_returned.entryIds`, `result_item_expanded`),
  *   kept so logs from earlier formats score. `retrieval_returned` carries package ids, not atom
  *   ids, and is not read.
+ * - `digest`, `recent` (format 0.11.0; SPEC/31 §3.6, parity P-2): put in the model's context WITHOUT a search — the Open Thinker's
+ *   digest of the step's latest records (`ai_chat_answer_received.digestAtomIds`; the guide only) and both chats' best matches among
+ *   the current step's records (`recentAtomIds`). Not counted for a fallback answer (no model answer was shown: the Open Thinker
+ *   shows "unavailable", Haku's template reads `retrieved` only). Absent in older logs, which still score (without them).
+ *   The pre-registered exposure is retrieved ∪ digest ∪ recent; `includeModelContext: false` drops these two routes, the
+ *   retrieved-only sensitivity (SPEC/09 (ay)).
  */
-export type ExposureRoute = "bubble" | "haku" | "haku_chat" | "thinker" | "traffic" | "result_expanded";
+export type ExposureRoute = "bubble" | "haku" | "haku_chat" | "thinker" | "digest" | "recent" | "traffic" | "result_expanded";
+
+/** The routes that reach the model without a search (`includeModelContext: false` leaves them out). */
+export const MODEL_CONTEXT_ROUTES: readonly ExposureRoute[] = ["digest", "recent"];
+
+/** Exposure options: the primary definition counts the model's context (digest, recent matches); false is the retrieved-only sensitivity. */
+export interface ExposureOptions {
+  readonly includeModelContext?: boolean;
+}
 
 export interface KeyAtomExposure {
   readonly atomId: string;
@@ -347,7 +383,13 @@ function atomIdsDelivered(r: LogRecord): readonly { atomId: string; route: Expos
     case "ai_chat_answer_received": {
       const d = r.detail as AiChatAnswerReceivedDetail;
       const route: ExposureRoute = d.tool === "haku" ? "haku_chat" : "thinker";
-      return d.retrieved.map((x) => ({ atomId: x.id, route }));
+      const retrieved = d.retrieved.map((x) => ({ atomId: x.id, route }));
+      if (d.fallback) return retrieved;
+      return [
+        ...retrieved,
+        ...(d.digestAtomIds ?? []).map((atomId) => ({ atomId, route: "digest" as const })),
+        ...(d.recentAtomIds ?? []).map((atomId) => ({ atomId, route: "recent" as const })),
+      ];
     }
     case "traffic_returned":
       return (r.detail as TrafficReturnedDetail).entryIds.map((atomId) => ({ atomId, route: "traffic" as const }));
@@ -358,11 +400,13 @@ function atomIdsDelivered(r: LogRecord): readonly { atomId: string; route: Expos
   }
 }
 
-/** Every arrival per atom, in log order. */
-function arrivalsByAtom(records: readonly LogRecord[]): Map<string, Arrival[]> {
+/** Every arrival per atom, in log order; without the model-context routes when `includeModelContext` is false. */
+function arrivalsByAtom(records: readonly LogRecord[], opts: ExposureOptions = {}): Map<string, Arrival[]> {
   const arrivals = new Map<string, Arrival[]>();
+  const drop = opts.includeModelContext === false ? MODEL_CONTEXT_ROUTES : [];
   for (const r of records) {
     for (const { atomId, route } of atomIdsDelivered(r)) {
+      if (drop.includes(route)) continue;
       const list = arrivals.get(atomId) ?? [];
       list.push({ seq: r.seq as number, tWallOffsetMs: r.tWallOffsetMs, route });
       arrivals.set(atomId, list);
@@ -387,10 +431,11 @@ function exposureOf(atomId: string, arrivals: ReadonlyMap<string, readonly Arriv
  * (pushed `bubble`; recorded `haku` results; `haku_chat` and open-`thinker` retrievals; the older `traffic` and
  * `result_expanded`), and how long before that record (`msBeforeFreeze`: null when no record has that seq). A retrieval
  * is not proof the answer relayed the atom — `answerRelaysAtom` screens for that. Exported for the exposure measures
- * of Paper 2 (an atom met before a plan, not only before a freeze).
+ * of Paper 2 (an atom met before a plan, not only before a freeze). Since format 0.11.0 the model's context counts too (`digest`,
+ * `recent`); `{ includeModelContext: false }` is the retrieved-only sensitivity.
  */
-export function atomExposure(records: readonly LogRecord[], atomIds: readonly string[], beforeSeq: number): KeyAtomExposure[] {
-  const arrivals = arrivalsByAtom(records);
+export function atomExposure(records: readonly LogRecord[], atomIds: readonly string[], beforeSeq: number, opts: ExposureOptions = {}): KeyAtomExposure[] {
+  const arrivals = arrivalsByAtom(records, opts);
   const anchor = records.find((r) => (r.seq as number) === beforeSeq);
   return atomIds.map((atomId) => exposureOf(atomId, arrivals, beforeSeq, anchor ? anchor.tWallOffsetMs : null));
 }
@@ -400,11 +445,14 @@ export function atomExposure(records: readonly LogRecord[], atomIds: readonly st
  * view's `freeze_started` (the latest one for that view logged before the submission; the
  * submission itself if no start was logged). A Thinker answer received during the freeze is after
  * the anchor and does not count. Items without key atoms are omitted. As for the scores, only the first
- * answer to an item counts and a replayed view is dropped (`firstFreezeAnswers`).
+ * answer to an item counts and a replayed view is dropped (`firstFreezeAnswers`). The model's context counts (format 0.11.0) unless
+ * `includeModelContext` is false (the retrieved-only sensitivity); sagat F30's retrieval-only L1 items are read conditional on this.
  */
-export function freezeItemExposure(records: readonly LogRecord[], freezes: readonly FreezeContentLike[], opts: { readonly includeReplayed?: boolean } = {}): FreezeItemExposure[] {
+export function freezeItemExposure(
+  records: readonly LogRecord[], freezes: readonly FreezeContentLike[], opts: { readonly includeReplayed?: boolean } & ExposureOptions = {},
+): FreezeItemExposure[] {
   const index = itemIndex(freezes);
-  const arrivals = arrivalsByAtom(records);
+  const arrivals = arrivalsByAtom(records, opts);
   const starts: { readonly view: number; readonly record: LogRecord }[] = [];
   for (const r of records) if (r.kind === "freeze_started") starts.push({ view: (r.detail as FreezeStartedDetail).cycle as number, record: r });
   const out: FreezeItemExposure[] = [];

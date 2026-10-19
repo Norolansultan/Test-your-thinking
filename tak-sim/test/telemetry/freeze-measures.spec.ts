@@ -11,6 +11,7 @@ import {
   answerRelaysAtom, atomExposure, calibrationPairs, freezeItemExposure, freezeItemScores, H2_PRIMARY_WINDOW, haversineMetres, plantedFalseValueHeld, plantedExposure, F7_GRID_ATOM_ID, F7_PLANTED_ATOM_ID, projectionReliance, replayedViews,
   type FreezeContentLike, type FreezeItemScore,
 } from "../../app/telemetry/freeze-measures.js";
+import { errorClassCounts, errorClasses, exposureConditionalScores } from "../../app/telemetry/error-classes.js";
 import { InMemoryLogSink, SessionLog, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import type { AiChatAnswerReceivedDetail, FreezeItemAnsweredDetail, TelemetryEvent } from "../../app/telemetry/record-kinds.js";
 
@@ -347,5 +348,85 @@ describe("plantedExposure (fix pass 6, H9): the planted record, and the grid ope
 
   it("is null when the V12 freeze was never shown", async () => {
     expect(plantedExposure(await buildLog([[1_000, bubble(F7_PLANTED_ATOM_ID)], [2_000, freezeStarted(10)]]))).toBeNull();
+  });
+});
+
+describe("SPEC/31 §3.6 and §3.9: the model's context as exposure (format 0.11.0), and the error-class fold", () => {
+  const digestAnswer = (withIds: boolean, fallback = false, digest: readonly string[] = ["atom.basis"], recent: readonly string[] = ["atom.recent"]): TelemetryEvent => ({
+    kind: "ai_chat_answer_received",
+    detail: {
+      ...thinkerAnswer(5, ["atom.retrieved"]), queryId: fallback ? "ai_open.2" : "ai_open.1", tool: "open_thinker", fallback, fallbackReason: fallback ? "timeout" : null,
+      answer: { vastaus: fallback ? "" : "Edessä on tiheä kuusikko. Mökit ovat suolla.", perusteet: "", varmuus: "", muuttaisi: "" },
+      ...(withIds ? { digestAtomIds: digest, recentAtomIds: recent } : {}),
+    },
+  });
+  const statedItem = choice("v5.l2.stated", "L2", "a", { keyStatements: { fi: ["kuusikko"], en: [] } });
+  const lureItem = { ...choice("v5.l2.lure", "L2", "a"), lureStatements: [{ optionId: "b", fi: ["suolla"], en: [] }] };
+  const V5: FreezeContentLike = {
+    cycle: 5,
+    items: [
+      { ...choice("v5.l3.record", "L3", "a"), basisKind: "record", basisAtomIds: ["atom.basis"] },
+      { ...choice("v5.l3.map", "L3", "a"), basisKind: "map" },
+      { ...choice("v5.l3.knowledge", "L3", "a"), basisKind: "knowledge" },
+      choice("v5.l3.none", "L3", "a"),
+      choice("v5.l2.key", "L2", "a", { keyAtomIds: ["atom.recent"] }),
+      choice("v5.l2.correct", "L2", "a"),
+      statedItem, lureItem,
+      { ...choice("v5.l3.fallback", "L3", "a"), basisKind: "record", basisAtomIds: ["atom.fallback"] },
+    ],
+  };
+  const responses = V5.items.map((it) => answer(it.id, it.id === "v5.l2.correct" ? "a" : "b", 75));
+  const session = (withIds: boolean) => buildLog([
+    [1_000, { kind: "cycle_start", detail: { cycle: 5 as never, phase: "A", clockLabel: "x" } }],
+    [2_000, digestAnswer(withIds)],
+    [3_000, digestAnswer(withIds, true, ["atom.fallback"], ["atom.fallback"])], // a fallback: nothing reached a shown answer
+    [4_000, { kind: "freeze_started", detail: { cycle: 5 as never, atViewSeconds: 60, decisionCommittedBeforeFreeze: false, decisionStep: "x" } }],
+    [9_000, { kind: "freeze_submitted", detail: { cycle: 5 as never, responses } }],
+  ]);
+
+  it("counts the digest and the recent matches as routes (not on a fallback answer); `includeModelContext: false` is the retrieved-only sensitivity", async () => {
+    const records = await session(true);
+    const [basis, recent, fallback, retrieved] = atomExposure(records, ["atom.basis", "atom.recent", "atom.fallback", "atom.retrieved"], 4);
+    expect([basis!.routes, recent!.routes, fallback!.reached, retrieved!.routes]).toEqual([["digest"], ["recent"], false, ["thinker"]]);
+    expect(atomExposure(records, ["atom.basis"], 4, { includeModelContext: false })[0]!.reached).toBe(false);
+    const key = (opts = {}) => freezeItemExposure(records, [V5], opts).find((e) => e.itemId === "v5.l2.key")!.allReached;
+    expect([key(), key({ includeModelContext: false })]).toEqual([true, false]);
+    const old = await session(false); // a log before 0.11.0: no ids; it still parses and scores
+    expect(freezeItemExposure(old, [V5]).find((e) => e.itemId === "v5.l2.key")!.allReached).toBe(false);
+    expect(freezeItemScores(old, [V5])).toHaveLength(V5.items.length);
+  });
+
+  it("H9's plantedExposure uses the same definition: the guide's digest carrying the planted record counts; retrieved-only does not", async () => {
+    const records = await buildLog([
+      [1_000, { kind: "ai_chat_answer_received", detail: { ...thinkerAnswer(12, []), tool: "open_thinker", digestAtomIds: [F7_PLANTED_ATOM_ID], recentAtomIds: [] } }],
+      [2_000, { kind: "freeze_started", detail: { cycle: 12 as never, atViewSeconds: 100, decisionCommittedBeforeFreeze: false, decisionStep: "x" } }],
+    ]);
+    expect(plantedExposure(records)).toMatchObject({ exposure: "planted_only", planted: { routes: ["digest"] } });
+    expect(plantedExposure(records, 12, { includeModelContext: false })).toMatchObject({ exposure: "neither" });
+  });
+
+  it("folds every scored item into one class, seq-anchored and route-aware: with the digest ids, and on an old log without them", async () => {
+    const classes = async (withIds: boolean, opts = {}) => new Map(errorClasses(await session(withIds), [V5], opts).map((r) => [r.itemId, r.errorClass]));
+    const withDigest = new Map([
+      ["v5.l3.record", "EXPOSED_WRONG"], ["v5.l3.map", "EXPOSED_WRONG"], ["v5.l3.knowledge", "NOT_APPLICABLE"], ["v5.l3.none", "NOT_APPLICABLE"],
+      ["v5.l2.key", "EXPOSED_WRONG"], ["v5.l2.correct", "CORRECT"], ["v5.l2.stated", "STATED_WRONG"], ["v5.l2.lure", "STATED_LURE"], ["v5.l3.fallback", "NOT_EXPOSED"],
+    ]);
+    expect(await classes(true)).toEqual(withDigest);
+    const notExposed = new Map([...withDigest, ["v5.l3.record", "NOT_EXPOSED"], ["v5.l2.key", "NOT_EXPOSED"]]);
+    expect(await classes(false)).toEqual(notExposed); // the old log undercounts the guide's exposure (parity P-2)
+    expect(await classes(true, { includeModelContext: false })).toEqual(notExposed);
+    const rows = errorClasses(await session(true), [V5]);
+    expect(rows.find((r) => r.itemId === "v5.l3.record")).toMatchObject({ basisKind: "record", basisAtomIds: ["atom.basis"], exposed: true, routes: ["digest"] });
+    expect(rows.find((r) => r.itemId === "v5.l2.lure")).toMatchObject({ stated: false, statedLure: true, optionId: "b" });
+    expect(errorClassCounts(rows)).toEqual([
+      { errorClass: "CORRECT", n: 1 }, { errorClass: "STATED_LURE", n: 1 }, { errorClass: "STATED_WRONG", n: 1 },
+      { errorClass: "NOT_APPLICABLE", n: 2 }, { errorClass: "EXPOSED_WRONG", n: 3 }, { errorClass: "NOT_EXPOSED", n: 1 },
+    ]);
+  });
+
+  it("reads items with key records conditional on exposure (sagat F30)", async () => {
+    const rows = exposureConditionalScores(await session(true), [V5]);
+    expect(rows.map((r) => [r.itemId, r.correct, r.allReached, r.routes])).toEqual([["v5.l2.key", false, true, ["recent"]]]);
+    expect(exposureConditionalScores(await session(true), [V5], { includeModelContext: false })[0]!.allReached).toBe(false);
   });
 });

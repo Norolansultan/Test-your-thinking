@@ -164,6 +164,42 @@ describe("D2: the plan context every Open Thinker question carries", () => {
   });
 });
 
+describe("SPEC/31 §3.6 (format 0.11.0): the answer carries what reached the model without a search; the server log is unchanged", () => {
+  const LOG_ONLY_IDS = ["digestAtomIds", "recentAtomIds"];
+
+  it("the Open Thinker's response carries the digest's and the recent matches' ids — the log's `digest` and `recent` — and the log line gains no field", async () => {
+    const { client, create } = fakeClient("ok");
+    const logs: Record<string, unknown>[] = [];
+    const body = (await handleOpenThinkerRequest(depsWith(client, logs), { ...OPEN, question: "Mitä SPOT ja yksiköt raportoivat syttymäkohdan savusta ja reunasta?" })).body as OpenThinkerResponse;
+    expect(body.digestAtomIds).toHaveLength(OPEN_DIGEST_SIZE);
+    expect(body.digestAtomIds).toEqual(logs[0]!.digest);
+    expect(body.recentAtomIds).toEqual(logs[0]!.recent);
+    expect(body.recentAtomIds!.length).toBeGreaterThan(0);
+    for (const k of LOG_ONLY_IDS) expect(logs[0]).not.toHaveProperty(k);
+    // The ids are the records the model was given: the digest's lines follow the retrieved ones in the user turn.
+    const sent = (create.mock.calls[0]![0] as { contents: { parts: { text: string }[] }[] }).contents.at(-1)!.parts[0]!.text;
+    const step = stepAtVirtualTime(scenario.cycles.find((c) => c.index === 9)!, startOf(9))!;
+    const gated = new Map(reachableAtoms(scenario.atoms, step).map((a) => [a.id, a]));
+    for (const id of body.digestAtomIds!) expect(gated.has(id), id).toBe(true);
+    expect(sent).toContain("Vaiheen uusimmat tietueet");
+    // A fallback carries them too (the server log does); the browser's analysis skips them on a fallback (`freeze-measures.ts`).
+    const none = (await handleOpenThinkerRequest(depsWith(null, logs), OPEN)).body as OpenThinkerResponse;
+    expect(none).toMatchObject({ fallback: true, digestAtomIds: logs[1]!.digest, recentAtomIds: logs[1]!.recent });
+  });
+
+  it("Haku's chat carries the recent matches and an empty digest; its log line is unchanged", async () => {
+    const four = JSON.stringify({ vastaus: "v", perusteet: "p", varmuus: "m", muuttaisi: "u" });
+    const logs: Record<string, unknown>[] = [];
+    const question = "Mitä SPOT ja yksiköt raportoivat syttymäkohdan savusta ja reunasta?";
+    const body = (await handleThinkerRequest(depsWith(fakeClient(four).client, logs), { ...OPEN, condition: "directed", cell: "radio", question })).body as ThinkerResponse;
+    expect(body.digestAtomIds).toEqual([]);
+    expect(body.recentAtomIds).toEqual(logs[0]!.recent);
+    expect(body.recentAtomIds!.length).toBeGreaterThan(0);
+    expect(logs[0]).not.toHaveProperty("digest");
+    for (const k of LOG_ONLY_IDS) expect(logs[0]).not.toHaveProperty(k);
+  });
+});
+
 describe("F3: the Open Thinker's frozen prompt", () => {
   it.each([
     ["fi", "reasoning_intent", "open"], ["en", "reasoning_intent", "open"], ["fi", "reasoning_once", "open_once"], ["en", "reasoning_once", "open_once"],

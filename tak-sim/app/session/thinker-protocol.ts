@@ -164,6 +164,14 @@ export interface ThinkerResponse {
   readonly refusalCategory?: string | null;
   /** Which prompt answered (or would have, for a fallback): `intent` answers carry `answer.linjaus`. */
   readonly promptVariant: ThinkerPromptVariant;
+  /**
+   * SPEC/31 §3.6 (format 0.11.0, parity P-2): the ids of the records the proxy put in the model's context without a search — the Open
+   * Thinker's digest of the step's latest records (always empty on Haku's chat, which has none) and both chats' best matches among the
+   * current step's records (`recent`). The browser logs them on `ai_chat_answer_received` so exposure is computed from its own log; the
+   * proxy's log already has them (`digest`, `recent`) and is unchanged. Absent from an older proxy and from the browser's local fallback.
+   */
+  readonly digestAtomIds?: readonly string[];
+  readonly recentAtomIds?: readonly string[];
 }
 
 export interface OpenThinkerResponse extends Omit<ThinkerResponse, "answer"> {

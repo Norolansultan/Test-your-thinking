@@ -9,7 +9,8 @@
  * measures went with them.)
  * - U area item, V13 (§3.5, revision (ai); the open text until then): the yes/no, the parts chosen (each
  *   a binary indicator, never a count), and `areaHit` — "north edge" among them (H3's primary measure);
- *   the key's position in the participant's order as a covariate.
+ *   the key's position in the participant's order as a covariate; SPEC/31 sagat F21 (19 Oct 2026): scored as hits against false
+ *   alarms in the analysis (`hitMinusFalseAlarm`), no UI change.
  * - U backup: the option and its confidence, `correct` against the key (recognition, H3's secondary). Coverage: the value and the outcome, and its
  *   Brier score ((value/100 − outcome)²).
  */
@@ -39,6 +40,14 @@ export interface AreaProbeMeasure {
   readonly areaHit: boolean | null;
   /** The key's 0-based position in the order shown (an order-effect covariate); null if not shown. */
   readonly keyPosition: number | null;
+  /**
+   * SPEC/31 sagat F21: hits against false alarms (the north edge the signal, every other part shown the noise), so choosing every part
+   * no longer guarantees a hit. `falseAlarms`: the noise parts chosen; `falseAlarmRate`: their share of the noise parts shown;
+   * `hitMinusFalseAlarm`: (hit ? 1 : 0) − `falseAlarmRate` (−1 to 1; choosing all scores 0, "no" scores 0). Null if never answered.
+   */
+  readonly falseAlarms: number | null;
+  readonly falseAlarmRate: number | null;
+  readonly hitMinusFalseAlarm: number | null;
 }
 
 function areaMeasure(records: readonly LogRecord[], key: { readonly probeId: string; readonly key: string }): AreaProbeMeasure | null {
@@ -48,12 +57,17 @@ function areaMeasure(records: readonly LogRecord[], key: { readonly probeId: str
   const r = submitted?.detail.response as AreaCheckResponse | undefined;
   const answered = r !== undefined && typeof r === "object" && r !== null && typeof r.unsure === "boolean";
   const at = p.detail.optionIds.indexOf(key.key);
+  const hit = answered ? r.unsure && r.areas.includes(key.key) : null;
+  const noise = p.detail.optionIds.filter((id) => id !== key.key);
+  const falseAlarms = answered ? (r.unsure ? r.areas.filter((id) => id !== key.key).length : 0) : null;
+  const falseAlarmRate = falseAlarms === null ? null : noise.length === 0 ? 0 : falseAlarms / noise.length;
   return {
     probeId: key.probeId, view: p.detail.cycle ?? null, atViewSeconds: p.detail.atViewSeconds ?? null,
     openMs: submitted ? submitted.tWallOffsetMs - p.tWallOffsetMs : null,
     unsure: answered ? r.unsure : null, areas: answered ? r.areas : null,
-    areaHit: answered ? r.unsure && r.areas.includes(key.key) : null,
+    areaHit: hit,
     keyPosition: at < 0 ? null : at,
+    falseAlarms, falseAlarmRate, hitMinusFalseAlarm: hit === null || falseAlarmRate === null ? null : (hit ? 1 : 0) - falseAlarmRate,
   };
 }
 

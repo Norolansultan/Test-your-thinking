@@ -27,6 +27,7 @@
  */
 
 import { ATTENTION_CHECK_CORRECT, ATTENTION_CHECK_ID } from "../session/questionnaire.js";
+import { attendance, secondaryAsAct } from "./directive-act-coding.js";
 import type { LogRecord } from "./log.js";
 import type {
   AiChatAnswerReceivedDetail,
@@ -462,6 +463,9 @@ export function sectorAnticipation(records: readonly LogRecord[], spec: SectorAn
 // A secondary direct attack the key does not list as sound makes a plan whose
 // main posture is within the directive unsound (fix pass 4: only then); `viaBoundarySector` flags a plan sound
 // only through a sector the key accepts across a boundary (sensitivity).
+// SPEC/31 §3.1 (19 Oct 2026, RC): H13's primary coding is the ACT (`cellByAct`, `attended`; `directive-act-coding.ts`):
+// a mop-up or hold-line on the keyed front reads as the direct attack it is; the label coding (`cell`) is the sensitivity.
+// §3.2 (V14 sound only through the secondary route) is a key change (`sound: []` at V14, WP-1), not a coding rule.
 // ---------------------------------------------------------------------------
 
 export interface DirectiveKeyLike {
@@ -510,6 +514,25 @@ export interface DirectivePostureCoding {
   readonly viaBoundarySector: boolean | null;
   /** The plan carried the departure note (fix pass 6, D5: from V8 a checkbox "I am departing from the command directive"); false where absent. */
   readonly departureNoted: boolean;
+  /** The plan's secondary sector and task as submitted; null with none (SPEC/31 coa F6: secondary attacks reported per view). */
+  readonly secondary: { readonly sectorId: string; readonly taskId: string } | null;
+  /**
+   * SPEC/31 §3.1 (RC): the plan attends the keyed front — a main-effort direct attack on it, or a secondary direct attack, mop-up or
+   * hold-line on it (`directive-act-coding.ts`); null where the key names no front (V8, V11–V13, phase A).
+   */
+  readonly attended: boolean | null;
+  readonly attendedVia: "main_effort" | "secondary" | null;
+  /**
+   * H13's PRIMARY coding since SPEC/31 §3.1 (RC): the act coding — an attending secondary task reads as a direct attack whatever its
+   * label, so an attending plan with an aligned main posture is against the directive (C when sound, D when not). `cell` (the label
+   * coding) is the pre-registered sensitivity. Equal to `cell` where the key names no front.
+   */
+  readonly alignedByAct: boolean | null;
+  readonly soundByAct: boolean | null;
+  readonly soundViaByAct: "main_effort" | "secondary" | null;
+  readonly cellByAct: DirectiveCell | null;
+  /** The act coding with the boundary-accepted sectors (its sensitivity, as `cellWithBoundary` is the label coding's). */
+  readonly cellByActWithBoundary: DirectiveCell | null;
 }
 
 export interface DirectiveAdherence {
@@ -573,17 +596,26 @@ export function codePosture(
   seq: number, posture: string, mainEffort: string, key: DirectiveKeyLike, secondary: { readonly sectorId: string; readonly taskId: string } | null = null,
   departureNoted = false,
 ): DirectivePostureCoding {
-  const againstBySecondary = key.againstSecondaryTaskId !== undefined && secondary !== null && secondary.taskId === key.againstSecondaryTaskId;
   const mainAligned = key.aligned === null ? null : key.aligned.includes(posture);
-  const aligned = key.aligned === null ? null : key.aligned.includes(posture) && !againstBySecondary;
-  const primary = soundness(posture, mainEffort, key, secondary, false);
-  const wide = soundness(posture, mainEffort, key, secondary, true);
+  const coded = (sec: { readonly sectorId: string; readonly taskId: string } | null) => {
+    const againstBySecondary = key.againstSecondaryTaskId !== undefined && sec !== null && sec.taskId === key.againstSecondaryTaskId;
+    const aligned = key.aligned === null ? null : key.aligned.includes(posture) && !againstBySecondary;
+    return { aligned, primary: soundness(posture, mainEffort, key, sec, false), wide: soundness(posture, mainEffort, key, sec, true) };
+  };
+  const { aligned, primary, wide } = coded(secondary);
+  // SPEC/31 §3.1: the act coding reads an attending secondary task as the key's secondary direct attack (`secondaryAsAct`).
+  const asAct = secondaryAsAct(secondary, key);
+  const act = asAct === secondary ? { aligned, primary, wide } : coded(asAct);
   const h14Aligned = aligned === null ? null : aligned ? 1 : 0;
   return {
     seq, posture, mainEffort, aligned, mainAligned, sound: primary.sound, soundVia: primary.soundVia, cell: cellOf(aligned, primary.sound), h14Aligned,
     soundWithBoundary: wide.sound, soundViaWithBoundary: wide.soundVia, cellWithBoundary: cellOf(aligned, wide.sound),
     viaBoundarySector: primary.sound === null ? null : primary.sound !== wide.sound,
     departureNoted,
+    secondary: secondary === null ? null : { sectorId: secondary.sectorId, taskId: secondary.taskId },
+    ...attendance(posture, mainEffort, secondary, key),
+    alignedByAct: act.aligned, soundByAct: act.primary.sound, soundViaByAct: act.primary.soundVia, cellByAct: cellOf(act.aligned, act.primary.sound),
+    cellByActWithBoundary: cellOf(act.aligned, act.wide.sound),
   };
 }
 

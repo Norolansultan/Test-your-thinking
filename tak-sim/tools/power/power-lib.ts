@@ -209,5 +209,17 @@ export function argValue(name: string, fallback: number): number {
   return Number.isFinite(v) ? v : fallback;
 }
 
+/**
+ * A comma-separated numeric list after a CLI flag (`--pdirect 0.25,0.30,0.30`), or the fallback; the list must have the fallback's
+ * length and finite values (SPEC/31 §3.12: pilot-2 base rates per view are passed this way).
+ */
+export function argList(name: string, fallback: readonly number[]): readonly number[] {
+  const i = process.argv.indexOf(name);
+  if (i < 0) return fallback;
+  const v = (process.argv[i + 1] ?? "").split(",").map(Number);
+  if (v.length !== fallback.length || !v.every(Number.isFinite)) throw new Error(`${name} takes ${fallback.length} comma-separated numbers`);
+  return v;
+}
+
 export const pct = (x: number): string => `${(100 * x).toFixed(0)} %`;
 export const signed = (x: number, digits = 3): string => `${x >= 0 ? "+" : ""}${x.toFixed(digits)}`;

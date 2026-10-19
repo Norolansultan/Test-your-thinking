@@ -961,6 +961,13 @@ export type RecordKind = TelemetryEvent["kind"];
  * `viewportPx`), `query_focus` / `query_first_keystroke` / `query_edit` (with `field`, `cycle`), `decision_option_hovered`,
  * `probe_option_hovered`, `probe_answer_changed` and `frame_stats` are built.
  */
+/*
+ * 0.11.0 (SPEC/07 (ay), SPEC/31 §3.6, 19 Oct 2026): `ai_chat_answer_received` may carry `digestAtomIds` (the Open Thinker's digest;
+ * empty for Haku) and `recentAtomIds` (both tools): what reached the model without a search, so exposure is computed from the browser
+ * log alone. Both optional: older logs, an older proxy and the local fallback have neither, and still parse. No new kind.
+ * The constant below moves to "0.11.0" at integration, in one step with its assertion in `test/session/conditions.spec.ts` (WP-2's
+ * file, phase 3 of SPEC/31): until then the two optional fields are written under 0.10.0, which reads them the same way.
+ */
 export const TELEMETRY_FORMAT_VERSION = "0.10.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [

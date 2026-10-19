@@ -10,7 +10,8 @@ import { asVirtualTime } from "../../app/engine/primitives.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
 import { appendTelemetryEvent } from "../../app/telemetry/emit.js";
 import { aiStatedKey } from "../../app/telemetry/freeze-measures.js";
-import { keyMatcher, quantitiesIn } from "../../app/telemetry/key-statement-match.js";
+import { recordReleaseTimes } from "../../app/telemetry/ai-stated-key.js";
+import { keyMatcher, lureMatchers, quantitiesIn, sentencesOf } from "../../app/telemetry/key-statement-match.js";
 import { InMemoryLogSink, SessionLog, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import type { AiChatAnswerReceivedDetail, TelemetryEvent } from "../../app/telemetry/record-kinds.js";
 
@@ -158,5 +159,81 @@ describe("aiStatedKey", () => {
     const rows = aiStatedKey(records, [{ cycle: 2, items: [en] }, { cycle: 4, items: [SPREAD] }, { cycle: 5, items: [FUEL] }]);
     expect(rows.map((r) => [r.itemId, r.stated, r.matchedBy])).toEqual([["freeze.2.area_40", true, "key_statements"]]);
     expect(aiStatedKey(records, [{ cycle: 4, items: [SPREAD] }], { includeReplayed: true })).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC/31 §3.6, sagat F16 and parity P-3 (19 Oct 2026)
+// ---------------------------------------------------------------------------
+
+const answerAt = (view: number, text: string, virtualTimeS: number): TelemetryEvent => {
+  const detail: AiChatAnswerReceivedDetail = {
+    queryId: `q.${view}.${virtualTimeS}`, text: "q", view, virtualTimeS, retrieved: [], retrievalMode: "hybrid", modelId: "m", promptHash: "h",
+    answer: { vastaus: text, perusteet: "", varmuus: "", muuttaisi: "" }, latencyMs: 2500, fallback: false, fallbackReason: null, phase: "exploration",
+    promptVariant: "standard", tool: "open_thinker",
+  };
+  return { kind: "ai_chat_answer_received", detail };
+};
+const pushed = (atomId: string): TelemetryEvent => ({ kind: "bubble_available", detail: { atomId, mapPosition: null, tier: "T1_pushed", sourceId: "u" } });
+
+describe("aiStatedKey after SPEC/31 (F16 window, element-tied patterns, statedLure, the three-way told class)", () => {
+  const AREA4 = { ...AREA, id: "freeze.4.area" };
+
+  it("counts only answers in the freeze's view or the one before; `allEarlierAnswers` restores the earlier rule", async () => {
+    const records = await buildLog([
+      start(2), answerAt(2, "Ala on noin 19 ha.", 1500), start(3), start(4), freezeStarted(4), submitted(4, [AREA4.id]),
+    ]);
+    expect(aiStatedKey(records, [{ cycle: 4, items: [AREA4] }])[0]).toMatchObject({ stated: false, window: "f16" });
+    expect(aiStatedKey(records, [{ cycle: 4, items: [AREA4] }], { allEarlierAnswers: true })[0]).toMatchObject({ stated: true, statedInView: 2, window: "all_before" });
+  });
+
+  it("counts only answers asked once the item's basis records were reachable (`releaseS`, from each record's step)", async () => {
+    expect(recordReleaseTimes([{ id: "evt.a", cycle: 3 }, { id: "evt.b", cycle: 1 }])).toEqual(new Map([["evt.a", 2400], ["evt.b", 0]]));
+    const item = { ...AREA, keyAtomIds: ["evt.b"], basisAtomIds: ["evt.a"] };
+    const records = await buildLog([
+      start(1), answerAt(1, "Ala on noin 19 ha.", 1000), start(2), answerAt(2, "Ala kasvaa noin 20 ha:iin.", 2500), freezeStarted(2), submitted(2, [item.id]),
+    ]);
+    const releaseS = recordReleaseTimes([{ id: "evt.a", cycle: 3 }, { id: "evt.b", cycle: 1 }]);
+    expect(aiStatedKey(records, [{ cycle: 2, items: [item] }], { releaseS })[0]).toMatchObject({ stated: true, matchedText: "20 ha", basisReleasedAtS: 2400 });
+    expect(aiStatedKey(records, [{ cycle: 2, items: [item] }])[0]).toMatchObject({ stated: true, matchedText: "19 ha", basisReleasedAtS: null });
+    expect(aiStatedKey(records, [{ cycle: 2, items: [{ ...item, basisAtomIds: ["evt.later"] }] }], { releaseS: new Map([["evt.later", 9000]]) })[0]!.stated).toBe(false);
+  });
+
+  it("ties a statement to its element where the item has `elementPatterns`: the same sentence must name it", () => {
+    const tied = { ...FUEL, elementPatterns: { fi: ["kärjen edessä"], en: ["ahead of the head"] } };
+    const m = keyMatcher(tied, "fi", (x) => x);
+    expect(m.match("Kuusimäen kuusivaltainen havumetsä on pohjoisessa. Kärjen edessä on suota.")).toBeNull();
+    expect(m.match("Pohjoisessa on suota.\nKärjen edessä on kuusivaltainen havumetsä.")).toEqual({ rule: "tokens", text: "kuusi havum" });
+    expect(sentencesOf("Klo 14.40 ala on 18,8 ha. Seuraavaksi?\nRivi")).toEqual(["Klo 14.40 ala on 18,8 ha.", "Seuraavaksi?", "Rivi"]);
+    expect(() => keyMatcher({ ...FUEL, elementPatterns: { fi: ["(bad"], en: [] } }, "fi", (x) => x)).toThrow(/elementPatterns/);
+  });
+
+  it("reports a stated distractor (`statedLure`): every distractor stated, by its label's band, or its authored `lureStatements`", async () => {
+    const bog = { ...FUEL, id: "freeze.2.fuel", lureStatements: [{ optionId: "bog", fi: ["\\bsuo\\w*"], en: [] }] };
+    const records = await buildLog([
+      start(2), answerAt(2, "Ala on nyt noin 13 ha; illalla yli 30 ha.", 1300), answerAt(2, "Edessä on avointa suota.", 1400),
+      freezeStarted(2), submitted(2, [AREA.id, bog.id]),
+    ]);
+    const [area, fuel] = aiStatedKey(records, [{ cycle: 2, items: [AREA, bog] }]);
+    expect(area).toMatchObject({ stated: false, statedLure: true, lureOptionIds: ["lt15", "gt30"], lureMatchedText: "13 ha" });
+    expect(fuel).toMatchObject({ stated: false, statedLure: true, lureOptionIds: ["bog"], lureMatchedText: "suota" });
+    expect(lureMatchers(AREA, "fi", (x) => x).map((l) => [l.optionId, l.matcher.rules])).toEqual([["lt15", ["band"]], ["m22_30", ["band"]], ["gt30", ["band"]]]);
+    expect(lureMatchers({ ...AREA, kind: "map_point" }, "fi", (x) => x)).toEqual([]);
+  });
+
+  it("classes each item stream-told (every key record pushed before the freeze), AI-told (stated, key not pushed) or neither", async () => {
+    const pushedKey = { ...SPREAD, id: "freeze.2.pushed", keyAtomIds: ["atom.p"] };
+    const recordedKey = { ...SPREAD, id: "freeze.2.recorded", keyAtomIds: ["atom.r"] };
+    const computed = { ...AREA, id: "freeze.2.computed" };
+    const records = await buildLog([
+      start(2), pushed("atom.p"), answerAt(2, "Nopeinta leviäminen on lohkossa L2.", 1300),
+      freezeStarted(2), pushed("atom.r"), submitted(2, [pushedKey.id, recordedKey.id, computed.id]),
+    ]);
+    const rows = aiStatedKey(records, [{ cycle: 2, items: [pushedKey, recordedKey, computed] }]);
+    expect(rows.map((r) => [r.itemId, r.stated, r.keyPushed, r.toldClass])).toEqual([
+      ["freeze.2.pushed", true, true, "stream_told"], // the stream told everyone: an AI restating it borrows nothing
+      ["freeze.2.recorded", true, false, "ai_told"], // pushed only after the freeze started
+      ["freeze.2.computed", false, false, "neither"],
+    ]);
   });
 });

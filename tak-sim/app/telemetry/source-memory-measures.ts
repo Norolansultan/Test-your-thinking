@@ -10,8 +10,8 @@
  *   seq and the tools that stated it. The answer's text is its four fields (`answer.*`); the question (`text`) is not read;
  * - `recordReached`: one of the fact's records reached the participant before the block by a route that shows the record itself —
  *   pushed (`bubble`), a Haku result (`haku`) or an older format's (`traffic`, `result_expanded`) — read with `atomExposure`
- *   (`freeze-measures.ts`); a retrieval by an AI answer (`haku_chat`, `thinker`) is reported apart (`retrievedByAi`), since a
- *   retrieval does not show the record;
+ *   (`freeze-measures.ts`); a retrieval by an AI answer (`haku_chat`, `thinker`; since format 0.11.0 also the model's context,
+ *   `digest` and `recent`) is reported apart (`retrievedByAi`), since a retrieval does not show the record;
  * - `aiFirst`: the AI stated the fact before any of its records reached the participant (or none ever did);
  * - `misattribution`: the AI stated it first, its record never reached the participant, and the answer is `self` or `records` —
  *   AI-supplied knowledge remembered as one's own or as read in a report (SPEC/11 §7.15).

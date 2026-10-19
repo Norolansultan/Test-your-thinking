@@ -312,4 +312,15 @@ export interface AiChatAnswerReceivedDetail {
   readonly aiPremiseStatuses?: readonly ("supported" | "contradicted" | "not_addressed")[];
   /** Revision (ar), 11 Oct 2026: the authored premises' ids (P1...), in the order of `aiPremiseStatuses`. Absent in (aq) logs, whose premises were free text and are not comparable. */
   readonly aiPremiseIds?: readonly string[];
+  /**
+   * Format 0.11.0 (SPEC/07 (ay), SPEC/31 §3.6, parity P-2): the ids of the step's latest records the Open Thinker's digest put in the
+   * model's context without a search (`latestDigest`, SPEC/14 ab.4) — empty for Haku's chat, which has no digest. Absent in older logs,
+   * from an older proxy and on the browser's local fallback (no model was asked). The proxy's own log carries the same ids as `digest`.
+   */
+  readonly digestAtomIds?: readonly string[];
+  /**
+   * Format 0.11.0: the question's best matches among the current step's records that reached the model beside `retrieved`
+   * (`recentMatches`, SPEC/14 ah.2), both tools. Absent as `digestAtomIds`; the proxy's log carries them as `recent`.
+   */
+  readonly recentAtomIds?: readonly string[];
 }

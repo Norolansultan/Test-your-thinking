@@ -15,7 +15,8 @@
 import { describe, expect, it } from "vitest";
 // Static, not dynamic, so loading the scenario is not timed against a test (a 5 s timeout under load, 4 Oct 2026).
 import { DIRECTIVE_KEYS, NEW_FRONT } from "../../app/scenario/demo-directive.js";
-import { directiveAdherence, REKINDLE_CREW_ANTICIPATION, sectorAnticipation } from "../../app/telemetry/derived-measures.js";
+import { directiveAdherence, REKINDLE_CREW_ANTICIPATION, sectorAnticipation, type DirectiveKeyLike } from "../../app/telemetry/derived-measures.js";
+import { keyedFrontSectors, secondaryAttacks, soundRoutes } from "../../app/telemetry/directive-act-coding.js";
 import { asVirtualTime } from "../../app/engine/primitives.js";
 import { InMemoryLogSink, SessionLog, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import { appendTelemetryEvent } from "../../app/telemetry/emit.js";
@@ -312,7 +313,8 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
       view(10), submit(10, "direct_attack", "L3"), // C via the front's own sector
       view(11), submit(11, "barrier_line", "L2"), // B primary: the head is within 50 m of the L2/L3 line (8 Oct 2026 fire retune), L3 alone is core; A with the boundary
       view(12), submit(12, "protect_values", "L3"), // A in the head's sector
-      view(14), submit(14, "direct_attack", "L1"), // D primary; C with L1, the flare-up's L1 side
+      // D primary; C with L1, the flare-up's L1 side, attacked as the secondary (SPEC/31 §3.2: V14 is sound only through that route)
+      view(14), [141, { kind: "allocation_submitted", detail: { plan: { mainEffort: "L3", posture: "barrier_line", secondary: { sectorId: "L1", taskId: "task.direct-attack" }, drones: null }, rationaleAsked: false, rationaleFi: null } }],
     ]);
     const coded = directiveAdherence(records, DIRECTIVE_KEYS);
     expect(coded.map((c) => [c.view, c.atViewEnd!.cell, c.atViewEnd!.cellWithBoundary, c.atViewEnd!.h14Aligned, c.atViewEnd!.viaBoundarySector])).toEqual([
@@ -320,7 +322,7 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
       [3, null, null, null, null], [9, "D", "D", 0, false], [10, "C", "C", 0, false], [11, "B", "B", 1, false], [12, "A", "A", 1, false], [14, "D", "C", 0, true],
     ]);
     // mainAligned: the main posture alone (null in phase A).
-    expect(coded.map((c) => c.atViewEnd!.mainAligned)).toEqual([null, false, false, true, true, false]);
+    expect(coded.map((c) => c.atViewEnd!.mainAligned)).toEqual([null, false, false, true, true, true]);
     const unsound = await buildLog([view(14), submit(14, "protect_values", "L3")]);
     expect(directiveAdherence(unsound, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ cell: "B", cellWithBoundary: "B", h14Aligned: 1, viaBoundarySector: false });
     const v8 = await buildLog([view(8), submit(8, "barrier_line")]);
@@ -421,15 +423,15 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
       withSecondary(14, "protect_values", "L3", { sectorId: "L4", taskId: "task.hold-line" }), // B: holding the flare-up gives it the night
       withSecondary(14, "protect_values", "L2", { sectorId: "L4", taskId: "task.direct-attack" }), // D: the main effort is not on Lahdenkylä's front, the secondary against (was B)
       withSecondary(14, "direct_attack", "L3", { sectorId: "L4", taskId: "task.direct-attack" }), // D: the main effort attacks the south-east front
-      withSecondary(14, "direct_attack", "L4", { sectorId: "L3", taskId: "task.hold-line" }), // C: the main effort on the flare-up, as before
+      // SPEC/31 §3.2: a main effort on the flare-up codes D once WP-1 empties V14's `sound` (was C); its coding is in the §3.1 block below.
     ];
     const coded = [];
     for (const c of cases) coded.push(directiveAdherence(await buildLog([view(14), c]), DIRECTIVE_KEYS)[0]!.atViewEnd!);
     expect(coded.map((c) => [c.sound, c.soundVia, c.cell])).toEqual([
-      [true, "secondary", "C"], [false, null, "D"], [false, null, "B"], [false, null, "D"], [false, null, "D"], [true, "main_effort", "C"],
+      [true, "secondary", "C"], [false, null, "D"], [false, null, "B"], [false, null, "D"], [false, null, "D"],
     ]);
     expect(coded.map((c) => [c.soundWithBoundary, c.cellWithBoundary, c.viaBoundarySector])).toEqual([
-      [true, "C", false], [true, "C", true], [false, "B", false], [false, "D", false], [false, "D", false], [true, "C", false],
+      [true, "C", false], [true, "C", true], [false, "B", false], [false, "D", false], [false, "D", false],
     ]);
     // Elsewhere a secondary direct attack scores nothing: V11's key names none.
     const v11 = await buildLog([view(11), withSecondary(11, "direct_attack", "L2", { sectorId: "L4", taskId: "task.direct-attack" })]);
@@ -449,6 +451,92 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
       { view: 10, attemptStartSeq: 3, departureNoted: null, first: null, atViewEnd: null, revised: false, afterBoundary: null, afterFreeze: null, firstAfterFreeze: null, firstAfterBoundary: null },
       expect.objectContaining({ view: 11, first: expect.objectContaining({ cell: "A" }) }),
     ]);
+  });
+});
+
+/**
+ * SPEC/31 §3.2 (WP-1's key change): V14 is sound only through the secondary route — `sound` emptied, `soundSectors` gone; `soundSecondary`
+ * and `boundarySectors` unchanged. Built from the build's key so its sectors stay computed; identical to it once WP-1's change is merged.
+ */
+const { soundSectors: _v14Sectors, ...V14_REST } = DIRECTIVE_KEYS[14]!;
+const V14_31: DirectiveKeyLike = { ...V14_REST, sound: [] };
+const KEYS_31: Readonly<Record<number, DirectiveKeyLike | null>> = { ...DIRECTIVE_KEYS, 14: V14_31 };
+const V14_KEY_CHANGED = DIRECTIVE_KEYS[14]!.soundSectors === undefined;
+
+describe("SPEC/31 §3.1 (RC): H13 codes the act — the panel's probe plans under both codings (coa_option_key.csv)", () => {
+  type Plan = readonly [string, string, string | null, string | null]; // main sector, posture, secondary sector, secondary task
+  const coded = async (v: number, p: Plan, keys: Readonly<Record<number, DirectiveKeyLike | null>> = KEYS_31) => {
+    const plan = { mainEffort: p[0], posture: p[1], secondary: p[2] ? { sectorId: p[2], taskId: p[3]! } : null, drones: null } as never;
+    const records = await buildLog([[v * 10, { kind: "cycle_start", detail: { cycle: v as never, phase: "B", clockLabel: "x" } }], [v * 10 + 1, { kind: "allocation_submitted", detail: { plan, rationaleAsked: false, rationaleFi: null } }]]);
+    return directiveAdherence(records, keys)[0]!.atViewEnd!;
+  };
+  // [draft id, plan, label cell (the sensitivity), act cell (the primary)]
+  const PROBES: readonly (readonly [string, number, Plan, string, string])[] = [
+    ["V9-a", 9, ["L3", "direct_attack", "L1", "task.mopup"], "C", "C"],
+    ["V9-b", 9, ["L2", "barrier_line", "L3", "task.direct-attack"], "C", "C"],
+    ["V9-c", 9, ["L3", "barrier_line", null, null], "B", "B"],
+    ["V9-d", 9, ["L1", "protect_values", null, null], "B", "B"],
+    ["V9-e", 9, ["L2", "direct_attack", null, null], "D", "D"],
+    ["V9-f", 9, ["L1", "barrier_line", "L3", "task.mopup"], "B", "C"], // the probe: mop-up on the new front attends it
+    ["V10-a", 10, ["L3", "direct_attack", null, null], "C", "C"],
+    ["V10-b", 10, ["L2", "barrier_line", "L3", "task.direct-attack"], "C", "C"],
+    ["V10-c", 10, ["L3", "barrier_line", null, null], "B", "B"],
+    ["V10-d", 10, ["L3", "protect_values", null, null], "B", "B"],
+    ["V10-e", 10, ["L2", "direct_attack", null, null], "D", "D"],
+    ["V10-f", 10, ["L1", "barrier_line", "L3", "task.hold-line"], "B", "C"], // the probe: a held hose line on the new front
+    ["V14-a", 14, ["L3", "barrier_line", "L4", "task.direct-attack"], "C", "C"],
+    ["V14-b", 14, ["L4", "direct_attack", "L3", "task.hold-line"], "D", "D"], // §3.2: the main effort on the 0.3 ha flare-up (was C)
+    ["V14-c", 14, ["L3", "barrier_line", null, null], "B", "B"],
+    ["V14-d", 14, ["L3", "barrier_line", "L4", "task.mopup"], "B", "C"], // the probe: mop-up on the flare-up, the main effort on Lahdenkylä's front
+    ["V14-e", 14, ["L3", "direct_attack", null, null], "D", "D"],
+    ["V14-f", 14, ["L1", "barrier_line", null, null], "B", "B"],
+  ];
+
+  it.each(PROBES)("%s: label cell %s, act cell %s", async (_id, v, plan, label, act) => {
+    const c = await coded(v, plan);
+    expect([c.cell, c.cellByAct]).toEqual([label, act]);
+    expect(c.attended).toBe(act === "C" || (plan[1] === "direct_attack" && (v === 14 ? plan[0] === "L4" : plan[0] === "L3")));
+  });
+
+  it("an attending secondary task is against the directive whatever its label; the act's soundness goes through the key's secondary route", async () => {
+    expect(await coded(9, ["L1", "barrier_line", "L3", "task.mopup"])).toMatchObject({
+      aligned: true, cell: "B", attended: true, attendedVia: "secondary", alignedByAct: false, soundByAct: true, soundViaByAct: "secondary", cellByAct: "C", secondary: { sectorId: "L3", taskId: "task.mopup" },
+    });
+    expect(await coded(14, ["L4", "direct_attack", null, null])).toMatchObject({ attended: true, attendedVia: "main_effort", cell: "D", cellByAct: "D", soundViaByAct: null });
+    // V14: the secondary route needs the main effort aligned in Lahdenkylä's sector; elsewhere the attending plan codes D.
+    expect(await coded(14, ["L2", "protect_values", "L4", "task.hold-line"])).toMatchObject({ cell: "B", cellByAct: "D" });
+    // The flare-up's L1 side is a boundary sector: D on the primary act coding, C on its boundary sensitivity (as the label coding).
+    expect(await coded(14, ["L3", "barrier_line", "L1", "task.mopup"])).toMatchObject({ attended: true, cellByAct: "D", cellByActWithBoundary: "C", cell: "B", cellWithBoundary: "B" });
+  });
+
+  it("names no keyed front in the fit views, V8 and phase A: there the act coding is the label coding", async () => {
+    for (const v of [8, 11, 12, 13]) {
+      const c = await coded(v, ["L3", "barrier_line", "L1", "task.mopup"]);
+      expect([c.attended, c.attendedVia, c.cellByAct, c.cellByActWithBoundary], `V${v}`).toEqual([null, null, c.cell, c.cellWithBoundary]);
+    }
+    const a = await coded(3, ["L3", "direct_attack", null, null]);
+    expect([a.attended, a.cellByAct]).toEqual([null, null]);
+  });
+
+  it("V13's secondary direct attacks are reported apart (coa F6), and the routes of each key are listed for the review packet (§3.2 soundVia)", async () => {
+    const adherence = [await coded(13, ["L3", "barrier_line", "L1", "task.direct-attack"]), await coded(14, ["L3", "protect_values", "L4", "task.direct-attack"]), await coded(12, ["L3", "barrier_line", null, null])]
+      .map((atViewEnd, i) => ({ view: [13, 14, 12][i]!, atViewEnd }));
+    expect(secondaryAttacks(adherence)).toEqual([{ view: 13, sectorId: "L1", cell: "D", cellByAct: "D" }, { view: 14, sectorId: "L4", cell: "C", cellByAct: "C" }]);
+    expect(secondaryAttacks(adherence, [13])).toHaveLength(1);
+    expect(soundRoutes(V14_31).routes).toEqual(["secondary"]);
+    expect(soundRoutes(KEYS_31[9]!).routes).toEqual(["main_effort", "secondary"]);
+    expect(soundRoutes(KEYS_31[11]!)).toMatchObject({ routes: ["main_effort"], keyedFront: [] });
+    expect(soundRoutes(KEYS_31[3]!).routes).toEqual([]);
+    expect(keyedFrontSectors(V14_31)).toEqual(["L1", "L4"]);
+  });
+
+  // Runs once WP-1's §3.2 change is merged (V14 without `soundSectors`): the build's V14 key must then code exactly as the fixture.
+  it.runIf(V14_KEY_CHANGED)("the build's V14 key has the §3.2 shape: sound only through the secondary route", async () => {
+    expect(DIRECTIVE_KEYS[14]!.sound).toEqual([]);
+    for (const [, v, plan] of PROBES.filter((p) => p[1] === 14)) {
+      const [real, fixture] = [await coded(v, plan, DIRECTIVE_KEYS), await coded(v, plan)];
+      expect([real.cell, real.cellByAct, real.cellWithBoundary, real.cellByActWithBoundary]).toEqual([fixture.cell, fixture.cellByAct, fixture.cellWithBoundary, fixture.cellByActWithBoundary]);
+    }
   });
 });
 

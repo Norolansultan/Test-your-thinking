@@ -42,6 +42,7 @@ import { SPAM_AUTHORED, SPAM_ITEMS, SPAM_KEY_ATOMS } from "../../app/scenario/de
 import { PRACTICE_SPAM_AUTHORED, PRACTICE_SPAM_ID, practiceSpamKeyRecordId } from "../../app/scenario/practice-spam.js";
 import { viewOfStep } from "../../app/scenario/views.js";
 import type { Cell, InfoAtom } from "../../app/scenario/types.js";
+import { soundRoutes } from "../../app/telemetry/directive-act-coding.js";
 
 export const DEFAULT_OUT_DIR = "review-packet";
 const LABELS: Readonly<Record<string, string>> = labelsEn;
@@ -223,9 +224,12 @@ export function collectKeys(): KeyRow[] {
 
   for (const v of viewsOf(DIRECTIVE_KEYS)) {
     const k = DIRECTIVE_KEYS[v];
+    // SPEC/31 §3.2: the routes through which the view's key accepts a plan as sound (`soundVia`), and §3.1's act coding on its keyed front.
+    const routes = soundRoutes(k ?? null);
+    const sound = !k || k.sound === null ? "—" : k.sound.length > 0 ? k.sound.join("|") : "— (no main-effort posture)";
     rows.push({ kind: "directive (posture)", id: `directive.${v}`, view: v === 0 ? "VP" : `V${v}`, itemFi: "Painopisteen toimintatapa", itemEn: "How the main effort works",
-      keyFi: k ? `fit=${k.fit}; aligned=${k.aligned?.join("|") ?? "—"}; sound=${k.sound?.join("|") ?? "—"}${k.soundSectors ? `; soundSectors=${JSON.stringify(k.soundSectors)}` : ""}${k.soundSecondary ? `; soundSecondary=${JSON.stringify(k.soundSecondary)}` : ""}` : "(not scored)",
-      keyEn: "", basis: k?.basis ?? "practice, not scored", basisRecords: recordsOf(k?.basisAtomIds ?? []) });
+      keyFi: k ? `fit=${k.fit}; aligned=${k.aligned?.join("|") ?? "—"}; sound=${sound}${k.soundSectors ? `; soundSectors=${JSON.stringify(k.soundSectors)}` : ""}${k.soundSecondary ? `; soundSecondary=${JSON.stringify(k.soundSecondary)}` : ""}; soundVia=${routes.routes.join("|") || "—"}` : "(not scored)",
+      keyEn: k ? `soundVia: ${routes.text}` : "", basis: k?.basis ?? "practice, not scored", basisRecords: recordsOf(k?.basisAtomIds ?? []) });
   }
 
   for (const v of viewsOf(SPAM_ITEMS)) {

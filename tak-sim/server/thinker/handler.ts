@@ -218,6 +218,15 @@ async function prepare(deps: ThinkerDeps, body: unknown, tool: ThinkerTool): Pro
   return { req, step, lang, route, gated: candidates, records, recent, clockS: practice ? view!.startsAtVirtual : req.virtualTimeS, practice };
 }
 
+/**
+ * The response without the format-0.11.0 context ids (SPEC/31 §3.6): the proxy's log line stays as it was — it carries the same ids
+ * already, as `digest` (the Open Thinker) and `recent` (both chats).
+ */
+function withoutContextIds<R extends { readonly digestAtomIds?: readonly string[]; readonly recentAtomIds?: readonly string[] }>(response: R): Omit<R, "digestAtomIds" | "recentAtomIds"> {
+  const { digestAtomIds: _digest, recentAtomIds: _recent, ...rest } = response;
+  return rest;
+}
+
 /** The log line's fields both chats share. */
 function logBase(p: Prepared, system: string, tool: ThinkerTool) {
   const { req } = p;
@@ -274,11 +283,14 @@ export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Pr
     retrievalLanguage: p.route.lang,
     ...(!outcome.ok && outcome.reason === "refusal" ? { refusalCategory: outcome.refusalCategory ?? null } : {}),
     promptVariant: variant,
+    // SPEC/31 §3.6 (format 0.11.0): what reached the model without a search, for the browser's log; Haku's chat has no digest.
+    digestAtomIds: [],
+    recentAtomIds: p.recent.map((a) => a.id),
   };
   await deps.appendLog(p.req.sessionId, {
     loggedAt: deps.nowIso(),
     ...logBase(p, system, "haku"),
-    ...response,
+    ...withoutContextIds(response),
     ...guarded.log,
     ...(outcome.ok ? { usage: outcome.usage } : {}),
     ...(outcome.attempts !== undefined ? { attempts: outcome.attempts } : {}),
@@ -362,6 +374,9 @@ export async function handleOpenThinkerRequest(deps: ThinkerDeps, body: unknown)
     // Revision (aq): both come from the options' `verdict` fields (`verdictsOfOptions`), null where none is coded.
     verdict: verdicts ? verdicts[0]!.verdict : null,
     verdicts,
+    // SPEC/31 §3.6 (format 0.11.0): the digest and the recent matches the model had without a search, for the browser's log.
+    digestAtomIds: digest.map((a) => a.id),
+    recentAtomIds: p.recent.map((a) => a.id),
   };
   await deps.appendLog(p.req.sessionId, {
     loggedAt: deps.nowIso(),
@@ -376,7 +391,7 @@ export async function handleOpenThinkerRequest(deps: ThinkerDeps, body: unknown)
     // Revision (aq): the tags of the answer as the model returned it, checked against the tagged records (the proxy writes each citation's time itself).
     citationIssues: citations ? citations.issues : null,
     ...(citations ? { uncitedItems: citations.uncited, imperativeWords: imperativeWordsIn(answer, p.lang), words: wordCount(answer) } : {}),
-    ...response,
+    ...withoutContextIds(response),
     // Revision (aq): the exact verdict fields (a justified departure is `departure_justifiable` here, `departs` in the browser's three-valued log), and the model's JSON as returned.
     // Revision (ar): the frozen premises' hash. SPEC/30 §3: the premise-evidence table's version and hash and the records clock it was read
     // at (directive in force), the statuses and deciding atom ids shown (an options answer only), and whether a premise flag was shown.

@@ -37,6 +37,8 @@ export interface PlanConfidencePair {
   readonly correct: boolean | null;
   /** The same with the boundary-accepted sectors (the sensitivity coding). */
   readonly correctWithBoundary: boolean | null;
+  /** SPEC/31 §3.1: the plan is sound under the act coding (`soundByAct`), H13's primary; null with no plan. */
+  readonly correctByAct: boolean | null;
 }
 
 export function planConfidencePairs(records: readonly LogRecord[], keys: Readonly<Record<number, DirectiveKeyLike | null>>): PlanConfidencePair[] {
@@ -51,6 +53,7 @@ export function planConfidencePairs(records: readonly LogRecord[], keys: Readonl
         confidence: rated ? (rated.detail as PlanConfidenceSubmittedDetail).value : null,
         confidenceSeq: rated ? (rated.seq as number) : null,
         planSeq: plan?.seq ?? null, cell: plan?.cell ?? null, correct: plan?.sound ?? null, correctWithBoundary: plan?.soundWithBoundary ?? null,
+        correctByAct: plan?.soundByAct ?? null,
       };
     });
 }
@@ -66,9 +69,9 @@ export interface PlanCalibration {
   readonly gap: number | null;
 }
 
-export function planCalibration(pairs: readonly PlanConfidencePair[], opts: { readonly withBoundary?: boolean } = {}): PlanCalibration {
+export function planCalibration(pairs: readonly PlanConfidencePair[], opts: { readonly withBoundary?: boolean; readonly byAct?: boolean } = {}): PlanCalibration {
   const usable = pairs.flatMap((p) => {
-    const correct = opts.withBoundary ? p.correctWithBoundary : p.correct;
+    const correct = opts.byAct ? p.correctByAct : opts.withBoundary ? p.correctWithBoundary : p.correct;
     return p.confidence === null || correct === null ? [] : [{ c: p.confidence / 100, o: correct ? 1 : 0 }];
   });
   const n = usable.length;

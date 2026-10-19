@@ -15,9 +15,31 @@
  *
  * A SCREENING AID, as `answerRelaysAtom` is: it misses paraphrase and can match a number stated about something else.
  * Two coders audit a sample of the matches (SPEC/30 §5.3); the matched text is returned for them.
+ *
+ * SPEC/31 §3.6, sagat F16 (19 Oct 2026):
+ * - **Element-tied patterns.** An item may carry `elementPatterns` (WP-2 authors them): regular-expression sources naming the
+ *   item's element (the cottages, the lull, the R1 road …). When it has any for the session language, a statement counts only in a
+ *   sentence that also names the element, so a generic pattern ("ei vielä hallinnassa", "linjat pysyvät", "kuusik…") is no longer
+ *   matched about something else. Without them the whole text is read, as before.
+ * - **Lures** (`lureMatchers`, for `statedLure`): each distractor option of a choice item, matched by its authored `lureStatements`
+ *   (WP-2) when it has any in the session language, else by the same generic band, sector and token rules applied to its own label
+ *   (against every other option's); element-tied in the same way. A map item has no lure matcher.
  */
 
 import type { FreezeItem } from "../scenario/types.js";
+
+/** Regular-expression sources per session language (the shape of `keyStatements`). */
+export interface StatementSources { readonly fi: readonly string[]; readonly en: readonly string[] }
+
+/**
+ * The analysis-only statement fields an item may carry beside `keyStatements` (SPEC/31 §3.6; authored by WP-2 in the item bank, never
+ * shown, never in the session): the element's patterns and the distractors' statements. Optional: an item without them is screened as
+ * before (the whole text; generic lure rules).
+ */
+export interface StatementFields {
+  readonly elementPatterns?: StatementSources;
+  readonly lureStatements?: readonly ({ readonly optionId: string } & StatementSources)[];
+}
 
 export type KeyRule = "key_statements" | "band" | "sector" | "tokens";
 
@@ -121,10 +143,14 @@ export function stemsOf(text: string): Set<string> {
   return out;
 }
 
-function regexMatcher(item: FreezeItem, patterns: readonly string[]): KeyMatcher {
-  const res = patterns.map((src) => {
-    try { return new RegExp(src, "iu"); } catch (e) { throw new Error(`freeze item ${item.id}: keyStatements pattern ${JSON.stringify(src)} is not a valid regular expression (${(e as Error).message})`); }
+function compiled(item: FreezeItem, field: string, patterns: readonly string[]): RegExp[] {
+  return patterns.map((src) => {
+    try { return new RegExp(src, "iu"); } catch (e) { throw new Error(`freeze item ${item.id}: ${field} pattern ${JSON.stringify(src)} is not a valid regular expression (${(e as Error).message})`); }
   });
+}
+
+function regexMatcher(item: FreezeItem, patterns: readonly string[], field = "keyStatements"): KeyMatcher {
+  const res = compiled(item, field, patterns);
   return {
     rules: ["key_statements"],
     match: (text) => {
@@ -172,11 +198,56 @@ function genericMatcher(keyLabel: string, otherLabels: readonly string[], lang: 
  * The matcher for one item in one session language. `label` gives an option's label in that language (the Finnish
  * source for a Finnish session: `tr(lang, …)` from `app/i18n/text.ts` by default in `aiStatedKey`).
  */
-export function keyMatcher(item: FreezeItem, lang: "fi" | "en", label: (fi: string) => string): KeyMatcher {
+export function keyMatcher(item: FreezeItem & StatementFields, lang: "fi" | "en", label: (fi: string) => string): KeyMatcher {
   const patterns = item.keyStatements?.[lang] ?? [];
-  if (patterns.length > 0) return regexMatcher(item, patterns);
+  if (patterns.length > 0) return elementTied(item, lang, regexMatcher(item, patterns));
   if ((item.kind ?? "choice") === "map_point") return { rules: [], match: () => null };
   const key = item.options.filter((o) => o.correct);
   if (key.length !== 1) return { rules: [], match: () => null };
-  return genericMatcher(label(key[0]!.labelFi), item.options.filter((o) => !o.correct).map((o) => label(o.labelFi)), lang);
+  return elementTied(item, lang, genericMatcher(label(key[0]!.labelFi), item.options.filter((o) => !o.correct).map((o) => label(o.labelFi)), lang));
+}
+
+/** The sentences of a text: split after . ! ? before white space, and at line breaks ("klo 14.40" and "18,8" stay whole). */
+export function sentencesOf(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+|\n+/u).map((x) => x.trim()).filter((x) => x.length > 0);
+}
+
+/**
+ * SPEC/31 F16: with `elementPatterns` in the session language, `inner` matches only inside a sentence that also names the element (the
+ * first such sentence that matches wins); without them, `inner` unchanged.
+ */
+export function elementTied(item: FreezeItem & StatementFields, lang: "fi" | "en", inner: KeyMatcher): KeyMatcher {
+  const element = item.elementPatterns?.[lang] ?? [];
+  if (element.length === 0 || inner.rules.length === 0) return inner;
+  const res = compiled(item, "elementPatterns", element);
+  return {
+    rules: inner.rules,
+    match: (text) => {
+      for (const sentence of sentencesOf(text)) {
+        if (!res.some((re) => re.test(sentence))) continue;
+        const m = inner.match(sentence);
+        if (m) return m;
+      }
+      return null;
+    },
+  };
+}
+
+/** One distractor's matcher (`statedLure`). */
+export interface LureMatcher { readonly optionId: string; readonly matcher: KeyMatcher }
+
+/**
+ * The distractors' matchers of a choice item in one session language, in option order: each by its `lureStatements` for that
+ * language when it has any, else the generic rules on its own label against every other option's; element-tied as the key's. A map
+ * item, or an item without exactly one key, has none.
+ */
+export function lureMatchers(item: FreezeItem & StatementFields, lang: "fi" | "en", label: (fi: string) => string): LureMatcher[] {
+  if ((item.kind ?? "choice") === "map_point" || item.options.filter((o) => o.correct).length !== 1) return [];
+  return item.options.filter((o) => !o.correct).map((o) => {
+    const authored = item.lureStatements?.find((l) => l.optionId === o.id)?.[lang] ?? [];
+    const inner = authored.length > 0
+      ? regexMatcher(item, authored, "lureStatements")
+      : genericMatcher(label(o.labelFi), item.options.filter((x) => x.id !== o.id).map((x) => label(x.labelFi)), lang);
+    return { optionId: o.id, matcher: elementTied(item, lang, inner) };
+  });
 }

@@ -15,6 +15,16 @@
  *     guide group; the gap test is run on all items and on the not-stated items only.
  *   - the shared generators and tests moved to `power-lib.ts`; GLM× uses its clustered fit (same model).
  *
+ * What changed for SPEC/31 §3.6 and §3.12 (19 Oct 2026, RC for H2t): the told class is three-way. An item is STREAM-TOLD when every
+ * key record was pushed before the freeze (8 of the 24: parity P-3), AI-TOLD when an answer stated its key otherwise, else NEITHER;
+ * H2t's gap runs on the neither items and the stream-told stratum is reported. A third family (T3-…, seeds offset by
+ * H2T3_SEED_OFFSET) re-runs the H2t scenarios with the first STREAM_TOLD_ITEMS items stream-told: recall of a pushed record, more
+ * accurate for everyone (STREAM_ACC_SHIFT, an assumption), never AI-told (an AI restating it borrows nothing: the stream told it).
+ * The AI states each other item with STATED_SHARE, so the AI-told stratum is 30 % of 16 items, not of 24, and the neither stratum at
+ * most 16. Columns: the gap on all items (H2), on the neither items (H2t, three-way), on the not-AI-told items (stream-told ∪ neither:
+ * the two-way H2t as before, now with the stream-told inside), and H2's sensitivity without the stream-told items (AI-told ∪ neither).
+ * The 2 Oct and 19 Oct families keep their cells and seeds, so their rows reproduce.
+ *
  * Data-generating process (assumptions, not pilot values — SPEC/09 §8 still requires the
  * pilot-based simulation):
  *   item bank   b_j ~ N(0, SIGMA_ITEM²), drawn once per replicate, the same items for everyone;
@@ -66,6 +76,10 @@ const STATED_SHARE = 0.3;
 const STATED_ACC_SHIFT = 1.5;
 /** T-cancel: stated-item bias, below Haku's, chosen so the pooled population Δgap is ≈ 0. */
 const CANCEL_STATED_DELTA = BASE_OVERCONFIDENCE - 0.9;
+/** SPEC/31 §3.6: the items whose every key record is pushed before the freeze (7 pushed + `fastest_spread`, parity P-3). */
+const STREAM_TOLD_ITEMS = 8;
+/** A stream-told item is recall of a pushed record: more accurate for everyone (logit; an assumption, not a pilot value). */
+const STREAM_ACC_SHIFT = 1.0;
 
 interface Stated {
   readonly share: number;
@@ -82,6 +96,8 @@ interface Scenario {
   readonly delta: number;
   /** H2t: what the AI stated to the guide group; absent = no key stated. */
   readonly stated?: Stated;
+  /** SPEC/31 §3.6: the first this-many items are stream-told (absent: none, the earlier families). */
+  readonly streamTold?: number;
 }
 
 /** The calibration scenarios of 2 Oct 2026; their order is their cell-seed index. */
@@ -110,6 +126,10 @@ const H2T_SCENARIOS: readonly Scenario[] = [
   },
 ];
 const H2T_SEED_OFFSET = 10;
+
+/** SPEC/31 §3.6: the H2t family with the three-way split (8 stream-told items); seeds offset by H2T3_SEED_OFFSET. */
+const H2T3_SCENARIOS: readonly Scenario[] = H2T_SCENARIOS.map((sc) => ({ ...sc, id: sc.id.replace(/^T-/, "T3-"), streamTold: STREAM_TOLD_ITEMS }));
+const H2T3_SEED_OFFSET = 20;
 
 /**
  * Haku / guide (SPEC/30 §2: 100 = 50 : 50; 20 % attrition 40 : 40) and the 11 Oct reference
@@ -141,6 +161,8 @@ interface Dataset {
   readonly conf: Float64Array;
   readonly y: Uint8Array;
   readonly stated: Uint8Array;
+  /** SPEC/31 §3.6: the item is stream-told (every key record pushed): never AI-told. */
+  readonly stream: Uint8Array;
   readonly participants: number;
 }
 
@@ -148,7 +170,7 @@ function simulate(rng: Rng, nHaku: number, nGuide: number, items: number, sc: Sc
   const b = Array.from({ length: items }, () => SIGMA_ITEM * rng.normal());
   const participants = nHaku + nGuide;
   const n = participants * items;
-  const data: Dataset = { pid: new Int32Array(n), grp: new Uint8Array(n), conf: new Float64Array(n), y: new Uint8Array(n), stated: new Uint8Array(n), participants };
+  const data: Dataset = { pid: new Int32Array(n), grp: new Uint8Array(n), conf: new Float64Array(n), y: new Uint8Array(n), stated: new Uint8Array(n), stream: new Uint8Array(n), participants };
   let k = 0;
   for (let i = 0; i < participants; i++) {
     const g = i < nHaku ? 0 : 1;
@@ -158,10 +180,12 @@ function simulate(rng: Rng, nHaku: number, nGuide: number, items: number, sc: Sc
     const theta = SIGMA_ABILITY * rng.normal();
     const u = SIGMA_CONF_BIAS * rng.normal();
     for (let j = 0; j < items; j++) {
-      // Drawn only when the scenario states keys, so the calibration scenarios keep their streams.
-      const st = stated !== undefined && rng.uniform() < stated.share ? stated : undefined;
-      const p = GUESS + (1 - GUESS) * logistic(MU + theta - b[j]! + (st ? st.accShift : 0));
-      data.pid[k] = i; data.grp[k] = g; data.stated[k] = st ? 1 : 0;
+      // SPEC/31 §3.6: a stream-told item (the first `streamTold`) is never AI-told; absent in the earlier families.
+      const isStream = j < (sc.streamTold ?? 0);
+      // Drawn only when the scenario states keys (and the item is not stream-told), so the calibration scenarios keep their streams.
+      const st = stated !== undefined && !isStream && rng.uniform() < stated.share ? stated : undefined;
+      const p = GUESS + (1 - GUESS) * logistic(MU + theta - b[j]! + (st ? st.accShift : 0) + (isStream ? STREAM_ACC_SHIFT : 0));
+      data.pid[k] = i; data.grp[k] = g; data.stated[k] = st ? 1 : 0; data.stream[k] = isStream ? 1 : 0;
       data.y[k] = rng.uniform() < p ? 1 : 0;
       data.conf[k] = toScale(logistic(lambda * logit(p) + (st ? st.delta : delta) + u + SIGMA_CONF_NOISE * rng.normal()));
       k++;
@@ -185,29 +209,36 @@ function glmInteractionP(d: Dataset): number | null {
 }
 
 interface PerParticipant {
-  /** Per group [Haku, guide]: Brier score, gap on all items, gap on not-stated items. */
+  /** Per group [Haku, guide]: Brier score, gap on all items, gap on not-stated items (stream-told included). */
   readonly brier: number[][];
   readonly gap: number[][];
   readonly gapNotStated: number[][];
+  /** SPEC/31 §3.6: the gap on the neither items (not stream-told, not AI-told): H2t's three-way stratum. */
+  readonly gapNeither: number[][];
+  /** The gap without the stream-told items (AI-told ∪ neither): H2's sensitivity. */
+  readonly gapNoStream: number[][];
 }
 
 function perParticipant(d: Dataset): PerParticipant {
   const P = d.participants;
   const sumSq = new Float64Array(P), sumC = new Float64Array(P), sumY = new Float64Array(P), cnt = new Float64Array(P);
-  const nsC = new Float64Array(P), nsY = new Float64Array(P), nsCnt = new Float64Array(P);
+  // [not stated, neither, not stream-told] × [confidence, correct, count]
+  const strata = Array.from({ length: 3 }, () => [new Float64Array(P), new Float64Array(P), new Float64Array(P)] as const);
   const grpOf = new Uint8Array(P);
   for (let k = 0; k < d.y.length; k++) {
     const i = d.pid[k]!;
     grpOf[i] = d.grp[k]!;
     sumSq[i]! += (d.conf[k]! - d.y[k]!) ** 2; sumC[i]! += d.conf[k]!; sumY[i]! += d.y[k]!; cnt[i]! += 1;
-    if (d.stated[k] === 0) { nsC[i]! += d.conf[k]!; nsY[i]! += d.y[k]!; nsCnt[i]! += 1; }
+    const inStratum = [d.stated[k] === 0, d.stated[k] === 0 && d.stream[k] === 0, d.stream[k] === 0];
+    inStratum.forEach((yes, s) => { if (yes) { strata[s]![0][i]! += d.conf[k]!; strata[s]![1][i]! += d.y[k]!; strata[s]![2][i]! += 1; } });
   }
-  const out: PerParticipant = { brier: [[], []], gap: [[], []], gapNotStated: [[], []] };
+  const out: PerParticipant = { brier: [[], []], gap: [[], []], gapNotStated: [[], []], gapNeither: [[], []], gapNoStream: [[], []] };
+  const stratumGaps = [out.gapNotStated, out.gapNeither, out.gapNoStream];
   for (let i = 0; i < P; i++) {
     const g = grpOf[i]!;
     out.brier[g]!.push(sumSq[i]! / cnt[i]!);
     out.gap[g]!.push((sumC[i]! - sumY[i]!) / cnt[i]!);
-    if (nsCnt[i]! > 0) out.gapNotStated[g]!.push((nsC[i]! - nsY[i]!) / nsCnt[i]!);
+    strata.forEach(([c, y, n], s) => { if (n[i]! > 0) stratumGaps[s]![g]!.push((c[i]! - y[i]!) / n[i]!); });
   }
   return out;
 }
@@ -219,6 +250,9 @@ function perParticipant(d: Dataset): PerParticipant {
 interface Population {
   readonly dGap: number;
   readonly dGapNotStated: number;
+  /** SPEC/31 §3.6: Δgap on the neither items, and without the stream-told items. */
+  readonly dGapNeither: number;
+  readonly dGapNoStream: number;
   readonly dBrier: number;
   readonly dAcc: number;
   readonly gapHaku: number;
@@ -232,8 +266,8 @@ interface Population {
 function populationEffect(sc: Scenario, seed: number): Population {
   const rng = new Rng(seed);
   const N = 500, REPS = 40;
-  // [group][Brier, gap, gap not-stated, accuracy] summed over participants; stated items: [count, correct, confidence].
-  const sums = [[0, 0, 0, 0], [0, 0, 0, 0]];
+  // [group][Brier, gap, gap not-stated, accuracy, gap neither, gap without stream-told] summed over participants; stated items: [count, correct, confidence].
+  const sums = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]];
   const st = [0, 0, 0];
   let guideItems = 0;
   for (let rep = 0; rep < REPS; rep++) {
@@ -243,6 +277,7 @@ function populationEffect(sc: Scenario, seed: number): Population {
       const s = sums[g]!;
       const mean = (x: readonly number[]) => x.reduce((a, v) => a + v, 0) / x.length;
       s[0]! += mean(pp.brier[g]!); s[1]! += mean(pp.gap[g]!); s[2]! += mean(pp.gapNotStated[g]!);
+      s[4]! += mean(pp.gapNeither[g]!); s[5]! += mean(pp.gapNoStream[g]!);
     }
     for (let k = 0; k < d.y.length; k++) {
       sums[d.grp[k]!]![3]! += d.y[k]! / (N * 24);
@@ -251,7 +286,7 @@ function populationEffect(sc: Scenario, seed: number): Population {
   }
   const diff = (c: number) => (sums[1]![c]! - sums[0]![c]!) / REPS;
   return {
-    dBrier: diff(0), dGap: diff(1), dGapNotStated: diff(2), dAcc: diff(3),
+    dBrier: diff(0), dGap: diff(1), dGapNotStated: diff(2), dAcc: diff(3), dGapNeither: diff(4), dGapNoStream: diff(5),
     gapHaku: sums[0]![1]! / REPS, accHaku: sums[0]![3]! / REPS,
     statedShare: st[0]! / guideItems, statedAcc: st[1]! / st[0]!, statedConf: st[2]! / st[0]!,
   };
@@ -311,6 +346,35 @@ function main(): void {
           if (welchP(pp.gapNotStated[0]!, pp.gapNotStated[1]!) < 0.05) gapNot++;
         }
         console.log(`| ${sc.id} | ${ns.label} | ${items} | ${pct(gapAll / reps)} | ${pct(gapNot / reps)} |`);
+      }
+    }
+  });
+
+  // SPEC/31 §3.6 and §3.12: the three-way split (8 stream-told items).
+  console.log(`\nSPEC/31 §3.6 — the three-way split: ${STREAM_TOLD_ITEMS} stream-told items (accuracy +${STREAM_ACC_SHIFT} logit, both groups), the AI states ${(100 * STATED_SHARE).toFixed(0)} % of the others to the guide group.`);
+  console.log("\nPopulation effects, guide − Haku (500 + 500 × 40, 24 items):\n");
+  console.log("| Scenario | Δgap, all items | Δgap, neither (H2t) | Δgap, not AI-told (two-way) | Δgap, without stream-told | Guide AI-told items: share of all, accuracy, confidence |");
+  console.log("|---|---|---|---|---|---|");
+  H2T3_SCENARIOS.forEach((sc, ti) => {
+    const e = populationEffect(sc, cellSeed(seed, 99, H2T3_SEED_OFFSET + ti));
+    console.log(`| ${sc.id} (${sc.label}) | ${signed(e.dGap)} | ${signed(e.dGapNeither)} | ${signed(e.dGapNotStated)} | ${signed(e.dGapNoStream)} | ${e.statedShare.toFixed(2)}, ${e.statedAcc.toFixed(2)}, ${e.statedConf.toFixed(2)} |`);
+  });
+  console.log("\nPower, three-way split:\n");
+  console.log("| Scenario | N Haku/guide | Items | Gap, all items (H2) | Gap, neither (H2t, three-way) | Gap, not AI-told (two-way) | Gap without stream-told (H2 sensitivity) |");
+  console.log("|---|---|---|---|---|---|---|");
+  H2T3_SCENARIOS.forEach((sc, ti) => {
+    for (const ns of SAMPLE_SIZES) {
+      for (const items of ITEM_COUNTS) {
+        const rng = new Rng(cellSeed(seed, H2T3_SEED_OFFSET + ti, ns.key, items));
+        let all = 0, neither = 0, notAi = 0, noStream = 0;
+        for (let r = 0; r < reps; r++) {
+          const pp = perParticipant(simulate(rng, ns.nHaku, ns.nGuide, items, sc));
+          if (welchP(pp.gap[0]!, pp.gap[1]!) < 0.05) all++;
+          if (welchP(pp.gapNeither[0]!, pp.gapNeither[1]!) < 0.05) neither++;
+          if (welchP(pp.gapNotStated[0]!, pp.gapNotStated[1]!) < 0.05) notAi++;
+          if (welchP(pp.gapNoStream[0]!, pp.gapNoStream[1]!) < 0.05) noStream++;
+        }
+        console.log(`| ${sc.id} | ${ns.label} | ${items} | ${pct(all / reps)} | ${pct(neither / reps)} | ${pct(notAi / reps)} | ${pct(noStream / reps)} |`);
       }
     }
   });

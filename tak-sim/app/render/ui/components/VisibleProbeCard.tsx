@@ -1,7 +1,14 @@
-import { useEffect, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { SessionOrchestrator, VisibleProbeView } from "../../../session/orchestrator.js";
 import { useLang } from "../i18n.js";
 import { Choice, ConfidencePicker, hint, label, PrimaryButton } from "./PanelParts.js";
+import { areaAnswer, ProbeAnswerTracker } from "../probe-telemetry.js";
+
+/** An option's hover (`probe_option_hovered`) without changing its layout: the wrapper has no box of its own. */
+function Hover({ onEnter, children }: { readonly onEnter: (pointerType: string) => void; readonly children: ComponentChildren }) {
+  return <span style={{ display: "contents" }} onPointerEnter={(e) => onEnter(e.pointerType)}>{children}</span>;
+}
 
 /**
  * A visible probe — Type U (SPEC/08 §3.5, §4 PROBING_VISIBLE; 5 Oct 2026). It takes the
@@ -13,6 +20,9 @@ import { Choice, ConfidencePicker, hint, label, PrimaryButton } from "./PanelPar
  * - V14's backup (`choice`): one of the pairs, "none" last, then the confidence;
  * - V14's coverage (`scale`): the one scale.
  * The view carries no key. No word names a tool or a conflict.
+ * SPEC/30 §5.4 (19 Oct 2026): option hovers and every answer change before sending are logged (`probe-telemetry.ts`:
+ * `choice` the option id, `area` "no" / "yes" / "yes:<parts in order>", `scale` the value); a changed answer is shown
+ * once its record is durable (I5).
  */
 export function VisibleProbeCard({ probe, orchestrator }: {
   readonly probe: VisibleProbeView;
@@ -25,10 +35,24 @@ export function VisibleProbeCard({ probe, orchestrator }: {
   const [unsure, setUnsure] = useState<boolean | null>(null);
   const [areas, setAreas] = useState<readonly string[]>([]);
   const [sending, setSending] = useState(false);
-  useEffect(() => { setConfidence(null); setChoice(null); setUnsure(null); setAreas([]); setSending(false); }, [probe.probeId]);
+  const answers = useRef<ProbeAnswerTracker | null>(null);
+  answers.current ??= ProbeAnswerTracker.of(orchestrator);
+  const chosenAreas = useRef<readonly string[]>([]); // the parts as last chosen (shown once their record is durable)
+  useEffect(() => { setConfidence(null); setChoice(null); setUnsure(null); setAreas([]); setSending(false); chosenAreas.current = []; }, [probe.probeId]);
 
   const send = (fn: () => Promise<void>) => { setSending(true); void fn().catch(() => setSending(false)); };
-  const toggleArea = (id: string) => setAreas((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const hovered = (optionId: string) => (pointerType: string) => answers.current!.hovered(probe.probeId, optionId, pointerType);
+  const changed = (to: string, show: () => void) => answers.current!.changed(probe.probeId, to, show);
+  const answerUnsure = (yes: boolean) => {
+    if (!yes) chosenAreas.current = [];
+    changed(areaAnswer(yes, chosenAreas.current), () => { setUnsure(yes); if (!yes) setAreas([]); });
+  };
+  const toggleArea = (optionId: string) => {
+    const a = chosenAreas.current;
+    const next = a.includes(optionId) ? a.filter((x) => x !== optionId) : [...a, optionId];
+    chosenAreas.current = next;
+    changed(areaAnswer(true, next), () => setAreas(next));
+  };
   const areaReady = unsure === false || (unsure === true && areas.length > 0);
 
   return (
@@ -39,14 +63,14 @@ export function VisibleProbeCard({ probe, orchestrator }: {
       {probe.kind === "area" && (
         <>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-            <Choice selected={unsure === true} onClick={() => setUnsure(true)}>{v.yes}</Choice>
-            <Choice selected={unsure === false} onClick={() => { setUnsure(false); setAreas([]); }}>{v.no}</Choice>
+            <Hover onEnter={hovered("yes")}><Choice selected={unsure === true} onClick={() => answerUnsure(true)}>{v.yes}</Choice></Hover>
+            <Hover onEnter={hovered("no")}><Choice selected={unsure === false} onClick={() => answerUnsure(false)}>{v.no}</Choice></Hover>
           </div>
           {unsure === true && probe.followUpFi && (
             <>
               <p style={{ margin: "2px 0 6px", fontSize: 14 }}>{tr(probe.followUpFi)}</p>
               <div role="group" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {probe.options.map((o) => <Choice key={o.id} selected={areas.includes(o.id)} onClick={() => toggleArea(o.id)}>{tr(o.fi)}</Choice>)}
+                {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={areas.includes(o.id)} onClick={() => toggleArea(o.id)}>{tr(o.fi)}</Choice></Hover>)}
               </div>
             </>
           )}
@@ -57,7 +81,7 @@ export function VisibleProbeCard({ probe, orchestrator }: {
       {probe.kind === "choice" && (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-            {probe.options.map((o) => <Choice key={o.id} selected={choice === o.id} onClick={() => setChoice(o.id)}>{tr(o.fi)}</Choice>)}
+            {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={choice === o.id} onClick={() => changed(o.id, () => setChoice(o.id))}>{tr(o.fi)}</Choice></Hover>)}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {probe.collectsConfidence && <ConfidencePicker value={confidence} onChange={setConfidence} />}
@@ -70,7 +94,7 @@ export function VisibleProbeCard({ probe, orchestrator }: {
 
       {probe.kind === "scale" && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ConfidencePicker value={confidence} onChange={setConfidence} />
+          <ConfidencePicker value={confidence} onChange={(c) => changed(String(c), () => setConfidence(c))} />
           <span style={{ flex: 1 }} />
           <PrimaryButton disabled={sending || confidence === null} onClick={() => send(() => orchestrator.submitProbeScale(confidence!))}>{v.submit}</PrimaryButton>
         </div>

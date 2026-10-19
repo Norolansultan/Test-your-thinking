@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import type { FreezeView, SessionOrchestrator } from "../../../session/orchestrator.js";
 import type { LatLon } from "../../../engine/primitives.js";
 import { draftComplete, isMapItem, responsesFromDrafts, skippedResponses, type FreezeDraft } from "../../../session/freeze-answers.js";
@@ -6,6 +6,7 @@ import { FreezeMap } from "./FreezeMap.js";
 
 import { CONFIDENCE_SCALE as CONFIDENCE_STEPS } from "../../../session/confidence.js";
 import { useLang } from "../i18n.js";
+import { ProbeAnswerTracker } from "../probe-telemetry.js";
 
 /**
  * The SAGAT-style freeze (Type R) — SPEC/15 revision (r): it interrupts at its
@@ -27,12 +28,16 @@ import { useLang } from "../i18n.js";
 /**
  * `allowSkip` (demonstration only, 6 Oct 2026): "skip this freeze" submits only the items answered in full
  * so far (`skippedResponses`), logged `skipped: true`; an item half-answered is left out, never sent incomplete.
+ * SPEC/30 §5.4 (19 Oct 2026): a choice item's option hovers and answer changes are logged (`probe-telemetry.ts`,
+ * `probeId` = the item's id); a changed answer is shown once its record is durable (I5).
  */
 export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSkip = false }: { readonly freeze: FreezeView; readonly orchestrator: SessionOrchestrator; readonly showLevels?: boolean; readonly allowSkip?: boolean }) {
   const { t, tr } = useLang();
   const [drafts, setDrafts] = useState<Record<string, FreezeDraft>>({});
   const [sent, setSent] = useState(false); // one submission: the button is disabled once clicked
   const [current, setCurrent] = useState(0); // the item on screen; earlier ones cannot be reopened
+  const answers = useRef<ProbeAnswerTracker | null>(null);
+  answers.current ??= ProbeAnswerTracker.of(orchestrator);
   const extent = orchestrator.mapExtent; // the whole study area, the live map's opening frame (SPEC/12 revision (aj)); never framed on the fire
 
   const item = freeze.items[Math.min(current, freeze.items.length - 1)]!;
@@ -107,6 +112,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
               {item.options.map((opt) => (
                 <label
                   key={opt.id}
+                  onPointerEnter={(e) => answers.current!.hovered(item.id, opt.id, e.pointerType)}
                   style={{
                     display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 6, fontSize: 13, cursor: "pointer",
                     border: `1px solid ${drafts[item.id]?.optionId === opt.id ? "#8a9097" : "#3a3f44"}`,
@@ -116,7 +122,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
                   <input
                     type="radio" name={item.id} style={{ margin: 0 }}
                     checked={drafts[item.id]?.optionId === opt.id}
-                    onChange={() => update(item.id, { optionId: opt.id })}
+                    onChange={() => answers.current!.changed(item.id, opt.id, () => update(item.id, { optionId: opt.id }))}
                   />
                   {tr(opt.labelFi)}
                 </label>

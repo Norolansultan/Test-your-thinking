@@ -10,6 +10,7 @@ import {
 } from "../../../retrieval/navigation.js";
 import type { NavCategoryId } from "../../../scenario/types.js";
 import { useLang } from "../i18n.js";
+import { useQueryTelemetry } from "../useQueryTelemetry.js";
 
 /** Observation time as a scenario clock label; the scenario starts at 13:20 (SPEC/18 §2). */
 function clockAt(observedAtSeconds: number, start = "13:20"): string {
@@ -68,12 +69,15 @@ function Chip({ selected, onClick, children }: { readonly selected: boolean; rea
  * Both groups get the free-text field below the builder (search parity, researcher decision 6 Oct 2026;
  * was the AI group's only, SPEC/06 §2.3).
  * Rendered inside the right column (RightPanel), never over the map.
+ * SPEC/30 §5.4 (19 Oct 2026): the free-text field's focus, first keystroke and deletion runs are logged
+ * (`useQueryTelemetry`, field `haku_search`); `cycle`, the view on screen, when the parent has the snapshot.
  */
-export function HakuPanel({ orchestrator, freeText }: { readonly orchestrator: SessionOrchestrator; readonly freeText: boolean }) {
+export function HakuPanel({ orchestrator, freeText, cycle }: { readonly orchestrator: SessionOrchestrator; readonly freeText: boolean; readonly cycle?: number }) {
   const [category, setCategory] = useState<NavCategoryId | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [timeWindow, setTimeWindow] = useState<NavTimeWindow>("last_cycle");
   const [text, setText] = useState("");
+  const typing = useQueryTelemetry("haku_search", orchestrator, cycle, text);
   const { results, pending, deliver } = useDelayedResults();
   const { t, tr, src } = useLang();
   const sources = orchestrator.navigationSources();
@@ -113,7 +117,7 @@ export function HakuPanel({ orchestrator, freeText }: { readonly orchestrator: S
       </button>
       {freeText && (
         <div style={{ borderTop: "1px solid #33383e", paddingTop: 10 }}>
-          <input style={inputStyle} placeholder={t.freeTextPlaceholder} value={text} onInput={(e) => setText((e.target as HTMLInputElement).value)} />
+          <input style={inputStyle} placeholder={t.freeTextPlaceholder} value={text} {...typing.props(setText)} />
           <button style={{ ...buttonStyle, marginBottom: 10 }} disabled={pending} onClick={() => deliver(() => orchestrator.searchAtoms(text))}>{t.searchText}</button>
         </div>
       )}

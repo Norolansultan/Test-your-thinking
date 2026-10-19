@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — §7.30: the before-pilot checklist of `30` §8 (repository visibility, panel keys, premise table, new items, Finnish wording, model pin, ethics, strata) and the open items of the teaming design.
 > - **9 Oct 2026 (ai)** — §7.25: closed items (no open-ended questions in the session) — the three professor reviews, the conditions built, and the HCI reviewer's dissent on a "a tool suggested it" departure reason.
 > - **9 Oct 2026 (ag)** — §7.23: SPAM forced at the view's end and answered with the tools — the measurement change (censored ready latency, forced answers after the view's information, the joint system's knowledge) and its analysis, for the supervisors.
 > - **9 Oct 2026 (ae)** — §7.21: English place names (one table, the English map), the briefing page and the glossary removed; the regenerated files, the English retrieval observation, open items.
@@ -951,3 +952,24 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 2. **Which shell the study runs.** The TAK shell is this build's default; the pilot material so far is from the classic shell (`?klassinen`). The header logs `uiShell`. Switching the study's shell is a major change (`00` §6): data from the two shells are not pooled.
 3. **Public repository.** By the researcher's choice (13 Oct 2026) this build, with the answer keys, lives in the public `Test-your-thinking` repository. Before collection: make it private or move it to the private repository.
 4. **Haku and Thinker in GeoChat.** Not posted there (they would look like people and change the manipulation); revisit only with the supervisors.
+
+### 7.30 The two-group teaming design (19 Oct 2026, `30`; open for the researcher, the panel and the reviewers)
+
+**Before the first pilot with professionals (people, not code; `30` §8):**
+
+1. **Repository visibility.** `Test-your-thinking` is public and holds the freeze keys, panel keys, premises and the whole scenario. Make it private or move the keys out before recruitment; keep the web demonstration and game mode from anyone who may take part. **Researcher.**
+2. **Panel keys** for V9–V14 hold only with at least 4 of 5 experts agreeing; a view without it is reported, not coded. **Panel.**
+3. **The premise-evidence table** (`content/thinker/premise-evidence.json`): statuses, deciding records and times per view; V13's sparks over R2 (§7.28) is decided here. **Domain reviewer, panel.**
+4. **The eight new L3 items, the two SPAM second items and the seven source-memory facts** (`08` (ax)): realism, keys, cueing. **Domain reviewer.**
+5. **Finnish wording** of every new text: the notification, the chip, the plan-confidence item, the premise line templates, the new items and questions. **Native speaker.**
+6. **The open domain questions** of `27` §7.1 (deciding quantities by radio) and §7.3 e (crews on the SE edge in the fit views). **Domain reviewer.**
+7. **Model build:** set `THINKER_EXPECTED_MODEL_VERSION` from a probe run, record it in the pre-registration, run `npm run thinker:probe` weekly during collection (`30` §10). **Researcher.**
+8. **Ethics amendment:** the notification, the plan-confidence item, the source-memory block, two groups of 50. **Researcher, ethics board.**
+9. **Strata sizes** of the allocation table (en 12 / fi 2 blocks are DRAFT). **Researcher.**
+10. **Pilot 2 measures** `aiStatedKey` rates (items stated in > 15 % of guide sessions are rewritten), exposure (consult opened, chip used, decision questions before the plan), and the session length (`15` (ax)); the power tools are re-run with them before the pre-registration locks. **Researcher.**
+
+**Open design questions:**
+
+- Whether an open-weights model run locally should replace the hosted model for the main study (fixed build, no network in a session, replicable; Finnish quality to probe). Decide after a probe.
+- Whether the plan-confidence item changes plan behaviour (reactivity): compare pilot-2 plan timing against pilot-1 logs.
+- The student / bridge sample's own spec (told vs facilitated check-ins; Paper 3's external test), and the professor's environment study (AI drafts with planned errors).

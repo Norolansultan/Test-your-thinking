@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `05_Probe_and_Freeze_Design.md` including amendment B1. All eight- and nine-cycle figures are replaced by the twenty-cycle schedule.
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — `30`: the phase-A freezes carry 2×L1, 2×L2, **4×L3** (eight new L3 items); V10's and V14's freeze comes after the view's plan is final; V3 and V6 carry a second SPAM item at L2/L3 answered with the tools (team understanding); every L2/L3 item carries `keyStatements` for the told / not-told split; a plan-confidence item after every main view; a post-session source-memory block. See the revision at the end.
 > - **9 Oct 2026 (ai)** — Type U at V13 becomes a closed two-part area item (yes/no, then on yes which parts of the picture; one seeded option order for everyone, "other" last; scored as the north-edge hit); the V14 backup collects a confidence; no free-text probe is left. See the revision at the end.
 > - **9 Oct 2026 (ag)** — SPAM (Type S): no ready expiry; forced (clock paused, modal) at the view's end with a censored ready latency; collapsible prompt; a 60 s answer window; Haku and the Thinker usable during the item (supersedes (u)'s 15 / 20 s and D4's lock). See the revision at the end and `27` (ag).
 > - **9 Oct 2026 (ad)** — V10's hour-ahead R2 item, answerable from DR2's pushed "runsaan kilometrin", becomes `front_r2_2h` (two hours on, 700–1000 m, report-keyed); V10 `area_total_hour` edges 128/135/145; V14 `se_front_r2` edges 150/275/450 with a `projectionOptionId` (the projection-direction key's item reading).
@@ -921,3 +922,15 @@ The V14 forced-choice backup (after the view) is unchanged in content and order,
 - No probe takes free text.
 - No V13 option names a report, a record, a conflict or a contradiction; "other" is last for every participant.
 - The backup's distractors are checked against the pilot's V13 area choices and the backup's error pattern (no open responses exist).
+
+## Revision 19 Oct 2026 (ax) — own and team understanding; the items of `30`
+
+`30` §5 governs; the rules of (y), (aa) and (ab) stay for every item.
+
+- **Phase-A freezes (V2, V4, V5, V7): 2×L1, 2×L2, 4×L3.** Two L3 items are added to each (`freeze-bank*.ts`; DRAFT until the domain review): consequences the envelope does not draw, report-keyed numeric keys with margins, truth-keyed map and direction items, the 1.3× option rule, no recall-answerable key, no cue of a keyed phase-B fact. H2's window is the 24 L2/L3 items of these freezes. Phase-B freezes (V10, V12, V14) keep 2/2/2.
+- **V10 and V14: the freeze after the plan.** In the no-fit views the freeze's items name the deciding front (the south front and R2, the SE front and the crossed road) and would cue the plan; the freeze now runs after the view's plan is final and the plan-confidence item, before the next view, with the same blanking, items, records and scoring. `27` §4.3's cueing rule for SPAM thus applies to freezes. The other freeze views keep their pre-planned random moment (§4, `15` revision (r)).
+- **SPAM: a second item at V3 (L2) and V6 (L3), answered with the tools at hand** (team understanding; (ag) already lets the tools stay usable). It follows the first item under the same "ready", probe id `<first id>.b`, its own 60 s window, answer and confidence; keys rest on records reachable with Haku or the Thinker (`SPAM_SECOND_KEY_ATOMS`). V8 and V11 keep one item (phase-B cueing). Own understanding (freeze, blanked) and team understanding (SPAM, tools) are read per participant; their difference is the hand-over index (`30` §6 H-T).
+- **`keyStatements`** on every L2/L3 freeze item (fi/en regular-expression sources): how an AI answer would state the key, for the analysis-only `aiStatedKey` (`30` §5.3). Never shown.
+- **Plan confidence:** after every main view's plan is final, "How confident are you that your plan fits the situation?", 25/50/75/100 (`30` §5.4).
+- **Source memory (post-session):** seven session facts, each "Where did this come from for you?" — worked it out myself / a report, the message log or the map / Haku / the Thinker (Thinker cells only) / did not know (`30` §5.5; the replacement the 2 Oct 2026 withdrawal of the in-freeze source question named, `11` §7.15).
+- **Time:** about +2.5 min for the eight L3 items, +1.5 min for the two SPAM items, +2.5 min for fourteen plan-confidence clicks, +1.5 min for the source-memory block; `15` revision (ax) carries the budget.

@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — format **0.10.0** (`30`): `consult_prompt_shown` / `_opened` / `_dismissed`, `plan_confidence_presented` / `_submitted`; `ai_chat_query_submitted.viaChip`; `query_focus` / `query_first_keystroke` / `query_edit` gain `field` and `cycle`, `pointer_track` gains `cycle` and `viewportPx`; the first emitters of `pointer_track`, the query kinds, `decision_option_hovered`, `probe_option_hovered`, `probe_answer_changed` and `frame_stats`. See the revision at the end.
 > - **13 Oct 2026 (av)** — the TAK shell (`28` §5): header field `uiShell` (`"tak" | "classic"`; a resumed log without it resumes as classic) and seven map-use kinds `tak_pane_opened`, `tak_pane_closed`, `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed`, `tak_video_viewed`. See the revision at the end.
 > - **10 Oct 2026 (am)** — the Thinker practice (`15` revision (am)): Open Thinker records in the practice view carry `view` 0 like every practice record (no browser record field changes; analysis drops them by that tag, inside the `phase_entered` practice … phase_a bracket); the Thinker server's JSONL line (both tools) gains **`practice`** (true for view 0), and an Open Thinker line in VP has `intentBlock` null and `verdict`/`verdicts` null. The tour step opens the Thinker tab, logged as `tab_selected open_thinker`.
 > - **10 Oct 2026 (al)** — `ai_chat_answer_received.aiVerdicts` (per-option verdicts); the chats send `queryId`; the Thinker server lines gain `queryId`, `attempts`, and for the Open Thinker `verdicts`, `citationIssues`, `directiveQuoted`, `historyHashes`, `userContentHash`. See the revision at the end.
@@ -610,3 +611,20 @@ Follows `28` §5. Format version unchanged (0.9.4); the kinds are additive.
 | `tak_video_viewed` | `platformId`, `cause` | a drone's video tile is shown |
 
 Opening or closing Haku or the Thinker in the TAK shell also writes the classic `tab_selected`, so tool use reads the same in both shells.
+
+## Revision 19 Oct 2026 (ax) — the teaming design's records (`30`)
+
+Format version **0.10.0** (`TELEMETRY_FORMAT_VERSION`); the kinds are additive, every field below is raw (§1).
+
+| Kind | Fields | When |
+|---|---|---|
+| `consult_prompt_shown` | `cycle`, `atViewSeconds`, `tool` (`haku` \| `thinker`) | the content-free notice "New reports since your last plan" is shown, at 60 s on the view's clock or when the freeze or SPAM item open at 60 s closes (`30` §4); durable before shown (I5) |
+| `consult_prompt_opened` | `cycle`, `tool` | its button opened the tool |
+| `consult_prompt_dismissed` | `cycle`, `tool`, `cause` (`participant` \| `view_end`) | closed by hand, or still open when the view ended |
+| `plan_confidence_presented` | `cycle` | "How confident are you that your plan fits the situation?" shown after the view's plan is final (`30` §5.4) |
+| `plan_confidence_submitted` | `cycle`, `value` (25 \| 50 \| 75 \| 100) | its answer |
+
+- **`ai_chat_query_submitted.viaChip: true`** — the question was the guide's suggested-question chip, submitted as shown (`30` §4).
+- **First emitters** (the kinds existed, nothing wrote them): `pointer_track {x, y, cycle, viewportPx}` sampled at most 5 Hz while the pointer moves during a main view; `query_focus` / `query_first_keystroke` / `query_edit {count, field, cycle}` with `field` ∈ haku_search, haku_chat, thinker_chat, nav (a count, never text, §3); `decision_option_hovered` in the plan panel; `probe_option_hovered` and `probe_answer_changed` on freeze, SPAM and visible-probe items; `frame_stats` once per view at its end. They feed the control measures and Paper 3 (`30` §5.4, §6).
+- **The Thinker server log** (not the browser log) gains per answer the premise table's version and hash, the statuses and atom ids shown and `premiseFlagShown`; `modelVersionMismatch` and `modelVersionChanged` (`30` §3, §10).
+- **Analysis-only measures** added in `app/telemetry/` (never at runtime, §3): `aiStatedKey`, the H2 gap and H2t split, the hand-over index, plan-confidence pairs, consult exposure, source-memory misattribution (`30` §5.3–§5.5).

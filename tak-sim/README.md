@@ -15,6 +15,10 @@ a map-centred common operating picture, MIL-STD-2525 unit symbols (milsymbol), G
 video tiles, range & bearing, and a **Cursor on Target (CoT)** stream that real TAK clients (ATAK, WinTAK, iTAK) can
 open. It is a clean-room web simulation: no TAK binary, plugin SDK or server is used (`SPEC/28` §1, §7).
 
+**Study design (19 Oct 2026):** [`SPEC/30_Two_Group_Teaming_Design.md`](SPEC/30_Two_Group_Teaming_Design.md) governs the
+two groups (Haku 50, the guide 50), the guide's rule-based premise check, the measures and the hypotheses of Papers 1–3,
+and the before-pilot checklist (`SPEC/11` §7.30).
+
 **Governing spec:** [`SPEC/28_TAK_Base.md`](SPEC/28_TAK_Base.md) decides how the TAK base looks and is encoded;
 [`SPEC/00_README.md`](SPEC/00_README.md) gives the reading order, precedence and the seven invariants. Nothing in the
 study design changes with the TAK base: `SPEC/00`–`27` still decide what the participant sees and when.

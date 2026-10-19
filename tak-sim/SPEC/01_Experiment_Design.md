@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `01_Experiment_Design_v2.md` in full. **8 Oct 2026 (aa): there is no no-LLM control; the groups, H1, H2, H9 and Paper 2's hypotheses read as in the revision (aa) at the end.**
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — two groups of 50 (`30` §2): Haku against the guide. H2's primary test is the overconfidence gap on 24 phase-A L2/L3 items; resolution is secondary (H2r); H2t (borrowed vs own), H-T (hand-over) and H18 (plan-confidence calibration) are added; Paper 2's H13 is the guide against Haku, H16 withdrawn. See the revision at the end.
 > - **8 Oct 2026 (aa)** — the groups after the Haku / Open Thinker redesign: no no-LLM control; H1, H2 and H9 are an Open Thinker increment over a structured LLM chat; Paper 2 resolved in `27` (aa). See the revision at the end.
 > - **4 Oct 2026 (u)** — Paper 2's hypotheses H13–H17 added (`27` §5.7); H11 and H12 kept as descriptive levels; revision (t)'s "Group (exploratory)" clause superseded; Paper 1's phase-B tests nest the Thinker cell. See the revision at the end.
 > - **4 Oct 2026 (t), review round 2** — H12's sound posture is a direct attack on the new front's sector (L3); whether to add a no-directive arm is a researcher decision (`11` §7.16.2).
@@ -415,3 +416,13 @@ Researcher decisions of 6–8 Oct 2026 (`02` revisions (z) and (aa)). Details: `
 **Paper 2.** Resolved in `27` revision (aa): a **directive-aware Open Thinker against Haku** (140 against 70 since revision (au); 130 before), the directive delivered to both conditions as P2's radio message at V8 and a persistent on-screen line. H13 (primary): whole-plan alignment in the no-fit views; H14: the same in the fit views; H15: group × fit. H16 and H17 are withdrawn. H11 and H12 stay descriptive.
 
 **Stale in this file:** §2's and revision (j)'s group descriptions ("no AI"), revision (d)'s "AI group split 65 / 65 at the hinge", revision (u)'s H8 and H13–H17 wording, and every "Radio / no-AI" reading of H1–H5.
+
+## Revision 19 Oct 2026 (ax) — two groups; the hypotheses of `30`
+
+`30` governs. In short:
+
+- **Groups.** Haku (`radio`, 50) and the guide (`reasoning_intent`, 50). `reasoning_once` is no longer allocated. In phase A the guide is the Open Thinker on request; from V8 it carries the directive and a rule-based premise check (`30` §3).
+- **Paper 1 (phase A, V1–V7).** **H2 (primary): overconfidence** — the per-participant gap (mean confidence − proportion correct) on the L2/L3 items of the V2, V4, V5, V7 freezes (24 items, `30` §5.1), guide against Haku. The confidence × accuracy interaction (resolution) is **H2r, secondary**. **H2t (secondary):** H2 on the items the AI had not stated to the participant (`aiStatedKey` false) and the group × stated interaction. **H1 (secondary):** accuracy on the same items. **H-T (secondary):** the hand-over index, team accuracy (SPAM with the tools, `30` §5.2) minus own accuracy (freezes). H3 and H9 unchanged.
+- **Paper 2 (phase B, V8–V14).** **H13 (primary):** justified departure (C) in the no-fit views V9, V10, V14, guide against Haku, as a package (an integrating AI that carries the leader's intent and checks its premises). H14, H15 and **H18** (plan-confidence calibration) secondary, one Holm family; H17 exploratory (after a premise flag); **H16a/b withdrawn** (merged into H13). §1.2's claims read accordingly; separating the intent from the integration is a later study (`30` §7).
+- **Paper 3** (`30` §6): a pre-registered exploratory model of metacognitive state from logged behaviour, validated leaving whole participants out and tested externally.
+- **Treatment revision:** sessions before 19 Oct 2026 are not pooled with sessions after it.

@@ -3,6 +3,7 @@
 **Version 1.1 · 17 September 2026 · Status: governing for the topics below.** Implements forks F5, F6 and F8 (`11` §7). Where this document conflicts with `01` §7, `03` §2.2 and §4.3, `05` §4, `08` §3–§5 or `09` §3 and §8, **this document wins**; those sections carry `[SUPERSEDED 2026-09-17]` markers.
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — `30`: in every main view a consult notification at 60 s and a plan-confidence item after the plan; V10's and V14's freeze after the plan-confidence item; a second SPAM item in V3 and V6; the phase-A freezes grow to eight items; a post-session source-memory block; the time budget. See the revision at the end.
 > - **11 Oct 2026 (aw)** — the practice view lengthened (researcher: more time to look at the situation and learn the screen): VP lasts at least 180 s (was 120 s), cap 210 s (was 150 s; the main views' 30 s grace kept); its freeze is fixed at 69 s on the view's clock, which starts when the guided tour is finished or skipped (was 39 s, (av)); the practice SPAM prompt at 85 s (was 55 s), its 60 s answer window closing by 145 s. Main views unchanged. Supersedes (av)'s timing.
 > - **11 Oct 2026 (av)** — the practice freeze comes 10 s later (researcher: it came too quickly): VP's freeze at 39 s (was 29 s; `PRACTICE_FREEZE_DELAY_S`, a fixed shift on the drawn moment, identical for everyone); the practice SPAM prompt moves with it to 55 s (was 45 s), keeping the 16 s gap after the freeze, and its 60 s answer window still closes before VP's 120 s minimum. Main views unchanged.
 > - **10 Oct 2026 (am)** — the Thinker practice: in the Thinker cells the Open Thinker is available in VP, and the practice tour gains one step after Search that opens it, says what it is for, offers one example question to send with a click and waits for one answer; no order block in VP; practice turns logged with view 0 and cleared at V1; V1's Thinker reminder shortened. The radio cell is unchanged. See the revision at the end.
@@ -619,3 +620,11 @@ The practice turns are marked as every practice record is: `view` 0 on `ai_chat_
 ### am.4 For the analysis (open)
 
 `09`'s baseline compliance (`derived-measures.ts` `BASELINE_VIEWS = [0, 1]`) is described as "before any treatment contact"; in the Thinker cells VP now includes a Thinker contact (without any order). The researcher should decide whether the baseline keeps VP, or is read as "before any order-bearing contact". The H2a question-coding extractor (`chat-coding.ts`) still returns view-0 rows (as it did for practice Search questions); the analysis must filter them by `view`.
+
+## Revision 19 Oct 2026 (ax) — the session under `30`
+
+Per main view V1–V14, in order: the view opens as now (exploration, the decision panel from 20 s); at **60 s** the content-free **consult notification** (both groups; it waits for an open freeze or SPAM item; it carries no content and is never triggered by a record); the freeze at its pre-planned moment in V2, V4, V5, V7, V12; the SPAM ready prompt at 25 s in V3, V6, V8, V11 (V3 and V6 with a **second item** under the same ready, tools at hand); the plan and the view's end as now; then the **plan-confidence item** (one click, 25/50/75/100); then, in **V10 and V14 only, the blanked freeze**; then the next view. The guide group sees the **suggested-question chip** above the Thinker's input from V8. The practice view VP is unchanged (no notification, no plan-confidence item).
+
+**Post-session:** the existing items, then the **source-memory block** (seven facts), then the workload items.
+
+**Time budget (added to (aw)'s):** plan confidence 14 × ~10 s ≈ 2.5 min; eight L3 items ≈ 2.5 min; two SPAM items ≈ 1.5 min; source memory ≈ 1.5 min; the notification costs no time of its own. About **+8 min**, to be measured in pilot 2; if the session exceeds the researcher's ceiling, the source-memory block is the first to shorten (five facts), the SPAM second items the second.

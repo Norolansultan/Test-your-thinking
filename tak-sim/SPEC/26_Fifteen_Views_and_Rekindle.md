@@ -3,6 +3,7 @@
 **Version 1.0 · 25 September 2026 · Status: governing for the session's cycle structure and for the rekindle arc.** Decided by the researcher on 25 Sep 2026 (revision (p)). Where this document conflicts with `03` §4, `08` §5.3, `15` §3–§4, `18` §8.2 or earlier revisions, **this document wins**. Those documents carry a revision (p) pointing here.
 
 > **Changelog**
+> - **19 Oct 2026 (ax)** — `30` §5.1: V10's and V14's blanked freeze runs after the view's plan is final (and the plan-confidence item), not at a pre-planned moment inside the view; the other freeze views are unchanged. See the revision at the end.
 > - **10 Oct 2026 (am)** — D3 amended for the Thinker cells: the practice view has the Open Thinker there (the Thinker practice, without any order block); the radio cell's VP is unchanged (no AI). See `15` revision (am).
 > - **10 Oct 2026 (ak)** — commander review of every unit position, VP–V14: V12–V13 KY21 holds the road through the stop and withdraws at 19:00; V4/V5 trigger-point and line wording; V5 open item. See the revision at the end.
 > - **9 Oct 2026 (aj)** — the new fire touches the old on every map from V10; V6's EK12 and EK14 positions; LCES on record; V12/V14 keys moved (V14 `se_front_r2` has no projection option until re-designed).
@@ -405,3 +406,6 @@ Researcher's approval of the map review panel, 10 Oct 2026 (`18` revision (al), 
 - **Not drawn:** the origin's clear-cut (it would cue the rekindle site).
 - **Retrieval:** the V7 objection's documented broad-question rank 244 → 245; collapse3 .6765 / .5187.
 
+## Revision 19 Oct 2026 (ax) — V10 and V14: the freeze after the plan
+
+§4's freeze row stands (V2, V4, V5, V7 | V10, V12, V14), with one change of moment: in the **no-fit views V10 and V14** the freeze's items name the deciding front (V10 `south_front_point`, `front_r2_2h`; V14 `se_front_r2`, `road_crossed`) and would cue the participant's plan, which is Paper 2's primary outcome. The freeze therefore runs **after the view's plan is final and the plan-confidence item** (`30` §5.1, `08` (ax)); `FREEZE_AT_VIEW_END` in `views.ts` names the views, `freezeAtSeconds` is null for them and the contract checks it. The items, keys, blanking and records are unchanged; `afterFreeze` is false for every plan of these views by construction. V10's freeze can still cue V11 (a fit view, H14 secondary); V14 is the last view.

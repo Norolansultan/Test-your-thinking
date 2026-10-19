@@ -138,7 +138,9 @@ describe("units: D5 crew sizes, D7 shift hours, D11 the wildland unit, aircraft 
   it("exempts aircraft from the LACES fields and gives every ground crew the CO-zone proxy", () => {
     for (const c of cycles) for (const p of c.placements as Rec[]) {
       if (ground.has(p.unit_id as string)) {
-        expect([p.escape_route, p.safety_zone, p.comms, p.co_ppm, p.laces_exempt]).toEqual([null, null, null, null, undefined]);
+        // LACES from the crew's own records or null (D8, `skills-laces.spec.ts`), never the aircraft's "n/a".
+        for (const k of ["escape_route", "safety_zone", "comms"]) expect(p[k] === null || (typeof p[k] === "string" && p[k] !== "n/a (airborne)"), `${p.unit_id} ${k}`).toBe(true);
+        expect([p.co_ppm, p.laces_exempt]).toEqual([null, undefined]);
         expect(["immediate_danger", "danger", "rescue_ops"]).toContain(p.zone);
         expect(p.zone_basis as string).toMatch(/^PROXY, no CO reading/);
         expect(p.downwind).toBe(p.zone === "immediate_danger");

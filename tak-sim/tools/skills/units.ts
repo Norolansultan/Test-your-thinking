@@ -7,17 +7,20 @@
  * - `hours_on_shift`: the crew's own latest statement at or before the step ("Miehistö ollut kentällä 2,5 h"), as stated,
  *   never extrapolated (D7);
  * - placements: the scripted position and task, the segment of the window's active front (`window.ts`), the CO-zone
- *   proxy (`smoke-zone.ts`, D4); aircraft are exempt from the LACES fields (they are for ground crews), which carry
- *   "n/a (airborne)" so that the check does not fail them for a rule that does not apply.
- * Escape route, safety zone, comms and water confirmation of ground crews stay null (not authored as fields).
+ *   proxy (`smoke-zone.ts`, D4); a ground crew's escape route, safety zone, lookout and comms from its own records
+ *   (`laces.ts`, D8: its latest statement in its current posting, quoted with the record id; null where it states none);
+ *   aircraft are exempt from the LACES fields (they are for ground crews), which carry "n/a (airborne)" so that the
+ *   check does not fail them for a rule that does not apply.
+ * Water confirmation of ground crews stays null (not authored as a field).
  */
 
 import type { SiteStep } from "../../app/scenario/site-scenario.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
-import type { UnitTask } from "../../app/scenario/types.js";
+import type { InfoAtom, UnitTask } from "../../app/scenario/types.js";
 import { UNIT_ROSTER } from "../../app/render/ui/unit-roster.js";
 import type { Observation } from "./fire-observations.js";
 import { dist, toEN } from "./geo.js";
+import { lacesOf } from "./laces.js";
 import { zoneProxy } from "./smoke-zone.js";
 import { aheadOfHead, placeOnFront, type FrontGeometry } from "./window.js";
 
@@ -75,9 +78,11 @@ export interface UnitsInput {
   readonly edges: readonly (readonly (readonly [number, number])[])[];
   readonly windFromDeg: number;
   readonly obs: readonly Observation[];
+  /** The scenario's corpus atoms (designed events, lateral items): read for the crews' LACES statements too. */
+  readonly atoms?: readonly InfoAtom[];
 }
 
-export function unitsAndPlacements({ step: s, geometry, edges, windFromDeg, obs }: UnitsInput): { units: object[]; placements: object[] } {
+export function unitsAndPlacements({ step: s, geometry, edges, windFromDeg, obs, atoms = [] }: UnitsInput): { units: object[]; placements: object[] } {
   const units: object[] = [];
   const placements: object[] = [];
   for (const u of SITE_SCENARIO.units) {
@@ -96,11 +101,14 @@ export function unitsAndPlacements({ step: s, geometry, edges, windFromDeg, obs 
     const { segment, front } = placeOnFront(xy, geometry);
     const vehicle = work?.vehicle ? toEN(work.vehicle) : null;
     const z = zoneProxy(xy, edges, windFromDeg, obs);
+    const l = lacesOf(u.id, s.index, atoms);
     placements.push({
       unit_id: u.id, segment_id: segment, front, task: work?.task ?? null, attack: work ? attackOf(work.task) : null, xy,
       vehicle_xy: vehicle, hose_length_needed_m: work?.hoseM ?? null, access_distance_m: vehicle ? Math.round(dist(xy, vehicle)) : null,
       distance_ahead_of_head_m: aheadOfHead(xy, geometry, segment), water_pct: work?.waterPct ?? null,
-      escape_route: null, safety_zone: null, comms: null, downwind: z.downwind, co_ppm: null, zone: z.zone, zone_basis: z.basis, water_confirmed: null,
+      escape_route: l.escape_route, escape_route_source: l.escape_route_source, safety_zone: l.safety_zone, safety_zone_source: l.safety_zone_source,
+      lookout: l.lookout, lookout_source: l.lookout_source, comms: l.comms, comms_source: l.comms_source, posting_from_cycle: l.posting_from_cycle,
+      downwind: z.downwind, co_ppm: null, zone: z.zone, zone_basis: z.basis, water_confirmed: null,
     });
   }
   for (const a of s.aircraft) {

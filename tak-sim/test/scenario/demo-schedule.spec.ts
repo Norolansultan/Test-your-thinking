@@ -4,8 +4,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
-import { MAIN_VIEWS, PRACTICE_VIEW_MIN_SECONDS } from "../../app/scenario/views.js";
+import { buildDemoScenario, secondSpamProbes } from "../../app/scenario/demo-scenario.js";
+import { SPAM_SECOND_ITEMS, SPAM_SECOND_VIEWS } from "../../app/scenario/demo-probes.js";
+import { FREEZE_AT_VIEW_END, MAIN_VIEWS, PRACTICE_VIEW_MIN_SECONDS, SECOND_SPAM_SUFFIX, secondSpamProbeId } from "../../app/scenario/views.js";
 
 const scenario = buildDemoScenario();
 const probesOf = (type: string) => scenario.probeSchedule.probes.filter((p) => p.type === type);
@@ -67,9 +68,37 @@ describe("SPEC/26 §4: probes and responses", () => {
     expect(scenario.hinge.manipulationCheck).toBeDefined();
     for (const p of probesOf("S")) {
       expect(p.mode).toBe("ONLINE");
-      expect(p.offsetInWorkingPeriodMs).toBeGreaterThan(0);
+      // SPEC/30 §5.2: a second item (`<first id>.b`) has no moment of its own; it follows the first under the same "ready".
+      if (p.id.endsWith(SECOND_SPAM_SUFFIX)) expect(p.offsetInWorkingPeriodMs).toBeUndefined();
+      else expect(p.offsetInWorkingPeriodMs).toBeGreaterThan(0);
       expect(p.saLevel).toBeDefined();
     }
+  });
+
+  it("SPEC/30 §5.2: second SPAM items only in SPAM_SECOND_VIEWS, each `<first id>.b` after its first, keyed by `<first invariant>.b`", () => {
+    const seconds = probesOf("S").filter((p) => p.id.endsWith(SECOND_SPAM_SUFFIX));
+    expect(seconds.map((p) => Number(p.cycle))).toEqual(SPAM_SECOND_VIEWS.filter((v) => v in SPAM_SECOND_ITEMS));
+    for (const b of seconds) {
+      const first = probesOf("S").find((p) => p.cycle === b.cycle && !p.id.endsWith(SECOND_SPAM_SUFFIX))!;
+      expect(b.id).toBe(secondSpamProbeId(first.id));
+      expect(b.invariantName).toBe(`${first.invariantName}.b`);
+      expect(scenario.invariants.some((i) => i.name === b.invariantName)).toBe(true);
+      expect(b.orderWithinCycle).toBeGreaterThan(first.orderWithinCycle);
+    }
+  });
+
+  it("SPEC/30 §5.2: secondSpamProbes builds the second item from an injected fixture (the content arrives from the content package)", () => {
+    const first = probesOf("S").find((p) => p.cycle === 3)!;
+    const fixture = { 3: { prompt: "Mikä on testikysymys?", options: ["A1", "B1", "C1", "D1"] as const, correct: "c" as const, saLevel: 2 as const, contentKind: "situation" as const } };
+    const built = secondSpamProbes(fixture, scenario.probeSchedule.probes.filter((p) => !p.id.endsWith(SECOND_SPAM_SUFFIX)));
+    expect(built.probes).toHaveLength(1);
+    expect(built.probes[0]).toMatchObject({
+      id: "probe.s.cycle_3.b", type: "S", mode: "ONLINE", cycle: 3, orderWithinCycle: first.orderWithinCycle + 1, invariantName: "spam.cycle_3.b",
+      prompt: "Mikä on testikysymys?", answerTimeoutMs: first.answerTimeoutMs, collectsConfidence: true, saLevel: 2,
+      response: { kind: "categorical", options: [{ id: "a", fi: "A1" }, { id: "b", fi: "B1" }, { id: "c", fi: "C1" }, { id: "d", fi: "D1" }] },
+    });
+    expect(built.probes[0]!.offsetInWorkingPeriodMs).toBeUndefined();
+    expect(built.invariants).toEqual([{ name: "spam.cycle_3.b", expected: "c", tolerance: 0 }]); // TRUTH: the key, never on the probe
   });
 
   it("no SA probe (freeze or SPAM) at V1, V9 (omission) or V13 (contradiction); never both in one view", () => {
@@ -115,15 +144,28 @@ describe("SPEC/26 §4: probes and responses", () => {
 describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
   const views = [scenario.practice.cycle, ...scenario.cycles];
 
-  it("are set exactly on the views with a freeze (the practice view and FREEZE_VIEWS), whole seconds in [25, minimum − 20]", () => {
-    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([0, 2, 4, 5, 7, 10, 12, 14]);
+  it("are set exactly on the views with a freeze at a moment (the practice view and FREEZE_VIEWS but V10 and V14), whole seconds in [25, minimum − 20]", () => {
+    // SPEC/30 §5.1: V10 and V14's freeze comes at the view's end, after the plan is final — no moment on the clock.
+    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([0, 2, 4, 5, 7, 12]);
     for (const c of views) {
-      expect(c.freezeAtSeconds !== null).toBe(c.hasFreeze);
+      expect(c.freezeAtSeconds !== null).toBe(c.hasFreeze && c.freezeAtViewEnd !== true);
       if (c.freezeAtSeconds === null) continue;
       expect(Number.isInteger(c.freezeAtSeconds)).toBe(true);
       expect(c.freezeAtSeconds).toBeGreaterThanOrEqual(25);
       expect(c.freezeAtSeconds).toBeLessThanOrEqual(c.minViewSeconds - 20);
     }
+  });
+
+  it("SPEC/30 §5.1: V10 and V14 (FREEZE_AT_VIEW_END) freeze at the view's end — the property set on exactly those, with a freeze and no moment", () => {
+    expect([...FREEZE_AT_VIEW_END].sort((a, b) => a - b)).toEqual([10, 14]);
+    expect(views.filter((c) => c.freezeAtViewEnd === true).map((c) => c.index)).toEqual([10, 14]);
+    for (const c of views.filter((x) => x.freezeAtViewEnd === true)) {
+      expect(c.hasFreeze).toBe(true);
+      expect(c.freezeAtSeconds).toBeNull();
+      expect(scenario.freezes.some((f) => f.cycle === c.index)).toBe(true); // the same freeze, its items unchanged
+    }
+    // The other freeze views keep their pre-planned moments (each drawn on its own stream, so none moved).
+    expect(scenario.cycles.filter((c) => c.hasFreeze && c.freezeAtViewEnd !== true).map((c) => c.index)).toEqual([2, 4, 5, 7, 12]);
   });
 
   it("the practice freeze is fixed at 69 s after the tour, and VP lasts 180 s (researcher, 11 Oct 2026)", () => {

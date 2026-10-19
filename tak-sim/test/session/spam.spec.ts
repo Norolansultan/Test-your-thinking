@@ -202,6 +202,8 @@ describe("SPAM delivery", () => {
     expect(snap()).toMatchObject({ currentCycle: 3, minimumReached: true, step: "awaiting_view_end", spam: { phase: "item", forced: false } });
     await o.answerSpam("a");
     await o.submitSpamConfidence(50);
+    expect(snap()).toMatchObject({ currentCycle: 3, step: "plan_confidence" }); // SPEC/30 §5.4: the view has ended; its plan's confidence
+    await o.submitPlanConfidence(50);
     expect(snap().currentCycle).toBe(4);
     const records = await o.logRecords();
     const closed = records.findIndex((r) => r.kind === "spam_closed" && (r.detail as { cycle: number }).cycle === 3);
@@ -324,7 +326,7 @@ describe("I4: no SPAM or hinge-check key on the screen side", () => {
     expect(JSON.stringify(snap().spam)).not.toMatch(forbidden);
     await o.spamReady();
     expect(JSON.stringify(snap().spam)).not.toMatch(forbidden);
-    expect(Object.keys(snap().spam!).sort()).toEqual(["chosen", "forced", "options", "phase", "probeId", "promptFi"]);
+    expect(Object.keys(snap().spam!).sort()).toEqual(["chosen", "forced", "itemCount", "itemIndex", "options", "phase", "probeId", "promptFi"]); // SPEC/30 §5.2: the item's place in its delivery
     expect(JSON.stringify(snap().freeze)).not.toMatch(forbidden);
 
     const s = start("directed");

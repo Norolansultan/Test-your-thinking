@@ -13,16 +13,19 @@
  * the view's time and the cap standing still (r.12). A merged view reaches its second step halfway (SPEC/26 §2).
  * With `guidedTour`, VP opens with the guided tour and V1 with the tool reminder, the view's
  * clocks held until each is finished (SPEC/15 r.11).
+ * SPEC/30 (19 Oct 2026): the consult notification at 60 s of every main view (`consult-notice.ts`), the guide's
+ * suggested question from V8, the plan's confidence after each main view's end (`plan-confidence.ts`), V10 and V14's
+ * freeze at the view's end (`afterViewEnded`), and a view's second SPAM item (`spam-delivery.ts`).
  */
 
 import { toRenderable, type RenderableAtom } from "../boundary/render-boundary.js";
 import { DEFAULT_LANG, type Lang } from "../i18n/lang.js";
 import { EngineRunLoop } from "../engine/run-loop.js";
-import { cycleScheduleOf, FREEZE_MAX_SECONDS, PRACTICE_VIEW_INDEX, PRACTICE_VIEW_MAX_SECONDS, STEP_SECONDS, VIEW_MAX_SECONDS, viewLabelFi } from "../scenario/views.js";
+import { cycleScheduleOf, FREEZE_MAX_SECONDS, PRACTICE_VIEW_INDEX, PRACTICE_VIEW_MAX_SECONDS, SECOND_SPAM_SUFFIX, secondSpamProbeId, STEP_SECONDS, VIEW_MAX_SECONDS, viewLabelFi } from "../scenario/views.js";
 import type { CycleIndex, GeoExtent, LatLon, Polygon } from "../engine/primitives.js";
 import type { NavQuery } from "../retrieval/navigation.js";
 import { appendTelemetryEvent } from "../telemetry/emit.js";
-import type { FreezeItemAnsweredDetail, TelemetryEvent, ViewEndedDetail } from "../telemetry/record-kinds.js";
+import type { ConsultTool, FreezeItemAnsweredDetail, TelemetryEvent, ViewEndedDetail } from "../telemetry/record-kinds.js";
 import { InMemoryLogSink, SessionLog, type LogHeader, type LogRecord, type LogSink } from "../telemetry/log.js";
 import { planSessionResume, type SessionResumePlan } from "../telemetry/resume.js";
 import type { EngineState } from "../engine/freeze-machine.js";
@@ -50,11 +53,15 @@ import { CONSENT_TEXT_ID, debriefTextId } from "../i18n/study-texts.js";
 import type { SpamProbe } from "./spam-delivery.js";
 import { audioManager } from "./audio-manager.js";
 import { aiLiteracyEnded, aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswers } from "./ai-literacy.js";
+import { ConsultNotice, consultToolOf, SUGGESTED_QUESTION, suggestedQuestionOffered } from "./consult-notice.js";
+import { PlanConfidence } from "./plan-confidence.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
 /** The records the map components log through `logMapUse` (SPEC/07 revision (al)). */
 export type MapUseEvent = Extract<TelemetryEvent, { readonly kind: "viewport_changed" | "element_enter" | "element_leave" | "click" | "layer_toggled" | "freeze_map_pick" | "map_labels_placed" | "window_size_warning" | TakToolKind }>;
+/** SPEC/30 §5.4's interaction records from the decision strip and the SPAM card (`logPanelUse`). */
+export type PanelUseEvent = Extract<TelemetryEvent, { readonly kind: "decision_option_hovered" | "probe_option_hovered" | "probe_answer_changed" }>;
 /** The TAK shell's tool records (SPEC/28 §5): every TAK tool interaction goes through `logMapUse`. */
 export type TakToolKind = "tak_pane_opened" | "tak_pane_closed" | "tak_contact_selected" | "tak_overlay_toggled" | "tak_rb_measured" | "tak_chat_room_viewed" | "tak_video_viewed";
 export { ProbeToolsLockedError, type VisibleProbeView } from "./visible-probes.js";
@@ -244,6 +251,15 @@ export class SessionOrchestrator {
   private preflightOutcome: PreflightOutcome | null = null;
   private loggedPreflight: string | null = null; // the last logged outcome's failures, so a re-check logs only a change
   private questionnaireId: QuestionnaireId | null = null;
+  /** SPEC/30 §4: the consult notification and the session's cell (the chip's group). */
+  private readonly consult: ConsultNotice;
+  private readonly cell: Cell;
+  /** SPEC/30 §5.4: the plan-confidence item after a main view's end. */
+  private readonly planConfidence: PlanConfidence;
+  /** The view that has ended and what follows it is running (`afterViewEnded`): its end moment, whether it was skipped. */
+  private viewEnd: { readonly view: ViewIndex; readonly viewSeconds: number; readonly skipped: boolean } | null = null;
+  /** SPEC/30 §5.1: the open freeze is the view's end-of-view freeze (it leads on to what follows the view, not back into it). */
+  private endFreeze = false;
 
   constructor(
     private readonly scenario: ScenarioContract,
@@ -262,6 +278,7 @@ export class SessionOrchestrator {
     this.aiLiteracyOn = this.studyShell && (options.resume?.header.aiLiteracyTest ?? options.aiLiteracyTest ?? false);
     this.introVideo = this.studyShell ? (options.resume ? options.resume.header.introVideo ?? null : options.introVideo ?? null) : null;
     const cell = sessionCell(condition, options.cell);
+    this.cell = cell;
     const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}) };
     this.log = new SessionLog(header, options.sink ?? new InMemoryLogSink(), options.resume?.records ?? []);
     // SPEC/26 §3: the engine runs the scenario's views (14, hinge after V7, one or two steps each).
@@ -283,6 +300,8 @@ export class SessionOrchestrator {
     }, options.thinker);
     this.spam = new SpamDelivery({ event: (e) => this.event(e), notify: () => this.notify(), closed: () => this.afterSpam() });
     this.visible = new VisibleProbes({ event: (e) => this.event(e), notify: () => this.notify(), optionSeed: this.optionSeed() });
+    this.consult = new ConsultNotice({ event: (e) => this.event(e), notify: () => this.notify() }, consultToolOf(cell));
+    this.planConfidence = new PlanConfidence({ event: (e) => this.event(e), notify: () => this.notify() });
     this.aiLiteracy = new AiLiteracyTest({
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: async () => { this.step = "preflight"; this.notify(); }, // its end record is durable: on to the preflight
@@ -362,7 +381,8 @@ export class SessionOrchestrator {
       // SPEC/27 §4.1: hidden while the check is answered, shown again afterwards (not marked right or wrong).
       hingeDirective: this.step === "hinge_pause" && this.hingeCheckPhase !== "item" ? this.scenario.hinge.intentStatement : null,
       // Revision (ag): a SPAM item holds the decision strip, not the tools (Haku and the Thinker stay usable).
-      spam: this.spam.view(), toolsLocked: this.visible.open, decisionHeld: this.spam.itemOpen || this.visible.open,
+      // SPEC/30 §5.4: after the view's end (the plan-confidence item) the tools are closed too.
+      spam: this.spam.view(), toolsLocked: this.visible.open || this.step === "plan_confidence", decisionHeld: this.spam.itemOpen || this.visible.open,
       waitingOnSession: this.thinkerPending > 0 || this.step === "freeze" || this.step === "probe" || this.spam.open || this.visible.open,
       visibleProbe: this.visible.view(),
       hingeCheck: this.hingeCheckView(),
@@ -373,6 +393,10 @@ export class SessionOrchestrator {
       aiLiteracy: this.step === "ai_literacy" ? this.aiLiteracy.view() : null,
       debrief: this.step === "debrief" ? { textId: debriefTextId(this.log.header.cell), cell: this.log.header.cell } : null,
       introVideo: this.step === "briefing" && this.introVideo ? { src: this.introVideo, skippable: this.allowViewSkip } : null,
+      // SPEC/30 §4: the notice is out of sight while the tools it opens are (a visible probe) or the screen is blanked.
+      consultPrompt: this.visible.open || this.step === "freeze" ? null : this.consult.view(),
+      suggestedQuestion: !this.isPractice() && suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle),
+      planConfidence: this.step === "plan_confidence" ? this.planConfidence.view() : null,
     };
   }
 
@@ -470,6 +494,7 @@ export class SessionOrchestrator {
     this.revisionCount = 0; this.recordedPlan = null; this.minSecondsLeft = this.capSecondsLeft = null; this.capReached = false; this.tour = null;
     this.spam.reset(); this.boundaryHeld = false; this.endHeld = null;
     this.visible.reset(); this.probeQueue = []; this.postViewOf = null;
+    this.consult.reset(this.isPractice() ? null : index as CycleIndex); this.planConfidence.reset(); this.viewEnd = null; this.endFreeze = false;
 
     const cycleSpec = this.cycleSpec();
     this.timing = viewTimingOf(cycleSpec, this.previewOverride);
@@ -512,13 +537,15 @@ export class SessionOrchestrator {
   }
 
   private startViewClocks(): void {
-    const { decisionOpensAtSeconds, stepBoundaryAtSeconds, freezeAtSeconds, minViewSeconds } = this.timing;
+    const { decisionOpensAtSeconds, stepBoundaryAtSeconds, freezeAtSeconds, minViewSeconds, consultPromptAtSeconds } = this.timing;
     this.viewClock.start([
       { atSeconds: decisionOpensAtSeconds, fire: () => void this.openDecisionPanel() },
       ...(stepBoundaryAtSeconds !== null ? [{ atSeconds: stepBoundaryAtSeconds, fire: () => void this.reachStepBoundary() }] : []),
       ...(freezeAtSeconds !== null && this.freezeOf() ? [{ atSeconds: freezeAtSeconds, fire: () => void this.startFreeze(freezeAtSeconds!) }] : []),
       ...this.spamCues(freezeAtSeconds),
       ...this.visibleProbeCues(),
+      // SPEC/30 §4: after the freeze's cue when both fall at the same moment, so the freeze holds it (the clock stands still).
+      ...(consultPromptAtSeconds !== null ? [{ atSeconds: consultPromptAtSeconds, fire: () => void this.consult.due(consultPromptAtSeconds, this.step === "freeze" || this.spam.itemOpen) }] : []),
       ...finalCountdownCues(minViewSeconds, (s) => { this.minSecondsLeft = s; this.notify(); }),
       { atSeconds: minViewSeconds, fire: () => void this.reachMinimum() },
       ...capCues(this.isPractice() ? PRACTICE_VIEW_MAX_SECONDS : VIEW_MAX_SECONDS, (s) => { this.capSecondsLeft = s; this.notify(); }, () => void this.reachCap()), // freeze time does not count (r.12)
@@ -567,12 +594,18 @@ export class SessionOrchestrator {
     this.notify();
   }
 
-  /** The SAGAT freeze interrupts at its pre-planned moment, whatever the participant is doing; the view's time and the cap stand still. */
-  private async startFreeze(atViewSeconds: number): Promise<void> {
+  /**
+   * The SAGAT freeze interrupts at its pre-planned moment, whatever the participant is doing; the view's time and the cap stand still.
+   * `atViewEnd` (SPEC/30 §5.1, V10 and V14): after the view has ended and its plan's confidence is given — the same records,
+   * blanked screen and items; `atViewSeconds` is the view's end moment, `decisionStep` "view_ended", and it leads on to what
+   * follows the view (`submitFreeze`).
+   */
+  private async startFreeze(atViewSeconds: number, atViewEnd = false): Promise<void> {
     audioManager.enterFreeze();
-    this.viewClock.pause(atViewSeconds);
-    const decisionStep = this.step;
-    this.resumeStep = decisionStep;
+    if (!atViewEnd) this.viewClock.pause(atViewSeconds);
+    const decisionStep = atViewEnd ? "view_ended" : this.step;
+    this.resumeStep = atViewEnd ? null : this.step;
+    this.endFreeze = atViewEnd;
     this.step = "freeze"; // at once, so nothing else is submitted meanwhile; shown once `freeze_started` is durable (I5)
     await this.event({
       kind: "freeze_started",
@@ -635,10 +668,12 @@ export class SessionOrchestrator {
       await this.event({ kind: "freeze_submitted", detail: { cycle: this.currentCycle, responses: checked, ...(options.skipped ? { skipped: true as const } : {}), ...(options.timedOut ? { timedOut: true as const } : {}), ...(missing.length > 0 ? { missing } : {}) } });
       this.clearFreezeCap();
       audioManager.exitFreeze();
+      if (this.endFreeze) { this.endFreeze = false; await this.afterViewEnded("probes"); return; } // SPEC/30 §5.1: on to what follows the view
       this.step = this.resumeStep!;
       this.resumeStep = null;
       this.viewClock.resume();
       this.notify();
+      await this.consult.flush(this.viewClock.elapsedSeconds()); // SPEC/30 §4: a notice that fell due under the freeze
     });
     await this.flushProbes(); // a probe that fell due during the freeze (`flushProbes`)
   }
@@ -775,11 +810,30 @@ export class SessionOrchestrator {
     const finished = this.currentCycle;
     this.lastViewTimedOutWithoutPlan = endedBy === "time_cap" && !this.allocationCommitted; // shown at the next view's start
     await this.event({ kind: "view_ended", detail: { cycle: finished, viewSeconds, endedBy, ...(endedBy === "time_cap" || endedBy === "skipped" ? { stepAtEnd: this.step } : {}) } });
-    // After-view probes (V14's U backup and coverage confidence): the view's map stays on screen, then the session moves on.
-    this.probeQueue = []; this.visible.reset();
-    const after = this.probesDue("after_view");
+    await this.consult.viewEnded(); // SPEC/30 §4: a notice still open is dismissed by the end
+    this.probeQueue = []; this.visible.reset(); this.revisingAllocation = false; // a revision still open is dropped
+    this.minSecondsLeft = this.capSecondsLeft = null; // the view's countdowns are over (the plan's confidence and an end freeze have none)
+    this.viewEnd = { view: finished, viewSeconds, skipped: endedBy === "skipped" };
+    await this.afterViewEnded("plan_confidence");
+  }
+
+  /**
+   * What follows a view's end, in order (SPEC/30; `plan-confidence.ts`): the plan's confidence (main views, not after a
+   * demonstration skip), the end-of-view freeze (V10, V14), the after-view probes (V14's U backup and coverage confidence,
+   * the view's map on screen), then `leaveView`. Each stage that waits for the participant returns; its answer calls on.
+   */
+  private async afterViewEnded(from: "plan_confidence" | "freeze" | "probes"): Promise<void> {
+    const end = this.viewEnd!;
+    if (from === "plan_confidence" && end.view !== PRACTICE_VIEW_INDEX && !end.skipped) {
+      this.resumeStep = null;
+      this.step = "plan_confidence"; // at once, so nothing else is submitted; the item shows once its record is durable (I5)
+      await this.planConfidence.present(end.view as CycleIndex);
+      return;
+    }
+    if (from !== "probes" && !end.skipped && this.timing.freezeAtViewEnd && this.freezeOf()) { await this.startFreeze(end.viewSeconds, true); return; }
+    const after = this.probesDue("after_view", end.view);
     if (after.length > 0) {
-      this.postViewOf = finished;
+      this.postViewOf = end.view;
       this.resumeStep = null;
       this.step = "probe";
       this.probeQueue = after.map((probe) => ({ probe, atViewSeconds: null }));
@@ -787,7 +841,19 @@ export class SessionOrchestrator {
       await this.flushProbes();
       return;
     }
-    await this.leaveView(finished);
+    await this.leaveView(end.view);
+  }
+
+  /** SPEC/30 §5.4: the plan's confidence (25/50/75/100); then the end-of-view freeze, the after-view probes or the next view. */
+  async submitPlanConfidence(value: number): Promise<void> {
+    if (this.step !== "plan_confidence" || this.submitting) throw new Error(`submitPlanConfidence in step ${this.step}${this.submitting ? " (already submitting)" : ""}`);
+    this.submitting = true;
+    try {
+      await this.planConfidence.submit(value);
+      await this.afterViewEnded("freeze");
+    } finally { this.submitting = false; }
+    if (this.postViewOf !== null) await this.flushProbes(); // after-view probes held for the submission being written
+    this.notify();
   }
 
   /** Real time since the view opened (ms), its tour, freezes and probes included: the working period `drawerOpenFraction` divides by. */
@@ -836,15 +902,26 @@ export class SessionOrchestrator {
       return answer;
     } finally { this.thinkerPending -= 1; this.notify(); }
   }
-  async askOpenThinker(query: string): Promise<string> {
+  async askOpenThinker(query: string, options: { readonly viaChip?: boolean } = {}): Promise<string> {
     this.assertToolsFree("askOpenThinker");
     this.thinkerPending += 1; this.readingGraceMs = 0; this.notify();
     try {
-      const answer = await this.queries.askOpenThinker(query);
+      const answer = await this.queries.askOpenThinker(query, options.viaChip === true);
       this.readingGraceMs = readingGraceMsFor(answer.length);
       return answer;
     } finally { this.thinkerPending -= 1; this.notify(); }
   }
+  /** SPEC/30 §4: the guide's suggested-question chip — exactly its question, the Thinker's normal path, logged `viaChip`. */
+  async askSuggestedQuestion(): Promise<string> {
+    if (this.isPractice() || !suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle)) throw new Error(`askSuggestedQuestion in V${this.currentCycle} (${this.cell}): the chip is the guide group's, from V8`);
+    return this.askOpenThinker(SUGGESTED_QUESTION[this.language], { viaChip: true });
+  }
+  /** SPEC/30 §4: the consult notification's button; resolves to the tool the screen opens, once `consult_prompt_opened` is durable. */
+  openConsultPrompt(): Promise<ConsultTool> { return this.consult.openTool(); }
+  /** SPEC/30 §4: the consult notification's close button (`consult_prompt_dismissed`, `participant`). */
+  dismissConsultPrompt(): Promise<void> { return this.consult.dismiss(); }
+  /** SPEC/30 §5.4: a decision-strip or SPAM-card interaction record (hover, answer change); raw, never gating the screen. */
+  logPanelUse(event: PanelUseEvent): Promise<unknown> { return this.event(event); }
   /** The right-panel tool tab the participant selects (`none`: closed); logged for the tool-use sequence (P1-1, 8 Oct 2026). */
   logTabSelected(tool: "haku" | "open_thinker" | "indexed_search" | "none"): Promise<unknown> {
     return this.event({ kind: "tab_selected", detail: { tool, view: this.currentCycle, phase: this.phaseTag() } });
@@ -895,7 +972,13 @@ export class SessionOrchestrator {
   /** This view's SPAM probe (type S), if any; in the practice view, the practice item (5 Oct 2026, `practice-spam.ts`). */
   private spamProbe(): SpamProbe | ProbeSpec | null {
     if (this.isPractice()) return this.scenario.practice.spam ?? null;
-    return this.scenario.probeSchedule.probes.find((p) => p.type === "S" && p.cycle === this.currentCycle) ?? null;
+    return this.scenario.probeSchedule.probes.find((p) => p.type === "S" && p.cycle === this.currentCycle && !p.id.endsWith(SECOND_SPAM_SUFFIX)) ?? null;
+  }
+
+  /** SPEC/30 §5.2: the item shown after `first` under the same "ready" (`<first id>.b`), if the scenario has one. */
+  private secondSpamOf(first: SpamProbe | ProbeSpec): ProbeSpec | null {
+    const id = secondSpamProbeId(first.id);
+    return this.scenario.probeSchedule.probes.find((p) => p.id === id && p.type === "S") ?? null;
   }
 
   /**
@@ -909,7 +992,7 @@ export class SessionOrchestrator {
     const atSeconds = scaleViewSeconds(probe.offsetInWorkingPeriodMs / 1000, this.previewOverride);
     if (freezeAtSeconds !== null && !(this.isPractice() && freezeAtSeconds < atSeconds)) return [];
     const cycle = this.currentCycle;
-    return [{ atSeconds, fire: () => { if (this.step !== "freeze" && this.step !== "hinge_pause" && this.currentCycle === cycle) void this.spam.show(probe, cycle, atSeconds); } }];
+    return [{ atSeconds, fire: () => { if (this.step !== "freeze" && this.step !== "hinge_pause" && this.currentCycle === cycle) void this.spam.show(probe, cycle, atSeconds, this.secondSpamOf(probe)); } }];
   }
 
   /** The SPAM probe closed: the step boundary and a view end held for it happen now. */
@@ -917,6 +1000,7 @@ export class SessionOrchestrator {
     if (this.boundaryHeld) { this.boundaryHeld = false; await this.reachStepBoundary(this.viewClock.elapsedSeconds()); }
     // A submission in progress ends the view itself once recorded (`guarded`).
     if (this.endHeld && !this.submitting) { const held = this.endHeld; this.endHeld = null; await this.endView(held, this.viewClock.elapsedSeconds()); return; }
+    await this.consult.flush(this.viewClock.elapsedSeconds()); // SPEC/30 §4: a notice that fell due under the item
     await this.flushProbes(); // a visible probe that fell due while the SPAM probe was open
   }
 
@@ -1295,6 +1379,7 @@ export class SessionOrchestrator {
     this.viewOpenedMs = this.realMs();
     this.currentCycle = index;
     this.resumeStep = null; this.tour = null; this.postViewOf = null; this.probeQueue = [];
+    this.consult.reset(null); this.planConfidence.reset(); this.viewEnd = null; this.endFreeze = false; // the view's time is over: no notice
     const cycleSpec = this.cycleSpec();
     this.timing = viewTimingOf(cycleSpec, this.previewOverride);
     this.allocationCommitted = this.periodConfirmed = target.planRecorded;
@@ -1318,7 +1403,7 @@ export class SessionOrchestrator {
     const probe = this.spamProbe();
     if (!probe || probe.id !== target.probeId) throw new Error(`resume: the forced SPAM probe ${target.probeId} is not this view's`);
     this.endHeld = target.viewEndedBy;
-    await this.spam.resumeForced(probe, index, target.atViewSeconds, target.viewEndedBy);
+    await this.spam.resumeForced(probe, index, target.atViewSeconds, target.viewEndedBy, this.secondSpamOf(probe));
   }
 
   /**

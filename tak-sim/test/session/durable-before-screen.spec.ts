@@ -130,6 +130,8 @@ describe("the screen moves on only once the record is durable (I5)", () => {
     sink.release();
     await revising;
     await settle();
+    expect(snap()).toMatchObject({ currentCycle: 1, step: "plan_confidence", revisingAllocation: false }); // SPEC/30 §5.4: ended; the plan's confidence
+    await o.submitPlanConfidence(50);
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration", revisingAllocation: false });
   });
 

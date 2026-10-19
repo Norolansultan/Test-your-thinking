@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { TOUR_OPEN_TOOL_EVENT } from "../tour.js";
 import type { RadioLogEntry, SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
 
@@ -7,6 +7,7 @@ import { displayAnswerText, questionRefusal } from "../../../session/chat-displa
 import { useLang } from "../i18n.js";
 import { HakuPanel } from "./Drawers.js";
 import { OpenAnswerView } from "./OpenAnswerView.js";
+import { ConsultNotice } from "./ConsultNotice.js";
 
 const panelWrap = {
   width: 360, flexShrink: 0, borderLeft: "1px solid #33383e", background: "#1b1e22",
@@ -46,6 +47,8 @@ export function RightPanel({ snapshot, orchestrator, condition, aiPresent, hakuF
   readonly indexedSearch?: boolean;
 }) {
   const [tool, setTool] = useState<Tool>(null);
+  const toolRef = useRef<Tool>(tool);
+  toolRef.current = tool;
   const { t, tr } = useLang();
   // Every tab change is logged (P1-1, 8 Oct 2026): haku | open_thinker | none (closed).
   const select = (next: Tool) => {
@@ -53,6 +56,11 @@ export function RightPanel({ snapshot, orchestrator, condition, aiPresent, hakuF
     void orchestrator.logTabSelected(next === "ai" ? "open_thinker" : next === "index" ? "indexed_search" : next ?? "none").catch(() => undefined);
   };
   const toggle = (t: Exclude<Tool, null>) => select(tool === t ? null : t);
+  // SPEC/30 §4: the consult notification's button opens the group's tool once `consult_prompt_opened` is durable (left open if it is).
+  const openConsult = () => void orchestrator.openConsultPrompt().then((consulted) => {
+    const next: Tool = consulted === "haku" ? "haku" : "ai";
+    if (toolRef.current !== next) select(next);
+  }, () => undefined);
   // Revision (am): the practice tour's Thinker step opens the Thinker tab (logged like a click on it).
   useEffect(() => {
     const open = (e: Event) => { if ((e as CustomEvent).detail === "ai" && aiPresent && condition === "substitutive" && tool !== "ai") select("ai"); };
@@ -73,6 +81,11 @@ export function RightPanel({ snapshot, orchestrator, condition, aiPresent, hakuF
         {indexedSearch && <button data-tour="indexed-search" disabled={locked} style={toolButton(tool === "index")} onClick={() => toggle("index")}>{t.indexedSearch}</button>}
         {tool && <button style={{ ...toolButton(false), marginLeft: "auto" }} onClick={() => select(null)} aria-label={t.closeTool}>×</button>}
       </div>
+      {/* SPEC/30 §4: the consult notification, beside (under) the tool buttons; non-modal, no content. */}
+      {snapshot.consultPrompt && (
+        <ConsultNotice prompt={snapshot.consultPrompt} text={t.consult} onOpen={openConsult} onDismiss={() => void orchestrator.dismissConsultPrompt().catch(() => undefined)}
+          style={{ margin: "6px 10px" }} />
+      )}
       {/* D1 (8 Oct 2026): the command directive, persistent from V8 on, identical in every cell. */}
       {snapshot.directiveInForce !== null && (
         <div data-testid="directive-banner" style={{ padding: "8px 12px", borderBottom: "1px solid #33383e", borderLeft: "3px solid #8ab4f8", background: "#20242a" }}>
@@ -126,7 +139,14 @@ function useQuestion(send: (query: string) => Promise<unknown>) {
     setQuery(value);
     setNotice(value.length > THINKER_MAX_QUESTION_CHARS ? t.questionTooLong(THINKER_MAX_QUESTION_CHARS, value.length) : null);
   };
-  return { query, pending, notice, ask: () => void ask(), onInput };
+  /** SPEC/30 §4: a question sent other than from the input (the suggested-question chip): the same busy state and notice; the typed text stays. */
+  const askVia = async (sendOther: () => Promise<unknown>) => {
+    if (pending) { setNotice(t.questionNotSent); return; }
+    setPending(true);
+    setNotice(null);
+    try { await sendOther(); } catch { setNotice(t.questionNotSent); } finally { setPending(false); }
+  };
+  return { query, pending, notice, ask: () => void ask(), onInput, askVia: (sendOther: () => Promise<unknown>) => void askVia(sendOther) };
 }
 
 function QuestionInput({ q, placeholder }: { readonly q: ReturnType<typeof useQuestion>; readonly placeholder: string }) {
@@ -215,6 +235,15 @@ export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly 
         ))}
         {pending && <p style={{ opacity: 0.6, fontSize: 12.5 }}>{t.searching}</p>}
       </div>
+      {/* SPEC/30 §4: the guide's suggested question (from V8), above the input; submitted exactly as shown (`viaChip`). */}
+      {snapshot.suggestedQuestion && (
+        <div style={{ padding: "8px 10px 0", borderTop: "1px solid #33383e" }}>
+          <button type="button" data-testid="thinker-chip" disabled={pending} aria-label={`${t.consult.chipLabel}: ${t.consult.chip}`} onClick={() => q.askVia(() => orchestrator.askSuggestedQuestion())}
+            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid #8ab4f8", background: "#1f2a38", color: "#dbe7fb", fontSize: 12.5, cursor: pending ? "default" : "pointer", textAlign: "left", opacity: pending ? 0.6 : 1 }}>
+            {t.consult.chip}
+          </button>
+        </div>
+      )}
       <QuestionInput q={q} placeholder={t.openThinkerPlaceholder} />
     </div>
   );

@@ -101,6 +101,28 @@ export function freezeOffsetSecondsFor(seed: bigint, viewIndex: number, minViewS
   const rng = new Xorshift64Star(deriveSeed(seed, "freeze-offset", `view_${viewIndex}`));
   return earliest + rng.nextInt(latest - earliest + 1);
 }
+/**
+ * SPEC/30 §5.1 (19 Oct 2026): the no-fit views whose freeze comes after the plan is final — at the view's end,
+ * after the plan-confidence item, before the next view — so its items cannot point the participant at the
+ * deciding front before the plan. The single source of truth: the scenario builder sets `freezeAtViewEnd` on
+ * these views (no pre-planned moment, `freezeAtSeconds: null`) and the contract checks the property's shape.
+ * Every other freeze view keeps its pre-planned random moment.
+ */
+export const FREEZE_AT_VIEW_END: ReadonlySet<number> = new Set([10, 14]);
+/**
+ * SPEC/30 §4: the consult notification's moment on the view's clock, every main view (never the practice
+ * view). A view moment like the others, so a development preview scales it (`scaleViewSeconds`).
+ */
+export const CONSULT_PROMPT_AT_S = 60;
+/**
+ * SPEC/30 §5.2: a view's second SPAM item (V3, V6) is a probe of its own, shown after the first under the same
+ * "ready"; its id is the first item's with `.b` (`probe.s.cycle_3` → `probe.s.cycle_3.b`), its key the invariant
+ * `<first item's invariant>.b`. The one convention the scenario builder and the session share.
+ */
+export const SECOND_SPAM_SUFFIX = ".b";
+export function secondSpamProbeId(firstProbeId: string): string {
+  return `${firstProbeId}${SECOND_SPAM_SUFFIX}`;
+}
 /** The first main step and the last one (SPEC/26 §3: the main views cover steps 1–20). */
 export const FIRST_MAIN_STEP = 1;
 export const LAST_MAIN_STEP = 20;

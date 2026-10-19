@@ -19,6 +19,8 @@ import type { QuestionnaireItem } from "./questionnaire.js";
 import type { PreflightOutcome } from "./preflight.js";
 import type { QuestionnaireId } from "../telemetry/record-kinds.js";
 import type { AiLiteracyView } from "./ai-literacy.js";
+import type { ConsultPromptView } from "./consult-notice.js";
+import type { PlanConfidenceView } from "./plan-confidence.js";
 
 export type CyclePhase = "exploration" | "freeze" | "decision";
 
@@ -35,7 +37,8 @@ export function cyclePhaseOf(step: JudgementStep): CyclePhase {
  * for since revision (x), 6 Oct 2026: Type J, its follow-ups, the verification step and the outlook
  * are withdrawn), and `awaiting_view_end` until the view's minimum length is reached (the plan may be
  * revised meanwhile). `freeze` interrupts any of them and returns there. A view also ends at its
- * 150 s cap, wherever the participant is.
+ * 150 s cap, wherever the participant is. SPEC/30: after a main view's end, `plan_confidence`; in V10
+ * and V14 then the end-of-view `freeze`, which leads on to what follows the view.
  */
 export type JudgementStep =
   | "briefing"
@@ -48,6 +51,8 @@ export type JudgementStep =
   | "complete"
   /** A visible probe (Type U) is open: the map stays, the clock stands still, the participant returns to `resumeStep` (5 Oct 2026). */
   | "probe"
+  /** SPEC/30 §5.4: a main view has ended; its plan's confidence is asked (the map stays, the tools are closed). */
+  | "plan_confidence"
   // The study shell (5 Oct 2026, `SessionOptions.studyShell`): consent and the preflight before the
   // briefing, the pre-session item after them; the post-session questionnaire and the debrief after V14.
   | "consent"
@@ -189,6 +194,12 @@ export interface SessionSnapshot {
   readonly debrief: { readonly textId: string; readonly cell: Cell } | null;
   /** The intro video before the practice view (step `briefing`, `SessionOptions.introVideo`): its URL and whether a demonstration may skip it. */
   readonly introVideo: { readonly src: string; readonly skippable: boolean } | null;
+  /** SPEC/30 §4: the consult notification on screen (beside the tool button), else null. Carries no content. */
+  readonly consultPrompt: ConsultPromptView | null;
+  /** SPEC/30 §4: the guide's suggested-question chip above the Thinker's input (`reasoning_intent`, from V8), else false. */
+  readonly suggestedQuestion: boolean;
+  /** SPEC/30 §5.4: the plan-confidence item on screen (step `plan_confidence`, once its record is durable), else null. */
+  readonly planConfidence: PlanConfidenceView | null;
 }
 
 export interface PreflightView {
@@ -213,7 +224,11 @@ export interface QuestionnaireView {
  */
 export type SpamView =
   | { readonly phase: "ready"; readonly probeId: string; readonly collapsed: boolean }
-  | { readonly phase: "item" | "confidence"; readonly probeId: string; readonly promptFi: string; readonly options: readonly { readonly id: string; readonly fi: string }[]; readonly chosen: string | null; readonly forced: boolean };
+  | {
+    readonly phase: "item" | "confidence"; readonly probeId: string; readonly promptFi: string; readonly options: readonly { readonly id: string; readonly fi: string }[]; readonly chosen: string | null; readonly forced: boolean;
+    /** SPEC/30 §5.2: which item of the delivery this is (1 or 2) and how many it has (2 in V3 and V6 once authored). */
+    readonly itemIndex: 1 | 2; readonly itemCount: 1 | 2;
+  };
 
 /** The hinge check: `directive` — the directive on screen; `item` — the question; `answered` — Continue enabled. */
 export interface HingeCheckView {

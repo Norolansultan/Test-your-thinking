@@ -26,7 +26,7 @@ async function inPractice() {
 
 describe("a merged view's freeze falls after its second step", () => {
   it("every merged freeze view freezes at least 10 s after the step boundary, inside the window", () => {
-    const merged = scenario.cycles.filter((c) => c.steps === 2 && c.hasFreeze);
+    const merged = scenario.cycles.filter((c) => c.steps === 2 && c.hasFreeze && c.freezeAtViewEnd !== true); // SPEC/30 §5.1: V14's is at its end
     expect(merged.length).toBeGreaterThan(0);
     for (const c of merged) {
       const [earliest, latest] = freezeWindowFor(c.minViewSeconds, true);

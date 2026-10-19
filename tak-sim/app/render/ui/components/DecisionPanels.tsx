@@ -19,6 +19,7 @@ import type { UiText } from "../../../i18n/ui.js";
 import { useLang } from "../i18n.js";
 import { unitCallSign } from "../../../i18n/place-names.js";
 import { Choice, hint, label, Panel, PrimaryButton } from "./PanelParts.js";
+import { useHoverDwell } from "./hover-dwell.js";
 
 const row = { display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" } as const;
 /** The plan's rows: the label in a narrow left column, the choices on one line beside it. */
@@ -97,6 +98,13 @@ export function planSummary(
   return parts.join(" · ");
 }
 
+/** The plan's option rows, as `decision_option_hovered` names them (SPEC/30 §5.4). */
+export type DecisionOptionRow = "main_effort" | "posture" | "secondary" | "secondary_task" | "drones" | "drone_task" | "departure_reason";
+/** An option's id in `decision_option_hovered`: `<row>:<value>` — the sector or task id, `secondary:none`, `drones:carry_on`. */
+export function decisionOptionId(row: DecisionOptionRow, value: string): string {
+  return `${row}:${value}`;
+}
+
 export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
   readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator;
   /** The draft, held outside the panel (`SessionBody`), so an interruption does not lose it. */
@@ -106,6 +114,9 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
   const { sectors, crews, droneTeams } = snapshot.allocation;
   const { mainEffort, posture, secondarySector, secondaryTask, droneSector, droneTask, departureNoted, departureReason } = draft;
   const set = (patch: Partial<PlanDraft>) => onDraft({ ...draft, ...patch });
+  // SPEC/30 §5.4: an option the pointer rests on for the dwell (`hover-dwell.ts`) is logged, once per entry.
+  const dwell = useHoverDwell((optionId) => void orchestrator.logPanelUse({ kind: "decision_option_hovered", detail: { optionId } }).catch(() => undefined));
+  const hover = (row: DecisionOptionRow, value: string) => dwell(decisionOptionId(row, value));
   const hasDrones = droneTeams.length > 0;
   const offerDeparture = snapshot.currentCycle >= DEPARTURE_NOTE_FROM_VIEW;
   const plan = planFromDraft(draft, hasDrones, offerDeparture);
@@ -128,22 +139,22 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
       <div style={grid}>
         <div style={rowLabel}>{t.mainEffortLabel}</div>
         <div style={row}>
-          {sectors.map((s) => <Choice compact key={s.id} selected={mainEffort === s.id} onClick={() => set({ mainEffort: s.id, ...(secondarySector === s.id ? { secondarySector: undefined } : {}) })}>{tr(s.labelFi)}</Choice>)}
+          {sectors.map((s) => <Choice compact key={s.id} hover={hover("main_effort", s.id)} selected={mainEffort === s.id} onClick={() => set({ mainEffort: s.id, ...(secondarySector === s.id ? { secondarySector: undefined } : {}) })}>{tr(s.labelFi)}</Choice>)}
         </div>
 
         <div style={rowLabel}>{t.postureLabel}</div>
         <div style={row}>
-          {MAIN_EFFORT_POSTURES.map((p) => <Choice compact key={p} selected={posture === p} onClick={() => set({ posture: p })}>{t.postures[p]}</Choice>)}
+          {MAIN_EFFORT_POSTURES.map((p) => <Choice compact key={p} hover={hover("posture", p)} selected={posture === p} onClick={() => set({ posture: p })}>{t.postures[p]}</Choice>)}
         </div>
 
         <div style={rowLabel}>{t.secondaryLabel}</div>
         <div style={row}>
-          <Choice compact selected={secondarySector === null} onClick={() => set({ secondarySector: null })}>{t.noSecondary}</Choice>
-          {sectors.filter((s) => s.id !== mainEffort).map((s) => <Choice compact key={s.id} selected={secondarySector === s.id} onClick={() => set({ secondarySector: s.id })}>{tr(s.labelFi)}</Choice>)}
+          <Choice compact hover={hover("secondary", "none")} selected={secondarySector === null} onClick={() => set({ secondarySector: null })}>{t.noSecondary}</Choice>
+          {sectors.filter((s) => s.id !== mainEffort).map((s) => <Choice compact key={s.id} hover={hover("secondary", s.id)} selected={secondarySector === s.id} onClick={() => set({ secondarySector: s.id })}>{tr(s.labelFi)}</Choice>)}
           {typeof secondarySector === "string" && (
             <>
               <span style={sep}>→</span>
-              {SECONDARY_TASK_IDS.map((id) => <Choice compact key={id} selected={secondaryTask === id} onClick={() => set({ secondaryTask: id })}>{t.secondaryTasks[id]}</Choice>)}
+              {SECONDARY_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("secondary_task", id)} selected={secondaryTask === id} onClick={() => set({ secondaryTask: id })}>{t.secondaryTasks[id]}</Choice>)}
             </>
           )}
         </div>
@@ -152,12 +163,12 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
           <>
             <div style={rowLabel}>{t.dronesLabel}</div>
             <div style={row}>
-              <Choice compact selected={droneSector === null} onClick={() => set({ droneSector: null })}>{t.dronesCarryOn}</Choice>
-              {sectors.map((s) => <Choice compact key={s.id} selected={droneSector === s.id} onClick={() => set({ droneSector: s.id })}>{tr(s.labelFi)}</Choice>)}
+              <Choice compact hover={hover("drones", "carry_on")} selected={droneSector === null} onClick={() => set({ droneSector: null })}>{t.dronesCarryOn}</Choice>
+              {sectors.map((s) => <Choice compact key={s.id} hover={hover("drones", s.id)} selected={droneSector === s.id} onClick={() => set({ droneSector: s.id })}>{tr(s.labelFi)}</Choice>)}
               {typeof droneSector === "string" && (
                 <>
                   <span style={sep}>→</span>
-                  {PLAN_DRONE_TASK_IDS.map((id) => <Choice compact key={id} selected={droneTask === id} onClick={() => set({ droneTask: id })}>{t.droneTasks[id]}</Choice>)}
+                  {PLAN_DRONE_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("drone_task", id)} selected={droneTask === id} onClick={() => set({ droneTask: id })}>{t.droneTasks[id]}</Choice>)}
                 </>
               )}
             </div>
@@ -175,7 +186,7 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
                 <div style={rowLabel}>{t.departureReasonLabel}</div>
                 <div style={row} role="radiogroup" aria-label={t.departureReasonLabel}>
                   {DEPARTURE_REASONS.map((r) => (
-                    <Choice compact key={r} selected={departureReason === r} onClick={() => set({ departureReason: departureReason === r ? null : r })}>{t.departureReasons[r]}</Choice>
+                    <Choice compact key={r} hover={hover("departure_reason", r)} selected={departureReason === r} onClick={() => set({ departureReason: departureReason === r ? null : r })}>{t.departureReasons[r]}</Choice>
                   ))}
                 </div>
               </>

@@ -22,13 +22,14 @@ import { MapView, type TakMapHandle, type TakMapOptions } from "../components/Ma
 import { JudgementPanel } from "../components/JudgementPanel.js";
 import { SpamCard } from "../components/SpamCard.js";
 import { VisibleProbeCard } from "../components/VisibleProbeCard.js";
+import { ConsultNotice } from "../components/ConsultNotice.js";
 import type { PlanDraft } from "../components/DecisionPanels.js";
 import { OVERLAY } from "../map-overlay.js";
 import { TOUR_OPEN_TOOL_EVENT } from "../tour.js";
 import { useLang } from "../i18n.js";
 import { TERMINAL_STATES } from "../../../engine/freeze-machine.js";
 import {
-  DEFAULT_OVERLAYS, DEFAULT_PANE, mountPaneRecord, paneShowsLog, SEARCH_PANES, tabToolOf, takContacts, takToolbarPanes, toggleOverlay, unmountRecords, videoFeeds,
+  consultNoticeTop, consultPaneOf, DEFAULT_OVERLAYS, DEFAULT_PANE, mountPaneRecord, paneShowsLog, SEARCH_PANES, tabToolOf, takContacts, takToolbarPanes, toggleOverlay, unmountRecords, videoFeeds,
   type GeoChatRoomId, type TakContact, type TakOverlayState,
 } from "./shell.js";
 import { clearRangeBearing, setRangeBearing, TAK_MAP_CSS } from "./tak-map.js";
@@ -115,6 +116,12 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
     window.addEventListener(TOUR_OPEN_TOOL_EVENT, open);
     return () => window.removeEventListener(TOUR_OPEN_TOOL_EVENT, open);
   });
+
+  // SPEC/30 §4: the consult notification's button opens its tool's pane once `consult_prompt_opened` is durable (left open if it is).
+  const openConsult = () => void orchestrator.openConsultPrompt().then((consulted) => {
+    const target = consultPaneOf(consulted);
+    if (panes.includes(target) && paneRef.current !== target) choosePane(target, "toolbar");
+  }, () => undefined);
 
   // GeoChat's unread count: what arrived while no open pane showed the log (GeoChat, or a search tool over it).
   const [seen, setSeen] = useState(snapshot.radioLog.length);
@@ -237,6 +244,11 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
           </TakSidePane>
         )}
         <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} />
+        {/* SPEC/30 §4: the consult notification beside its tool's toolbar button; non-modal (over a side pane, never over the map's centre). */}
+        {snapshot.consultPrompt && (
+          <ConsultNotice prompt={snapshot.consultPrompt} text={t.consult} onOpen={openConsult} onDismiss={() => void orchestrator.dismissConsultPrompt().catch(() => undefined)}
+            style={{ position: "absolute", right: TAK.toolbarWidth + 8, top: consultNoticeTop(panes, snapshot.consultPrompt.tool, TAK.toolButtonHeight), zIndex: 23, width: "min(340px, calc(100% - 120px))", boxSizing: "border-box" }} />
+        )}
       </div>
     </div>
   );

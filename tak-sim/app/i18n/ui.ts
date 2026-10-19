@@ -13,6 +13,7 @@ import {
 import type { TourStepId } from "../render/ui/tour.js";
 import type { TakOverlayLayer, TakPaneId } from "../telemetry/record-kinds.js";
 import { ALL_CHAT_ROOMS_LABEL, CHAT_ROOM_LABEL, type ChatRoom } from "../tak/geochat.js";
+import { SUGGESTED_QUESTION } from "../session/consult-notice.js";
 
 /**
  * The TAK shell's interface (SPEC/28 §5, 13 Oct 2026): the toolbar, the side panes, the info card and the coordinate
@@ -307,7 +308,16 @@ export interface UiText {
   readonly spam: {
     readonly readyPrompt: string; readonly ready: string; readonly collapse: string; readonly waiting: string; readonly title: string; readonly note: string;
     readonly forcedTitle: string; readonly forcedNote: string; readonly confidencePrompt: string; readonly toolsLocked: string;
+    /** SPEC/30 §5.2: "Question 1 of 2" in a delivery with a second item. */
+    readonly itemOf: (index: number, count: number) => string;
   };
+  /**
+   * SPEC/30 (19 Oct 2026): the consult notification (both groups, V1–V14; it carries no content), its two buttons, the guide's
+   * suggested-question chip (its text is exactly the question submitted, `SUGGESTED_QUESTION`) and the plan-confidence item.
+   * Finnish DRAFT (native check, SPEC/30 §8).
+   */
+  readonly consult: { readonly notice: string; readonly openHaku: string; readonly openThinker: string; readonly close: string; readonly chip: string; readonly chipLabel: string };
+  readonly planConfidence: { readonly prompt: string; readonly note: string };
   /** The manipulation check on the hinge screen (brief D3): the directive's acknowledgement and the note under the question. */
   readonly hingeCheck: { readonly read: string; readonly note: string };
   /** D1 (8 Oct 2026): the label of the persistent command-directive line at the top of the right panel, from V8 on; identical in every cell. */
@@ -500,7 +510,13 @@ const FI: UiText = {
     forcedTitle: "Jakson aika on päättynyt – vastaa ensin tähän kysymykseen.",
     forcedNote: "Kello on pysäytetty. Viestiloki ja hakutyökalut ovat käytössä. Jakso päättyy, kun olet vastannut.",
     confidencePrompt: "Kuinka varma olet vastauksestasi?", toolsLocked: "Pois käytöstä kysymyksen ajan.",
+    itemOf: (i, n) => `Kysymys ${i}/${n}`,
   },
+  consult: {
+    notice: "Uusia ilmoituksia edellisen suunnitelmasi jälkeen", openHaku: "Avaa Haku", openThinker: "Avaa Thinker", close: "Sulje ilmoitus",
+    chip: SUGGESTED_QUESTION.fi, chipLabel: "Ehdotettu kysymys",
+  },
+  planConfidence: { prompt: "Kuinka varma olet, että suunnitelmasi sopii tilanteeseen?", note: "Jakso on päättynyt. Valitse varmuutesi ja vahvista." },
   hingeCheck: { read: "Olen lukenut linjauksen", note: "Vastaa kysymykseen, niin voit jatkaa." },
   // DRAFT (8 Oct 2026): native review.
   directiveBanner: "Johdon linjaus",
@@ -671,7 +687,13 @@ const EN: UiText = {
     forcedTitle: "The period's time is up – answer this question first.",
     forcedNote: "The clock is paused. The message log and the search tools stay available. The period ends once you have answered.",
     confidencePrompt: "How sure are you of your answer?", toolsLocked: "Off during the question.",
+    itemOf: (i, n) => `Question ${i} of ${n}`,
   },
+  consult: {
+    notice: "New reports since your last plan", openHaku: "Open Search", openThinker: "Open Thinker", close: "Close the notice",
+    chip: SUGGESTED_QUESTION.en, chipLabel: "Suggested question",
+  },
+  planConfidence: { prompt: "How confident are you that your plan fits the situation?", note: "The period has ended. Choose your confidence and confirm." },
   hingeCheck: { read: "I have read the directive", note: "Answer the question to continue." },
   directiveBanner: "Command directive",
   thinkerUnavailable: "Thinker is unavailable right now — ask again or use Search.",

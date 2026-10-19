@@ -4,7 +4,7 @@
 **Scope:** every finding of `docs/audits/2026-10-19-skills/` (sagat, radio, coa, fire_tactical, parity_measures), the conflicts with `30` they raise, the data the scenario must add before Gate A, the people list, and the phase-3 work packages.
 
 > **Changelog**
-> - **19 Oct 2026 (az)** — §3.12's re-runs done after WP-3; the figures and their reading are in `30` (az).
+> - **19 Oct 2026 (az)** — §3.12's re-runs done after WP-3 (figures in `30` (az)); WP-1 to WP-5 merged and reconciled; the act coding reads the core front for the primary (RC with §3.1); what phase 3 leaves open. See the revision at the end.
 > - **19 Oct 2026** — created (phase 2 of the skills review; reports at commit 588908b, scenario export 3631cd4).
 
 ---
@@ -290,3 +290,19 @@ Each package runs in its own worktree with the file ownership below; nothing out
 **WP-6 (deferred: after VERIFY 1–15) Call signs and terminology.** Owns, when it runs, WP-1's and WP-2's regex files for the cited records only, by agreement with the integrator: CS-01–CS-05, CS-07, ST-01, ST-10, TE-01, TE-02, TE-03, TE-07, TE-09, TE-10, CO-05, CO-06, DF-01's framing, EN-08. One re-index; before the main study, after pilot 2 if the answers are late (pilot and main study are not pooled).
 
 Order: WP-1, WP-2, WP-3, WP-4 and WP-5 run in parallel; the integrator merges WP-1 last (the re-index), then runs `npm run ci` and `npm run skills:export`, and prepares the panel packet.
+
+## Revision 19 Oct 2026 (az) — integration of WP-1 to WP-5
+
+Merged in the planned order, WP-1 last: WP-3 and WP-2 (`cf12140`), WP-4 (`fb0e7cb`), WP-5 (`4b38cc8`), WP-1 (`47c9a41`); integration fixes `0bc6a85` and `3d3b101`. At `0bc6a85`: `npm run ci` passes (227 test files, 2655 tests; typecheck and determinism lint clean) and `npm run validate:scenario` is clean (crew safety: 18 findings, each with a radio safety line). WP-5's game timelines and gate are recorded in `29` (az); the power re-runs in `30` (az); the item table in `08` (az).
+
+**Reconciled at integration.**
+1. **Key regexes.** Six key regexes WP-2 added after WP-1's base cited records WP-1 had reworded into first-person radio style (EK14 ×2, KY21, EK16, VPK, EK11); they now match the new wording: the same records and the same values. The `residents` basis computes its radio ids (the police record is 18.6 since D8's LCES line took 18.5).
+2. **The act coding reads the core front for the primary (RC, with §3.1).** WP-3 read the keyed front with its boundary sectors in both codings. Once F13 made L2 a boundary sector at V9–V10, a mop-up or held line on L2 coded D on the primary act coding, against F13's "sensitivity only". Now `attended` and `cellByAct` read the core sectors; the boundary sectors enter only `cellByActWithBoundary`, as in the label coding. V14's L1 side follows the same rule: a mop-up there codes B on the primary and C in the sensitivity (WP-3 coded it D). The review packet marks boundary sectors as the sensitivity's. The researcher confirms this with §3.1.
+3. **TE-06** applied ("missä palon voimakkuus sallii"; `labels.en.json` key and `directive.spec`).
+4. **The export's flame values.** The loader took WP-1's `flameAt(rate, landCover)` for a step lookup; it now reads `flameTable(steps)` and uses the table only where the records follow it (phase B). Phase A keeps quoting its records, so their mismatches stay visible.
+
+**Left open by phase 3.**
+- **The Thinker index is PROVISIONAL.** The embedding host returned 403 in this container. WP-1 built the index with `npm run thinker:index -- --carry`: vectors for the changed records (210 fi, 281 en) are carried from the previous index, and the manifest is marked PROVISIONAL. TE-06 changed the V1 intent after that build. Before pilot 2, on a machine that can reach the model: `npm run thinker:index` (both languages), then `npm run thinker:eval -- --write`. The lexical eval still selects collapse3, and 4 need snapshots have drifted.
+- **Phase-A flames.** 24 phase-A records state flames their rate cannot give (e.g. DR1 "1–2 m" at 7–10.6 m/min); the table is computed for phase A but those records are unchanged (panel, WP-6). `fire_check.py` on the export at `3d3b101`: 0 LIKELY_ERROR, 3 REVIEW and 1 INFO, all in the phase-A crown run. Step 5 is a crown run at 14.1 m/min (Kalajoki: 15–30). Step 6 is a 38 m/min "surface" step with 400 m spotting and no active crown. Both go to the panel and FMI (§6 items 2 and 6). The phase-B flame flags of steps 17–19 are gone.
+- **For WP-6.** Eight move messages keep their logged wording (ST-07: EK11@3, EK11@6, EK12@6, EK14@8, EK15@10, OUT1@16, OUT2@16, VPK@19); "kylläinen" remains in `evt.c06.015` and `evt.c06.017` (cited by the freeze bank).
+- `tools/fire-ca/traffic.ts` and `deployment.ts` exceed the 500-line rule (they did before WP-1); a split is a separate refactor.

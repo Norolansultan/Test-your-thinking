@@ -57,6 +57,17 @@ export const VIEW_MAX_SECONDS = 150;
  * other item logged as `missing` (not wrong) and the submission flagged `timedOut`. Not scaled by the preview override.
  */
 export const FREEZE_MAX_SECONDS = 180;
+/**
+ * `31` §2.1 F12 (19 Oct 2026): the cap of a freeze of {@link LONG_FREEZE_ITEMS} items or more (the phase-A freezes' eight, SPEC/30
+ * §5.1): ≈ 19 s per item (SPEC/15 (ax)) with the map items and the L3 items last needs more than 180 s for a slow reader, so a
+ * timeout would drop H2's L3 items first. The order stays fixed (identical stimulus); timeouts by position are reported in pilot 2.
+ */
+export const FREEZE_MAX_SECONDS_LONG = 240;
+export const LONG_FREEZE_ITEMS = 8;
+/** The cap of a freeze with `items` items, real seconds from the freeze being shown. */
+export function freezeMaxSecondsFor(items: number): number {
+  return items >= LONG_FREEZE_ITEMS ? FREEZE_MAX_SECONDS_LONG : FREEZE_MAX_SECONDS;
+}
 export function viewMinSecondsFor(steps: number): number {
   return steps === 2 ? MERGED_VIEW_MIN_SECONDS : VIEW_MIN_SECONDS;
 }
@@ -106,14 +117,29 @@ export function freezeOffsetSecondsFor(seed: bigint, viewIndex: number, minViewS
  * after the plan-confidence item, before the next view — so its items cannot point the participant at the
  * deciding front before the plan. The single source of truth: the scenario builder sets `freezeAtViewEnd` on
  * these views (no pre-planned moment, `freezeAtSeconds: null`) and the contract checks the property's shape.
- * Every other freeze view keeps its pre-planned random moment.
+ * Every other freeze view keeps its pre-planned random moment. `31` §3.8 (coa F10, 19 Oct 2026): V12 joins them — its items name
+ * Lahdenkylä and would cue the aligned cell in a fit view (H14); F7's key records (steps 6–8) and H3's view (V13) are untouched. For
+ * these freezes "now" is the view's end (V10 17.40, V12 19.00, V14 20.00), stated in the freeze's header.
  */
-export const FREEZE_AT_VIEW_END: ReadonlySet<number> = new Set([10, 14]);
+export const FREEZE_AT_VIEW_END: ReadonlySet<number> = new Set([10, 12, 14]);
 /**
  * SPEC/30 §4: the consult notification's moment on the view's clock, every main view (never the practice
  * view). A view moment like the others, so a development preview scales it (`scaleViewSeconds`).
  */
 export const CONSULT_PROMPT_AT_S = 60;
+/**
+ * `31` §2.1 F23 (19 Oct 2026): the least time between the consult notification and a freeze. When the view's freeze falls due
+ * less than this after the notification's moment, the notification waits until the freeze has closed (as it does under an
+ * open freeze), so nobody who opens it is cut off by the blanked screen a moment later. Deterministic: both moments are
+ * fixed at build time, so the deferral is the same for every participant (identical stimulus).
+ */
+export const CONSULT_FREEZE_GAP_S = 15;
+/** Whether the consult notification is held until after the view's freeze (both moments in unscaled view seconds; null: no moment). */
+export function consultHeldForFreeze(consultAtSeconds: number | null, freezeAtSeconds: number | null): boolean {
+  if (consultAtSeconds === null || freezeAtSeconds === null) return false;
+  const gap = freezeAtSeconds - consultAtSeconds;
+  return gap >= 0 && gap < CONSULT_FREEZE_GAP_S;
+}
 /**
  * SPEC/30 §5.2: a view's second SPAM item (V3, V6) is a probe of its own, shown after the first under the same
  * "ready"; its id is the first item's with `.b` (`probe.s.cycle_3` → `probe.s.cycle_3.b`), its key the invariant

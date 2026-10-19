@@ -399,6 +399,65 @@ export function reportedDetachedClosingAt(nowStep: number, askedStep: number, li
 }
 
 // ---------------------------------------------------------------------------
+// `31` §3.5 rule (1) (sagat F01, 19 Oct 2026): a report-keyed key's basis is DELIVERED by the freeze — the reported fire a view's map
+// draws (a merged view draws its FIRST step's fire, `demo-map.ts` `viewMap`, so a merged view's second step is never drawn), or a pushed
+// record that states the quantity. The line is drawn through two delivered points `a` < `b` (the steps' starts), read at the asked clock:
+//     v(t) = v(b) + (v(b) − v(a)) · (t − start(b)) / (start(b) − start(a)).
+// ---------------------------------------------------------------------------
+
+/** The steps whose reported fire the maps of the views up to `view` draw (VP draws W2; each main view its first step). */
+export function drawnSteps(view: number): number[] {
+  return [-3, ...SITE_SCENARIO.views.filter((v) => !v.practice && v.index <= view).map((v) => v.steps[0]!)];
+}
+
+/** REPORT-keyed: the line through a quantity delivered at the starts of steps `a` < `b`, read at the end of `askedStep`. */
+export function extrapolateDelivered(value: (step: number) => number, a: number, b: number, askedStep: number): number {
+  if (!(a < b)) throw new RangeError(`delivered points must be ordered: ${a} < ${b}`);
+  const va = value(a), vb = value(b);
+  return vb + ((vb - va) * (askedClockMin(askedStep) - stepStartMin(b))) / (stepStartMin(b) - stepStartMin(a));
+}
+
+/** REPORT-keyed: the burnt area (ha) at the end of `askedStep` through the reported areas of steps `a` and `b`. */
+export function deliveredAreaAt(a: number, b: number, askedStep: number): number {
+  return extrapolateDelivered(reportedAreaHa, a, b, askedStep);
+}
+
+/** REPORT-keyed: the reported fire's nearest edge to a point (m) at the end of `askedStep`, through steps `a` and `b`. */
+export function deliveredPointDistanceAt(a: number, b: number, askedStep: number, p: LatLon): number {
+  return extrapolateDelivered((s) => distanceToReportedM(s, p), a, b, askedStep);
+}
+
+/** A traffic record's tier, by id; throws for an id the bundle's traffic does not hold. */
+export function trafficTier(id: string): string {
+  const e = SITE_SCENARIO.traffic.find((x) => x.id === id);
+  if (!e) throw new Error(`freeze key: no traffic record ${id}`);
+  return e.tier;
+}
+
+/**
+ * TRUTH: a figure stated by the one generated traffic record of `step` matching `re` (its first capture group, decimal comma read), with
+ * the record's id — so a basis text and a key read the very number the record gives (`31` F22) and a regenerated corpus that drops or
+ * duplicates the record fails the build.
+ */
+export function trafficFigure(step: number, re: RegExp): { readonly value: number; readonly id: string } {
+  const hits = SITE_SCENARIO.traffic.filter((x) => x.cycle === step && re.test(x.content));
+  if (hits.length !== 1) throw new Error(`freeze key: step-${step} pattern ${re} matches ${hits.length} traffic records`);
+  const m = re.exec(hits[0]!.content)!;
+  if (m[1] === undefined) throw new Error(`freeze key: pattern ${re} has no capture group`);
+  return { value: Number(m[1].replace(",", ".")), id: hits[0]!.id };
+}
+
+/** A report-keyed band key with the band its truth falls in (`31` §3.5): equal ids mean the two agree; else the truth's is the dual key. */
+export interface KeyBand { readonly id: string; readonly margin: number; readonly value: number; readonly truthId: string | null; readonly truthValue: number | null }
+
+/** `bandOf` on the report-keyed value, and, given the truth's value, its band (with the same margin rule when `truthMargin` is given). */
+export function keyBand(value: number, edges: readonly number[], ids: readonly string[], minMargin: number, what: string, truth?: { readonly value: number; readonly minMargin: number }): KeyBand {
+  const r = bandOf(value, edges, ids, minMargin, what);
+  const t = truth ? bandOf(truth.value, edges, ids, truth.minMargin, `${what} (truth)`) : null;
+  return { id: r.id, margin: r.margin, value, truthId: t?.id ?? null, truthValue: truth?.value ?? null };
+}
+
+// ---------------------------------------------------------------------------
 // The projection-direction key's item reading (fix pass 7, 9 Oct 2026, revision (ad); the plan reading is `PROJECTION_DIRECTION_KEYS`
 // in `demo-directive.ts`): where a numeric L3 item's band under the view's projection differs from its report-keyed band.
 // ---------------------------------------------------------------------------

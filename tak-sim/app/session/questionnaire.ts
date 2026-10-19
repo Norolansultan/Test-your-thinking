@@ -27,6 +27,11 @@
  *   content list (a list would cue the planted errors); `directive.fit` is new. The only difference
  *   between cells is the Thinker cells' filter.
  *
+ * - `31` §3.10 (19 Oct 2026; sagat F17, proposal (a), parity P-6, P-12): the source block holds nine facts, two of them false lures;
+ *   after `prior.knowledge` come the believability item, the recognition item ("did it remind you of a real fire?") with what was
+ *   recognised (shown on yes), the prior use of the web demonstration or game mode, and two perceived-reliability items (exploratory).
+ *   Each has the pre-registered exclusion or sensitivity rule of `POST_SESSION_RULES` (about +1.5 min; `15` (ay) the shortening order).
+ *
  * DRAFT: the items and their order await the researcher; the TLX wording needs a validated Finnish version.
  */
 
@@ -117,6 +122,20 @@ export const SOURCE_ITEMS: readonly QuestionnaireItem[] = SOURCE_MEMORY_FACTS.ma
   id: sourceItemId(f.id), section: SOURCE_SECTION, kind: "choice", options: SOURCE_OPTIONS, optionCells: { thinker: THINKER_CELLS },
 }));
 
+/**
+ * `31` §3.10 (19 Oct 2026): the post-session items that guard the sample and their pre-registered rules (`09` (ay), INT). Applied in the
+ * analysis (WP-3), never in the session. `exclude`: the participant leaves the primary analyses and enters a sensitivity analysis that
+ * keeps them; `sensitivity`: a sensitivity analysis without them; `exploratory`: no rule.
+ */
+export const POST_SESSION_RULES: Readonly<Record<string, { readonly rule: "exclude" | "sensitivity" | "exploratory"; readonly when: string }>> = {
+  believability: { rule: "sensitivity", when: "answered 1 or 2 (the situation did not feel believable)" },
+  "recognition.real_fire": { rule: "sensitivity", when: "yes (reminded of a real fire), whatever was recognised" },
+  "recognition.what": { rule: "exclude", when: "the fire itself, its rescue department or its units recognised (parity P-6; the course of events alone: sensitivity)" },
+  "prior.demo": { rule: "exclude", when: "the web demonstration, the game mode or both used before the session (parity P-12)" },
+  "reliability.answers": { rule: "exploratory", when: "perceived reliability against the log's (`31` proposal (a))" },
+  "reliability.projection": { rule: "exploratory", when: "perceived reliability of the projection against its flags (`31` proposal (a))" },
+};
+
 export const POST_ITEMS: readonly QuestionnaireItem[] = [
   { id: RETENTION_ITEM_ID, section: "recall", kind: "retention" },
   { id: "ai.directive_relation", section: "recall", kind: "choice", options: ["yes", "no", "dont_know"], cells: THINKER_CELLS },
@@ -136,6 +155,13 @@ export const POST_ITEMS: readonly QuestionnaireItem[] = [
   { id: "disagreement.action", section: "session", kind: "multi", options: ACTION_OPTIONS, exclusive: "nothing", fixedLast: ["nothing"], showIf: { itemId: "disagreement.recall", equals: "yes" } },
   { id: "felt.wrong", section: "session", kind: "choice", options: yesNoUnsure },
   { id: "prior.knowledge", section: "session", kind: "choice", options: yesNoUnsure },
+  // `31` §3.10 (parity P-6, P-12; sagat proposal (a)): the sample's guards and the perceived reliability, every cell. DRAFT, native check.
+  scale7("believability", "session"),
+  { id: "recognition.real_fire", section: "session", kind: "choice", options: yesNoUnsure },
+  { id: "recognition.what", section: "session", kind: "multi", options: [{ id: "fire" }, { id: "department" }, { id: "units" }, { id: "course" }], showIf: { itemId: "recognition.real_fire", equals: "yes" } },
+  { id: "prior.demo", section: "session", kind: "choice", options: ["no", "demo", "game", "both", "unsure"] },
+  { id: "reliability.answers", section: "session", kind: "choice", options: ["lt25", "m25_50", "m50_75", "gt75", "no_use"] },
+  { id: "reliability.projection", section: "session", kind: "choice", options: ["rarely", "sometimes", "mostly", "always"] },
   { id: "role.rank", section: "background", kind: "choice", options: ["crew", "crew_commander", "platoon_commander", "duty_chief", "student", "other"] },
   { id: "years.service", section: "background", kind: "number", min: 0, max: 50 },
   { id: "incidents.commanded", section: "background", kind: "choice", options: ["none", "1_5", "6_20", "21_50", "over_50"] },

@@ -9,12 +9,17 @@
  * - values: the Mökkiranta cabins, Lahdenkylä village, the 110 kV line;
  * - containment: the head, the flanks, lines holding, wind, fuel ahead;
  * - resources: water points, roads, arrivals, availability.
+ *
+ * `31` (19 Oct 2026, the SA probe audit decided): "now" is the screen's clock at the freeze — the start of the view's last step, or,
+ * for a freeze at the view's end (`FREEZE_AT_VIEW_END`: V10, V12, V14), the view's end (`nowStepOf`); every L3 stem names its horizon
+ * from it (`inMinutesFi`, `withinMinutesFi`); ordinal bands are shown in ascending order and left out of the position balance
+ * (`isOrdinal`); L3 items carry `basisKind` and `basisAtomIds` (analysis only, never on screen).
  */
 
 import type { LatLon } from "../engine/primitives.js";
 import { deriveSeed, Xorshift64Star } from "../engine/prng.js";
 import type { FreezeItem, FreezeItemLevel } from "./types.js";
-import { MAIN_VIEWS } from "./views.js";
+import { FREEZE_AT_VIEW_END, MAIN_VIEWS, PRACTICE_STEP, PRACTICE_VIEW_INDEX } from "./views.js";
 import { withKeyStatements } from "./freeze-key-statements.js";
 
 export type FreezeGoal = NonNullable<FreezeItem["goal"]>;
@@ -31,22 +36,35 @@ interface BaseDef {
   /** TRUTH: the corpus atoms the key rests on (empty for an L3 key, which rests on the CA's future). */
   readonly keyAtomIds: readonly string[];
   readonly rule: KeyRule;
-  /** Where the key comes from, for the SPEC/08 table and the reviewer. */
+  /** Where the key comes from, for the SPEC/08 table and the reviewer; its figures are computed at build time (`31` F22). */
   readonly basis: string;
   /**
-   * TRUTH, L3 items (fix pass 4, 7 Oct 2026): the first and last step of the interval the key forecasts. The first is
-   * always the freeze's now step (`minutesAhead`: the view's last step, the clock on screen at the freeze).
+   * TRUTH, L3 items (fix pass 4, 7 Oct 2026): the first and last step of the interval the key forecasts. The first is always the freeze's
+   * now step (`nowStepOf`), the last the step whose end is the stated horizon (`minutesAhead`).
    */
   readonly keySteps?: readonly [number, number];
+  /** TRUTH, analysis only, L3 items (`31` §3.9): what the key rests on (`FreezeItem.basisKind`). */
+  readonly basisKind?: NonNullable<FreezeItem["basisKind"]>;
+  /** TRUTH, analysis only, L3 items (`31` §3.9): the delivered records the key rests on (`FreezeItem.basisAtomIds`). */
+  readonly basisAtomIds?: readonly string[];
+  /**
+   * TRUTH, report-keyed items (`31` §3.5 rule (1)): the steps whose reported fire the key's extrapolation reads. Each is drawn on the map of
+   * the freeze's view or an earlier one, or delivered by a pushed record in `basisAtomIds` (`test/scenario/freeze-rules.spec.ts`).
+   */
+  readonly basisSteps?: readonly number[];
+  /** Analysis only (`31` proposal (a)): `FreezeItem.family`. */
+  readonly family?: NonNullable<FreezeItem["family"]>;
 }
 
 export interface ChoiceDef extends BaseDef {
   readonly kind: "choice";
-  /** [id, Finnish label] pairs, as authored; the build reorders them (`arrangeOptions`). */
+  /** [id, Finnish label] pairs, as authored; the build reorders them (`arrangeOptions`), except ordinal bands, shown ascending. */
   readonly options: readonly (readonly [string, string])[];
   readonly key: string;
   /** TRUTH, analysis only (fix pass 7, 9 Oct 2026): the option the view's projection implies, where it differs from `key` (`PROJECTION_DIRECTION_KEYS` in `demo-directive.ts`). */
   readonly projectionOption?: string;
+  /** TRUTH, analysis only (`31` §3.5): the fire model's band where it differs from a report-keyed key (`FreezeItem.truthOptionId`). */
+  readonly truthOption?: string;
 }
 
 export interface PointDef extends BaseDef {
@@ -64,6 +82,7 @@ export type ItemDef = ChoiceDef | PointDef;
  * recall error at the session map's scale, about 3 % of the 7 km map width), 300 m for an L3 item
  * (where the head WILL BE: about 30 minutes of head travel at phase A's typical 7–10 m/min). An item may set its own
  * `toleranceM` where its target is small: V10's south front (fix pass 6, ≤ 100 m: a 0.8 ha patch, so 200 m would take the whole sector).
+ * `31` rule (2): an L3 map key lies at least 2 × its tolerance from the head drawn at "now" (`freeze-rules.spec.ts`).
  */
 export const MAP_TOLERANCE_M: Readonly<Record<"L1" | "L3", number>> = { L1: 200, L3: 300 };
 
@@ -71,23 +90,39 @@ export const choice = (d: Omit<ChoiceDef, "kind">): ChoiceDef => ({ kind: "choic
 export const point = (d: Omit<PointDef, "kind" | "toleranceM"> & { readonly level: "L1" | "L3"; readonly toleranceM?: number }): PointDef => ({ kind: "map_point", toleranceM: MAP_TOLERANCE_M[d.level], ...d });
 
 /**
- * Minutes from the freeze's "now" to the END of `step` (fix pass 3, researcher decision 7 Oct 2026: projection
- * items are worded relative to now, not by clock). "Now" is the start of the view's LAST step, the clock the
- * participant sees at the freeze: every merged view's freeze falls after its step boundary (`freeze-bank.spec.ts`).
+ * The freeze's "now" step (`31` §3.8): the step whose START is the clock on screen when the freeze opens — the view's last step for a
+ * freeze inside the view (`08` y.1: every merged view's freeze falls after its step boundary), the step after it for a freeze at the
+ * view's end (V10 17.40, V12 19.00, V14 20.00; V14's is step 21, beyond the scenario's data: its L3 keys are report-keyed only).
  */
-export function minutesAhead(view: number, step: number): number {
+export function nowStepOf(view: number): number {
+  if (view === PRACTICE_VIEW_INDEX) return PRACTICE_STEP;
   const v = MAIN_VIEWS.find((x) => x.index === view);
   if (!v) throw new RangeError(`no main view ${view}`);
-  const m = (step - v.steps.at(-1)! + 1) * 20;
+  return v.steps.at(-1)! + (FREEZE_AT_VIEW_END.has(view) ? 1 : 0);
+}
+
+/**
+ * Minutes from the freeze's "now" to the END of `step` (fix pass 3, researcher decision 7 Oct 2026: projection items are worded relative
+ * to now, not by clock; `31` §3.8: now is `nowStepOf`'s start).
+ */
+export function minutesAhead(view: number, step: number): number {
+  const m = (step - nowStepOf(view) + 1) * 20;
   if (m <= 0) throw new RangeError(`V${view}: step ${step} is not after the freeze`);
   return m;
 }
 
+const hoursFi = (h: number) => (h === 1 ? "tunnin" : h === 2 ? "kahden tunnin" : `${h} tunnin`);
+
 /** "20 minuutin kuluttua", "tunnin kuluttua", "tunnin ja 20 minuutin kuluttua" … (whole 20-minute steps). */
 export function inMinutesFi(minutes: number): string {
   const h = Math.floor(minutes / 60), m = minutes % 60;
-  const hours = h === 0 ? "" : h === 1 ? "tunnin" : h === 2 ? "kahden tunnin" : `${h} tunnin`;
-  return h === 0 ? `${m} minuutin kuluttua` : m === 0 ? `${hours} kuluttua` : `${hours} ja ${m} minuutin kuluttua`;
+  return h === 0 ? `${m} minuutin kuluttua` : m === 0 ? `${hoursFi(h)} kuluttua` : `${hoursFi(h)} ja ${m} minuutin kuluttua`;
+}
+
+/** `31` F08: "seuraavan 20 minuutin aikana", "seuraavan tunnin aikana", "seuraavan tunnin ja 20 minuutin aikana" … (whole 20-minute steps). */
+export function withinMinutesFi(minutes: number): string {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return h === 0 ? `seuraavan ${m} minuutin aikana` : m === 0 ? `seuraavan ${hoursFi(h)} aikana` : `seuraavan ${hoursFi(h)} ja ${m} minuutin aikana`;
 }
 
 /** The head-later map prompt (fix pass 3: relative to the freeze's now, was "klo 14.40" etc.). */
@@ -99,16 +134,48 @@ export function stepEndClockFi(step: number): string {
   return `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
 }
 
+/** An ordinal band id: `lt<n>`, `m<lo>_<hi>` or `gt<n>`. */
+const BAND_ID = /^(?:lt\d+|m\d+_\d+|gt\d+)$/;
+/** The band's lower bound (−∞ for `lt`). */
+function bandLow(id: string): number {
+  if (id.startsWith("lt")) return Number.NEGATIVE_INFINITY;
+  return Number(/^(?:m|gt)(\d+)/.exec(id)![1]);
+}
+
+/**
+ * `31` F11 (19 Oct 2026): an item whose every option is an ordinal band (a quantity's ranges). It is shown in ascending order, its key
+ * where its value puts it, and left out of the correct position's balance (`arrangeOptions`).
+ */
+export function isOrdinal(item: Pick<FreezeItem, "options" | "kind">): boolean {
+  return (item.kind ?? "choice") === "choice" && item.options.length > 0 && item.options.every((o) => BAND_ID.test(o.id));
+}
+
+/** Whether an ordinal item's options stand in ascending order of their bands. */
+export function bandsAscending(item: Pick<FreezeItem, "options">): boolean {
+  return item.options.every((o, i) => i === 0 || bandLow(o.id) > bandLow(item.options[i - 1]!.id));
+}
+
 /**
  * The FreezeItem a definition stands for, its options in authored order, with its authored `keyStatements`
- * (SPEC/30 §5.3, `freeze-key-statements.ts`; analysis only).
+ * (SPEC/30 §5.3, `freeze-key-statements.ts`) and its analysis metadata (`31` §3.9; never sent to the screen).
  */
 export function toItem(idPrefix: string, d: ItemDef): FreezeItem {
-  const base = { id: `${idPrefix}.${d.slug}`, level: d.level, promptFi: d.promptFi, goal: d.goal, keyAtomIds: d.keyAtomIds };
+  const meta = {
+    ...(d.basisKind ? { basisKind: d.basisKind } : {}),
+    ...(d.basisAtomIds ? { basisAtomIds: d.basisAtomIds } : {}),
+    ...(d.family ? { family: d.family } : {}),
+  };
+  const base = { id: `${idPrefix}.${d.slug}`, level: d.level, promptFi: d.promptFi, goal: d.goal, keyAtomIds: d.keyAtomIds, ...meta };
   if (d.kind === "map_point") return withKeyStatements({ ...base, kind: "map_point", options: [], mapKey: { point: d.point, toleranceM: d.toleranceM }, ...(d.projectionPoint ? { projectionPoint: d.projectionPoint } : {}) });
   if (!d.options.some(([id]) => id === d.key)) throw new Error(`${base.id}: key ${d.key} is not an option`);
-  if (d.projectionOption !== undefined && (d.projectionOption === d.key || !d.options.some(([id]) => id === d.projectionOption))) throw new Error(`${base.id}: projection option ${d.projectionOption} must be another option than the key`);
-  return withKeyStatements({ ...base, kind: "choice", options: d.options.map(([id, labelFi]) => ({ id, labelFi, correct: id === d.key })), ...(d.projectionOption ? { projectionOptionId: d.projectionOption } : {}) });
+  for (const [name, o] of [["projection", d.projectionOption], ["truth", d.truthOption]] as const) {
+    if (o !== undefined && (o === d.key || !d.options.some(([id]) => id === o))) throw new Error(`${base.id}: ${name} option ${o} must be another option than the key`);
+  }
+  return withKeyStatements({
+    ...base, kind: "choice", options: d.options.map(([id, labelFi]) => ({ id, labelFi, correct: id === d.key })),
+    ...(d.projectionOption ? { projectionOptionId: d.projectionOption } : {}),
+    ...(d.truthOption ? { truthOptionId: d.truthOption } : {}),
+  });
 }
 
 const LEVEL_ORDER: Readonly<Record<FreezeItemLevel, number>> = { L1: 0, L2: 1, L3: 2 };
@@ -123,6 +190,7 @@ export const byLevel = (items: readonly FreezeItem[]): FreezeItem[] => [...items
  * Positions therefore differ by at most one between any two slots within a level. Every item leaves with its
  * authored `keyStatements` (SPEC/30 §5.3; analysis only): the infrastructure slot's F7 item (L2), built in
  * `demo-probes.ts`, gets them here, the bank's items already have them from `toItem`.
+ * `31` F11: an ordinal item (`isOrdinal`) keeps its authored, ascending order and takes no part in the balance (no draw is made for it).
  */
 export function arrangeOptions(freezes: readonly { readonly key: number; readonly items: readonly FreezeItem[] }[], seed: bigint): Map<number, FreezeItem[]> {
   const rng = new Xorshift64Star(deriveSeed(seed, "freeze-bank", "option-order"));
@@ -131,6 +199,10 @@ export function arrangeOptions(freezes: readonly { readonly key: number; readonl
   for (const f of freezes) {
     out.set(f.key, f.items.map(withKeyStatements).map((it) => {
       if ((it.kind ?? "choice") !== "choice") return it;
+      if (isOrdinal(it)) {
+        if (!bandsAscending(it)) throw new Error(`${it.id}: an ordinal item's bands must be authored in ascending order`);
+        return it;
+      }
       const n = it.options.length;
       const counts = used[it.level].slice(0, n);
       const least = Math.min(...counts);

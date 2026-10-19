@@ -176,7 +176,7 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
     expect(detailsOf(await o.logRecords(), "view_ended")).toEqual([{ cycle: 0, viewSeconds: practiceMin, endedBy: "minimum_length" }]);
   });
 
-  it("happens in every freeze view at that view's own moment — V10 and V14 at the view's end (SPEC/30 §5.1) — identically on every run", async () => {
+  it("happens in every freeze view at that view's own moment — V10, V12 and V14 at the view's end (SPEC/30 §5.1, `31` §3.8) — identically on every run", async () => {
     const run = async () => {
       const { o, snap } = await inPractice();
       for (let view = 0; view <= 14; view++) {
@@ -193,7 +193,7 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
     const expected = [scenario.practice.cycle, ...scenario.cycles].filter((c) => c.hasFreeze)
       .map((c) => ({ cycle: c.index, atViewSeconds: c.freezeAtViewEnd ? endOf(c.index) : c.freezeAtSeconds }));
     expect(first.starts.map(({ cycle, atViewSeconds }) => ({ cycle, atViewSeconds }))).toEqual(expected);
-    expect(first.starts.filter((f) => f.decisionStep === "view_ended").map((f) => f.cycle)).toEqual([10, 14]);
+    expect(first.starts.filter((f) => f.decisionStep === "view_ended").map((f) => f.cycle)).toEqual([10, 12, 14]);
     expect(await run()).toEqual(first);
   });
 });

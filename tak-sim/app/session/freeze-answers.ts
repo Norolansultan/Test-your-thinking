@@ -26,6 +26,40 @@ export function isMapItem(item: Pick<FreezeItem, "kind">): boolean {
   return item.kind === "map_point";
 }
 
+/** An item as the freeze screen gets it: what it asks and its options' ids and labels — nothing else (I4). */
+export interface ScreenFreezeItem {
+  readonly id: string;
+  readonly level: FreezeItem["level"];
+  readonly promptFi: string;
+  readonly kind?: NonNullable<FreezeItem["kind"]>;
+  readonly options: readonly { readonly id: string; readonly labelFi: string }[];
+}
+
+/**
+ * The screen's copy of a freeze item, built field by field (`31` §3.9, 19 Oct 2026): no TRUTH and no analysis metadata reaches
+ * the render layer — not the keys (`mapKey`, each option's `correct`, `projectionPoint`, `projectionOptionId`, `truthOptionId`),
+ * not `keyAtomIds`, `keyStatements`, `elementPatterns`, `lureStatements`, `basisAtomIds`, `basisKind`, `family` or `retrievalDependent` (a whitelist, so a field added later is
+ * left out unless it is named here). Checked in `test/session/freeze-screen-items.spec.ts`.
+ */
+export function screenFreezeItem(item: FreezeItem): ScreenFreezeItem {
+  return {
+    id: item.id, level: item.level, promptFi: item.promptFi,
+    ...(item.kind !== undefined ? { kind: item.kind } : {}),
+    options: item.options.map(({ id, labelFi }) => ({ id, labelFi })),
+  };
+}
+
+/**
+ * `31` §3.8, F13 (19 Oct 2026): the clock the freeze's header states as "now" ("Kello pysähtyi klo …"), the study's dotted form
+ * ("19.00"). `08` y.1: the clock on screen when the freeze opens — the start of the view's last step (a merged view's freeze falls
+ * after its step boundary); for a freeze at the view's end (`FREEZE_AT_VIEW_END`) the view's end. `firstStepStartMin` is the
+ * clock of the view's first step's start in minutes after midnight; `steps` the view's step count (1 or 2).
+ */
+export function freezeNowClock(firstStepStartMin: number, steps: number, atViewEnd: boolean): string {
+  const minutes = firstStepStartMin + 20 * (atViewEnd ? steps : steps - 1);
+  return `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
+}
+
 /*
  * No fire-centred framing here any more (SPEC/12 revision (aj), 9 Oct 2026): `freezeMapFrame` (2 Oct 2026) framed
  * the memory-check map on the fire as last reported; the map now opens on the scenario's extent, like the live map,

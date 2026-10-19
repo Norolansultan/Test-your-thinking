@@ -139,6 +139,31 @@ describe("the consult notification (SPEC/30 §4)", () => {
     expect(indexOfKind(records, "freeze_submitted", 5)).toBeLessThan(indexOfKind(records, "consult_prompt_shown", 5));
   });
 
+  it("`31` F23: a freeze due less than 15 s after it defers it past the freeze (shown when the freeze closes); one due 15 s or later does not", async () => {
+    const withFreezeAt = (s: number) => ({ ...scenario, cycles: scenario.cycles.map((c) => (c.index === 5 ? { ...c, freezeAtSeconds: s } : c)) });
+    const held = await atView(5, "radio", {}, withFreezeAt(74));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(held.snap().step).not.toBe("freeze");
+    expect(held.snap().consultPrompt).toBeNull(); // due at 60 s, deferred: no notice right before the freeze
+    expect(ofKind(await held.o.logRecords(), "consult_prompt_shown", 5)).toEqual([]);
+    await vi.advanceTimersByTimeAsync(14_000);
+    expect(held.snap()).toMatchObject({ step: "freeze", consultPrompt: null });
+    await held.o.submitFreeze([]);
+    await settle();
+    expect(held.snap().consultPrompt).toEqual({ tool: "haku" });
+    let records = await held.o.logRecords();
+    expect(ofKind(records, "consult_prompt_shown", 5).map((x) => x.detail)).toEqual([{ cycle: 5, atViewSeconds: 74, tool: "haku" }]);
+    expect(indexOfKind(records, "freeze_submitted", 5)).toBeLessThan(indexOfKind(records, "consult_prompt_shown", 5));
+
+    const notHeld = await atView(5, "radio", {}, withFreezeAt(75));
+    await vi.advanceTimersByTimeAsync(60_000);
+    await settle();
+    expect(notHeld.snap().step).not.toBe("freeze");
+    expect(notHeld.snap().consultPrompt).toEqual({ tool: "haku" });
+    records = await notHeld.o.logRecords();
+    expect(ofKind(records, "consult_prompt_shown", 5).map((x) => x.detail)).toEqual([{ cycle: 5, atViewSeconds: 60, tool: "haku" }]);
+  });
+
   it("is out of sight while a visible probe locks the tools (V13's U at 100 s), and back after it", async () => {
     const { o, snap } = await atView(13, "radio", { visibleProbes: true });
     await vi.advanceTimersByTimeAsync(60_000);

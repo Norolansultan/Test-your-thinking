@@ -20,7 +20,7 @@ import { ProbeAnswerTracker } from "../probe-telemetry.js";
  * names can never help another answer, and no answer is revised after it.
  * Each item: the answer — one of four options, or one tap on the blank map
  * (`FreezeMap`, basemap only) — then its confidence. No source question (withdrawn
- * 2 Oct 2026, SPEC/08 amendment). "Seuraava" moves on once the item is complete; the
+ * 2 Oct 2026, SPEC/08 amendment). The header states the clock the freeze stopped at, "now" for every item (`31` F13, 19 Oct 2026). "Seuraava" moves on once the item is complete; the
  * last item's button sends the freeze. The session notes each item's answer moment when it is
  * left (`markFreezeItemAnswered`; the last item's is the submission). The screen is the same in both groups.
  */
@@ -39,6 +39,8 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
   const answers = useRef<ProbeAnswerTracker | null>(null);
   answers.current ??= ProbeAnswerTracker.of(orchestrator);
   const extent = orchestrator.mapExtent; // the whole study area, the live map's opening frame (SPEC/12 revision (aj)); never framed on the fire
+  // `31` F13: the header states "now" — the clock on screen when the freeze opened, the view's end for a view-end freeze (`08` y.1).
+  const nowClock = typeof orchestrator.freezeNowLabel === "function" ? orchestrator.freezeNowLabel() : null;
 
   const item = freeze.items[Math.min(current, freeze.items.length - 1)]!;
   const last = current >= freeze.items.length - 1;
@@ -81,6 +83,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, opacity: 0.6, letterSpacing: "0.06em" }}>{t.freezeTitle}</div>
           <div style={{ fontSize: 15, marginTop: 4 }}>{t.freezeNote}</div>
+          {nowClock !== null && <div data-testid="freeze-now" style={{ fontSize: 13, marginTop: 4, opacity: 0.85 }}>{t.freezeNow(nowClock)}</div>}
         </div>
         {allowSkip && (
           <button

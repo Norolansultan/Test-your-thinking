@@ -1,5 +1,5 @@
 /**
- * SPEC/30 §5.2 (19 Oct 2026): the second SPAM items of V3 (L2) and V6 (L3), team understanding with the tools at hand (in the style of
+ * SPEC/30 §5.2 (19 Oct 2026): the second SPAM items of V3 and V6 (both L2 since `31` F04), team understanding with the tools at hand (in the style of
  * `spam.spec.ts`): every key rests on records reachable with Haku or the Thinker by the item's moment (the view's first step or earlier;
  * pushed or recorded); four parallel options under the 1.3× rule, in a seeded order on their own stream; English; silent on the designed
  * events, the directive keys, a later freeze's keys and every keyed phase-B view. DRAFT content for the domain review (SPEC/30 §8).
@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import {
-  arrangeSpamOptions, SPAM_ITEMS, SPAM_SECOND_AUTHORED, SPAM_SECOND_ITEMS, SPAM_SECOND_KEY_ATOMS, SPAM_SECOND_VIEWS,
+  arrangeSpamOptions, RETRIEVAL_DEPENDENT_PROBE_IDS, SPAM_ITEMS, SPAM_SECOND_AUTHORED, SPAM_SECOND_ITEMS, SPAM_SECOND_KEY_ATOMS, SPAM_SECOND_VIEWS,
 } from "../../app/scenario/demo-probes.js";
 import { DIRECTIVE_KEYS } from "../../app/scenario/demo-directive.js";
 import { DESIGNED_EVENT_IDS } from "../../app/scenario/types.js";
@@ -31,11 +31,11 @@ const inLogAt = (view: number, id: string) => scenario.cycles.some((c) => {
 });
 
 describe("the second SPAM items (SPEC/30 §5.2)", () => {
-  it("are at V3 (L2) and V6 (L3), situation items with English for the prompt and every option", () => {
+  it("are at V3 and V6, L2 situation items (`31` F04: V6.b re-authored as L2), with English for the prompt and every option", () => {
     expect(SPAM_SECOND_VIEWS).toEqual([3, 6]);
     expect(Object.keys(SPAM_SECOND_ITEMS).map(Number)).toEqual([3, 6]);
     expect(SPAM_SECOND_ITEMS[3]).toMatchObject({ saLevel: 2, contentKind: "situation" });
-    expect(SPAM_SECOND_ITEMS[6]).toMatchObject({ saLevel: 3, contentKind: "situation" });
+    expect(SPAM_SECOND_ITEMS[6]).toMatchObject({ saLevel: 2, contentKind: "situation" });
     for (const v of SPAM_SECOND_VIEWS) for (const s of [SPAM_SECOND_ITEMS[v]!.prompt, ...SPAM_SECOND_ITEMS[v]!.options]) {
       expect(hasLabelEn(s), s).toBe(true);
       expect(tr("en", s)).not.toBe(s);
@@ -63,16 +63,21 @@ describe("the second SPAM items (SPEC/30 §5.2)", () => {
     expect(keyText(3)).toBe("Kiihtynyt, uutta alaa lähes kaksi kertaa enemmän");
   });
 
-  it("V6: the forecast backs the wind to the south-east by 16.00; R1's latest report on hand reads 'with care', the next ones (16.2x, 16.4x) 'not safe' — the key", () => {
-    expect(text("evt.wx.03")).toMatch(/kaakkoon klo 15\.30–16\.00/);
-    expect(text(SPAM_SECOND_KEY_ATOMS[6]![1]!)).toMatch(/tie R1 .*ajettavissa varoen/);
-    const r1 = (step: number) => SITE_SCENARIO.traffic.filter((t) => t.cycle === step && /tiehavainto: tie R1 Kuivakankaan/.test(t.content)).map((t) => t.content);
-    expect(r1(9)).toEqual([]); // nothing newer on hand before 16.20
-    for (const step of [10, 11]) {
-      expect(r1(step).length, `step ${step}`).toBeGreaterThan(0);
-      for (const t of r1(step)) expect(t, `step ${step}`).toMatch(/liekit tien reunassa .*ajo ei turvallista/);
+  it("`31` F04, F18: V6 — R1 south of Kuivakangas in DR2's two latest road reports on hand, 15.28 'no flames, passable' then 15.47 'low fire at the verge, with care': the fire is back at the verge — the key; both recorded only (retrieval-dependent)", () => {
+    const [before, latest] = SPAM_SECOND_KEY_ATOMS[6]!;
+    expect(text(before!)).toMatch(/tie R1 Kuivakankaan eteläpuolella, palanut alue tien reunassa — ei liekkejä, ajettavissa/);
+    expect(text(latest!)).toMatch(/tie R1 Kuivakankaan eteläpuolella, .*matalaa paloa tien reunassa.*ajettavissa varoen/);
+    for (const id of [before!, latest!]) {
+      expect(atom(id).tier, id).not.toBe("T1_pushed");
+      expect(inLogAt(6, id), id).toBe(false); // never in the message log: reached only with the tools
     }
-    expect(keyText(6)).toBe("Ei turvallinen ajaa, liekit tien reunassa");
+    const r1 = (step: number) => SITE_SCENARIO.traffic.filter((t) => t.cycle === step && /tiehavainto: tie R1 Kuivakankaan/.test(t.content));
+    expect(r1(7).map((t) => t.id)).toEqual([before]);
+    expect(r1(8).map((t) => t.id)).toEqual([latest]); // the latest reachable at the item's moment (V6's first step)
+    expect(SPAM_SECOND_ITEMS[6]!.prompt).toMatch(/tien R1 tila Kuivakankaan eteläpuolella/); // F18: the stretch is named
+    expect(keyText(6)).toBe("Paloa on taas tien reunassa, ajettavissa vain varoen");
+    expect(SPAM_SECOND_ITEMS[6]!.options).toContain("Liekit ovat sammuneet, tie on taas ajettavissa"); // the stale change (true at 15.28): the lure
+    expect(RETRIEVAL_DEPENDENT_PROBE_IDS).toEqual(["probe.s.cycle_6.b"]);
   });
 
   it("cue nothing designed: no key record is a designed event, a directive key or a later freeze's key; no item names a designed topic, a keyed phase-B front or a tool", () => {

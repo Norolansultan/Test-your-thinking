@@ -74,12 +74,14 @@ describe("the SPAM items (round 2: answerable from the screen, tools locked)", (
   });
 
   it("V3's key is the LATEST survey: the stale figure is a lure, and no newer area figure is in the log by V3", () => {
-    expect(text(spamRecordId(3, /^DR3 kehäkartoitus valmis klo 14\.15: palanut ala noin 12,9 ha/))).toBeTruthy();
-    expect(SPAM_ITEMS[3]!.options).toContain("Noin 13 ha");
+    // `31` F25: the stale lure is DR3's 13.55 survey (~10 ha); the 14.15 one (12.9 ha) is V3.b's basis and is no longer an option.
+    expect(text(spamRecordId(2, /^DR3 kehäkartoitus valmis klo 13\.55: palanut ala noin 10,3 ha/))).toBeTruthy();
+    expect(SPAM_ITEMS[3]!.options).toContain("Noin 10 ha");
+    expect(SPAM_ITEMS[3]!.options).not.toContain("Noin 13 ha");
     const areas = scenario.cycles.filter((c) => c.index <= 3).flatMap((c) => c.pushedAtomIds.filter((id, k) => c.index < 3 || c.deliveryOffsetsSeconds[k]! < STEP_SECONDS))
       .map(text).filter((t) => /palanut ala noin/.test(t));
     expect(areas.at(-1)).toMatch(/17,8 ha/);
-    expect(SPAM_ITEMS[3]!.options).toEqual(["Noin 13 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"]); // a quantity, ascending
+    expect(SPAM_ITEMS[3]!.options).toEqual(["Noin 10 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"]); // a quantity, ascending
   });
 
   it("V8: nothing in the log by V8 reports the Mökkiranta cabins checked", () => {
@@ -114,6 +116,8 @@ describe("the SPAM items (round 2: answerable from the screen, tools locked)", (
     expect(v8.filter((o) => o.startsWith("Tarkistettu: "))).toHaveLength(2);
     const v6 = SPAM_ITEMS[6]!.options;
     for (const o of v6) expect(o).toMatch(/, linja (on |)\S+/);
+    // `31` F20: the fourth state is clearly different from the key's record (a hand-over, not a withdrawal from the broken line)
+    expect(v6.filter((o) => /vetäyty|hylät/.test(o))).toEqual([]);
   });
 
   it("the option order is the seeded build-time arrangement (unchanged mechanism): the key is not always 'a' and follows its option", () => {

@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import {
   HAKU_CHAT_EN, HAKU_CHAT_FI, introTextsFor, introTextsIn, OPEN_THINKER_EN, OPEN_THINKER_FI, OPEN_THINKER_INTENT_EN, OPEN_THINKER_INTENT_FI, openThinkerTextFor, PERIOD_TIME_EN, PERIOD_TIME_FI,
-  PROJECTION_CAVEAT_FI, SECTORS_EN, SECTORS_FI, SETTING_TEXT_FI,
+  PROJECTION_CAVEAT_FI, SECTORS_EN, SECTORS_FI, SETTING_TEXT_FI, SETTING_TEXT_EN, TOUR_SETTING_FI, TOUR_SETTING_EN, UNIT_ANSWERS_FI, UNIT_ANSWERS_EN,
+  SECONDARY_TASK_DEFINITIONS_FI, SECONDARY_TASK_DEFINITIONS_EN,
   PRACTICE_THINKER_EN, PRACTICE_THINKER_EXAMPLE_EN, PRACTICE_THINKER_EXAMPLE_FI, PRACTICE_THINKER_FI, THINKER_ORDERS_EN, THINKER_ORDERS_FI, TOOLS_THINKER_AGAIN_EN, TOOLS_THINKER_AGAIN_FI,
 } from "../../app/scenario/briefing.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
@@ -170,5 +171,32 @@ describe("revision (al), 10 Oct 2026: what each Thinker cell's text says it know
     }
     expect(UI_TEXT.fi.tour.steps.zoom.body).toMatch(/Lähennä karttaa nähdäksesi palon/);
     expect(UI_TEXT.en.tour.steps.zoom.body).toMatch(/Zoom in to see the fire/);
+  });
+});
+
+describe("`31` participant texts (19 Oct 2026; DRAFT, Finnish for the native review)", () => {
+  it("coa F1(b), F8: the tour's decision step defines each secondary task in one line, under the plan's own label; the hold-line task names which line", () => {
+    for (const [lang, defs] of [["fi", SECONDARY_TASK_DEFINITIONS_FI], ["en", SECONDARY_TASK_DEFINITIONS_EN]] as const) {
+      const labels = UI_TEXT[lang].secondaryTasks;
+      expect(defs.map((d) => d.split(":")[0])).toEqual([labels["task.direct-attack"], labels["task.hold-line"], labels["task.mopup"]]);
+      for (const d of defs) expect(UI_TEXT[lang].tour.steps.decision.body, lang).toContain(d);
+    }
+    expect(UI_TEXT.fi.secondaryTasks["task.hold-line"]).toBe("Linjan pito tiellä tai vesistöllä");
+    expect(UI_TEXT.en.secondaryTasks["task.hold-line"]).toBe("Holding the line on a road or water");
+  });
+
+  it("radio DF-01 (c): the setting and the tour's welcome say that the units' answers to the command post's questions appear in the records, in both languages and both groups", () => {
+    for (const t of [SETTING_TEXT_FI, TOUR_SETTING_FI, haku.settingFi, llm.settingFi]) expect(t).toContain(UNIT_ANSWERS_FI.trim());
+    for (const t of [SETTING_TEXT_EN, TOUR_SETTING_EN]) expect(t).toContain(UNIT_ANSWERS_EN.trim());
+  });
+
+  it("radio TE-05: Haku is the command post's question tool in the rescue services' word (johtopaikka), never the military komentopaikka", () => {
+    expect(HAKU_CHAT_FI).toMatch(/^Haku on johtopaikan kysymystyökalu/);
+    for (const t of [HAKU_CHAT_FI, SETTING_TEXT_FI, TOUR_SETTING_FI]) expect(t).not.toMatch(/komentopaik/);
+  });
+
+  it("coa F11: the departure reason names no front or spread (it cued the deciding fronts)", () => {
+    expect(UI_TEXT.fi.departureReasons.new_fire_info).toBe("Uusi tieto palosta");
+    expect(UI_TEXT.en.departureReasons.new_fire_info).toBe("New information about the fire");
   });
 });

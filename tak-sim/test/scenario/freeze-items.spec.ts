@@ -14,6 +14,7 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { DECISION_PROMPT_FI } from "../../app/scenario/demo-decisions.js";
 import { FREEZE_VIEWS, INFRA_SCHEDULE, SPAM_VIEWS, infrastructureItem } from "../../app/scenario/demo-probes.js";
 import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { isOrdinal } from "../../app/scenario/freeze-bank-core.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
 import { hasLabelEn, tr } from "../../app/i18n/text.js";
@@ -53,12 +54,16 @@ describe("the goal-based bank's structure", () => {
     for (const g of ["safety", "values", "containment", "resources"]) expect(all.filter((it) => it.goal === g).length, g).toBeGreaterThanOrEqual(4);
   });
 
-  it("has at least one map_point item in every main freeze but V7, with a key point and the tolerance rule (L1 200 m, L3 300 m)", () => {
+  it("has at least one map_point item in every main freeze but V7 and V14, with a key point and the tolerance rule (L1 200 m, L3 300 m)", () => {
     // Fix pass 3 (7 Oct 2026): V7's KY21 item became a choice item (its radioed move against the stale map symbol), V7's only map item.
-    for (const f of mains.filter((x) => x.cycle !== 7)) expect(f.items.some((it) => it.kind === "map_point"), `V${f.cycle}`).toBe(true);
+    // `31` F03 (19 Oct 2026): V14's head_later gave way to a non-map L3 item (no truth exists after 20.00), so V14 has no map item.
+    for (const f of mains.filter((x) => x.cycle !== 7 && x.cycle !== 14)) expect(f.items.some((it) => it.kind === "map_point"), `V${f.cycle}`).toBe(true);
+    expect(mains.find((f) => f.cycle === 14)!.items.some((it) => it.kind === "map_point")).toBe(false);
     for (const f of [...mains, scenario.practice.freeze]) for (const it of f.items.filter((x) => x.kind === "map_point")) {
       expect(it.options, it.id).toEqual([]);
-      expect(it.mapKey!.toleranceM, it.id).toBe(it.id === "freeze.10.south_front_point" ? 100 : it.level === "L3" ? 300 : 200); // V10's small front: 100 m (fix pass 6)
+      // V10's small front: 100 m (fix pass 6); V12's head an hour after 19.00 lies ~570 m from the head drawn at "now", so 250 m keeps `31` F03's 2× rule
+      const tolerance = it.id === "freeze.10.south_front_point" ? 100 : it.id === "freeze.12.head_later" ? 250 : it.level === "L3" ? 300 : 200;
+      expect(it.mapKey!.toleranceM, it.id).toBe(tolerance);
       expect(it.level, it.id).not.toBe("L2");
     }
   });
@@ -137,10 +142,10 @@ describe("repetition and balance (the critique of the two repeated items)", () =
     }
   });
 
-  it("across the main freezes, the correct positions of each level differ by at most one", () => {
+  it("across the main freezes, the correct positions of each level differ by at most one (ordinal band items, ascending, stand outside the balance: `31` F11)", () => {
     for (const level of ["L1", "L2", "L3"] as const) {
       const counts = [0, 0, 0, 0];
-      for (const it of mains.flatMap((f) => f.items).filter((x) => x.level === level && isChoice(x))) counts[it.options.findIndex((o) => o.correct)]!++;
+      for (const it of mains.flatMap((f) => f.items).filter((x) => x.level === level && isChoice(x) && !isOrdinal(x))) counts[it.options.findIndex((o) => o.correct)]!++;
       expect(Math.max(...counts) - Math.min(...counts), `${level}: ${counts}`).toBeLessThanOrEqual(1);
     }
   });

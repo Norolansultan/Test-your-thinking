@@ -61,6 +61,30 @@ export const ROLE_TEXT_FI =
   "mukaan. ";
 
 /**
+ * `31` radio DF-01 (c) (19 Oct 2026; `27` §7.1 kept): the units' answers given when the command post asks (the records marked
+ * "kysyttäessä") and their other log entries are in the records, not all in the message log. Both groups, in the setting text and the
+ * practice tour's welcome. DRAFT, native check.
+ */
+export const UNIT_ANSWERS_FI = "Yksiköiden vastaukset johtopaikan kysymyksiin näkyvät kirjauksissa. ";
+export const UNIT_ANSWERS_EN = "The units' answers to the command post's questions appear in the records. ";
+
+/**
+ * `31` coa F1 (b) (19 Oct 2026): one line per secondary task, the same for everyone, in the practice tour's decision step (`ui.ts`
+ * tour.steps.decision): mop-up is for an edge that has stopped spreading, a direct attack for an edge that is spreading. The labels are
+ * `ui.ts` `secondaryTasks`. DRAFT, native and domain check.
+ */
+export const SECONDARY_TASK_DEFINITIONS_FI: readonly string[] = [
+  "Suora hyökkäys palon reunaan: leviävän reunan sammutus suoraan.",
+  "Linjan pito tiellä tai vesistöllä: valmiin linjan pito tien tai vesistön varassa.",
+  "Jälkisammutus ja varmistus: reunan, jonka leviäminen on pysähtynyt, sammutus ja vartiointi.",
+];
+export const SECONDARY_TASK_DEFINITIONS_EN: readonly string[] = [
+  "Direct attack on the fire's edge: putting out a spreading edge directly.",
+  "Holding the line on a road or water: holding a prepared line along a road or water.",
+  "Mop-up and securing: putting out and watching an edge that has stopped spreading.",
+];
+
+/**
  * The setting text. Revision (ae), researcher 9 Oct 2026: the "Situation" page that showed it before the
  * practice view is gone. What it alone said — the role, the recorded run, the autonomous assets and what a
  * period covers — is now the practice tour's welcome (`TOUR_SETTING_*`, `ui.ts` tour.steps.welcome); the
@@ -68,14 +92,14 @@ export const ROLE_TEXT_FI =
  * The whole text is kept for the review export and the record (`briefing_advanced` "briefing.setting").
  */
 export const SETTING_TEXT_FI =
-  ROLE_TEXT_FI + AUTONOMOUS_ASSETS_FI + " Näet yksiköiden sijainnit kartalla ja niiden ilmoitukset viestilokissa. Tehtäväsi on muodostaa " +
+  ROLE_TEXT_FI + UNIT_ANSWERS_FI + AUTONOMOUS_ASSETS_FI + " Näet yksiköiden sijainnit kartalla ja niiden ilmoitukset viestilokissa. Tehtäväsi on muodostaa " +
   "tilannekuva tallentuneen tiedon perusteella ja kirjata kohdennuksesi. " +
   "Kussakin jaksossa on aikaa enintään kaksi ja puoli minuuttia. " +
   PERIOD_TIME_FI + " " +
   PROJECTION_CAVEAT_FI;
 
 /** What the practice tour's welcome adds (revision (ae)): the setting text's sentences no other screen says. Both groups. */
-export const TOUR_SETTING_FI = ROLE_TEXT_FI + AUTONOMOUS_ASSETS_FI + " " + PERIOD_TIME_FI;
+export const TOUR_SETTING_FI = ROLE_TEXT_FI + UNIT_ANSWERS_FI + AUTONOMOUS_ASSETS_FI + " " + PERIOD_TIME_FI;
 
 /**
  * The same cross-checking sentence in both training texts (researcher decision 1 Oct 2026): an
@@ -90,7 +114,8 @@ export const CROSS_CHECK_FI = "Voit verrata eri lähteiden kirjauksia keskenää
  * (researcher, 8 Oct 2026); that is the one permitted mention, so "kielimalli" is not an AI word in the tests.
  */
 export const HAKU_CHAT_FI =
-  "Haku on komentopaikan kysymystyökalu: kysy siltä omin sanoin. Haku vastaa vain tähän mennessä " +
+  // `31` radio TE-05 (19 Oct 2026): "johtopaikan", the rescue services' word (was the military "komentopaikan").
+  "Haku on johtopaikan kysymystyökalu: kysy siltä omin sanoin. Haku vastaa vain tähän mennessä " +
   "tulleiden ilmoitusten ja kirjausten perusteella – myöhempää tietoa sillä ei ole – ja mainitsee " +
   "lähteet ja kellonajat. Vastaus on aina samassa muodossa: vastaus, perusteet, varmuus ja mikä " +
   "muuttaisi arviota. Vastaus voi olla väärä tai puutteellinen. Hakun vastaukset tuottaa kielimalli saapuneiden ilmoitusten pohjalta.";
@@ -195,14 +220,14 @@ export const ROLE_TEXT_EN =
   "units do not receive your records; they act on their pre-agreed tasks and their own plans. ";
 
 export const SETTING_TEXT_EN =
-  ROLE_TEXT_EN + AUTONOMOUS_ASSETS_EN + " You see the " +
+  ROLE_TEXT_EN + UNIT_ANSWERS_EN + AUTONOMOUS_ASSETS_EN + " You see the " +
   "units' positions on the map and their reports in the message log. Your task is to build a picture of the " +
   "situation from the recorded information and record your allocations. " +
   "Each period has at most two and a half minutes. " +
   PERIOD_TIME_EN + " " +
   PROJECTION_CAVEAT_EN;
 
-export const TOUR_SETTING_EN = ROLE_TEXT_EN + AUTONOMOUS_ASSETS_EN + " " + PERIOD_TIME_EN;
+export const TOUR_SETTING_EN = ROLE_TEXT_EN + UNIT_ANSWERS_EN + AUTONOMOUS_ASSETS_EN + " " + PERIOD_TIME_EN;
 
 export const CROSS_CHECK_EN = "You can compare the records of different sources with each other.";
 export const HAKU_CHAT_EN =

@@ -3,6 +3,7 @@
 import type { ComponentChildren } from "preact";
 import { CONFIDENCE_SCALE } from "../../../session/confidence.js";
 import { useLang } from "../i18n.js";
+import type { HoverHandlers } from "./hover-dwell.js";
 
 export function Panel({ children, compact = false }: { readonly children: ComponentChildren; readonly compact?: boolean }) {
   return (
@@ -31,11 +32,15 @@ export function SecondaryButton({ children, onClick }: { readonly children: Comp
   );
 }
 
-/** `compact`: a smaller button for the plan panel's one-line rows (6 Oct 2026: more room for the map). */
-export function Choice({ children, selected, onClick, compact = false }: { readonly children: ComponentChildren; readonly selected: boolean; readonly onClick: () => void; readonly compact?: boolean }) {
+/**
+ * `compact`: a smaller button for the plan panel's one-line rows (6 Oct 2026: more room for the map). `hover` (SPEC/30
+ * §5.4): the option's pointer handlers for its hover record (`hover-dwell.ts`).
+ */
+export function Choice({ children, selected, onClick, compact = false, hover }: { readonly children: ComponentChildren; readonly selected: boolean; readonly onClick: () => void; readonly compact?: boolean; readonly hover?: HoverHandlers }) {
   return (
     <button
       onClick={onClick}
+      {...(hover ? { onPointerEnter: hover.onPointerEnter, onPointerLeave: hover.onPointerLeave } : {})}
       aria-pressed={selected}
       style={{ padding: compact ? "3px 7px" : "6px 8px", borderRadius: 6, fontSize: compact ? 11.5 : 12, cursor: "pointer", color: "#e8eaed", border: `1px solid ${selected ? "#8a9097" : "#33383e"}`, background: selected ? "#3a3f44" : "#1b1e22" }}
     >

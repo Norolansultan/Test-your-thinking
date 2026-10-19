@@ -684,6 +684,12 @@ export interface CycleSpec {
    * the participant is doing, exploring or mid-decision (decision 1 Oct 2026, superseding SPEC/15
    * §9's "placed before the decision phase, never after a response"). */
   readonly freezeAtSeconds: number | null;
+  /**
+   * SPEC/30 §5.1 (19 Oct 2026): the freeze comes after the plan is final — at the view's end, after the
+   * plan-confidence item, before the next view — instead of at a pre-planned moment (`freezeAtSeconds`
+   * is then null). Only with `hasFreeze`; absent (or false) everywhere else. Set from `FREEZE_AT_VIEW_END`.
+   */
+  readonly freezeAtViewEnd?: boolean;
   /** SPEC/26 §2: in a merged view, the map's units and aircraft at the second step; null in a single-step view. */
   readonly stepBoundary: StepBoundary | null;
 }

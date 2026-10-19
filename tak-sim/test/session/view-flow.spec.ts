@@ -40,6 +40,12 @@ async function inV1() {
 
 const detailsOf = <T>(records: readonly LogRecord[], kind: string) => records.filter((r) => r.kind === kind).map((r) => r.detail as T);
 
+/** SPEC/30 §5.4: the view has ended and its plan's confidence is asked (the view still on screen); rated, the next view starts. */
+async function rateThePlan(o: SessionOrchestrator, snap: () => SessionSnapshot, view: number): Promise<void> {
+  expect(snap()).toMatchObject({ currentCycle: view, step: "plan_confidence", planConfidence: { cycle: view } });
+  await o.submitPlanConfidence(50);
+}
+
 describe("the decision panel opens 20 s into the view", () => {
   it("not before: the map, its messages and the projection come first, with only the hint", async () => {
     const { o, snap } = await inPractice();
@@ -63,6 +69,7 @@ describe("the plan is the only response, and it confirms the period (revision (x
     expect(snap().step).toBe("allocation");
     await vi.advanceTimersByTimeAsync(110_000);
     await o.submitAllocation(PLAN);
+    await rateThePlan(o, snap, 1);
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration" });
     const kinds = (await o.logRecords()).map((r) => r.kind);
     for (const k of ["containment_judgement_submitted", "outlook_submitted", "branch_list_presented", "decision_presented"]) expect(kinds, k).not.toContain(k);
@@ -80,6 +87,7 @@ describe("the minimum length", () => {
     await vi.advanceTimersByTimeAsync(99_999);
     expect(snap().currentCycle).toBe(1);
     await vi.advanceTimersByTimeAsync(1);
+    await rateThePlan(o, snap, 1);
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration" });
     expect(detailsOf(await o.logRecords(), "view_ended").at(-1)).toEqual({ cycle: 1, viewSeconds: 120, endedBy: "minimum_length" });
   });
@@ -90,6 +98,7 @@ describe("the minimum length", () => {
     expect(snap()).toMatchObject({ currentCycle: 1, step: "allocation", minimumReached: true });
     await vi.advanceTimersByTimeAsync(5_000);
     await o.submitAllocation(PLAN);
+    await rateThePlan(o, snap, 1);
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration" });
     expect(detailsOf(await o.logRecords(), "view_ended").at(-1)).toEqual({ cycle: 1, viewSeconds: 135, endedBy: "participant_confirm" });
   });
@@ -117,6 +126,7 @@ describe("revising the allocation while the confirmed view waits", () => {
       { cycle: 1, revision: 2, plan: { mainEffort: "L2", posture: "direct_attack", secondary: null, drones: null } },
     ]);
     await vi.advanceTimersByTimeAsync(100_000);
+    await rateThePlan(o, snap, 1);
     expect(snap().currentCycle).toBe(2);
     expect(detailsOf(await o.logRecords(), "view_ended").at(-1)).toMatchObject({ cycle: 1, endedBy: "minimum_length" });
   });
@@ -127,6 +137,7 @@ describe("revising the allocation while the confirmed view waits", () => {
     await allocateAndConfirm(o, snap);
     await o.reviseAllocation();
     await vi.advanceTimersByTimeAsync(100_000);
+    await rateThePlan(o, snap, 1);
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration", revisingAllocation: false });
     expect(detailsOf(await o.logRecords(), "allocation_revised")).toHaveLength(0);
   });
@@ -165,7 +176,7 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
     expect(detailsOf(await o.logRecords(), "view_ended")).toEqual([{ cycle: 0, viewSeconds: practiceMin, endedBy: "minimum_length" }]);
   });
 
-  it("happens in every freeze view at that view's own moment, identically on every run", async () => {
+  it("happens in every freeze view at that view's own moment — V10 and V14 at the view's end (SPEC/30 §5.1) — identically on every run", async () => {
     const run = async () => {
       const { o, snap } = await inPractice();
       for (let view = 0; view <= 14; view++) {
@@ -174,11 +185,15 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
         if (snap().step === "training") await o.completeTraining();
         if (snap().step === "hinge_pause") await passHinge(o);
       }
-      return detailsOf<{ cycle: number; atViewSeconds: number }>(await o.logRecords(), "freeze_started");
+      const records = await o.logRecords();
+      return { starts: detailsOf<{ cycle: number; atViewSeconds: number; decisionStep: string }>(records, "freeze_started"), ends: detailsOf<{ cycle: number; viewSeconds: number }>(records, "view_ended") };
     };
     const first = await run();
-    const expected = [scenario.practice.cycle, ...scenario.cycles].filter((c) => c.hasFreeze).map((c) => ({ cycle: c.index, atViewSeconds: c.freezeAtSeconds }));
-    expect(first.map(({ cycle, atViewSeconds }) => ({ cycle, atViewSeconds }))).toEqual(expected);
+    const endOf = (view: number) => first.ends.find((e) => e.cycle === view)!.viewSeconds;
+    const expected = [scenario.practice.cycle, ...scenario.cycles].filter((c) => c.hasFreeze)
+      .map((c) => ({ cycle: c.index, atViewSeconds: c.freezeAtViewEnd ? endOf(c.index) : c.freezeAtSeconds }));
+    expect(first.starts.map(({ cycle, atViewSeconds }) => ({ cycle, atViewSeconds }))).toEqual(expected);
+    expect(first.starts.filter((f) => f.decisionStep === "view_ended").map((f) => f.cycle)).toEqual([10, 14]);
     expect(await run()).toEqual(first);
   });
 });
@@ -277,6 +292,7 @@ describe("the plan recorded, and the time-out notice (review 6 Oct 2026)", () =>
     while (snap().currentCycle === 1) {
       await vi.advanceTimersByTimeAsync(1_000);
       if (snap().step === "freeze") await o.submitFreeze([]);
+      if (snap().planConfidence) await o.submitPlanConfidence(25); // SPEC/30 §5.4: after the view's end, a cap's too
     }
     expect(detailsOf(await o.logRecords(), "view_ended").at(-1)).toMatchObject({ cycle: 1, endedBy: "time_cap" });
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration", previousViewTimedOutWithoutPlan: true });
@@ -292,6 +308,7 @@ describe("the plan recorded, and the time-out notice (review 6 Oct 2026)", () =>
     while (snap().currentCycle === 1) {
       await vi.advanceTimersByTimeAsync(1_000);
       if (snap().step === "freeze") await o.submitFreeze([]);
+      if (snap().planConfidence) await o.submitPlanConfidence(25); // SPEC/30 §5.4: after the view's end, a cap's too
     }
     expect(detailsOf(await o.logRecords(), "view_ended").at(-1)).toMatchObject({ cycle: 1, endedBy: "minimum_length" });
     expect(snap()).toMatchObject({ currentCycle: 2, step: "exploration", previousViewTimedOutWithoutPlan: false });

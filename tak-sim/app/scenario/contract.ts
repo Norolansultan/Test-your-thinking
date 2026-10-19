@@ -93,13 +93,21 @@ function checkStepSpans(input: ScenarioContract): void {
 /**
  * The view timing (researcher decision 1 Oct 2026): each view's minimum length is the real one for
  * its step count, and a view has a freeze offset exactly when it has a freeze — a whole second
- * within [25, minimum length − 20].
+ * within [25, minimum length − 20]. SPEC/30 §5.1: a freeze at the view's end (`freezeAtViewEnd`, a
+ * main view only) has no offset (null) — it is placed by the view's end, not by a moment on its clock.
  */
 function checkViewTiming(input: ScenarioContract): void {
   for (const c of [input.practice.cycle, ...input.cycles]) {
     const expectedMin = c.index === PRACTICE_VIEW_INDEX ? PRACTICE_VIEW_MIN_SECONDS : viewMinSecondsFor(c.steps);
     if (c.minViewSeconds !== expectedMin) fail("invalid-view-timing", `View ${c.index} has minViewSeconds ${c.minViewSeconds}, expected ${expectedMin} for ${c.steps} step(s)`);
     const at = c.freezeAtSeconds;
+    if (c.freezeAtViewEnd !== undefined && typeof c.freezeAtViewEnd !== "boolean") fail("invalid-view-timing", `View ${c.index}'s freezeAtViewEnd must be a boolean`);
+    if (c.freezeAtViewEnd === true) {
+      if (!c.hasFreeze) fail("invalid-view-timing", `View ${c.index} has freezeAtViewEnd but no freeze`);
+      if (c.index === PRACTICE_VIEW_INDEX) fail("invalid-view-timing", "The practice view's freeze cannot be at its end: it has no plan-confidence item (SPEC/30 §5.1)");
+      if (at !== null) fail("invalid-view-timing", `View ${c.index}'s freeze is at its end (freezeAtViewEnd), so freezeAtSeconds must be null, got ${at}`);
+      continue;
+    }
     if (!c.hasFreeze) {
       if (at !== null) fail("invalid-view-timing", `View ${c.index} has no freeze but freezeAtSeconds ${at}`);
       continue;

@@ -71,6 +71,19 @@ export function paneShowsLog(pane: TakPaneId | null): boolean {
   return pane === "geochat" || (pane !== null && SEARCH_PANES.has(pane));
 }
 
+/** SPEC/30 §4: the pane the consult notification's button opens — Haku's, or the Thinker's. */
+export function consultPaneOf(tool: "haku" | "thinker"): TakPaneId {
+  return tool === "haku" ? "haku" : "thinker";
+}
+
+/**
+ * SPEC/30 §4: the consult notification sits beside its tool's toolbar button — its top level with the button's (the
+ * toolbar's 6 px padding, then one button height plus the 2 px gap per button above it), so it points at the tool it opens.
+ */
+export function consultNoticeTop(panes: readonly TakPaneId[], tool: "haku" | "thinker", buttonHeight: number): number {
+  return 6 + Math.max(0, panes.indexOf(consultPaneOf(tool))) * (buttonHeight + 2);
+}
+
 /**
  * A toolbar button's accessible name: its visible label first (WCAG 2.5.3, label in name), then the pane's full title when
  * it says more ("R&B, Range & Bearing"), then GeoChat's unread count when its badge shows.

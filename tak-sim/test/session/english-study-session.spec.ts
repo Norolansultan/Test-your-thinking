@@ -79,7 +79,7 @@ async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { rea
   const transport = vi.fn(async () => { throw new TypeError("network down"); });
   const o = new SessionOrchestrator(scenario, conditionOfCell(cell), {
     cell, language: "en", studyShell: true, visibleProbes: true, guidedTour: true, showProbeLevels: false, aiLiteracyTest: true,
-    participantCode, realClockMs: () => Date.now(), thinker: { transport, wait: async () => undefined },
+    participantCode, realClockMs: () => Date.now(), thinker: { transport, openTransport: transport as never, wait: async () => undefined },
     ...(run.sink ? { sink: run.sink } : {}), ...(run.resume ? { resume: run.resume } : {}),
   });
   const seen: Seen = { labels: new Set(), records: new Set(), english: new Set(), steps: new Set(), probeTypes: new Set() };
@@ -106,12 +106,18 @@ async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { rea
       else await o.submitProbeScale(50);
       continue;
     }
+    // SPEC/30 §4: the consult notification — its button in even views, its close button in odd ones.
+    if (s.consultPrompt) {
+      if (s.currentCycle % 2 === 0) await o.openConsultPrompt(); else await o.dismissConsultPrompt();
+      continue;
+    }
     // Thinker once per main view, while the tools are free (its proxy is down: the English fallback answers).
     if (s.aiAvailable && askedIn !== s.currentCycle && (s.step === "exploration" || s.step === "allocation") && !s.toolsLocked) {
       askedIn = s.currentCycle;
       const results = await o.searchAtoms("north edge");
       for (const r of results) seen.records.add(r.id);
       await o.askAiChat("Where is the fire heading?");
+      if (s.suggestedQuestion) await o.askSuggestedQuestion(); // SPEC/30 §4: the guide's chip, from V8
       continue;
     }
     switch (s.step) {
@@ -132,6 +138,9 @@ async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { rea
         break;
       case "debrief": await o.finishDebrief(); break;
       case "freeze": await o.submitFreeze([]); break;
+      case "plan_confidence": // SPEC/30 §5.4: shown once its record is durable
+        if (s.planConfidence) await o.submitPlanConfidence(75); else await vi.advanceTimersByTimeAsync(0);
+        break;
       case "allocation": await o.submitAllocation(PLAN); break;
       case "awaiting_view_end":
         if (revisedIn !== s.currentCycle && !s.minimumReached) { revisedIn = s.currentCycle; await o.reviseAllocation(); break; }
@@ -148,7 +157,7 @@ describe("a whole English study session (consent to the end)", () => {
     it(`${cell}: every participant-facing string is English, no truth key reaches the screen, the shell frames the run`, async () => {
       const { seen, records, o } = await runEnglishSession(cell);
       // The session went through everything.
-      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "hinge_pause", "debrief", "complete"]) {
+      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "plan_confidence", "hinge_pause", "debrief", "complete"]) {
         expect(seen.steps.has(step), step).toBe(true);
       }
       expect([...seen.probeTypes].sort()).toEqual(["U"]);
@@ -178,6 +187,41 @@ describe("a whole English study session (consent to the end)", () => {
       // Thinker's (fallback) answers, the questionnaire, the debrief and the hinge notes are English.
       expect([...seen.english].filter((t) => FINNISH.test(t))).toEqual([]);
       if (cell !== "radio") expect(records.some((r) => r.kind === "ai_chat_answer_received" && (r.detail as { retrievalLanguage: string }).retrievalLanguage === "en")).toBe(true);
+
+      // SPEC/30 §4: the consult notification in every main view once (60 s), never VP; opened or dismissed; the tool by the group.
+      const consult = records.filter((r) => r.kind.startsWith("consult_prompt_")).map((r) => ({ kind: r.kind, ...(r.detail as { cycle: number; tool: string; cause?: string }) }));
+      const tool = cell === "radio" ? "haku" : "thinker";
+      expect(consult.filter((c) => c.kind === "consult_prompt_shown").map((c) => c.cycle)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+      expect(consult.every((c) => c.tool === tool)).toBe(true);
+      for (let v = 1; v <= 14; v++) {
+        expect(consult.filter((c) => c.cycle === v).map((c) => c.kind), `V${v}`).toEqual(["consult_prompt_shown", v % 2 === 0 ? "consult_prompt_opened" : "consult_prompt_dismissed"]);
+      }
+      expect(consult.filter((c) => c.kind === "consult_prompt_dismissed").every((c) => c.cause === "participant")).toBe(true);
+      // SPEC/30 §4: the chip only in the guide group, only from V8, logged `viaChip` with exactly its question.
+      const chip = records.filter((r) => r.kind === "ai_chat_query_submitted" && (r.detail as { viaChip?: boolean }).viaChip === true).map((r) => r.detail as { view: number; text: string; tool: string });
+      if (cell === "reasoning_intent") {
+        expect(chip.map((c) => c.view)).toEqual([8, 9, 10, 11, 12, 13, 14]);
+        expect(chip.every((c) => c.text === "What has changed that matters for my plan?" && c.tool === "open_thinker")).toBe(true);
+      } else expect(chip).toEqual([]);
+      // SPEC/30 §5.4: the plan's confidence after every main view, presented then submitted, before the next view starts.
+      const pc = records.filter((r) => r.kind === "plan_confidence_submitted").map((r) => r.detail);
+      expect(pc).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((cycle) => ({ cycle, value: 75 })));
+      for (let v = 1; v <= 14; v++) {
+        const at = (kind: string) => records.findIndex((r) => r.kind === kind && (r.detail as { cycle: number }).cycle === v);
+        expect(at("view_ended"), `V${v}`).toBeLessThan(at("plan_confidence_presented"));
+        expect(at("plan_confidence_presented"), `V${v}`).toBeLessThan(at("plan_confidence_submitted"));
+        expect(at("plan_confidence_submitted"), `V${v}`).toBeLessThan(at("cycle_end"));
+      }
+      // SPEC/30 §5.1: V10 and V14 freeze after the plan's confidence, at the view's end, before the next view (V14: before its after-view probes).
+      for (const v of [10, 14]) {
+        const at = (kind: string) => records.findIndex((r) => r.kind === kind && (r.detail as { cycle: number }).cycle === v);
+        expect(at("plan_confidence_submitted"), `V${v}`).toBeLessThan(at("freeze_started"));
+        expect(at("freeze_started"), `V${v}`).toBeLessThan(at("freeze_submitted"));
+        expect(at("freeze_submitted"), `V${v}`).toBeLessThan(at("cycle_end"));
+        expect(records[at("freeze_started")]!.detail).toMatchObject({ decisionStep: "view_ended", atViewSeconds: (records[at("view_ended")]!.detail as { viewSeconds: number }).viewSeconds });
+      }
+      const v14Probes = records.findIndex((r) => r.kind === "probe_presented" && (r.detail as { probeId: string }).probeId === "probe.u.cycle_14");
+      expect(records.findIndex((r) => r.kind === "freeze_submitted" && (r.detail as { cycle: number }).cycle === 14)).toBeLessThan(v14Probes);
     }, 120_000);
   }
 
@@ -201,7 +245,7 @@ describe("a whole English study session (consent to the end)", () => {
 describe("the same stimulus for every participant of a cell (determinism)", () => {
   it("two participants of the same cell get identical stimulus records, in the same order", async () => {
     const codes = ["P-3", "P-4"];
-    const shown = new Set(["ai_literacy_started", "bubble_available", "duty_officer_message_delivered", "envelope_revealed", "probe_presented", "spam_prompt_shown", "freeze_started", "branch_list_presented", "questionnaire_presented", "hinge_check_presented", "hinge_cell_note_shown", "debrief_shown", "step_boundary_reached", "cycle_start"]);
+    const shown = new Set(["ai_literacy_started", "bubble_available", "duty_officer_message_delivered", "envelope_revealed", "probe_presented", "spam_prompt_shown", "freeze_started", "branch_list_presented", "questionnaire_presented", "hinge_check_presented", "hinge_cell_note_shown", "debrief_shown", "step_boundary_reached", "cycle_start", "consult_prompt_shown", "plan_confidence_presented"]);
     // Revision (ai): the one per-participant difference is the ORDER of the closed items' options (V13's area
     // item, the questionnaire's multi-select items); the option sets are the same, so they are compared sorted.
     const sameSet = (ids: readonly string[]) => [...ids].sort((x, y) => x.localeCompare(y));

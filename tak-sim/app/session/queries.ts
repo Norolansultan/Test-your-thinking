@@ -182,14 +182,15 @@ export class SessionQueries {
    * conversation's last turns as history (F2: at most 10, the participant's first, a model turn cut to
    * 4000 characters). A reply of the wrong shape, a timeout or a network failure (or the proxy's own
    * fallback) shows the explicit "unavailable" state, never a record excerpt (commander M1, 8 Oct
-   * 2026), logged as a fallback with its reason (F1). `tool: "open_thinker"`.
+   * 2026), logged as a fallback with its reason (F1). `tool: "open_thinker"`. `viaChip` (SPEC/30 §4): the
+   * question is the guide's suggested-question chip, logged so on its `ai_chat_query_submitted`.
    */
-  async askOpenThinker(query: string): Promise<string> {
+  async askOpenThinker(query: string, viaChip = false): Promise<string> {
     this.startView(this.ctx.view());
     if (!this.ctx.aiAvailable()) throw new Error("The Open Thinker is not available in this view (the AI condition only)");
     if (query.length > THINKER_MAX_QUESTION_CHARS) throw new RangeError(`A Thinker question is at most ${THINKER_MAX_QUESTION_CHARS} characters`);
     const cell = this.thinkerCell();
-    const asked = await this.logQuestion(query, "open_thinker");
+    const asked = await this.logQuestion(query, "open_thinker", viaChip);
     const floor = this.wait(THINKER_LATENCY_FLOOR_MS);
     let response: OpenThinkerResponse;
     try {
@@ -259,12 +260,12 @@ export class SessionQueries {
   }
 
   /** Logs the question (`ai_chat_query_submitted`) durably and returns what its answer record repeats. */
-  private async logQuestion(query: string, tool: "haku" | "open_thinker"): Promise<{ queryId: string; view: number; virtualTimeS: number; phase: "exploration" | "decision" }> {
+  private async logQuestion(query: string, tool: "haku" | "open_thinker", viaChip = false): Promise<{ queryId: string; view: number; virtualTimeS: number; phase: "exploration" | "decision" }> {
     this.aiQueryCount += 1;
     const asked = { queryId: `${tool === "haku" ? "ai" : "ai_open"}.${this.aiQueryCount}`, view: this.ctx.view(), virtualTimeS: this.ctx.now() as number, phase: this.ctx.phaseTag() };
     await appendTelemetryEvent(this.ctx.log, this.ctx.now(), this.ctx.wallMs?.() ?? 0, {
       kind: "ai_chat_query_submitted",
-      detail: { queryId: asked.queryId, text: query, view: asked.view, virtualTimeS: asked.virtualTimeS, phase: asked.phase, tool },
+      detail: { queryId: asked.queryId, text: query, view: asked.view, virtualTimeS: asked.virtualTimeS, phase: asked.phase, tool, ...(viaChip ? { viaChip: true as const } : {}) },
     });
     return asked;
   }

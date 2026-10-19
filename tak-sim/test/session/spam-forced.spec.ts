@@ -89,6 +89,8 @@ describe("the ready prompt left up is forced at the view's end", () => {
     await o.answerSpam("a");
     expect(snap().currentCycle).toBe(3); // the confidence is still asked
     await o.submitSpamConfidence(75);
+    expect(snap()).toMatchObject({ currentCycle: 3, step: "plan_confidence" }); // SPEC/30 §5.4: the view has ended; its plan's confidence
+    await o.submitPlanConfidence(75);
     expect(snap().currentCycle).toBe(4);
     records = await o.logRecords();
     const closed = records.findIndex((r) => r.kind === "spam_closed" && (r.detail as { probeId: string }).probeId === P);
@@ -111,6 +113,8 @@ describe("the ready prompt left up is forced at the view's end", () => {
     await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 1);
     expect(snap().currentCycle).toBe(6);
     await vi.advanceTimersByTimeAsync(1);
+    expect(snap()).toMatchObject({ currentCycle: 6, step: "plan_confidence" }); // SPEC/30 §5.4: after a cap's end too
+    await o.submitPlanConfidence(25);
     expect(snap().currentCycle).toBe(7);
     const records = await o.logRecords();
     expect(ofProbe(records, "spam_answered", P).map((r) => r.detail)).toEqual([{ probeId: P, response: null, timedOut: true }]);
@@ -238,6 +242,7 @@ describe("resume into a forced item (revision (ag))", () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await second.o.answerSpam("a");
     await second.o.submitSpamConfidence(100);
+    await second.o.submitPlanConfidence(100); // SPEC/30 §5.4: the view's end, then its plan's confidence
     expect(second.snap().currentCycle).toBe(4);
     const all = await sink.readAll();
     expect(viewEnded(all, 3)!.detail).toEqual({ cycle: 3, viewSeconds: forced.atViewSeconds, endedBy: (added[3]!.detail as { viewEndedBy: string }).viewEndedBy });

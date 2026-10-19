@@ -32,19 +32,20 @@ import {
   type Envelope,
   type ExpectedInvariant,
   type InfoAtom,
+  type ProbeSpec,
   type ScenarioContract,
   type SourceClass,
 } from "./types.js";
 import { buildAllocationSpace } from "./allocation.js";
 import { createScenarioContract } from "./contract.js";
 import { SITE_SCENARIO } from "./site-scenario.js";
-import { freezeOffsetSecondsFor, HINGE_AFTER_VIEW, PRACTICE_FREEZE_AT_S, PRACTICE_VIEW_MIN_SECONDS, MAIN_VIEWS, PRACTICE_STEP, PRACTICE_VIEW_INDEX, STEP_SECONDS, viewOfStep } from "./views.js";
+import { FREEZE_AT_VIEW_END, freezeOffsetSecondsFor, HINGE_AFTER_VIEW, PRACTICE_FREEZE_AT_S, PRACTICE_VIEW_MIN_SECONDS, MAIN_VIEWS, PRACTICE_STEP, PRACTICE_VIEW_INDEX, secondSpamProbeId, STEP_SECONDS, viewOfStep } from "./views.js";
 import { trafficAtom } from "./traffic-atoms.js";
 import { designedEventAtoms, F7_TRUTH_INVARIANT } from "./designed-events.js";
 import { accuracyLabel, buildRateMarks, buildSensorFootprints, radioAtoms, siteView, viewMap } from "./demo-map.js";
 import { CYCLE_STORY, storyAtoms, type UnitId } from "./demo-story.js";
 import { buildBranchStatements } from "./branch-statements.js";
-import { buildFreezes, buildHingeCheck, buildPracticeFreeze, buildProbeSchedule, FREEZE_VIEWS } from "./demo-probes.js";
+import { buildFreezes, buildHingeCheck, buildPracticeFreeze, buildProbeSchedule, FREEZE_VIEWS, SPAM_ANSWER_TIMEOUT_MS, SPAM_SECOND_ITEMS, type SpamItem } from "./demo-probes.js";
 import { buildPracticeSpam } from "./practice-spam.js";
 import { buildDecisionItems, buildPracticeBranchStatements, buildPracticeDecisionItem } from "./demo-decisions.js";
 
@@ -106,6 +107,30 @@ function buildPracticeView(seed: bigint): PracticeView {
   };
 }
 
+/**
+ * SPEC/30 §5.2 (19 Oct 2026): the second SPAM items as probes. For each SPAM probe in `first` whose view has an item in
+ * `items` (`SPAM_SECOND_ITEMS`, filled by the content package), one more probe of type S: id `<first id>.b`
+ * (`secondSpamProbeId`), its key the invariant `<first invariant>.b` (TRUTH, like every key). It has no moment of its
+ * own (`offsetInWorkingPeriodMs` absent): the session shows it after the first item and its confidence, under the same
+ * "ready", with its own answer window.
+ */
+export function secondSpamProbes(items: Readonly<Record<number, SpamItem>>, first: readonly ProbeSpec[]): { readonly probes: ProbeSpec[]; readonly invariants: ExpectedInvariant[] } {
+  const probes: ProbeSpec[] = [];
+  const invariants: ExpectedInvariant[] = [];
+  for (const p of first) {
+    const item = p.type === "S" ? items[p.cycle as number] : undefined;
+    if (!item) continue;
+    const invariantName = `${p.invariantName}.b`;
+    invariants.push({ name: invariantName, expected: item.correct, tolerance: 0 });
+    probes.push({
+      id: secondSpamProbeId(p.id), type: "S", mode: "ONLINE", cycle: p.cycle, orderWithinCycle: p.orderWithinCycle + 1, invariantName,
+      prompt: item.prompt, response: { kind: "categorical", options: item.options.map((fi, i) => ({ id: "abcd"[i]!, fi })) },
+      answerTimeoutMs: p.answerTimeoutMs ?? SPAM_ANSWER_TIMEOUT_MS, collectsConfidence: true, contentKind: item.contentKind, saLevel: item.saLevel,
+    });
+  }
+  return { probes, invariants };
+}
+
 export function buildDemoScenario(): ScenarioContract {
   const seed = 20260917n;
   const rng = new Xorshift64Star(deriveSeed(seed, "demo-scenario"));
@@ -153,7 +178,10 @@ export function buildDemoScenario(): ScenarioContract {
       rateMarks: buildRateMarks(index, view.steps[0]!, sc, flag),
       sensorFootprints: buildSensorFootprints(index, sc),
       hasFreeze: FREEZE_VIEWS.has(index),
-      freezeAtSeconds: FREEZE_VIEWS.has(index) ? freezeOffsetSecondsFor(seed, index, spec.minViewSeconds, spec.steps === 2) : null,
+      // SPEC/30 §5.1: V10 and V14's freeze comes after the plan is final (`FREEZE_AT_VIEW_END`), so no moment is drawn
+      // for them; every view's moment is drawn on its own stream, so no other view's moment moves.
+      freezeAtSeconds: FREEZE_VIEWS.has(index) && !FREEZE_AT_VIEW_END.has(index) ? freezeOffsetSecondsFor(seed, index, spec.minViewSeconds, spec.steps === 2) : null,
+      ...(FREEZE_VIEWS.has(index) && FREEZE_AT_VIEW_END.has(index) ? { freezeAtViewEnd: true } : {}),
     });
 
     envelopes.push({ ...envelope, cycle: index, flag, accuracy_label: accuracyLabel(flag), isOmissionCycle: view.steps.includes(12) });
@@ -169,6 +197,9 @@ export function buildDemoScenario(): ScenarioContract {
   // SPEC/26 §4: the probe schedule, and each view's probe ids in presentation order.
   const schedule = buildProbeSchedule();
   invariants.push(...schedule.invariants);
+  // SPEC/30 §5.2: V3 and V6's second SPAM items (none until the content is authored), after every scheduled probe.
+  const secondSpam = secondSpamProbes(SPAM_SECOND_ITEMS, schedule.probes);
+  invariants.push(...secondSpam.invariants);
   // The manipulation check on the hinge screen (brief D3, 4 Oct 2026): the item without its key, the key as an invariant (TRUTH).
   const hingeCheck = buildHingeCheck();
   invariants.push(hingeCheck.invariant);
@@ -305,8 +336,8 @@ export function buildDemoScenario(): ScenarioContract {
       outsideEveryEnvelope: true,
       developmentAtomIds: [atoms.find((a) => a.cycle === 12)!.id],
     },
-    probeSchedule: { probes: schedule.probes },
-    cycles: cycles.map((c) => ({ ...c, probeIds: schedule.probeIdsByView.get(c.index) ?? [] })),
+    probeSchedule: { probes: [...schedule.probes, ...secondSpam.probes] },
+    cycles: cycles.map((c) => ({ ...c, probeIds: [...(schedule.probeIdsByView.get(c.index) ?? []), ...secondSpam.probes.filter((p) => p.cycle === c.index).map((p) => p.id)] })),
     practice: buildPracticeView(seed),
     atoms: [...atoms, ...trafficAtoms],
     envelopes,

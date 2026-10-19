@@ -37,6 +37,16 @@
  * `spam_ready`, `spam_answered`, `recall_confidence_submitted`, `spam_closed`; every latency and the
  * per-probe tool use are derived later (`spam-measures.ts`). The probe carries no key (the key is the
  * invariant `spam.cycle_<n>`), so nothing here is truth.
+ *
+ * SPEC/30 §5.2 (19 Oct 2026): a SECOND ITEM (V3, V6; `second`, id `<first id>.b`, `secondSpamProbeId`) follows the
+ * first under the same "ready" — no second prompt, no second `spam_prompt_shown` or `spam_ready`. When the first item
+ * closes (its confidence given, or its answer window run out) the second is shown at once, with its own 60 s answer
+ * window and its own `spam_answered` and `recall_confidence_submitted` (its id); `spam_closed` comes once, after the
+ * second item, with the FIRST item's id (the delivery's: it pairs with `spam_prompt_shown` and `spam_ready`, and with a
+ * forced `spam_ready` for the resume plan). The decision panel stays held, the view's end and a step boundary wait,
+ * and the tools stay usable throughout both. Forced at the view's end, both items are forced (modal). The second
+ * item's display moment is the first item's last record (its confidence, or its timed-out answer), or — when only the
+ * first item's confidence ran out, which logs nothing — the end of the first item's answer window.
  */
 
 import type { CycleIndex } from "../engine/primitives.js";
@@ -62,7 +72,15 @@ type SpamCycle = CycleIndex | PracticeViewIndex;
 const DEFAULT_ANSWER_TIMEOUT_MS = 60_000;
 
 export class SpamDelivery {
+  /** The item on screen (the first, or after it the second). */
   private probe: SpamProbe | null = null;
+  /** The delivery's first item's id: `spam_closed` carries it (SPEC/30 §5.2). */
+  private deliveryId: string | null = null;
+  /** SPEC/30 §5.2: the second item still to come in this delivery, if any. */
+  private second: SpamProbe | null = null;
+  /** 1 or 2 in a delivery of `itemCount` items. */
+  private itemIndex: 1 | 2 = 1;
+  private itemCount: 1 | 2 = 1;
   private cycle: SpamCycle | null = null;
   private phase: Phase | null = null;
   /** The phase on screen: it follows `phase` once the participant's step is durable (I5), so the next screen never shows before its record. */
@@ -90,14 +108,18 @@ export class SpamDelivery {
     if (!p || !this.phase || !this.shown) return null;
     if (this.shown === "ready") return { phase: "ready", probeId: p.id, collapsed: this.collapsed };
     const options = p.response.kind === "categorical" ? p.response.options.map((o) => ({ id: o.id, fi: o.fi })) : [];
-    return { phase: this.shown, probeId: p.id, promptFi: p.prompt, options, chosen: this.shown === "confidence" ? this.chosen : null, forced: this.forced };
+    return { phase: this.shown, probeId: p.id, promptFi: p.prompt, options, chosen: this.shown === "confidence" ? this.chosen : null, forced: this.forced, itemIndex: this.itemIndex, itemCount: this.itemCount };
   }
 
-  /** The ready prompt, at the probe's moment on the view's clock (`atViewSeconds`, logged). It waits for "ready" (no expiry). */
-  async show(probe: SpamProbe, cycle: SpamCycle, atViewSeconds: number): Promise<void> {
+  /**
+   * The ready prompt, at the probe's moment on the view's clock (`atViewSeconds`, logged). It waits for "ready" (no expiry).
+   * `second` (SPEC/30 §5.2): the item shown after this one under the same "ready".
+   */
+  async show(probe: SpamProbe, cycle: SpamCycle, atViewSeconds: number, second: SpamProbe | null = null): Promise<void> {
     if (this.open) throw new Error(`SPAM ${probe.id} while ${this.probe!.id} is open`);
-    if (probe.type !== "S") throw new Error(`${probe.id} is not a SPAM probe`);
-    this.begin(probe, cycle);
+    const notSpam = [probe, second].find((p) => p !== null && p.type !== "S");
+    if (notSpam) throw new Error(`${notSpam.id} is not a SPAM probe`);
+    this.begin(probe, cycle, second);
     // The prompt shows once `spam_prompt_shown` is durable (I5; fix pass 2, 7 Oct 2026: it was notified first).
     await this.host.event({ kind: "spam_prompt_shown", detail: { probeId: probe.id, cycle, atViewSeconds } });
     if (this.phase === "ready" && this.probe === probe) this.shown = "ready";
@@ -126,10 +148,13 @@ export class SpamDelivery {
     await this.openItem(probe, { probeId: probe.id, timedOut: false, forced: true, atViewSeconds, viewEndedBy, ...(resumed ? { resumed: true as const } : {}) });
   }
 
-  /** A session interrupted during a forced probe (revision (ag)): the forced item again, `resumed: true`; no new prompt record. */
-  async resumeForced(probe: SpamProbe, cycle: SpamCycle, atViewSeconds: number, viewEndedBy: ViewEndedDetail["endedBy"]): Promise<void> {
+  /**
+   * A session interrupted during a forced probe (revision (ag)): the forced item again, `resumed: true`; no new prompt
+   * record. With a second item (SPEC/30 §5.2) the delivery runs again from its first item, as the forced item always has.
+   */
+  async resumeForced(probe: SpamProbe, cycle: SpamCycle, atViewSeconds: number, viewEndedBy: ViewEndedDetail["endedBy"], second: SpamProbe | null = null): Promise<void> {
     if (this.open) throw new Error(`resumeForced ${probe.id} while ${this.probe!.id} is open`);
-    this.begin(probe, cycle);
+    this.begin(probe, cycle, second);
     await this.force(atViewSeconds, viewEndedBy, true);
   }
 
@@ -148,7 +173,7 @@ export class SpamDelivery {
     } finally { this.busy = false; }
   }
 
-  /** The confidence on the one scale; the probe closes. */
+  /** The confidence on the one scale; the item closes (the second item follows, else the probe closes). */
   async confidence(value: number): Promise<void> {
     const probe = this.expect("confidence", "submitSpamConfidence");
     assertConfidenceStep(value);
@@ -156,7 +181,7 @@ export class SpamDelivery {
     try {
       this.disarm();
       await this.host.event({ kind: "recall_confidence_submitted", detail: { probeId: probe.id, value } });
-      await this.close();
+      await this.itemDone();
     } finally { this.busy = false; }
   }
 
@@ -167,7 +192,7 @@ export class SpamDelivery {
   async skip(): Promise<void> {
     const probe = this.expect("ready", "skipSpam"), cycle = this.cycle!;
     this.busy = true;
-    await this.host.event({ kind: "spam_ready", detail: { probeId: probe.id, timedOut: false, skipped: true } });
+    await this.host.event({ kind: "spam_ready", detail: { probeId: probe.id, timedOut: false, skipped: true } }); // the second item is not shown either
     this.reset();
     await this.host.event({ kind: "spam_closed", detail: { probeId: probe.id, cycle } });
     this.host.notify();
@@ -178,10 +203,15 @@ export class SpamDelivery {
     this.disarm();
     this.probe = null; this.cycle = null; this.phase = this.shown = null; this.chosen = null; this.busy = false;
     this.collapsed = false; this.forced = false;
+    this.deliveryId = null; this.second = null; this.itemIndex = 1; this.itemCount = 1;
   }
 
-  private begin(probe: SpamProbe, cycle: SpamCycle): void {
+  private begin(probe: SpamProbe, cycle: SpamCycle, second: SpamProbe | null): void {
     this.probe = probe;
+    this.deliveryId = probe.id;
+    this.second = second;
+    this.itemIndex = 1;
+    this.itemCount = second ? 2 : 1;
     this.cycle = cycle;
     this.phase = "ready";
     this.shown = null;
@@ -219,15 +249,31 @@ export class SpamDelivery {
   private async answerTimedOut(): Promise<void> {
     if (this.phase !== "item" && this.phase !== "confidence") return;
     this.busy = true; // a late answer or confidence is refused
-    if (this.phase === "item") await this.host.event({ kind: "spam_answered", detail: { probeId: this.probe!.id, response: null, timedOut: true } });
-    await this.close(); // an option without its confidence: the confidence is missing data
+    try {
+      if (this.phase === "item") await this.host.event({ kind: "spam_answered", detail: { probeId: this.probe!.id, response: null, timedOut: true } });
+      await this.itemDone(); // an option without its confidence: the confidence is missing data
+    } finally { this.busy = false; }
+  }
+
+  /** The item on screen is over: the delivery's second item now (SPEC/30 §5.2), else the probe closes. */
+  private async itemDone(): Promise<void> {
+    const next = this.second;
+    if (next === null) { await this.close(); return; }
+    // Shown at once: the first item's last record is durable (or, its confidence run out, nothing was to be logged).
+    this.second = null;
+    this.probe = next;
+    this.itemIndex = 2;
+    this.chosen = null;
+    this.phase = this.shown = "item";
+    this.arm(next.answerTimeoutMs ?? DEFAULT_ANSWER_TIMEOUT_MS, () => this.answerTimedOut());
+    this.host.notify();
   }
 
   private async close(): Promise<void> {
-    const probe = this.probe!, cycle = this.cycle!;
+    const probeId = this.deliveryId ?? this.probe!.id, cycle = this.cycle!;
     this.reset();
     this.host.notify();
-    await this.host.event({ kind: "spam_closed", detail: { probeId: probe.id, cycle } });
+    await this.host.event({ kind: "spam_closed", detail: { probeId, cycle } });
     await this.host.closed();
   }
 

@@ -71,11 +71,31 @@ export const PLAN: SectorPlan = { mainEffort: "L2", posture: "direct_attack", se
 
 /**
  * The sector plan — the only response a view asks for (revision (x), 6 Oct 2026) — which confirms the
- * period; a SPAM item the confirmation forces at the view's end (revision (ag)) is answered.
+ * period; a SPAM item the confirmation forces at the view's end (revision (ag)) is answered (both items of a
+ * delivery with a second, SPEC/30 §5.2), then what follows the view's end (`finishViewEnd`).
  */
 export async function allocateAndConfirm(o: SessionOrchestrator, _snap?: () => SessionSnapshot): Promise<void> {
+  const view = snapshotOf(o).currentCycle;
   await submitPlan(o, PLAN);
-  await answerForcedSpam(o);
+  while (await answerForcedSpam(o)) { /* a delivery's second item follows its first */ }
+  await finishViewEnd(o, view);
+}
+
+/**
+ * SPEC/30: what follows a main view's end, while `view` is still on screen — its plan's confidence (`value`) and, in V10
+ * and V14, the freeze at the view's end (no items, as `runOutView` answers a freeze) — so the next view, the training,
+ * the hinge or the end is on screen. V14's after-view probes are left to the caller. A slow sink lags the item a tick.
+ */
+export async function finishViewEnd(o: SessionOrchestrator, view: number, value = 50): Promise<void> {
+  let rated = false; // only a freeze after the plan's confidence is the view's end-of-view freeze
+  for (let i = 0; i < 20; i++) {
+    const s = snapshotOf(o);
+    if (s.currentCycle !== view) return;
+    if (s.step === "plan_confidence" && s.planConfidence) { await o.submitPlanConfidence(value); rated = true; }
+    else if (s.step === "freeze" && rated) await o.submitFreeze([]);
+    else if (s.step === "plan_confidence") await vi.advanceTimersByTimeAsync(0);
+    else return;
+  }
 }
 
 /**
@@ -84,12 +104,16 @@ export async function allocateAndConfirm(o: SessionOrchestrator, _snap?: () => S
  * the practice view's minimum (180 s) passes before it ends.
  */
 export async function submitPlan(o: SessionOrchestrator, plan: SectorPlan): Promise<void> {
-  await o.submitAllocation(plan);
   const view = snapshotOf(o).currentCycle;
-  // Until the minimum has passed and the view has ended or a forced SPAM item holds it (a slow sink lags the snapshot a tick).
+  await o.submitAllocation(plan);
+  // Until the minimum has passed and the view has ended or a forced SPAM item holds it (a slow sink lags the snapshot a tick);
+  // then (SPEC/30) its plan's confidence and an end-of-view freeze are answered, unless a forced item holds the end.
   for (let i = 0; i < 400; i++) {
     const now = snapshotOf(o);
-    if (!now.practice || now.currentCycle !== view || now.spam !== null || (now.minimumReached && now.step !== "awaiting_view_end")) return;
+    if (!now.practice || now.currentCycle !== view || now.spam !== null || (now.minimumReached && now.step !== "awaiting_view_end")) {
+      if (now.spam === null) await finishViewEnd(o, view);
+      return;
+    }
     await vi.advanceTimersByTimeAsync(1_000);
   }
   throw new Error("submitPlan: the practice view did not end");

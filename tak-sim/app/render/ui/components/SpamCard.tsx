@@ -1,6 +1,7 @@
 import type { SessionOrchestrator, SpamView } from "../../../session/orchestrator.js";
 import { useLang } from "../i18n.js";
 import { ConfidencePicker, hint, label } from "./PanelParts.js";
+import { useHoverDwell } from "./hover-dwell.js";
 
 /**
  * The SPAM probe (SPEC/15 §5; round 2, 4 Oct 2026, `spam-delivery.ts`; revision (ag), 9 Oct 2026). ONLINE:
@@ -16,6 +17,11 @@ import { ConfidencePicker, hint, label } from "./PanelParts.js";
  * Visibility (researcher, 9 Oct 2026: the old button was "a little bit disappearing"): the prompt and
  * the pill are a strong amber fill (#f4a261) with dark text (#1c1b19, contrast ≈ 9:1) on the dark
  * theme, the button larger, with a slow glow that `prefers-reduced-motion` turns off.
+ *
+ * SPEC/30 (19 Oct 2026): a delivery with a second item (V3, V6) shows "Question 1 of 2" / "2 of 2"; the second follows
+ * the first's confidence at once (`spam-delivery.ts`). §5.4's records: an option the pointer rests on for the dwell is
+ * logged `probe_option_hovered` (`hover-dwell.ts`), and the choice `probe_answer_changed` (`from` the item's earlier
+ * choice — always none, the choice being final — `to` the option), before the session's `spam_answered`.
  */
 
 const AMBER = "#f4a261";
@@ -37,6 +43,12 @@ const readyButton = {
 export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; readonly orchestrator: SessionOrchestrator }) {
   const { t, tr } = useLang();
   const quiet = (p: Promise<unknown>) => void p.catch(() => undefined);
+  // Hooks before any early return: the hover dwell of the item's options (the probe on screen at the dwell's end).
+  const hover = useHoverDwell((optionId) => quiet(orchestrator.logPanelUse({ kind: "probe_option_hovered", detail: { probeId: spam.probeId, optionId } })));
+  const choose = (probeId: string, from: string | null, to: string) => {
+    quiet(orchestrator.logPanelUse({ kind: "probe_answer_changed", detail: { probeId, from, to } }));
+    quiet(orchestrator.answerSpam(to));
+  };
 
   if (spam.phase === "ready") {
     if (spam.collapsed) {
@@ -66,7 +78,7 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
   const item = (
     <div data-testid={spam.forced ? "spam-forced" : "spam-item"} style={{ padding: "12px 16px", borderTop: `3px solid ${AMBER}`, background: "#262a30", flexShrink: 0 }}>
       {spam.forced && <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: AMBER }}>{t.spam.forcedTitle}</p>}
-      <div style={label}>{t.spam.title}</div>
+      <div style={label}>{t.spam.title}{spam.itemCount > 1 && <span data-testid="spam-item-of"> · {t.spam.itemOf(spam.itemIndex, spam.itemCount)}</span>}</div>
       <p style={{ margin: "2px 0 8px", fontSize: 14 }}>{tr(spam.promptFi)}</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
         {spam.options.map((o) => (
@@ -74,7 +86,8 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
             key={o.id}
             disabled={spam.phase !== "item"}
             aria-pressed={spam.chosen === o.id}
-            onClick={() => quiet(orchestrator.answerSpam(o.id))}
+            {...(spam.phase === "item" ? hover(o.id) : {})}
+            onClick={() => choose(spam.probeId, spam.chosen, o.id)}
             style={{
               padding: "8px 10px", borderRadius: 6, fontSize: 13, textAlign: "left", color: "#e8eaed",
               cursor: spam.phase === "item" ? "pointer" : "default",

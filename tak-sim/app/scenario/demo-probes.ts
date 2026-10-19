@@ -310,7 +310,8 @@ interface SpamAuthored {
   readonly prompt: string;
   readonly key: string;
   readonly distractors: readonly [string, string, string];
-  readonly saLevel: 1 | 2;
+  /** SPEC/30 §5.2: the second items of V3 and V6 are L2 and L3. */
+  readonly saLevel: 1 | 2 | 3;
   readonly contentKind: ProbeSpec["contentKind"];
   /** A quantity: the options in ascending order, shown so (the key's place follows from its value; chosen to match the draw). */
   readonly scale?: readonly [string, string, string, string];
@@ -320,7 +321,7 @@ export interface SpamItem {
   readonly prompt: string;
   readonly options: readonly [string, string, string, string];
   readonly correct: Choice;
-  readonly saLevel: 1 | 2;
+  readonly saLevel: 1 | 2 | 3;
   readonly contentKind: ProbeSpec["contentKind"];
 }
 
@@ -396,9 +397,33 @@ export const SPAM_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions
  * SPEC/30 §5.2 (19 Oct 2026): the second SPAM item of V3 and V6 — L2 or L3, answered with the tools at hand
  * (team understanding), shown after the first item under the same "ready". Keys rest on records reachable
  * with Haku or the Thinker (`SPAM_SECOND_KEY_ATOMS`). DRAFT content, domain review (SPEC/30 §8).
+ * - V3 (L2, step 4, 14:20): how the growth changed between the last two perimeter surveys — DR3's 14.15
+ *   survey (recorded, step 3: 2,6 ha uutta) against its pushed 14.35 survey (4,8 ha uutta): nearly twice as
+ *   much new area. Comprehension of two records, one reached only with the tools; the first item asks the
+ *   latest area (one record). No freeze asks a growth trend; V4's growth_next asks the next 20 minutes' growth.
+ * - V6 (L3, step 8, 15:40): road R1's state in an hour — the forecast (evt.wx.03, 15:00: the wind backs to
+ *   the south-east 15.30–16.00) turns the burned area's north-west side into a flank along R1's stretch south
+ *   of Kuivakangas; the latest report on hand (DR2, step 8, recorded) reads "passable with care" (the lure),
+ *   and the next ones (DR3, steps 10–11, 16.2x and 16.4x) read "flames at the roadside, not safe to drive" (the
+ *   key, TRUTH). The infrastructure item's labels (English in `labels.en.json`); no later freeze asks R1.
+ * Neither names a designed event, the south-east, the origin or a tool; neither rests on a directive key record
+ * or a later freeze's key (`test/scenario/spam-second.spec.ts`). The probe id is `<first probe id>.b` (session code).
  */
 export const SPAM_SECOND_VIEWS: readonly number[] = [3, 6];
-export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {};
+export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
+  3: {
+    prompt: "Miten palon kasvu on muuttunut kahden viimeisimmän kehäkartoituksen välillä?",
+    key: "Kiihtynyt, uutta alaa lähes kaksi kertaa enemmän",
+    distractors: ["Pysynyt ennallaan, uutta alaa yhtä paljon", "Hidastunut, uutta alaa noin puolet vähemmän", "Pysähtynyt, uutta alaa ei tullut lainkaan"],
+    saLevel: 2, contentKind: "situation",
+  },
+  6: {
+    prompt: "Mikä on tien R1 tila tunnin kuluttua?",
+    key: "Ei turvallinen ajaa, liekit tien reunassa",
+    distractors: ["Ajettavissa, ei paloa tien reunassa", "Ajettavissa varoen, matalaa paloa tien reunassa", "Ei ajettavissa, palo on katkaissut tien"],
+    saLevel: 3, contentKind: "situation",
+  },
+};
 export const SPAM_SECOND_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions(SPAM_SECOND_AUTHORED, SPAM_SECOND_VIEWS.filter((v) => v in SPAM_SECOND_AUTHORED), FREEZE_BANK_SEED, "spam-items-2");
 
 /**
@@ -422,8 +447,17 @@ export function spamRecordId(step: number, re: RegExp): string {
  * message log by the item's moment (`test/scenario/spam.spec.ts`): a first-step message of the view or
  * an earlier view's.
  */
-/** SPEC/30 §5.2: the records each second-item key rests on (recorded or pushed; reachable with the tools). */
-export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {};
+/**
+ * SPEC/30 §5.2: the records each second-item key rests on (recorded or pushed; reachable with the tools by the item's moment: of the
+ * view's first step or earlier). V6's is an L3 key: its basis records (the forecast, the latest road report), not the later outcome.
+ */
+export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
+  3: [
+    spamRecordId(3, /^DR3 kehäkartoitus valmis klo 14\.15: palanut ala noin 12,9 ha; .*2,6 ha uutta/),
+    spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha; .*4,8 ha uutta/),
+  ],
+  6: ["evt.wx.03", spamRecordId(8, /^DR2 tiehavainto: tie R1 .*ajettavissa varoen/)],
+};
 
 export const SPAM_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   3: [spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha/)],

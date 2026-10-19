@@ -9,7 +9,8 @@
  * - `pre` (after the preflight, before the briefing): fatigue at the start (SPEC/09 §6.1).
  * - `post` (after V14, before the debrief, SPEC/09 §5.1): first the retention repeat of the hinge
  *   check (all cells, options reordered), in the Thinker cells the perception item (SPEC/27 §4.1), and
- *   the directive's fit (the Paper 2 manipulation check, revision (ai)); then workload (raw NASA-TLX),
+ *   the directive's fit (the Paper 2 manipulation check, revision (ai)); then the source-memory block
+ *   (SPEC/30 §5.5, 19 Oct 2026: seven facts, "Where did this come from for you?"); then workload (raw NASA-TLX),
  *   fatigue at the end, the picture, trust and the walkthrough substitutes (§6.1) and the
  *   instructed-response attention check (§6.2); the prior-knowledge item (§6.2 exclusion);
  *   then the background covariates (§2). `service.country` and `terms.familiarity` are added for
@@ -31,6 +32,7 @@
 
 import type { Cell } from "../scenario/types.js";
 import type { QuestionnaireId } from "../telemetry/record-kinds.js";
+import { SOURCE_MEMORY_FACTS, sourceItemId } from "../scenario/source-memory.js";
 import { participantOptionOrder, type OptionOrderSeed } from "./option-order.js";
 
 /** An item is shown only when an earlier item was answered with a given option. */
@@ -53,7 +55,11 @@ interface ItemBase {
 }
 
 export type QuestionnaireItem =
-  | (ItemBase & { readonly kind: "choice"; readonly options: readonly string[] })
+  /**
+   * One option. `optionCells` (SPEC/30 §5.5): an option listed there is offered only in those cells; in a questionnaire's view
+   * (`resolveItems`) `options` are already filtered for the cell, in the authored order.
+   */
+  | (ItemBase & { readonly kind: "choice"; readonly options: readonly string[]; readonly optionCells?: Readonly<Record<string, readonly Cell[]>> })
   | (ItemBase & { readonly kind: "scale"; readonly min: number; readonly max: number })
   | (ItemBase & { readonly kind: "number"; readonly min: number; readonly max: number })
   /**
@@ -98,10 +104,24 @@ const ACTION_OPTIONS: readonly MultiOption[] = [
   { id: "safety_margin" }, { id: "went_with_projection" }, { id: "nothing" },
 ];
 
+/**
+ * The source-memory block (SPEC/30 §5.5, 19 Oct 2026): one item per fact (`source-memory.ts`), "Where did this come from for you?",
+ * after the recall items and before the workload items, in every cell. The Thinker option is offered in the Thinker cells only;
+ * "I did not know this" is always last. Logged as ordinary questionnaire answers (`questionnaire_submitted`, item `source.<fact>`);
+ * misattribution is read with the log (`source-memory-measures.ts`). DRAFT: the facts and the wording await the domain and native review.
+ */
+export const SOURCE_SECTION = "source";
+export const SOURCE_OPTIONS = ["self", "records", "haku", "thinker", "unknown"] as const;
+export type SourceOption = (typeof SOURCE_OPTIONS)[number];
+export const SOURCE_ITEMS: readonly QuestionnaireItem[] = SOURCE_MEMORY_FACTS.map((f) => ({
+  id: sourceItemId(f.id), section: SOURCE_SECTION, kind: "choice", options: SOURCE_OPTIONS, optionCells: { thinker: THINKER_CELLS },
+}));
+
 export const POST_ITEMS: readonly QuestionnaireItem[] = [
   { id: RETENTION_ITEM_ID, section: "recall", kind: "retention" },
   { id: "ai.directive_relation", section: "recall", kind: "choice", options: ["yes", "no", "dont_know"], cells: THINKER_CELLS },
   { id: "directive.fit", section: "recall", kind: "choice", options: ["fitted", "not_at_times", "not_mostly", "dont_know"] },
+  ...SOURCE_ITEMS,
   tlx("tlx.mental"), tlx("tlx.physical"), tlx("tlx.temporal"), tlx("tlx.performance"), tlx("tlx.effort"), tlx("tlx.frustration"),
   scale7("fatigue.end", "session"),
   scale7("picture.quality", "session"),
@@ -138,6 +158,10 @@ export function questionnaireItems(id: QuestionnaireId, cell: Cell, seed?: Optio
 
 function resolveItems(items: readonly QuestionnaireItem[], cell: Cell, seed: OptionOrderSeed | undefined): QuestionnaireItem[] {
   return items.map((item) => {
+    if (item.kind === "choice" && item.optionCells) {
+      const cells = item.optionCells;
+      return { ...item, options: item.options.filter((o) => !cells[o] || cells[o]!.includes(cell)) };
+    }
     if (item.kind !== "multi") return item;
     const inCell = item.options.filter((o) => !o.cells || o.cells.includes(cell));
     const ids = seed ? participantOptionOrder(inCell.map((o) => o.id), item.fixedLast ?? [], seed, item.id) : inCell.map((o) => o.id);

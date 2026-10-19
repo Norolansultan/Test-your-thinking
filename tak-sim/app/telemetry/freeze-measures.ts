@@ -13,8 +13,12 @@
  *   participant before the view's `freeze_started`, by which route, and how long before — so an
  *   L1 error can be read as "not yet arrived" vs "arrived and lost".
  * - `calibrationPairs`: the confidence–accuracy pairs of a level/view window (default: H2's primary
- *   window, L2/L3 in V2, V4, V5, V7), with a Brier score and the over/under-confidence gap.
+ *   window, every L2/L3 item of the V2, V4, V5, V7 freezes — 24 since SPEC/30 §5.1, counted from the content, never
+ *   assumed), with a Brier score and the over/under-confidence gap (H2's per-participant outcome).
+ * - `aiStatedKey` (SPEC/30 §5.3, `ai-stated-key.ts`, re-exported here): whether an AI answer before the freeze stated
+ *   an L2/L3 item's key; H2, H2t and H-T are folded in `teaming-measures.ts`.
  */
+export { aiStatedKey, shownAnswers, type AiStatedKey, type AiStatedKeyOptions, type StatingTool } from "./ai-stated-key.js";
 
 import type { LatLon } from "../engine/primitives.js";
 import { DESIGNED_EVENT_IDS, type FreezeItem, type FreezeItemLevel } from "../scenario/types.js";

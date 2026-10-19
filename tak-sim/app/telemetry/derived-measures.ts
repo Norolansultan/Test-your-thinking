@@ -603,9 +603,11 @@ export function codePosture(
     return { aligned, primary: soundness(posture, mainEffort, key, sec, false), wide: soundness(posture, mainEffort, key, sec, true) };
   };
   const { aligned, primary, wide } = coded(secondary);
-  // SPEC/31 §3.1: the act coding reads an attending secondary task as the key's secondary direct attack (`secondaryAsAct`).
-  const asAct = secondaryAsAct(secondary, key);
-  const act = asAct === secondary ? { aligned, primary, wide } : coded(asAct);
+  // SPEC/31 §3.1: the act coding reads an attending secondary task as the key's secondary direct attack (`secondaryAsAct`): on the core
+  // front for the primary coding, on the front with its boundary sectors for the sensitivity (as the label coding reads the sectors).
+  const asAct = secondaryAsAct(secondary, key, false), asActWide = secondaryAsAct(secondary, key, true);
+  const act = asAct === secondary ? { aligned, primary } : coded(asAct);
+  const actWide = asActWide === secondary ? { aligned, wide } : coded(asActWide);
   const h14Aligned = aligned === null ? null : aligned ? 1 : 0;
   return {
     seq, posture, mainEffort, aligned, mainAligned, sound: primary.sound, soundVia: primary.soundVia, cell: cellOf(aligned, primary.sound), h14Aligned,
@@ -615,7 +617,7 @@ export function codePosture(
     secondary: secondary === null ? null : { sectorId: secondary.sectorId, taskId: secondary.taskId },
     ...attendance(posture, mainEffort, secondary, key),
     alignedByAct: act.aligned, soundByAct: act.primary.sound, soundViaByAct: act.primary.soundVia, cellByAct: cellOf(act.aligned, act.primary.sound),
-    cellByActWithBoundary: cellOf(act.aligned, act.wide.sound),
+    cellByActWithBoundary: cellOf(actWide.aligned, actWide.wide.sound),
   };
 }
 

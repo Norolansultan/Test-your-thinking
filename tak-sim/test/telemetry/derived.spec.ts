@@ -297,8 +297,9 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
     ]);
     const l2 = await buildLog([view(10), submit(10, "direct_attack", "L2")]);
     // Final fix pass (8 Oct 2026): the primary cell is coded on the core sector (L3) only; L2, across the boundary, is the sensitivity.
-    // Review fixes (ah): the front touches no other sector, so L2 is unsound on both codings.
-    expect(directiveAdherence(l2, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: false, cell: "D", soundWithBoundary: false, cellWithBoundary: "D" });
+    // `31` coa F13 (19 Oct 2026): L2 is accepted across the boundary again, in the boundary sensitivity only (the sectors are not drawn
+    // and the front runs east towards L2); the primary stays the computed sector (L3).
+    expect(directiveAdherence(l2, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: false, cell: "D", soundWithBoundary: true, cellWithBoundary: "C" });
   });
 
   it("V11–V13 (fix pass 2): a barrier line or protection is sound only in the observed head's sectors (L3, and L2 where the head is within 50 m of the line)", async () => {
@@ -318,8 +319,8 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
     ]);
     const coded = directiveAdherence(records, DIRECTIVE_KEYS);
     expect(coded.map((c) => [c.view, c.atViewEnd!.cell, c.atViewEnd!.cellWithBoundary, c.atViewEnd!.h14Aligned, c.atViewEnd!.viaBoundarySector])).toEqual([
-      // Review fixes (ah): the new front and the head stay in L3 alone at V9–V12, so L2 is outside on both codings there.
-      [3, null, null, null, null], [9, "D", "D", 0, false], [10, "C", "C", 0, false], [11, "B", "B", 1, false], [12, "A", "A", 1, false], [14, "D", "C", 0, true],
+      // Review fixes (ah): the head stays in L3 alone at V11–V12; `31` coa F13: V9–V10 accept L2 in the boundary sensitivity only.
+      [3, null, null, null, null], [9, "D", "C", 0, true], [10, "C", "C", 0, false], [11, "B", "B", 1, false], [12, "A", "A", 1, false], [14, "D", "C", 0, true],
     ]);
     // mainAligned: the main posture alone (null in phase A).
     expect(coded.map((c) => c.atViewEnd!.mainAligned)).toEqual([null, false, false, true, true, true]);
@@ -407,9 +408,9 @@ describe("directiveAdherence (the phase-B directive, 4 Oct 2026; review round 2)
     expect(directiveAdherence(v9, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ aligned: false, sound: true, soundVia: "secondary", cell: "C" });
     const v10 = await buildLog([view(10), withSecondary(10, "protect_values", "L1", { sectorId: "L3", taskId: "task.direct-attack" })]);
     expect(directiveAdherence(v10, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: true, soundVia: "secondary", cell: "C" });
-    // ...but not on L2 (8 Oct 2026: only the sensitivity coding called it sound; review fixes (ah): the front no longer touches L2, so neither does).
+    // ...but not on L2 in the primary coding (8 Oct 2026); `31` coa F13: the boundary sensitivity accepts L2 again.
     const v10across = await buildLog([view(10), withSecondary(10, "protect_values", "L1", { sectorId: "L2", taskId: "task.direct-attack" })]);
-    expect(directiveAdherence(v10across, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: false, cell: "D", soundWithBoundary: false, cellWithBoundary: "D" });
+    expect(directiveAdherence(v10across, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: false, cell: "D", soundWithBoundary: true, cellWithBoundary: "C" });
     const v10hold = await buildLog([view(10), withSecondary(10, "protect_values", "L1", { sectorId: "L3", taskId: "task.hold-line" })]);
     expect(directiveAdherence(v10hold, DIRECTIVE_KEYS)[0]!.atViewEnd).toMatchObject({ sound: false, cell: "B" });
   });
@@ -505,8 +506,12 @@ describe("SPEC/31 §3.1 (RC): H13 codes the act — the panel's probe plans unde
     expect(await coded(14, ["L4", "direct_attack", null, null])).toMatchObject({ attended: true, attendedVia: "main_effort", cell: "D", cellByAct: "D", soundViaByAct: null });
     // V14: the secondary route needs the main effort aligned in Lahdenkylä's sector; elsewhere the attending plan codes D.
     expect(await coded(14, ["L2", "protect_values", "L4", "task.hold-line"])).toMatchObject({ cell: "B", cellByAct: "D" });
-    // The flare-up's L1 side is a boundary sector: D on the primary act coding, C on its boundary sensitivity (as the label coding).
-    expect(await coded(14, ["L3", "barrier_line", "L1", "task.mopup"])).toMatchObject({ attended: true, cellByAct: "D", cellByActWithBoundary: "C", cell: "B", cellWithBoundary: "B" });
+    // A boundary sector is the front in the sensitivity only, for the act as for the label (integration, 19 Oct 2026): a mop-up on the
+    // flare-up's L1 side (V14) or on L2 (V9–V10, `31` coa F13) does not attend the core front, so B on the primary act coding, C on its
+    // boundary sensitivity; the boundary never changes a primary cell.
+    expect(await coded(14, ["L3", "barrier_line", "L1", "task.mopup"])).toMatchObject({ attended: false, cellByAct: "B", cellByActWithBoundary: "C", cell: "B", cellWithBoundary: "B" });
+    expect(await coded(9, ["L1", "barrier_line", "L2", "task.mopup"])).toMatchObject({ attended: false, cellByAct: "B", cellByActWithBoundary: "C", cell: "B", cellWithBoundary: "B" });
+    expect(await coded(10, ["L2", "direct_attack", null, null])).toMatchObject({ attended: false, cellByAct: "D", cellByActWithBoundary: "C", cell: "D", cellWithBoundary: "C" });
   });
 
   it("names no keyed front in the fit views, V8 and phase A: there the act coding is the label coding", async () => {

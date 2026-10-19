@@ -40,9 +40,9 @@ const RADIO = {
   sparksKorpioja: radioId(7, /^Kipinät lensivät Korpiojan yli/),
   ky21North: radioId(10, /^KY21, lohkon L3 johtaja: .*siirrän .*KY21:n ja VPK:n nyt pohjoisreunalle/), // fix pass 3: the L3 sector leader moves KY21 and VPK (FF11)
   vpkNorth: radioId(10, /^VPK: lohkonjohtaja KY21:n käskystä siirrymme nyt pohjoisreunalle/),
-  ek14North: radioId(10, /^EK14 siirtyy pohjoisreunalle Karhujärven suuntaan/),
-  ek14Arrives: radioId(2, /^EK14 saapunut pohjoisreunalle/),
-  ky21Arrives: radioId(3, /^KY21 saapunut syttymäkohdan eteläreunalle/),
+  ek14North: radioId(10, /^EK14: siirrymme pohjoisreunalle Karhujärven suuntaan/),
+  ek14Arrives: radioId(2, /^EK14: saavuimme pohjoisreunalle/),
+  ky21Arrives: radioId(3, /^KY21: saavuimme syttymäkohdan eteläreunalle/),
 };
 
 const HEAD_NOW_FI = "Merkitse kartalle palon kärki.";
@@ -110,7 +110,7 @@ function cpSafeKey(): string {
 const RELIEF = (() => {
   const now = 16 * 60 + 20;
   const onScene = (h: number, at: number) => h + (now - at) / 60;
-  const vpk = trafficFigure(1, /^VPK, Syttymäkohdan eteläreuna: olemme olleet täällä noin (\d+,\d) h/);
+  const vpk = trafficFigure(1, /^VPK, syttymäkohdan eteläreuna: olemme olleet täällä noin (\d+,\d) h/);
   const ek12 = trafficFigure(1, /^EK12, kärki, eteläsivusta: olemme olleet täällä noin (\d+,\d) h/);
   const hours: Readonly<Record<string, number>> = {
     VPK: onScene(vpk.value, 13 * 60 + 22), EK12: onScene(ek12.value, 13 * 60 + 20), EK14: onScene(0, 13 * 60 + 41), KY21: onScene(0, 14 * 60 + 1),
@@ -281,7 +281,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["hose", "Letkua on liian vähän kärjen perässä pysymiseen"], ["water", "Vesi loppuu, koska vesiajo ei ehdi linjalle"],
         ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
       ], key: "hose",
-      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: letkulinja 500 m, letkua varalla alle 200 m/)], rule: "cited",
+      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 500 m, varaletkua alle 200 m/)], rule: "cited",
       basis: "integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.24) and its 500 m line has under 200 m of hose in reserve, more hose asked for (15.36): the line cannot follow the head; EK11's tank is at 62 % (asked-only, 15.25) and the water shuttle runs, so water is not the limit",
     }),
     choice({

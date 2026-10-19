@@ -113,7 +113,8 @@ describe("SPEC/31 §3.2: the review packet lists each view's soundVia", () => {
   it("names the routes in the directive rows: V9–V10 main effort and secondary, V11 main effort, phase A none", () => {
     const row = (v: number) => collectKeys().find((r) => r.id === `directive.${v}`)!;
     expect(row(9).keyFi).toMatch(/soundVia=main_effort\|secondary$/);
-    expect(row(9).keyEn).toMatch(/^soundVia: main_effort \(direct_attack in L3\) \| secondary \(task\.direct-attack in L3, .*act coding: any of task\.direct-attack\/task\.mopup\/task\.hold-line on L3/);
+    // `31` coa F13: L2 is marked as the boundary sensitivity's, the core sector (L3) first.
+    expect(row(9).keyEn).toMatch(/^soundVia: main_effort \(direct_attack in L3 \(\+L2 in the boundary sensitivity\)\) \| secondary \(task\.direct-attack in L3 \(\+L2 in the boundary sensitivity\), .*act coding: any of task\.direct-attack\/task\.mopup\/task\.hold-line on L3 \(\+L2 in the boundary sensitivity\)/);
     expect(row(11).keyFi).toMatch(/soundVia=main_effort$/);
     expect(row(3).keyFi).toMatch(/soundVia=—$/);
     expect(row(14).keyFi).toMatch(/soundVia=(main_effort\|)?secondary$/); // secondary alone once WP-1 empties V14's `sound` (§3.2)

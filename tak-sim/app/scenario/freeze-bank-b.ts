@@ -28,7 +28,7 @@ const RADIO = {
   vpkRelief: radioId(19, /^VPK palaa linjalle, .*vuoro vaihdettu/),
   roadStop: radioId(18, /^Palo pysähtyi metsäautotien \(Honkaharju\)/),
   roadCrossed: radioId(19, /^Palon kärki ylitti metsäautotien \(Honkaharju\)/),
-  ek16ToR2: radioId(19, /^EK16 vetäytyy tielle R2/),
+  ek16ToR2: radioId(19, /^EK16: vetäydymme tielle R2/),
   policeVillage: radioId(18, /^Poliisi Lahdenkylästä: kaksi taloa kieltäytyy lähtemästä/),
 };
 
@@ -104,7 +104,7 @@ export const V14_R2_PROJECTION = projectionOptionFor(projectedLineDistanceAt(14,
  * front is still at least twice the trigger away (else the build fails: re-author).
  */
 export const V14_SPRINKLERS = (() => {
-  const ky21 = trafficFigure(20, /^Johto, KY21 \(tie R2\): kärki ylitti metsäautotien.*Palo noin (\d+) m päässä/);
+  const ky21 = trafficFigure(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*palo noin (\d+) m länteen/);
   const ek11 = trafficFigure(20, /^EK11, R2:n ja metsäautotien risteys: ei omaa reunaa, palo (\d+) m länteen/);
   const rate = trafficFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin (\d+,\d) m\/min/);
   const trigger = trafficFigure(20, /^EK11, R2:n ja metsäautotien risteys: .*vesi kytketään altaasta kun palo on noin (\d+) m päässä/);
@@ -213,7 +213,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["moved", "Asukkaat on siirretty johtopaikalle, kylää ei suojata"], ["vpk", "VPK jää kylään suostuttelemaan, linja jää vajaaksi"],
       ], key: "people",
       keyAtomIds: [RADIO.policeVillage, RADIO.vpkRelief], rule: "cited",
-      basis: "relates the police's pushed report (radio 18.5: two households refuse to leave, the police continue alone) and VPK's return to the line on R2 towards Lahdenkylä (radio 19.1) to the village: people remain behind R2's lines (DR1 sees people in at least three houses, recorded 19.26 and 19.46)",
+      basis: `relates the police's pushed report (radio ${RADIO.policeVillage.slice("atom.radio.".length)}: two households refuse to leave, the police continue alone) and VPK's return to the line on R2 towards Lahdenkylä (radio ${RADIO.vpkRelief.slice("atom.radio.".length)}) to the village: people remain behind R2's lines (DR1 sees people in at least three houses, recorded 19.26 and 19.46)`,
     }),
     choice({
       // `31` F02: a consequence at a stated horizon from the view's end (20.00), report-keyed on the pushed lines; the id is kept (it is the

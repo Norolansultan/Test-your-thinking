@@ -56,11 +56,10 @@ describe("D4: the CO-zone proxy from the downwind/smoke rule", () => {
 });
 
 describe("D3: the station's T/RH/dew point, read from its records", () => {
-  it("today: a reading only where the station gives one, with its record; never interpolated", () => {
+  it("today: every step has the station's reading (D3, WP-1), each with its record; never interpolated", () => {
     const cycles = cyclesOf(today);
     const withRh = cycles.filter((c) => c.rh_pct !== null);
-    expect(withRh.length).toBeGreaterThan(0);
-    expect(withRh.length).toBeLessThan(cycles.length);
+    expect(withRh.length).toBe(cycles.length);
     for (const c of withRh) {
       const rec = stationRecords().find((r) => r.id === c.rh_source)!;
       expect(rec.cycle).toBe(c.step);

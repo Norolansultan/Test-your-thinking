@@ -71,7 +71,7 @@ export const DIRECTIVE_FI =
  * the phase-A stimulus inside H10's anticipation window and was never decided.
  */
 export const PHASE_A_INTENT_FI =
-  "Tavoite: palo rajataan metsäautotien ja suon väliin. Painopiste: kärjen pysäyttäminen koillisessa. Toimintatapa: suora hyökkäys siellä, missä teho sallii.";
+  "Tavoite: palo rajataan metsäautotien ja suon väliin. Painopiste: kärjen pysäyttäminen koillisessa. Toimintatapa: suora hyökkäys siellä, missä palon voimakkuus sallii.";
 
 /** Named features of the generated site (tools/fire-ca/deployment.ts FEATURES). */
 export const LANDMARKS: Readonly<Record<string, LatLon>> = SITE_SCENARIO.features;

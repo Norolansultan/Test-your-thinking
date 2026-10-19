@@ -99,7 +99,8 @@ describe("limitOpenAnswer: the premise check's consistency and whole-item trimmi
     expect(v11.answer.premises.map((p) => [p.id, p.status, p.tags])).toEqual([["P1", "not_addressed", []], ["P2", "not_addressed", []]]);
     expect(v11.trimmed).toContain("premises_from_model_ignored");
     const v14 = limitOpenAnswer(raw, ctx(true, 14), "en");
-    expect(v14.answer.premises.map((p) => p.status)).toEqual(["contradicted", "contradicted"]);
+    // `31` §3.4: V14's P2 is not contradicted (the directive names no line; R2 is held); P1 is (SPOT 19.23).
+    expect(v14.answer.premises.map((p) => p.status)).toEqual(["contradicted", "not_addressed"]);
     expect(v14.answer.premiseCheck).toEqual(checkAt(14, "en"));
   });
 
@@ -114,7 +115,7 @@ describe("limitOpenAnswer: the premise check's consistency and whole-item trimmi
   it("over the word budget, optional items and options go, never an authored premise or the premise line; no sentence is cut", () => {
     const long = "Gains a sound containment line along the barrier but risks letting the fire advance until it meets the line.";
     const opts = ["A", "B", "C"].map((o) => ({ option: `Option ${o} name with six words`, tradeoffs: long, verdict: "departure_justifiable" as const, tags: ["T1"] }));
-    const raw = parsed(openJson({ kind: "options", options: opts, premises: [prem("supported", ["T1"], "P1"), prem("contradicted", ["T2"], "P2")], inference: null, questionsForYou: ["Does that change the posture you would take?"] }));
+    const raw = parsed(openJson({ kind: "options", options: opts, premises: [prem("supported", ["T1"], "P1"), prem("contradicted", ["T2"], "P2")], inference: "The new fire behind the line changes which barrier the crews can still hold before dark tonight.", questionsForYou: ["Does the new fire behind the line change the posture you would take for the crews on R2 now?", "Which crew would you move first, and to which barrier?"] }));
     const out = limitOpenAnswer(raw, ctx(true, 14), "en");
     const text = renderOpenAnswer(out.answer, out.tagTimes, "en");
     expect(wordCount(text)).toBeLessThanOrEqual(OPEN_ANSWER_MAX_WORDS);
@@ -362,7 +363,7 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     const v11 = limitOpenAnswer(raw, ctx(true, 11), "en");
     expect(v11.answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "not_addressed"], ["P2", "not_addressed"]]);
     expect(v11.trimmed).toContain("premises_from_model_ignored");
-    expect(limitOpenAnswer(raw, ctx(true, 14), "en").answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "contradicted"], ["P2", "contradicted"]]);
+    expect(limitOpenAnswer(raw, ctx(true, 14), "en").answer.premises.map((p) => [p.id, p.status])).toEqual([["P1", "contradicted"], ["P2", "not_addressed"]]);
   });
 
   it("the text shown is the authored one, in the session language, never the model's", () => {
@@ -370,8 +371,11 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     for (const lang of ["en", "fi"] as const) {
       const out = limitOpenAnswer(raw, ctx(true, 14, lang), lang);
       const text = renderOpenAnswer(out.answer, out.tagTimes, lang);
-      // The template drops the authored sentence's full stop: "P2 Roads or water … can be held — no longer holds: EK16 19.22."
-      for (const p of authored.premises) expect(text).toContain(`${p.id} ${p[lang].replace(/\.$/, "")} — `);
+      // The template drops the authored sentence's full stop: "P1 No new fire … since the directive — no longer holds: SPOT 19.23."
+      // `31` §3.4: at V14 only P1 is contradicted, so only P1's line is shown.
+      const shown = out.answer.premises.filter((p) => p.status === "contradicted").map((p) => p.id);
+      expect(shown).toEqual(["P1"]);
+      for (const p of authored.premises.filter((q) => shown.includes(q.id))) expect(text).toContain(`${p.id} ${p[lang].replace(/\.$/, "")} — `);
       expect(out.answer.premises.map((p) => p.premise)).toEqual(authored.premises.map((p) => p[lang]));
       expect(text).not.toContain("Model words");
     }
@@ -400,7 +404,7 @@ describe("authored directive premises (revision (ar), 11 Oct 2026)", () => {
     expect(v11.answer.premiseCheck?.lines).toEqual(["Directive premises: no newest record contradicts P1 or P2."]);
     expect(v11.answer.options.map((o) => o.verdict)).toEqual(["departs", "fits"]);
     expect(v11.trimmed).not.toContain("premises_from_model_ignored");
-    expect(limitOpenAnswer(parsed(json), ctx(true, 14), "en").answer.premises.map((p) => p.status)).toEqual(["contradicted", "contradicted"]);
+    expect(limitOpenAnswer(parsed(json), ctx(true, 14), "en").answer.premises.map((p) => p.status)).toEqual(["contradicted", "not_addressed"]);
   });
 
   it("the premises reach the model only in reasoning_intent from V8, after the quoted directive, with the table's check; the log carries the hashes and the statuses shown", async () => {

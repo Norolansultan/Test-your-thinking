@@ -43,7 +43,7 @@ describe("the directive", () => {
     const v1 = scenario.dutyOfficerMessages.filter((m) => m.cycle === 1);
     expect(v1).toHaveLength(1);
     expect(v1[0]!.text).toBe(PHASE_A_INTENT_FI);
-    expect(PHASE_A_INTENT_FI).toBe("Tavoite: palo rajataan metsäautotien ja suon väliin. Painopiste: kärjen pysäyttäminen koillisessa. Toimintatapa: suora hyökkäys siellä, missä teho sallii.");
+    expect(PHASE_A_INTENT_FI).toBe("Tavoite: palo rajataan metsäautotien ja suon väliin. Painopiste: kärjen pysäyttäminen koillisessa. Toimintatapa: suora hyökkäys siellä, missä palon voimakkuus sallii.");
     expect(PHASE_A_INTENT_FI).not.toMatch(/vapaut/i);
     expect(tr("en", PHASE_A_INTENT_FI)).toBe("Objective: contain the fire between the forest road and the bog. Priority: stop the head in the north-east. Method: direct attack where intensity allows.");
   });

@@ -320,7 +320,7 @@ describe("the cited keys hold against the data", () => {
   it("V14 road crossed: the head stopped at the Honkaharju road (radioed at step 18), crossed it (step 19), and the lines moved to R2 — the next barrier", () => {
     expect(SITE_SCENARIO.radio.some((r) => r.cycle === 18 && /^Palo pysähtyi metsäautotien \(Honkaharju\)/.test(r.text))).toBe(true);
     expect(SITE_SCENARIO.radio.some((r) => r.cycle === 19 && /^Palon kärki ylitti metsäautotien \(Honkaharju\)/.test(r.text))).toBe(true);
-    expect(SITE_SCENARIO.radio.some((r) => r.cycle === 19 && /^EK16 vetäytyy tielle R2 .*linja siirtyy tielle R2/.test(r.text))).toBe(true);
+    expect(SITE_SCENARIO.radio.some((r) => r.cycle === 19 && /^EK16: vetäydymme tielle R2 .*linja siirtyy tielle R2/.test(r.text))).toBe(true);
     expect(key(14, "road_crossed")).toBe("r2_next");
     // `31` F14: the key is a consequence the stem does not contain.
     expect(item(14, "road_crossed").promptFi).not.toMatch(/R2|este/);
@@ -337,7 +337,7 @@ describe("the cited keys hold against the data", () => {
     expect(keys(7, "north_help")).toEqual(["atom.radio.10.3", "atom.radio.10.4", "atom.radio.10.1"]);
     expect(keys(14, "shift_change")).toEqual(["atom.radio.19.3", "atom.radio.19.1"]); // the relief on the line (EK11 shift change 19.3, VPK move 19.1)
     expect(keys(14, "road_crossed")).toEqual(["atom.radio.18.4", "atom.radio.19.2", "atom.radio.19.0"]); // the stop, the crossing, EK16 to R2
-    expect(keys(14, "residents")).toEqual(["atom.radio.18.5", "atom.radio.19.1"]); // the police on the two households, VPK back to R2
+    expect(keys(14, "residents")).toEqual(["atom.radio.18.6", "atom.radio.19.1"]); // the police on the two households (18.6 since `31` D8 put EK16's LCES line at 18.5), VPK back to R2
     expect(keys(14, "infra")).toEqual(["atom.radio.16.0", "atom.radio.16.1"]); // fix pass 3: EK11's step-16 drive to W2 is gone (N1)
   });
 

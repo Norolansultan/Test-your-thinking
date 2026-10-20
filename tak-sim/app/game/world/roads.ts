@@ -252,6 +252,8 @@ class Heap {
 const CANDIDATES = 10;
 /** … and how many of each other road network (cut off from the nearest) within reach. */
 const PER_NETWORK = 3;
+/** … and the nearest node in each of this many compass sectors (a road leading another way round). */
+const SECTORS = 8;
 
 /**
  * The quickest route from `from` to `to` for a unit with these road speeds (km/h by class), or null when there is
@@ -292,6 +294,18 @@ export function routeOnRoads(
       const k = perComp.get(comp[c.id]!) ?? 0;
       if (k < PER_NETWORK) { perComp.set(comp[c.id]!, k + 1); out.push(c); }
     }
+    // SPEC/33 gate R (20 Oct 2026): and the nearest in each of SECTORS directions. The nearest few can all lie on one road whose
+    // way round is long — with the north band joined to the network, a point in the forest east of Kotkanjoki was reached by a
+    // 36 km loop through the north, not by the road 1 km to its south and a walk.
+    const taken = new Set(out.map((c) => c.id));
+    const bySector = new Map<number, { id: number; d: number }>();
+    for (const c of near) {
+      if (taken.has(c.id)) continue;
+      const q = g.nodes[c.id]!;
+      const s = Math.floor(((Math.atan2(q.y - p.y, q.x - p.x) + Math.PI) / (2 * Math.PI)) * SECTORS) % SECTORS;
+      if (!bySector.has(s)) bySector.set(s, c);
+    }
+    for (const s of [...bySector.keys()].sort((a, b) => a - b)) out.push(bySector.get(s)!);
     return out;
   };
   const offLeg = (a: XY, b: XY) => (offMs > 0 ? offRoadSeconds(world, a, b, offMs) : distance(a, b) === 0 ? 0 : Infinity);

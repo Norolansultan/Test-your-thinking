@@ -84,7 +84,7 @@ export const FEATURE_CATALOGUE: readonly FeatureDef[] = [
   { id: "ISO_RAHKASUO", kind: "mire_open", fi: "Iso-Rahkasuo", en: "Great Moss Bog", match: "Iso-Rahkasu|Great Moss Bog", sources: [TB, PL, PN] },
   { id: "HONKAHARJU", kind: "terrain_name", fi: "Honkaharju", en: "Pine Ridge", match: "Honkaharj|Pine Ridge", sources: [PL, PN] },
   { id: "KORPILAAKSO", kind: "valley", fi: "Korpilaakso", en: "Fern Valley", match: "Korpilaak|Fern Valley", sources: [PL, PN] },
-  { id: "POWER_LINE", kind: "power_line", fi: "110 kV voimajohto", en: "110 kV power line", match: "110 kV|voimajoh|sähkölinj|power line", sources: [T, TF] },
+  { id: "POWER_LINE", kind: "power_line", fi: "20 kV:n sähkölinja", en: "20 kV power line", match: "20 kV|sähkölinj|voimajoh|power line", sources: [T, TF] }, // SPEC/33 (bc): 20 kV (was "110 kV voimajohto")
   { id: "LOG_LANDING", kind: "clearing", fi: "R2:n risteyksen puutavaran varastoalue", en: "the log landing at the R2 junction", match: "varastoalue|log landing", sources: ["tools/topo-map/build.ts", TF, "tools/fire-ca/traffic.ts", DEP] },
   ...(sortedEntries(SECTOR_WEDGES).map(([k, s]) => ({ id: `SECTOR_${k}`, kind: "sector", fi: s.fi, en: s.en, match: `\\b${k}\\b`, sources: ["tools/fire-ca/traffic-places.ts", "tools/fire-ca/site-export.ts"] }))),
   ...sortedKeys(FEATURES).map((k) => ({ id: `anchor.${k}`, kind: "anchor", fi: k, en: k, sources: [DEP] })),

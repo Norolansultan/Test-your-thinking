@@ -297,8 +297,37 @@ function buildNetwork() {
     return resample(pts, 20);
   };
   const MOKKIRANTA_TRACKS: Road[] = [{ cls: "track", line: shoreArm(1) }, { cls: "track", line: shoreArm(-1) }];
-  return { roads: [...roads, ...MOKKIRANTA_TRACKS], ends, cottages };
+  const link = koivuojaLink();
+  return { roads: [...roads, ...MOKKIRANTA_TRACKS, ...(link ? [link.road] : [])], ends: link ? ends.filter((e) => e !== link.end) : ends, cottages };
+
+  /**
+   * SPEC/33 gate R (20 Oct 2026): the Koivuoja forest road — the spur the north network sends down to Koivuoja, ~1.1 km north of
+   * R1 — was a dead end whose only way out was a ~36 km loop through the north, so the trucks the scenario parks on it (EK11 at
+   * 15:20–16:20) could not have driven there, nor EK13 brought them water in the minutes the radio says. A Finnish forest-road
+   * network joins such a spur to the gravel road it nearly reaches: a forest road from its end south, across Koivuoja (culvert),
+   * to R1, routed like every generated forest road and kept east of the fire's ground (x ≥ LINK_MIN_X_M). Added last, so every
+   * other road, track and dead end stays as generated and the fuel grid changes only by the link's own cells.
+   */
+  function koivuojaLink(): { road: Road; end: RoadEnd } | null {
+    const end = ends.filter((e) => e.cls === "forest").sort((a, b) => Math.hypot(a.x - LINK_FROM.x, a.y - LINK_FROM.y) - Math.hypot(b.x - LINK_FROM.x, b.y - LINK_FROM.y))[0];
+    const r1 = roads.findIndex((r) => r.id === "r1");
+    if (!end || Math.hypot(end.x - LINK_FROM.x, end.y - LINK_FROM.y) > 60 || r1 < 0) return null;
+    const s = cellOf(end.x, end.y);
+    const window = { ...windowAround([end, LINK_TO], 700), c0: Math.floor((LINK_MIN_X_M + HALF_M) / 20) };
+    const cells = route((i) => (roadId[i] === r1 ? 0.25 : COST.forest[i]!), [s], (i) => roadId[i] === r1, LINK_TO, { window });
+    if (!cells) throw new Error("roads: no route for the Koivuoja forest-road link to R1");
+    const j = closestOnPolyline(cellP(cells[cells.length - 1]!).x, cellP(cells[cells.length - 1]!).y, roads[r1]!.line);
+    let line = roadLine([...cells].reverse(), j, { x: end.x, y: end.y }, 12);
+    line = squareJunction(line, roads[r1]!.line, 60);
+    line = straightenCrossings(line, (p) => mireAt(p.x, p.y) !== 0, (p) => lakeAt(p.x, p.y) !== undefined, 400);
+    return { road: { cls: "forest", id: "koivuoja_link", line }, end };
+  }
 }
+
+/** The Koivuoja forest road's dead end (site m) that the gate-R link joins to R1, the point on R1 it heads for, and its west limit. */
+const LINK_FROM: P = { x: 1970, y: 1590 };
+const LINK_TO: P = { x: 1700, y: 440 };
+const LINK_MIN_X_M = 1650;
 
 const NET = buildNetwork();
 /** Every road: FIXED_ROADS (0–9), the Honkaharju forest road (10, id "honkaharju"), the generated roads, the Mökkiranta tracks. */

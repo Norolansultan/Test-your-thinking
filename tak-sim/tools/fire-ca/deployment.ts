@@ -513,11 +513,18 @@ export function taskFor(unit: string, mv: Move): UnitTask {
 
 /** Tasks that draw water from the unit's own vehicle through a hose line. */
 export const HOSE_TASKS: ReadonlySet<UnitTask> = new Set(["hose_attack", "peat_soak", "mop_up"]);
+/**
+ * Roads the scenario's vehicles drive on but never park on (SPEC/33 gate R, 20 Oct 2026). The Koivuoja forest-road link to R1
+ * (`tools/topo-map/roads.ts`) makes the trucks on the Koivuoja forest road reachable and the water shuttle's times to them true;
+ * as a parking place it would move EK11's 15:20 truck to the far side of Koivuoja (a 420 m line instead of 600 m) and re-key V5
+ * `hose_short`, so the authored positions stay where they were (open item for the domain reviewer, `docs/audits/2026-10-20-map/review.md`).
+ */
+export const NO_PARKING_ROAD_IDS: ReadonlySet<string> = new Set(["koivuoja_link"]);
 /** Points along every road of the given classes (all if null), 10 m apart: where a vehicle can stop. */
 export function roadPoints(classes: ReadonlySet<string> | null): P[] {
   const pts: P[] = [];
   for (const r of ROADS) {
-    if (classes && !classes.has(r.cls)) continue;
+    if ((classes && !classes.has(r.cls)) || (r.id !== undefined && NO_PARKING_ROAD_IDS.has(r.id))) continue;
     for (let i = 1; i < r.line.length; i++) {
       const a = r.line[i - 1]!, b = r.line[i]!;
       const k = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 10));

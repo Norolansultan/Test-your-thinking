@@ -1185,6 +1185,7 @@ export const DESIGNED_EVENT_IDS = {
   gridRecord: "f7.grid_record", // step 6, the grid operator: line live, de-energising requested
   planted: "f7.planted_record", // step 8, the command-post operator: "20 kV linja jännitteetön, vahvistettu." FALSE (110 kV before SPEC/33 (bc))
   heliLineClearance: "f7.heli_line_clearance", // step 9, HELI1 keeps clear of the line
+  gridAtLine: "f7.grid_at_line", // step 18 (19:18, V13, after V12's F7 freeze), the distribution company: the fire at the line, still live, de-energising requested
   inHand: ["rekindle.in_hand.ky21", "rekindle.in_hand.vpk", "rekindle.in_hand.log"], // step 10, L3 "in hand"
   objection: "rekindle.objection", // step 10, VPK on TOIMINTA-2
   overruled: "rekindle.overruled", // step 10, KY21 (the L3 sector leader) on TOIMINTA-2

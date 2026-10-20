@@ -21,7 +21,8 @@
  * - A vehicle that re-parks DRIVES there (review 6 Oct 2026, A10): the new spot must be reachable from
  *   where the vehicle stood along the road network without passing the burning zone (what burned in
  *   the last step or burns in this one, within `BURNING_CLEAR_M`); with no reachable spot it stays
- *   where it was (`unreachable` lists those for the build report).
+ *   where it was (`unreachable` lists those for the build report) — unless the step's flank would run over it there: then it
+ *   backs out along its road ahead of the flank (`backOut`, SPEC/33 gate R).
  */
 
 import type { GridFrame } from "./geometry.js";
@@ -42,6 +43,8 @@ const LINE_SEARCH_M = 1200;
 const KEEP_SLACK_M = 250;
 /** A road point this close to burning ground cannot be driven through (m). */
 const BURNING_CLEAR_M = 30;
+/** How far along its road a vehicle about to be overrun backs out ahead of the flank (m; `backOut`). */
+const BACK_OUT_M = 200;
 /** Road points this close are one road (consecutive points are 10 m apart; junctions meet within a few metres). */
 const ROAD_LINK_M = 15;
 
@@ -100,6 +103,8 @@ export interface Placer {
   park(crew: P, roads: readonly P[], prev?: P | null, maxM?: number, from?: P | null): { at: P; pathM: number };
   /** Vehicles that had no spot reachable by road from where they stood (for the build report). */
   readonly unreachable: P[];
+  /** Vehicles the step's flank would have overrun that backed out along their road instead (for the build report). */
+  readonly backedOut: P[];
   /** The straight, fire-free line from `p` to the nearest usable road point (Infinity if none within `LINE_SEARCH_M`). */
   lineM(p: P, roads: readonly P[]): number;
   /** Crews whose road could not be reached without crossing the fire (for the build report). */
@@ -221,6 +226,46 @@ export function makePlacer(inp: PlacementInput): Placer {
   const claimed: P[] = [];
   const cutOff: P[] = [];
   const unreachable: P[] = [];
+  const backedOut: P[] = [];
+  /** The step's fire reaches the vehicle's spot (it burns there during the step, or within `BURNING_CLEAR_M` of it). */
+  const overrun = (q: P): boolean => { const i = cellOf(q); return i >= 0 && toBurning[i]! < BURNING_CLEAR_M; };
+  // What burns during this step only: the flaming front from the report to the step's end (the black behind it is no threat).
+  const front = new Uint8Array(n);
+  for (let i = 0; i < n; i++) front[i] = truth[i] && !reported[i] ? 1 : 0;
+  const toFront = distanceTransform(frame, front);
+  /** Whether the straight line a → b crosses ground that burns during the step (a hose line may lie in the black). */
+  const crossesFront = (a: P, b: P): boolean => {
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const k = Math.max(1, Math.ceil(d / (cs / 2)));
+    for (let s = 1; s < k; s++) {
+      const i = cellOf({ x: a.x + ((b.x - a.x) * s) / k, y: a.y + ((b.y - a.y) * s) / k });
+      if (i >= 0 && front[i]) return true;
+    }
+    return false;
+  };
+  /**
+   * SPEC/33 gate R (20 Oct 2026): a vehicle the step's flank will run over where it stands, with no road round the fire (EK11 at
+   * 13:40: its spot on R1 is where the west flank crosses the road by 14:00, and the road on either side lies within the burning
+   * zone), backs out along its road at once, ahead of the flank — at most `BACK_OUT_M` of road, over ground the flank reaches only
+   * later in the step — to the road point nearest its crew that is `vehicleClearM` clear of what burns during the step and whose line
+   * to the crew crosses none of it (it may lie in the black). Free of other vehicles. Null if there is none.
+   */
+  const backOut = (crew: P, roads: readonly P[], from: P): P | null => {
+    const g = roadGraph(roads);
+    let start = g.index.get(from) ?? -1;
+    if (start < 0) roads.forEach((q, i) => { if (start < 0 || Math.hypot(q.x - from.x, q.y - from.y) < Math.hypot(roads[start]!.x - from.x, roads[start]!.y - from.y)) start = i; });
+    if (start < 0) return null;
+    const seen = new Uint8Array(roads.length);
+    const queue = [start];
+    seen[start] = 1;
+    const within = (j: number) => Math.hypot(roads[j]!.x - from.x, roads[j]!.y - from.y) <= BACK_OUT_M;
+    for (let k = 0; k < queue.length; k++) for (const j of g.adj[queue[k]!]!) if (!seen[j] && within(j)) { seen[j] = 1; queue.push(j); }
+    const free = (q: P) => claimed.every((c) => Math.hypot(c.x - q.x, c.y - q.y) >= VEHICLE_SPACING_M);
+    const clearOfFront = (q: P) => { const i = cellOf(q); return i >= 0 && toFront[i]! >= inp.vehicleClearM && !inCone(q); };
+    const ok = queue.map((j) => roads[j]!).filter((q) => clearOfFront(q) && free(q) && !crossesFront(crew, q));
+    ok.sort((p, q) => Math.hypot(p.x - crew.x, p.y - crew.y) - Math.hypot(q.x - crew.x, q.y - crew.y) || p.x - q.x || p.y - q.y);
+    return ok[0] ?? null;
+  };
   const park = (crew: P, roads: readonly P[], prev?: P | null, maxM = Infinity, from: P | null | undefined = prev): { at: P; pathM: number } => {
     const dTo = (q: P) => Math.hypot(q.x - crew.x, q.y - crew.y);
     const reach = from ? reachableFrom(roads, from) : null;
@@ -239,6 +284,11 @@ export function makePlacer(inp: PlacementInput): Placer {
     let pick = clear && (!flank || dTo(clear) <= dTo(flank) + 150) ? clear : flank;
     // Last step's spot, while it is still good enough (no crossing, clear, outside the cone, not much longer).
     if (prev && pick && dTo(prev) <= maxM && dTo(prev) <= dTo(pick) + KEEP_SLACK_M && free(prev) && safe(prev) && !crosses(crew, prev)) pick = prev;
+    // Nowhere reachable round the fire, and the flank would overrun the vehicle where it stands: it backs out along its road.
+    if (!pick && reach && from && prev && overrun(prev)) {
+      const out = backOut(crew, roads, from);
+      if (out) { backedOut.push(from); pick = out; }
+    }
     // Nowhere reachable to go: the vehicle stays where it stood.
     if (!pick && reach) unreachable.push(from!);
     if (!pick && prev && reach) pick = prev;
@@ -259,5 +309,5 @@ export function makePlacer(inp: PlacementInput): Placer {
     }
     return true;
   };
-  return { crewAt, hold, validCrew, vehicleFor: (crew, roads) => park(crew, roads).at, park, lineM, cutOff, unreachable, isCold };
+  return { crewAt, hold, validCrew, vehicleFor: (crew, roads) => park(crew, roads).at, park, lineM, cutOff, unreachable, backedOut, isCold };
 }

@@ -154,22 +154,31 @@ describe("routeOnRoads", () => {
     expect(r.offRoadM).toBeCloseTo(r.lengthM, 6);
   });
 
+  it("reaches the north band on roads: its forest roads join the network through the Koivuoja link", () => {
+    // SPEC/33 gate R (20 Oct 2026): the north band's forest roads joined the rest only beyond the map's edge (a ~36 km loop), so the
+    // trucks the scenario parks on the Koivuoja forest road could not have driven there; the forest-road link to R1 joins them.
+    const reach = component(nearestNode(world, world.commandPost)!);
+    const north = world.roads.nodes.map((p, i) => ({ p, i })).filter(({ p }) => p.y >= 9_600);
+    expect(north.length).toBeGreaterThan(0);
+    for (const { i } of north) expect(reach.has(i), `node ${i}`).toBe(true);
+  });
+
   it("is not trapped on a stretch of road cut off from the network", () => {
-    // The north band's forest roads join the rest only beyond the map's edge: from one of them, a unit still finds
-    // its way (off-road to the nearest connected road).
+    // A stretch of road the window cuts off from the rest (its links lie beyond the map's edge): from it, a unit still finds its
+    // way (off-road to the nearest connected road). Gate R: the north band is joined now; the nearest stretch still cut off is used.
     const cp = nearestNode(world, world.commandPost)!;
     const reach = component(cp);
     let cutOff = -1;
     let gap = Infinity;
     world.roads.nodes.forEach((p, i) => {
-      if (reach.has(i) || p.y < 9_600) return;
+      if (reach.has(i)) return;
       for (const j of reach) {
         const d = distance(p, world.roads.nodes[j]!);
         if (d < gap) { gap = d; cutOff = i; }
       }
     });
     expect(cutOff).toBeGreaterThanOrEqual(0);
-    expect(gap).toBeLessThan(2500); // ~2.3 km of forest between the north band and the network
+    expect(gap).toBeLessThan(2500);
     const start = world.roads.nodes[cutOff]!;
     const r = routeOnRoads(world, start, world.commandPost, ENGINE, { maxOffRoadM: 3000 });
     expect(r).not.toBeNull();

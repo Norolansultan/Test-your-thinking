@@ -22,6 +22,7 @@
   "atom.demo.9.0": "The wind is now from the south-east, the north edge has become active towards Bear Lake.",
   "atom.demo.9.1": "Occupancy of the Lakeside Cottages is not known; the police have been asked to check.",
   "f7.heli_line_clearance": "HELI1: bucket runs to the head continue. The route goes around the 20 kV power line; we keep well clear of the conductors and do not drop water on the line.",
+  "f7.grid_at_line": "The local distribution company's control centre: the fire is now at the 20 kV power line on the south-east front. The line is still live. Switching the line off has been requested and a line worker is on the way to the disconnector; notice of the switching will be given separately. Safety distances apply; a burning pole can bring a conductor down to the ground.",
   "rekindle.in_hand.ky21": "KY21: Sector 3 under control. The wind has eased, no smoke visible on the south edge by the point of origin.",
   "rekindle.in_hand.vpk": "VOL1: The south edge by the point of origin has calmed down, no open fire visible. The line holds.",
   "rekindle.in_hand.log": "Situation log: sector L3 (south of the point of origin) under control, reported by KY21.",

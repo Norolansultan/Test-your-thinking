@@ -137,7 +137,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["out", "Vesi on loppu, sivustan työ keskeytyy illaksi"], ["none", "Ei vaikutusta, säiliö riittää illan loppuun asti"],
       ], key: "brought",
       keyAtomIds: [trafficId(13, /^EK12, kärki, eteläsivusta: vesi loppumassa \(25 %\)\. Pyysimme EK13:lta vesiajon/), trafficId(13, /^EK12, EK13: selvä, tuomme altaan linjanne päähän/)],
-      rule: "cited", basis: "EK12 (step 13): water running low (25 %), it asked EK13 for a water run to a basin, due 17.41; EK13 confirms it brings the basin to the end of EK12's line: the crew stays on the flank",
+      rule: "cited", basis: "EK12 (step 13): water running low (25 %), it asked EK13 for a water run to a basin, due 17.43 (the record; was 17.41 before gate R, 20 Oct 2026); EK13 confirms it brings the basin to the end of EK12's line: the crew stays on the flank",
     }),
     choice({
       // `31` F27: "palanut ala" as V2 and V5 say, the new front's inclusion stated.

@@ -370,6 +370,7 @@ export function exportSiteScenario({ site, ignitionTm35, forcing, result, views 
       units[id] = fromSite(u.shown);
       unitWork[id] = u.shownWork;
     }
+    for (const q of placer.backedOut) console.log(`step ${n}: vehicle at (${Math.round(q.x)}, ${Math.round(q.y)}) backed out along its road ahead of the flank (placement.ts)`);
     for (const q of placer.unreachable) unreachableLog.push(`step ${n}: vehicle at (${Math.round(q.x)}, ${Math.round(q.y)}) has no parking spot reachable by road outside the burning zone`);
     for (const q of placer.cutOff) cutOffLog.push(`step ${n}: crew at (${Math.round(q.x)}, ${Math.round(q.y)}) has no road reachable without crossing the fire`);
     // The water shuttle never reports a crossing or a stop: it holds no line.

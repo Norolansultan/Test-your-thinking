@@ -65,7 +65,8 @@ export interface DeclutterOptions {
   readonly fixed?: readonly { readonly cx: number; readonly cy: number; readonly w: number; readonly h: number }[];
   /**
    * Line segments the markers move off but that never move (revision (am): the fire's uncontained edge on screen), px.
-   * A box crossing a segment is pushed across it to the side its centre is on, within the same cap.
+   * A box crossing a segment is pushed across it to the side its centre is on, within the same cap; on a zig-zag edge, to the
+   * nearest spot within the cap that clears every segment (`clearOfLines`).
    */
   readonly fixedLines?: readonly ScreenSegment[];
 }
@@ -197,6 +198,58 @@ export function pushOffSegment(a: { cx: number; cy: number; readonly w: number; 
   return true;
 }
 
+/** Whether a box crosses a segment widened by `EDGE_HALF_PX` and the padding (`pushOffSegment`'s test, without the move). */
+function crossesSegment(a: { readonly cx: number; readonly cy: number; readonly w: number; readonly h: number }, l: ScreenSegment, pad: number): boolean {
+  const dx = l.x2 - l.x1, dy = l.y2 - l.y1, len = Math.hypot(dx, dy);
+  if (len < 1e-6) return false;
+  const tx = dx / len, ty = dy / len, nx = -ty, ny = tx;
+  const rx = a.cx - l.x1, ry = a.cy - l.y1;
+  const along = rx * tx + ry * ty, across = rx * nx + ry * ny;
+  const ea = (a.w / 2) * Math.abs(tx) + (a.h / 2) * Math.abs(ty);
+  if (along + ea < 0 || along - ea > len) return false;
+  return Math.abs(across) < (a.w / 2) * Math.abs(nx) + (a.h / 2) * Math.abs(ny) + pad + EDGE_HALF_PX - 1e-9;
+}
+
+/** Search directions for a spot clear of a zig-zag edge: 16 compass points, in a fixed order. */
+const RING = Array.from({ length: 16 }, (_, k) => [Math.cos((k * Math.PI) / 8), Math.sin((k * Math.PI) / 8)] as const);
+
+/**
+ * Moves a box off the edge lines it crosses; returns whether it moved. First one push across the crossed segment to the side its
+ * centre is on, when that clears every line within the cap (a straight stretch of edge). On a zig-zag edge such a push lands the
+ * box on the next segment (SPEC/33 gate R, 20 Oct 2026: on the rebuilt map's jagged north edge at V6–V8, 179 of 700 edge samples
+ * stayed hidden), so then the box takes the spot nearest its true position, within its cap, that clears every line — rings 1 px
+ * apart, 16 directions in a fixed order — and where the edge's teeth leave no such spot within the cap (a drone orbiting over a
+ * jagged edge), the spot within the cap that hides the least of the edge. Deterministic, and stable from round to round: the
+ * searches start from the box's home, not from where the last round left it.
+ */
+function clearOfLines(d: Drawn, lines: readonly ScreenSegment[], pad: number): boolean {
+  const reach = d.cap + Math.hypot(d.b.w, d.b.h) + pad + EDGE_HALF_PX;
+  const near = lines.filter((l) => Math.min(l.x1, l.x2) - reach <= d.home.cx && d.home.cx <= Math.max(l.x1, l.x2) + reach
+    && Math.min(l.y1, l.y2) - reach <= d.home.cy && d.home.cy <= Math.max(l.y1, l.y2) + reach);
+  const crossed = near.find((l) => crossesSegment(d.b, l, pad));
+  if (!crossed) return false;
+  const move = (c: Box) => { const moved = Math.abs(c.cx - d.b.cx) > 1e-9 || Math.abs(c.cy - d.b.cy) > 1e-9; d.b.cx = c.cx; d.b.cy = c.cy; return moved; };
+  const inCap = (b: Box) => Math.hypot(b.cx - d.home.cx, b.cy - d.home.cy) <= d.cap + 1e-9;
+  const clear = (b: Box) => !near.some((l) => crossesSegment(b, l, pad));
+  const pushed = { ...d.b };
+  pushOffSegment(pushed, crossed, pad);
+  if (inCap(pushed) && clear(pushed)) return move(pushed);
+  const spots: Box[] = [{ ...d.b, cx: d.home.cx, cy: d.home.cy }];
+  for (let r = 1; r <= d.cap; r++) for (const [ux, uy] of RING) spots.push({ ...d.b, cx: d.home.cx + ux * r, cy: d.home.cy + uy * r });
+  const free = spots.find(clear);
+  if (free) return move(free);
+  // No clear spot within the cap: the least edge hidden (samples every 2 px, as the edge-visibility test counts them).
+  const samples: { x: number; y: number }[] = [];
+  for (const l of near) {
+    const k = Math.max(1, Math.ceil(Math.hypot(l.x2 - l.x1, l.y2 - l.y1) / 2));
+    for (let i = 0; i < k; i++) samples.push({ x: l.x1 + ((l.x2 - l.x1) * i) / k, y: l.y1 + ((l.y2 - l.y1) * i) / k });
+  }
+  const hidden = (b: Box) => samples.reduce((n, q) => n + (Math.abs(q.x - b.cx) < b.w / 2 && Math.abs(q.y - b.cy) < b.h / 2 ? 1 : 0), 0);
+  let best = spots[0]!, bestN = hidden(best);
+  for (const c of spots) { if (bestN === 0) break; const n = hidden(c); if (n < bestN) { best = c; bestN = n; } }
+  return move(best);
+}
+
 /**
  * Overlapping pairs, in order, are pushed apart along their axis of least overlap, and boxes off the fixed boxes and
  * edge segments; each box is then held within its cap.
@@ -204,7 +257,7 @@ export function pushOffSegment(a: { cx: number; cy: number; readonly w: number; 
 function relax(drawn: readonly Drawn[], fixed: readonly Box[], lines: readonly ScreenSegment[], pad: number, rounds: number): void {
   for (let r = 0; r < rounds; r++) {
     let moved = false;
-    for (const d of drawn) for (const l of lines) if (pushOffSegment(d.b, l, pad)) moved = true;
+    for (const d of drawn) if (clearOfLines(d, lines, pad)) moved = true;
     for (const d of drawn) {
       for (const f of fixed) {
         const a = d.b, ox = overlapX(a, f, pad), oy = overlapY(a, f, pad);

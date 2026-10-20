@@ -1,7 +1,7 @@
 """
-`python tools/topo-map/render.py` (step 2 of 2) — rasterises the vector
-layers written by `npm run map:build` (SPEC/23 §11) into the basemap image,
-in the style of the MML 1:50 000 sheet used for preview (`app/render/ui/public/maps/L521.png`).
+`python tools/topo-map/render.py` (step 2 of 2) — rasterises the vector layers written by `npm run map:build`
+(SPEC/23 §11) into the basemap image, in the style of the National Land Survey's Karttapaikka maastokartta
+(SPEC/33 §9 and §2.3 "Cartography"; palette and type in `render_style.py`, labels in `render_labels.py`).
 
 Reads:
   content/site/build/topo-features.json   vector layers in map pixels (step 1)
@@ -10,385 +10,318 @@ Writes:
   app/render/ui/public/maps/topo.webp     the basemap at app/scenario/site-meta.json's "image"
   app/render/ui/public/maps/topo/r_c.webp its 4 x 4 tiles, which the UI loads (site-meta.json "tiles")
   app/render/ui/public/maps/topo-en/r_c.webp
-                                          the same tiles with the English labels (revision (ae),
-                                          9 Oct 2026: "labelsEn", the names from
-                                          app/i18n/place-names.ts), loaded in English sessions
+                                          the same tiles with the English labels (SPEC/23 §16, "labelsEn")
 
-The map is drawn once; only the labels differ between the languages, so the two are identical
-pixel for pixel away from the labels. Deterministic: the paper grain is seeded, everything else is
-drawn from topo-features.json, and a second run writes the same bytes (checked 9 Oct 2026, Pillow
-12.3.0, Python 3.14.3, Windows fonts).
+Data-driven: every layer is optional and drawn only when present. Layers read (new name / today's name):
+  polygons   rock|rocky, field_parcels + fields, mire_open|openBogs, mire_drained|drainedBogs, pineBogs,
+             paludified, peat_production, water, islands, ponds, clearings
+  polylines  ditches, contours (index flag "contours_index"|"index", height "level" when written),
+             river, streams|brooks, roads (cls main|gravel|public|forest|private|track|path, optional "ref"),
+             powerLine (+ powerCorridorPx)
+  points     bridges, buildings, labels, labelsEn; elevationGrid (index-contour heights and their uphill side)
+`mireLines` (the old difficult-mire hatching) is no longer drawn: §9 mires are a flat fill with their ditches.
+
+The map is drawn once; only the names differ between the languages. Contour labels avoid both languages' names,
+so the two maps are identical pixel for pixel away from the names. Deterministic: no randomness, fixed orders;
+a second run writes the same bytes on the same platform and fonts (Arial on Windows, Liberation Sans elsewhere).
 """
 
 import json
 import math
 import os
+import sys
 
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+
+sys.dont_write_bytecode = True  # the helper modules are imported from this folder; keep it free of __pycache__
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import render_labels as lab  # noqa: E402
+import render_style as st  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FEATURES_PATH = os.path.join(ROOT, "content", "site", "build", "topo-features.json")
 OUT_PATH = os.path.join(ROOT, "app", "render", "ui", "public", "maps", "topo.webp")
-FONTS = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
 
-# Supersample factor: draw at SS× and downsample with LANCZOS for anti-aliased
-# lines and polygon edges (PIL's ImageDraw itself does not antialias).
+# Supersample factor: draw at SS× and downsample with LANCZOS (PIL's ImageDraw does not antialias).
 SS = 2
-# Rows per strip for the numpy passes (revision (al): bounds the peak memory).
-STRIP = 1000
-
-# ---------------------------------------------------------------------------
-# Palette — sampled from the MML Maastokartta 1:50 000 legend ("Merkkienselite",
-# 5.9.2025, maastokartta_karttamerkkien_selite_2025.pdf p. 2). Symbol sizes are
-# the legend's millimetres at 1:50 000 (1 mm = 50 m = 12.5 px on this 4 m/px map).
-# ---------------------------------------------------------------------------
-
-BG_LOW = (247, 246, 240)  # "metsäinen alue (valkea)": forest is white; faint paper grain only
-BG_HIGH = (255, 255, 253)
-WATER_FILL = (109, 207, 246)  # vesialue
-WATER_OUTLINE = (0, 113, 187)  # rantaviiva
-RIVER_COLOR = (0, 113, 187)
-BROOK_COLOR = (0, 113, 187)  # puro tai oja
-FIELD_FILL = (254, 216, 143)  # pelto
-OPEN_BOG_FILL = (213, 191, 96)  # suo: puuton
-PINE_BOG_FILL = (196, 214, 223)  # suo: metsäinen
-DRAINED_BOG_FILL = (196, 214, 223)  # ditched mire is still "metsäinen suo"; the ditches carry the difference
-PALUDIFIED_FILL = (225, 234, 238)  # soistuma
-# vaikeakulkuinen suo: horizontal lines on 0.6 mm pitch. Revision (al), 10 Oct 2026 (map review panel):
-# lighter and half as thick (was (61, 182, 223), 2 px), so the blue unit markers do not fade into the hatching.
-MIRE_LINE = (150, 210, 236)
-MIRE_LINE_WIDTH = 1
-# oja, leveys alle 2 m. Revision (al): lighter (was (0, 113, 187), the legend's blue), so the blue unit
-# markers on the drained mires (Rahkasuo) do not fade into the ditch hatching.
-DITCH_COLOR = (88, 160, 212)
-ROCK_FILL = (214, 212, 206)  # avokallio — neutral grey here, not MML pink: pink reads as the fire projection (SPEC/12 rev. 24 Sep (c))
-CONTOUR_COLOR = (170, 150, 122)  # pääkäyrä 5 m — muted, not MML orange-brown, which competes with the fire colours
-CONTOUR_INDEX_COLOR = (170, 150, 122)  # johtokäyrä 20 m: same hue, heavier line
-ROAD_RED = (112, 110, 106)  # II a/b autotie — grey, not MML red: red is reserved for the fire now (SPEC/12 rev. 24 Sep (c))
-ROAD_RED_III = (132, 129, 124)  # III a/b yksikaistainen autotie — grey, as above
-ROAD_BLACK = (34, 31, 31)  # ajotie, ajopolku, polku; II-class centreline
-POWERLINE_COLOR = (45, 45, 45)
-# Revision (al): the 110 kV line's 36 m cleared corridor, open ground under the line (the CA has it as
-# "cleared_corridor"); the same pale tone is used for the log landing at the R2 junction.
-CLEARED_FILL = (244, 230, 186)
-CLEARED_OUTLINE = (150, 140, 120)
-BUILDING_COLOR = (87, 88, 90)  # asuin-, loma-, liike- ja yleisiä rakennuksia
-BUILDING_OTHER_FILL = (209, 210, 212)  # muita rakennuksia (sauna, barn, hut)
-BRIDGE_COLOR = (40, 40, 40)
-LABEL_BLACK = (30, 30, 30)
-LABEL_WATER = (40, 92, 152)
-LABEL_TERRAIN = (94, 66, 40)
-LABEL_HEIGHT = (140, 122, 98)
+TILES = 4
+INDEX_INTERVAL_M = 20  # johtokäyrä, when contours carry a level but no flag
 
 
-def load_features():
-    with open(FEATURES_PATH, "r", encoding="utf-8") as f:
+def load_features(path=FEATURES_PATH):
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def scale(pt, s=SS):
-    return (pt[0] * s, pt[1] * s)
+def sc(pts):
+    return [(p[0] * SS, p[1] * SS) for p in pts]
 
 
-def scale_ring(ring, s=SS):
-    return [tuple(scale(p, s)) for p in ring]
+def px(w):
+    return max(1, int(round(w * SS)))
 
 
-def draw_dashed_polyline(draw, pts, color, width, dash=10, gap=8):
-    """PIL has no native dashed line; walk the polyline and draw on/off runs."""
+def fill_polygon(im, draw, item, fill, outline=None, width=0):
+    """A polygon, with holes when it has them (drawn through a mask over its bounding box)."""
+    rings = st.polygon_rings(item)
+    if not rings:
+        return
+    if len(rings) == 1:
+        draw.polygon(sc(rings[0]), fill=fill, outline=outline, width=width if outline else 0)
+        return
+    outer = sc(rings[0])
+    x0, y0 = int(min(p[0] for p in outer)), int(min(p[1] for p in outer))
+    x1, y1 = int(max(p[0] for p in outer)) + 2, int(max(p[1] for p in outer)) + 2
+    mask = Image.new("L", (x1 - x0, y1 - y0), 0)
+    md = ImageDraw.Draw(mask)
+    md.polygon([(x - x0, y - y0) for x, y in outer], fill=255)
+    for hole in rings[1:]:
+        md.polygon([(x * SS - x0, y * SS - y0) for x, y in hole], fill=0)
+    im.paste(fill, (x0, y0, x1, y1), mask)
+    if outline:
+        for r in rings:
+            draw.line(sc(r) + sc(r[:1]), fill=outline, width=width)
+
+
+def line(draw, pts, colour, width):
+    if len(pts) >= 2:
+        draw.line(sc(pts), fill=colour, width=px(width), joint="curve")
+
+
+def dashed(draw, pts, colour, width, dash, gap):
+    """PIL has no dashed line; walk the polyline in final px and draw the on-runs."""
     if len(pts) < 2:
         return
-    on = True
-    remaining = dash
-    for a, b in zip(pts, pts[1:]):
-        seg_len = math.hypot(b[0] - a[0], b[1] - a[1])
-        t = 0.0
-        while t < seg_len:
-            step = min(remaining, seg_len - t)
-            t0, t1 = t / seg_len, (t + step) / seg_len
-            if on:
-                p0 = (a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0)
-                p1 = (a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1)
-                draw.line([p0, p1], fill=color, width=width)
-            t += step
-            remaining -= step
-            if remaining <= 0:
-                on = not on
-                remaining = dash if on else gap
+    cum = lab.cumlen(pts)
+    s = 0.0
+    while s < cum[-1]:
+        seg = lab.sub_polyline(pts, cum, s, min(s + dash, cum[-1]))
+        draw.line(sc(seg), fill=colour, width=px(width), joint="curve")
+        s += dash + gap
 
 
-def font(path, size):
-    try:
-        return ImageFont.truetype(os.path.join(FONTS, path), size)
-    except OSError:
-        return ImageFont.load_default()
+def road_classes(fx):
+    roads = fx.get("roads") or []
+    known = set(st.ROAD_ORDER)
+    order = sorted({r.get("cls") for r in roads} - known, key=str) + list(st.ROAD_ORDER)
+    return roads, order
 
 
-def paper_texture(size_px, low, high, seed=20260923):
-    """Low-frequency mottled tint, standing in for print/paper grain and canopy-density
-    variation — flat colour reads as obviously computer-generated next to L521's scan."""
-    rng = np.random.default_rng(seed)
-    lo_res = 96
-    noise = rng.random((lo_res, lo_res), dtype=np.float64).astype(np.float32)
-    tile = Image.fromarray((noise * 255).astype(np.uint8), mode="L").resize((size_px, size_px), Image.BICUBIC)
-    # Revision (al): computed in strips of rows (the same arithmetic, element by element) so the
-    # supersampled 10 000 px map does not need several GB of float arrays at once.
-    t8 = np.asarray(tile)
-    n_min = np.float32(t8.min()) / np.float32(255.0)
-    n_max = np.float32(t8.max()) / np.float32(255.0)
-    low_a = np.array(low, dtype=np.float32)
-    high_a = np.array(high, dtype=np.float32)
-    out = np.empty((size_px, size_px, 3), dtype=np.uint8)
-    for r0 in range(0, size_px, STRIP):
-        n = t8[r0:r0 + STRIP].astype(np.float32) / 255.0
-        n = (n - n_min) / (n_max - n_min)
-        out[r0:r0 + STRIP] = (low_a[None, None, :] + (high_a - low_a)[None, None, :] * n[:, :, None]).astype(np.uint8)
-    return Image.fromarray(out, mode="RGB")
+def draw_ground(im, draw, fx):
+    """Area fills, bottom to top."""
+    # the 110 kV corridor and the log landing: open ground, under everything else
+    pl = fx.get("powerLine") or []
+    if len(pl) >= 2 and fx.get("powerCorridorPx"):
+        draw.line(sc(pl), fill=st.CLEARED_FILL, width=px(fx["powerCorridorPx"]))
+    for ring in st.layer(fx, "clearings"):
+        fill_polygon(im, draw, ring, st.CLEARED_FILL, st.CLEARED_EDGE, px(0.5))
+    for ring in st.layer(fx, "rock", "rocky"):
+        fill_polygon(im, draw, ring, st.ROCK_FILL)
+    for ring in st.layers(fx, "fields", "field_parcels"):
+        fill_polygon(im, draw, ring, st.FIELD_FILL, st.FIELD_EDGE, px(st.W["field_edge"]))
+    mires = (st.layer(fx, "mire_open", "openBogs") + st.layer(fx, "mire_drained", "drainedBogs")
+             + st.layers(fx, "pineBogs", "mire", "paludified"))
+    for ring in mires:
+        fill_polygon(im, draw, ring, st.MIRE_FILL)
+    for ring in st.layer(fx, "peat_production"):
+        fill_polygon(im, draw, ring, st.PEAT_FILL)
+    for ring in st.layers(fx, "water", "ponds"):
+        fill_polygon(im, draw, ring, st.WATER_FILL, st.WATER_SHORE, px(st.W["shore"]))
+    for ring in st.layer(fx, "islands"):
+        fill_polygon(im, draw, ring, st.BG, st.WATER_SHORE, px(st.W["shore"]))
 
 
-def box_blur(z, passes=6):
-    """A few box-blur passes approximate a gaussian — smooths the fine-grained noise out of the
-    elevation grid so the hillshade reads as broad relief, not per-cell texture. No scipy
-    dependency: plain numpy, edges handled by clamped padding."""
-    out = z.copy()
-    for _ in range(passes):
-        p = np.pad(out, 1, mode="edge")
-        out = (p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:] + 4 * p[1:-1, 1:-1]) / 8.0
-    return out
+def obstacles(fx):
+    """Points that contour and road labels must not cover, and boxes that names avoid."""
+    h = lab.PointHash()
+    for k, c in enumerate(fx.get("contours") or []):
+        h.add_line(st.polyline_pts(c), tag=("c", k))
+    for k, r in enumerate(fx.get("roads") or []):
+        h.add_line(st.polyline_pts(r), tag=("r", k))
+    for name in ("ditches", "river", "brooks", "streams"):
+        for ln in fx.get(name) or []:
+            h.add_line(st.polyline_pts(ln), tag=None, step=4.0)
+    h.add_line(fx.get("powerLine") or [], tag=("p", 0))
+    boxes = lab.BoxSet()
+    for b in fx.get("buildings") or []:
+        (x, y), half = b["px"], max(2.0, b.get("size", 3) / 2) + 1
+        boxes.add((x - half, y - half, x + half, y + half))
+        for dx in (-half, 0, half):
+            for dy in (-half, 0, half):
+                h.add(x + dx, y + dy)
+    for bx, by in fx.get("bridges") or []:
+        boxes.add((bx - 8, by - 8, bx + 8, by + 8))
+        h.add(bx, by)
+    return h, boxes
 
 
-def hillshade_layer(elevation_grid, size_px, azimuth_deg=315, altitude_deg=55, strength=0.09):
-    """Standard cartographic hillshade (higher/lower ground visible beyond the contour lines
-    alone, per the L521 comparison) — a subtle multiplicative light/shadow layer, applied under
-    the line and point features so they stay crisp on top of it."""
-    n = elevation_grid["size"]
-    z = np.asarray(elevation_grid["values"], dtype=np.float32).reshape(n, n)
-    z = box_blur(z, passes=6)
-    # North is +y in this grid (row 0 = north edge, terrain.ts's cellY runs -HALF..+HALF then
-    # build.ts samples top-to-bottom), so a north-up image needs the gradient flipped in y.
-    gy, gx = np.gradient(z)
-    slope = np.arctan(np.hypot(gx, gy))
-    aspect = np.arctan2(-gx, gy)
-    az = math.radians(360 - azimuth_deg + 90)
-    alt = math.radians(altitude_deg)
-    shade = np.sin(alt) * np.cos(slope) + np.cos(alt) * np.sin(slope) * np.cos(az - aspect)
-    shade = np.clip(shade, 0, 1)
-    tile = Image.fromarray((shade * 255).astype(np.uint8), mode="L").resize((size_px, size_px), Image.BICUBIC)
-    return (np.asarray(tile), strength)  # the factor is made strip by strip in apply_hillshade
+def plan_line_labels(fx, hash_, taken, elev):
+    """Heights for index contours and road numbers; placed once for both languages."""
+    contours = fx.get("contours") or []
+    lines = []
+    for k, c in enumerate(contours):
+        pts = st.polyline_pts(c)
+        if len(pts) >= 2 and st.contour_is_index(c, INDEX_INTERVAL_M):
+            h = lab.contour_height(c, pts, elev, INDEX_INTERVAL_M)
+            lines.append((("c", k), pts, None if h is None else f"{h:g}"))
+    lines.sort(key=lambda t: (-lab.cumlen(t[1])[-1], t[0]))
+    uphill = elev.at if elev.z is not None else None
+    contour_labels = lab.place_line_labels(lines, hash_, taken, st.CONTOUR_LABEL_SIZE, uphill=uphill)
+    refs = [(("r", k), st.polyline_pts(r), str(r["ref"])) for k, r in enumerate(fx.get("roads") or []) if r.get("ref")]
+    road_labels = lab.place_line_labels(refs, hash_, taken, st.ROAD_REF_SIZE, along_gap=1500, min_sep=400)
+    return contour_labels, road_labels
 
 
-def apply_hillshade(im, shade_and_strength):
-    """Multiply onto RGB: darker in shadow, brighter on sunlit slopes. Revision (al): in strips of
-    rows, the same arithmetic as before element by element (memory, not the picture, changed)."""
-    shade8, strength = shade_and_strength
-    src = np.asarray(im)
-    out = np.empty_like(src)
-    for r0 in range(0, src.shape[0], STRIP):
-        factor = 1.0 - strength + strength * (shade8[r0:r0 + STRIP].astype(np.float32) / 255.0)
-        arr = src[r0:r0 + STRIP].astype(np.float32)
-        arr *= factor[:, :, None]
-        out[r0:r0 + STRIP] = np.clip(arr, 0, 255).astype(np.uint8)
-    return Image.fromarray(out, mode="RGB")
+def draw_lines(im, draw, fx, contour_labels):
+    for d in fx.get("ditches") or []:
+        main = isinstance(d, dict) and d.get("cls") in ("main", "collector")
+        line(draw, st.polyline_pts(d), st.STREAM, st.W["ditch_main" if main else "ditch"])
+
+    gaps = {}
+    for tag, _, _, _, span in contour_labels:
+        gaps.setdefault(tag[1], []).append(span)
+    for k, c in enumerate(fx.get("contours") or []):
+        pts = st.polyline_pts(c)
+        idx = st.contour_is_index(c, INDEX_INTERVAL_M)
+        for piece in lab.cut_polyline(pts, gaps.get(k)):
+            line(draw, piece, st.CONTOUR_INDEX if idx else st.CONTOUR, st.W["contour_index" if idx else "contour"])
+    fnt = st.font("regular", st.CONTOUR_LABEL_SIZE * SS)
+    for _, text, (cx, cy), angle, _ in contour_labels:
+        lab.draw_rotated_text(im, text, fnt, (cx * SS, cy * SS), angle, st.CONTOUR_INDEX)
+
+    # rivers drawn as areas between banks (both banks first, so runs join cleanly), then streams
+    runs = [st.polyline_pts(r) for r in fx.get("river") or []]
+    for r in runs:
+        line(draw, r, st.WATER_SHORE, st.W["river_bank"])
+    for r in runs:
+        line(draw, r, st.WATER_FILL, st.W["river_water"])
+    for b in st.layer(fx, "streams", "brooks"):
+        line(draw, st.polyline_pts(b), st.STREAM, st.W["brook"])
+
+
+def draw_roads(draw, fx):
+    roads, order = road_classes(fx)
+    for cls in order:
+        colour = st.ROAD_COLOUR.get(cls, st.ROAD_BLACK)
+        width = st.W.get(cls, 1.0)
+        for r in roads:
+            if r.get("cls") != cls:
+                continue
+            pts = st.polyline_pts(r)
+            if cls in st.DASH:
+                dashed(draw, pts, colour, width, *st.DASH[cls])
+            else:
+                line(draw, pts, colour, width)
+
+
+def draw_power_line(draw, fx):
+    """sähkölinja: a thin dark line with a short cross tick every 100 m."""
+    pl = fx.get("powerLine") or []
+    if len(pl) < 2:
+        return
+    line(draw, pl, st.POWERLINE, st.W["power"])
+    step = 100 / fx.get("metresPerPixel", 4)
+    cum = lab.cumlen(pl)
+    s = step
+    while s < cum[-1]:
+        (x, y), i = lab.point_at(pl, cum, s)
+        a, b = pl[i], pl[min(i + 1, len(pl) - 1)]
+        d = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+        nx, ny = -(b[1] - a[1]) / d * 3, (b[0] - a[0]) / d * 3
+        draw.line(sc([(x - nx, y - ny), (x + nx, y + ny)]), fill=st.POWERLINE, width=px(st.W["power"]))
+        s += step
+
+
+def road_direction(fx, x, y):
+    """Unit direction and class of the road segment nearest to (x, y)."""
+    best = None
+    for r in fx.get("roads") or []:
+        pts = st.polyline_pts(r)
+        for a, b in zip(pts, pts[1:]):
+            vx, vy = b[0] - a[0], b[1] - a[1]
+            L2 = vx * vx + vy * vy
+            if L2 == 0:
+                continue
+            t = min(1, max(0, ((x - a[0]) * vx + (y - a[1]) * vy) / L2))
+            d = math.hypot(a[0] + vx * t - x, a[1] + vy * t - y)
+            if best is None or d < best[0]:
+                L = math.sqrt(L2)
+                best = (d, (vx / L, vy / L), r.get("cls"))
+    return best
+
+
+def draw_bridges(draw, fx):
+    """A bridge: two black side lines along the road, with flared ends."""
+    for bx, by in fx.get("bridges") or []:
+        nearest = road_direction(fx, bx, by)
+        ux, uy = nearest[1] if nearest and nearest[0] < 12 else (1.0, 0.0)
+        nx, ny = -uy, ux
+        off = st.W.get(nearest[2] if nearest else "main", 2.5) / 2 + 2
+        half = 8
+        for side in (-1, 1):
+            ox, oy = bx + nx * off * side, by + ny * off * side
+            p0, p1 = (ox - ux * half, oy - uy * half), (ox + ux * half, oy + uy * half)
+            flare0 = (p0[0] - ux * 2 + nx * 2 * side, p0[1] - uy * 2 + ny * 2 * side)
+            flare1 = (p1[0] + ux * 2 + nx * 2 * side, p1[1] + uy * 2 + ny * 2 * side)
+            draw.line(sc([flare0, p0, p1, flare1]), fill=st.ROAD_BLACK, width=px(st.W["bridge"]))
+
+
+def draw_buildings(draw, fx):
+    for b in fx.get("buildings") or []:
+        cx, cy = b["px"]
+        half = max(2.0, b.get("size", 3) / 2)
+        if b.get("kind") == "other":
+            half = max(1.5, half * 0.8)  # saunas, barns, huts: a smaller square
+        draw.rectangle([(cx - half) * SS, (cy - half) * SS, (cx + half) * SS, (cy + half) * SS], fill=st.BUILDING)
 
 
 def main():
     fx = load_features()
-    size_px = fx["size"] * SS
-    im = paper_texture(size_px, BG_LOW, BG_HIGH)
+    size = fx["size"]
+    elev = lab.Elevation(fx)
+
+    # Names first (both languages), so the contour labels can keep clear of either.
+    hash_, building_boxes = obstacles(fx)
+    placed = {lang: lab.place_point_labels(fx.get(key) or [], building_boxes, hash_)
+              for lang, key in (("fi", "labels"), ("en", "labelsEn"))}
+    taken = lab.BoxSet()
+    for b in building_boxes.boxes:
+        taken.add(b)
+    for lang in placed:
+        for *_, box in placed[lang]:
+            taken.add(box)
+    contour_labels, road_labels = plan_line_labels(fx, hash_, taken, elev)
+
+    im = Image.new("RGB", (size * SS, size * SS), st.BG)
     draw = ImageDraw.Draw(im)
+    draw_ground(im, draw, fx)
+    draw_lines(im, draw, fx, contour_labels)
+    draw_roads(draw, fx)
+    draw_power_line(draw, fx)
+    draw_bridges(draw, fx)
+    draw_buildings(draw, fx)
+    ref_font = st.font("regular", st.ROAD_REF_SIZE * SS)
+    for _, text, (cx, cy), angle, _ in road_labels:
+        lab.draw_rotated_text(im, text, ref_font, (cx * SS, cy * SS), angle, st.ROAD_REF, st.HALO, SS)
+    print(f"  {len(contour_labels)} contour labels, {len(road_labels)} road numbers")
 
-    # --- exposed bedrock: plain avokallio fill (the legend has no texture for it) ----
-    for ring in fx["rocky"]:
-        draw.polygon(scale_ring(ring), fill=ROCK_FILL)
-
-    # --- the 110 kV line's cleared corridor (revision (al)): under fields, mires and water, which
-    # draw over it, as in the fire model's grid, where field, bog and water take precedence ----------
-    if len(fx["powerLine"]) >= 2:
-        draw.line(scale_ring(fx["powerLine"]), fill=CLEARED_FILL, width=int(round(fx["powerCorridorPx"] * SS)))
-    # --- the log landing at the R2 junction (revision (al)): open ground, thin outline ----------
-    for ring in fx["clearings"]:
-        draw.polygon(scale_ring(ring), fill=CLEARED_FILL, outline=CLEARED_OUTLINE, width=SS)
-
-    # --- land cover, bottom to top -----------------------------------------
-    for ring in fx["fields"]:
-        draw.polygon(scale_ring(ring), fill=FIELD_FILL)
-    for ring in fx["paludified"]:
-        draw.polygon(scale_ring(ring), fill=PALUDIFIED_FILL)
-    for ring in fx["openBogs"]:
-        draw.polygon(scale_ring(ring), fill=OPEN_BOG_FILL)
-    for ring in fx["pineBogs"]:
-        draw.polygon(scale_ring(ring), fill=PINE_BOG_FILL)
-    for ring in fx["drainedBogs"]:
-        draw.polygon(scale_ring(ring), fill=DRAINED_BOG_FILL)
-
-    # --- vaikeakulkuinen suo: continuous horizontal blue lines over the mire fill ----
-    for line in fx["mireLines"]:
-        draw.line(scale_ring(line), fill=MIRE_LINE, width=MIRE_LINE_WIDTH * SS)
-
-    for ring in fx["water"]:
-        pts = scale_ring(ring)
-        draw.polygon(pts, fill=WATER_FILL, outline=WATER_OUTLINE, width=SS)
-    for ring in fx["islands"]:
-        draw.polygon(scale_ring(ring), fill=BG_HIGH, outline=WATER_OUTLINE, width=SS)
-    # Revision (al): the farm pond at W2 (Lahdenkylän lampi), tiles only (not in the fire grids).
-    for ring in fx["ponds"]:
-        draw.polygon(scale_ring(ring), fill=WATER_FILL, outline=WATER_OUTLINE, width=SS)
-
-    # --- hillshade: higher/lower ground, applied to the ground so far (background, rock,
-    # fields, bogs, water) and BEFORE line/point features, which stay crisp on top of it -----
-    im = apply_hillshade(im, hillshade_layer(fx["elevationGrid"], size_px, strength=0.06))
-    draw = ImageDraw.Draw(im)
-
-    # --- ditches: solid thin blue lines (legend "puro tai oja, leveys alle 2 m") ----
-    for line in fx["ditches"]:
-        draw.line(scale_ring(line), fill=DITCH_COLOR, width=max(1, SS))
-
-    # --- contours --------------------------------------------------------------
-    for c in fx["contours"]:
-        pts = scale_ring(c["pts"])
-        if len(pts) < 2:
-            continue
-        if c["index"]:
-            draw.line(pts, fill=CONTOUR_INDEX_COLOR, width=2 * SS, joint="curve")
-        else:
-            draw.line(pts, fill=CONTOUR_COLOR, width=max(1, SS), joint="curve")
-
-    # --- water courses ---------------------------------------------------------
-    # "joki, leveys yli 5 m": water area between shorelines; the river is a list of runs (it is not
-    # drawn across the lakes it flows through). Both outlines first, then the fill, so runs join cleanly.
-    runs = [scale_ring(run) for run in fx["river"] if len(run) >= 2]
-    for pts in runs:
-        draw.line(pts, fill=RIVER_COLOR, width=5 * SS, joint="curve")
-    for pts in runs:
-        draw.line(pts, fill=WATER_FILL, width=3 * SS, joint="curve")
-    for brook in fx["brooks"]:
-        pts = scale_ring(brook)
-        if len(pts) >= 2:
-            draw.line(pts, fill=BROOK_COLOR, width=SS, joint="curve")
-
-    # --- roads, per the legend's "Liikenneverkot" block, minor classes first ----------
-    # polku: black dashes 0.95/0.24 mm, 0.1 mm; ajopolku: black dashes 1.4/0.2 mm, 0.14 mm.
-    dashed = {"path": (SS * 2, 12 * SS, 3 * SS), "track": (SS * 3 // 2 + 1, 17 * SS, 3 * SS)}
-    for cls in ("path", "track"):
-        width, dash, gap = dashed[cls]
-        for road in fx["roads"]:
-            if road["cls"] == cls:
-                draw_dashed_polyline(draw, scale_ring(road["pts"]), ROAD_BLACK, width, dash=dash, gap=gap)
-    # ajotie (metsäautotie): solid black 0.14 mm.
-    for road in fx["roads"]:
-        pts = scale_ring(road["pts"])
-        if road["cls"] == "forest" and len(pts) >= 2:
-            draw.line(pts, fill=ROAD_BLACK, width=3, joint="curve")
-    # III a/b yksikaistainen autotie: solid red 0.22 mm.
-    for road in fx["roads"]:
-        pts = scale_ring(road["pts"])
-        if road["cls"] == "gravel" and len(pts) >= 2:
-            draw.line(pts, fill=ROAD_RED_III, width=3 * SS, joint="curve")
-    # II a/b kaksikaistainen autotie: red 0.45 mm with a dark dashed centreline.
-    for road in fx["roads"]:
-        pts = scale_ring(road["pts"])
-        if road["cls"] == "main" and len(pts) >= 2:
-            draw.line(pts, fill=ROAD_RED, width=5 * SS, joint="curve")
-            draw_dashed_polyline(draw, pts, ROAD_BLACK, SS, dash=10 * SS, gap=4 * SS)
-
-    # --- power line: smaller MML "sähkölinja" (electricity line) — a dark line with a short
-    # cross tick every 100 m on the ground, without pylon dots
-    pl_pts = scale_ring(fx["powerLine"])
-    if len(pl_pts) >= 2:
-        draw.line(pl_pts, fill=POWERLINE_COLOR, width=1 * SS)
-        step_px = (100 / fx["metresPerPixel"]) * SS
-        travelled = 0.0
-        for a, b in zip(pl_pts, pl_pts[1:]):
-            seg_len = math.hypot(b[0] - a[0], b[1] - a[1])
-            if seg_len == 0:
-                continue
-            ux, uy = (b[0] - a[0]) / seg_len, (b[1] - a[1]) / seg_len
-            nx, ny = -uy, ux
-            t = step_px - (travelled % step_px)
-            while t < seg_len:
-                px, py = a[0] + ux * t, a[1] + uy * t
-                r = 3 * SS
-                draw.line([(px - nx * r, py - ny * r), (px + nx * r, py + ny * r)], fill=POWERLINE_COLOR, width=1 * SS)
-                t += step_px
-            travelled += seg_len
-
-    # --- bridges ---------------------------------------------------------------
-    for bridge in fx["bridges"]:
-        bx, by = scale(bridge)
-        r = 6 * SS
-        draw.rectangle([bx - r, by - r * 0.5, bx + r, by + r * 0.5], outline=BRIDGE_COLOR, width=max(1, SS), fill=(255, 255, 255))
-
-    # --- buildings: "asuin-, loma-, liike- ja yleisiä rakennuksia" (dark) and
-    # "muita rakennuksia" (light grey, outlined) --------------------------------
-    for b in fx["buildings"]:
-        cx, cy = scale(b["px"])
-        half = max(2 * SS, b["size"] * SS / 2)
-        if b["kind"] == "other":
-            half = max(1.5 * SS, half)
-            draw.rectangle([cx - half, cy - half, cx + half, cy + half], fill=BUILDING_OTHER_FILL, outline=ROAD_BLACK, width=1)
-        else:
-            draw.rectangle([cx - half, cy - half, cx + half, cy + half], fill=BUILDING_COLOR)
-
-    # --- labels: drawn on a copy per language; the Finnish map is the one it always was ------------
     base = im
-    for labels, full_path, tile_dir_name in (
-        (fx["labels"], OUT_PATH, "topo"),
-        (fx["labelsEn"], None, "topo-en"),
-    ):
+    for lang, full_path, tile_dir_name in (("fi", OUT_PATH, "topo"), ("en", None, "topo-en")):
         im = base.copy()
-        draw_labels(ImageDraw.Draw(im), labels)
-        im = im.resize((fx["size"], fx["size"]), Image.LANCZOS)
+        lab.draw_point_labels(ImageDraw.Draw(im), placed[lang], SS)
+        im = im.resize((size, size), Image.LANCZOS)
         os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-        # WebP q90: ~5.6 MB against 24 MB as PNG, visually identical at 4 m/px. The PNG froze the
-        # browser for tens of seconds while decoding (found in end-to-end testing, 24 Sep 2026).
-        # The English map is written as tiles only: the UI loads nothing else.
+        # WebP q90 (the PNG froze the browser while decoding, 24 Sep 2026). English: tiles only, all the UI loads.
         if full_path:
             im.save(full_path, quality=90, method=4)
-        # The UI loads TILES x TILES pieces (site-meta.json "tiles", written by build.ts).
-        tiles = 4
-        step = fx["size"] // tiles
+        step = size // TILES
         tile_dir = os.path.join(os.path.dirname(OUT_PATH), tile_dir_name)
         os.makedirs(tile_dir, exist_ok=True)
-        for r in range(tiles):
-            for c in range(tiles):
-                im.crop((c * step, r * step, (c + 1) * step, (r + 1) * step)).save(os.path.join(tile_dir, f"{r}_{c}.webp"), quality=90, method=4)
-        print(f"wrote {full_path or tile_dir} ({fx['size']}x{fx['size']})")
-
-
-def draw_labels(draw, labels):
-    label_fonts = {
-        "water": font("timesi.ttf", 15 * SS),
-        "village": font("arialbd.ttf", 20 * SS),
-        "place": font("arial.ttf", 14 * SS),
-        "bog": font("timesi.ttf", 15 * SS),
-        "terrain": font("timesi.ttf", 15 * SS),
-        "height": font("arial.ttf", 11 * SS),
-    }
-    label_colors = {
-        "water": LABEL_WATER,
-        "village": LABEL_BLACK,
-        "place": LABEL_BLACK,
-        "bog": LABEL_TERRAIN,
-        "terrain": LABEL_TERRAIN,
-        "height": LABEL_HEIGHT,
-    }
-    for lb in labels:
-        style = lb["style"]
-        x, y = scale(lb["px"])
-        if style == "height":
-            r = 1.5 * SS
-            draw.ellipse([x - r, y - r, x + r, y + r], fill=LABEL_HEIGHT)
-            y += 3 * SS
-        draw.text(
-            (x, y),
-            lb["text"],
-            font=label_fonts.get(style, label_fonts["place"]),
-            fill=label_colors.get(style, LABEL_BLACK),
-            stroke_width=max(1, SS),
-            stroke_fill=(255, 255, 255),
-            anchor="lm",
-        )
+        for r in range(TILES):
+            for c in range(TILES):
+                im.crop((c * step, r * step, (c + 1) * step, (r + 1) * step)).save(
+                    os.path.join(tile_dir, f"{r}_{c}.webp"), quality=90, method=4)
+        print(f"wrote {full_path or tile_dir} ({size}x{size})")
 
 
 if __name__ == "__main__":

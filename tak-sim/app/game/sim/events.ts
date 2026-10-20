@@ -1,6 +1,6 @@
 /**
- * Game mode: scripted scenario events (new ignitions, P3 and emergency-centre traffic, the grid
- * operator de-energising the 110 kV line, the region recalling units, weather warnings) and the
+ * Game mode: scripted scenario events (new ignitions, P3 and emergency-centre traffic, the local
+ * distribution company de-energising the 20 kV line on request, the region recalling units, weather warnings) and the
  * periodic traffic: the weather service every 20 minutes, the crews' and drones' situation reports,
  * spot-fire calls and long-shift warnings.
  */

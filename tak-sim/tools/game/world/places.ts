@@ -2,13 +2,16 @@
  * The game world's assets and settlements (`tools/game/build-world.ts`).
  *
  * Assets: the map's buildings within the grid plus margin — houses (the MML symbol for residential and holiday
- * buildings, value 100) and other buildings (saunas, barns, huts: "barn", value 30) — and the 110 kV line's pylons,
- * one every `pylonSpacingM` along it (value 20).
+ * buildings, value 100) and other buildings (saunas, barns, huts: "barn", value 30) — and the 20 kV distribution
+ * line's wooden poles, one every `poleSpacingM` along it (SPEC/33 (bc); kind `power_pylon`, value 20; poles never
+ * burn in the game). A building the fuel raster puts in water is moved onto the nearest land, or dropped when there
+ * is none near (`landOf`): no building stands in a lake.
  *
  * Settlements: buildings within `clusterM` of each other form a cluster (single linkage); a cluster takes the name of
  * the nearest village or place label within `nameM` of one of its buildings, each label naming one cluster (nearest
- * pairs first; the `required` names first of all, and the build fails if one of them finds no cluster). A cluster is
- * a settlement when it is named or has at least `minUnnamed` buildings ("Asutus 1" / "Settlement 1").
+ * pairs first; the `required` names first of all, and the build fails if one of them finds no cluster). Only a named
+ * cluster is a settlement: the map's own names, nothing numbered ("Asutus 1" before 20 Oct 2026). The buildings of an
+ * unnamed cluster stay assets with no settlement.
  */
 
 import type { AssetKind } from "../../../app/game/contracts.js";
@@ -26,8 +29,13 @@ export interface PlacesOptions {
   readonly nameM: number;
   /** Required names get this much farther to find their cluster. */
   readonly requiredNameM: number;
-  readonly minUnnamed: number;
-  readonly pylonSpacingM: number;
+  /** Metres between the line's poles (a 20 kV line on wooden poles: 60–80 m). */
+  readonly poleSpacingM: number;
+  /**
+   * Where a building at `p` stands: `p` itself on land, the nearest land when the fuel raster puts `p` in water,
+   * or null (dropped) when there is no land near. Default: `p`.
+   */
+  readonly landOf?: (p: Pt) => Pt | null;
   /** Labels with these styles name settlements. */
   readonly settlementStyles: readonly string[];
   /** Finnish names that must become settlements when their label exists. */
@@ -51,20 +59,22 @@ export function buildPlaces(buildings: readonly Building[], powerLine: readonly 
   };
   for (const b of buildings) {
     if (!inBox(b.at, o.box)) continue;
+    const at = o.landOf ? o.landOf(b.at) : b.at;
+    if (at === null) continue;
     const kind: AssetKind = b.kind === "house" ? "house" : "barn";
-    assets.push({ id: nextId(kind, kind), kind, at: b.at, value: ASSET_VALUE[kind], settlementId: null });
+    assets.push({ id: nextId(kind, kind), kind, at, value: ASSET_VALUE[kind], settlementId: null });
   }
   const nBuildings = assets.length;
 
-  // Pylons: every pylonSpacingM from the line's own start, those inside the box.
+  // Poles: every poleSpacingM from the line's own start, those inside the box.
   let s0 = 0;
   for (let k = 0; k + 1 < powerLine.length; k++) {
     const a = powerLine[k]!;
     const b = powerLine[k + 1]!;
     const len = dist(a, b);
-    for (let s = Math.ceil(s0 / o.pylonSpacingM) * o.pylonSpacingM; s <= s0 + len; s += o.pylonSpacingM) {
+    for (let s = Math.ceil(s0 / o.poleSpacingM) * o.poleSpacingM; s <= s0 + len; s += o.poleSpacingM) {
       const p = lerp(a, b, (s - s0) / len);
-      if (inBox(p, o.box)) assets.push({ id: nextId("power_pylon", "pylon"), kind: "power_pylon", at: p, value: ASSET_VALUE.power_pylon, settlementId: null });
+      if (inBox(p, o.box)) assets.push({ id: nextId("power_pylon", "pole"), kind: "power_pylon", at: p, value: ASSET_VALUE.power_pylon, settlementId: null });
     }
     s0 += len;
   }
@@ -116,14 +126,12 @@ export function buildPlaces(buildings: readonly Building[], powerLine: readonly 
   const missingRequired = o.required.filter((fi) => placeLabels.some((l) => l.fi === fi) && ![...nameOf.values()].some((l) => l.fi === fi));
 
   const settlements: BuiltSettlement[] = [];
-  let unnamed = 0;
   const ids = new Set<string>();
   clusters.forEach((members, ci) => {
     const label = nameOf.get(ci);
-    if (!label && members.length < o.minUnnamed) return;
-    let nameFi: string;
-    let nameEn: string;
-    if (label) { nameFi = label.fi; nameEn = label.en; } else { unnamed++; nameFi = `Asutus ${unnamed}`; nameEn = `Settlement ${unnamed}`; }
+    if (!label) return;
+    const nameFi = label.fi;
+    const nameEn = label.en;
     let id = slug(nameFi);
     for (let k = 2; ids.has(id); k++) id = `${slug(nameFi)}-${k}`;
     ids.add(id);

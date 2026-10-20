@@ -1,7 +1,7 @@
 /**
  * Game mode: whether an order can be given, with the reason in Finnish and English when it cannot —
  * the unit exists and can act, its kind can do the task (an engine cuts no fire break, a drone attacks
- * nothing), the target lies on the map, and no water goes within 30 m of the live 110 kV line.
+ * nothing), the target lies on the map, and no water goes within `POWER_LINE_SAFE_M` (15 m) of the live 20 kV line.
  */
 
 import { POWER_LINE_SAFE_M, type GamePhase, type Order, type XY } from "../contracts.js";
@@ -18,8 +18,8 @@ export const MIN_BREAK_M = 25;
 export const MAX_BREAK_M = 2000;
 
 export const POWER_LINE_REASON = {
-  fi: `Voimajohto on jännitteinen — vettä ei saa käyttää ${POWER_LINE_SAFE_M} m sisällä`,
-  en: `The power line is live — no water may be used within ${POWER_LINE_SAFE_M} m of it`,
+  fi: `20 kV voimajohto on jännitteinen — vettä ei saa käyttää ${POWER_LINE_SAFE_M} m sisällä`,
+  en: `The 20 kV power line is live — no water may be used within ${POWER_LINE_SAFE_M} m of it`,
 } as const;
 
 /** The points of an order that must lie on the map. */

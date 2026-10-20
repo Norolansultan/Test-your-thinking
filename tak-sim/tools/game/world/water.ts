@@ -10,13 +10,16 @@
  *
  * Names come from the map's water labels, matched by what the Finnish name says the water is (-järvi a lake,
  * -lampi a pond, -joki a river, -oja / -puro a brook), so Korpioja's label, which sits on Karhujärvi, names the brook
- * and not the lake. Unnamed water gets "Lampi 1" / "Pond 1". Points sharing a name are told apart by compass side,
+ * and not the lake. Unnamed water is named after the map's nearest lake or place label, each such name once:
+ * "Lahdenkylän lampi" / "Bay Village Pond", "Pikku-Pitkäjärvi" (`names.ts`). Points sharing a name are told apart by
+ * compass side,
  * "Karhujärvi (itä)" / "Bear Lake (east)", or, when two share a side, numbered: "Kotkanjoki 2" / "Eagle River 2".
  * Draw points are only on the road network the command post is on (where a tanker can actually drive).
  */
 
 import type { RoadClass, WaterPoint } from "../../../app/game/contracts.js";
 import { dist, distToArea, inBox, nearestOnLine, nearestOnRing, poleOf, slug, type Box, type Pt } from "./geom.js";
+import { nameUnnamed, type AnchorLabel } from "./names.js";
 
 export type WaterKind = WaterPoint["kind"];
 
@@ -44,6 +47,8 @@ export interface WaterOptions {
   readonly riverBankM: number;
   /** Draw points of different waters stand at least this far apart (the earlier water — lakes first — keeps its). */
   readonly minApartM: number;
+  /** The map's lake, pond, place, village, terrain and bog labels: unnamed water is named after them (`names.ts`). */
+  readonly anchors: readonly AnchorLabel[];
 }
 
 interface DrawPoint { readonly at: Pt; readonly roadNode: number | null; readonly scoop: Pt }
@@ -56,9 +61,6 @@ const PER_BODY: Readonly<Record<WaterKind, { max: number; spacingM: number }>> =
   brook: { max: 2, spacingM: 1200 },
 };
 
-const GENERATED: Readonly<Record<WaterKind, readonly [string, string]>> = {
-  lake: ["Järvi", "Lake"], pond: ["Lampi", "Pond"], river: ["Joki", "River"], brook: ["Oja", "Brook"],
-};
 
 const COMPASS_FI = ["pohjoinen", "koillinen", "itä", "kaakko", "etelä", "lounas", "länsi", "luode"] as const;
 const COMPASS_EN = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"] as const;
@@ -108,8 +110,7 @@ export function buildWaterPoints(bodies: readonly WaterBody[], labels: readonly 
     nodeRank[e.b] = Math.min(nodeRank[e.b]!, RANK[e.cls]);
   }
   const drivable = g.nodes.map((_, i) => i).filter((i) => nodeRank[i]! < 9 && g.reachable[i] === 1);
-  const counters = new Map<WaterKind, number>();
-  const named: { nameFi: string; nameEn: string; kind: WaterKind; points: DrawPoint[] }[] = [];
+  const named: { nameFi: string; nameEn: string; kind: WaterKind; points: DrawPoint[]; centre: Pt; unnamed: boolean }[] = [];
 
   for (const body of bodies) {
     const area = body.ring;
@@ -157,18 +158,16 @@ export function buildWaterPoints(bodies: readonly WaterBody[], labels: readonly 
       picked.push({ at, roadNode: null, scoop: centre });
     }
 
-    let nameFi: string;
-    let nameEn: string;
-    if (label) { nameFi = label.fi; nameEn = label.en; } else {
-      const n = (counters.get(kind) ?? 0) + 1;
-      counters.set(kind, n);
-      [nameFi, nameEn] = [`${GENERATED[kind][0]} ${n}`, `${GENERATED[kind][1]} ${n}`];
-    }
-    named.push({ nameFi, nameEn, kind, points: picked });
+    named.push({ nameFi: label?.fi ?? "", nameEn: label?.en ?? "", kind, points: picked, centre, unnamed: label === null });
   }
 
   // Ids and names: points that share a name ("Kotkanjoki", or Korpioja on both sides of Karhujärvi) are told apart
   // by compass side from their middle when no two share a side, else numbered in order ("Kotkanjoki 2").
+  const unnamed = named.filter((b) => b.unnamed);
+  nameUnnamed(unnamed.map((b) => ({ kind: b.kind, at: b.centre })), o.anchors).forEach(([fi, en], k) => {
+    unnamed[k]!.nameFi = fi;
+    unnamed[k]!.nameEn = en;
+  });
   const flat = named.flatMap((b) => b.points.map((p) => ({ b, p })));
   const groups = new Map<string, { at: Pt; oct: number }[]>();
   for (const { b, p } of flat) {

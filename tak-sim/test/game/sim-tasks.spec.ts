@@ -95,7 +95,7 @@ describe("attack", () => {
     expect(unit(g, "EK11").harm).toBe(0);
   });
 
-  it("does not spray water within 30 m of the live line even when the edge is there", () => {
+  it("does not spray water within 15 m of the live line even when the edge is there", () => {
     let block: number[] = [];
     const deps = fakeDeps({}, (f, w) => { block = lightBlock(f, w, 990, 880, 1010, 920); });
     const g = createGame(scenario({ units: [{ id: "EK11", kind: "engine", arriveAtS: 0 }], powerLineLiveAtStart: true }), makeWorld(), 1, deps);

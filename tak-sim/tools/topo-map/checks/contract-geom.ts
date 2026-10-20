@@ -218,6 +218,34 @@ export function roadDistance(g: RoadGraph, a: P, b: P): number {
   return d[t]! + dist(a, g.nodes[s]!) + dist(b, g.nodes[t]!);
 }
 
+/**
+ * As `roadDistance`, with the route itself: `a`, the road nodes driven in order, `b` (the water shuttle's drives, SPEC/33 gate R
+ * R1/R4: its times and its map position follow the road it drives). `m` is Infinity, and the path `[a, b]`, when no road joins them.
+ */
+export function roadPath(g: RoadGraph, a: P, b: P): { readonly m: number; readonly path: readonly P[] } {
+  const nearest = (p: P) => g.nodes.reduce((best, q, i) => (dist(p, q) < dist(p, g.nodes[best]!) ? i : best), 0);
+  const s = nearest(a);
+  const t = nearest(b);
+  const d = new Float64Array(g.nodes.length).fill(Infinity);
+  const prev = new Int32Array(g.nodes.length).fill(-1);
+  const done = new Uint8Array(g.nodes.length);
+  d[s] = 0;
+  const heap = new MinHeap();
+  heap.push(0, s);
+  while (heap.size > 0) {
+    const [du, u] = heap.pop();
+    if (done[u]) continue;
+    done[u] = 1;
+    if (u === t) break;
+    for (const [v, w] of g.adj[u]!) if (du + w < d[v]!) { d[v] = du + w; prev[v] = u; heap.push(d[v]!, v); }
+  }
+  if (!Number.isFinite(d[t]!)) return { m: Infinity, path: [a, b] };
+  const nodes: P[] = [];
+  for (let k = t; k >= 0; k = k === s ? -1 : prev[k]!) nodes.push(g.nodes[k]!);
+  nodes.reverse();
+  return { m: d[t]! + dist(a, g.nodes[s]!) + dist(b, g.nodes[t]!), path: [a, ...nodes, b] };
+}
+
 class MinHeap {
   private readonly k: number[] = [];
   private readonly v: number[] = [];

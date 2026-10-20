@@ -81,7 +81,7 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
  * - V2 (steps 2–3), R1: not safe to drive, flames at the roadside. DR1 road report at step 3:
  *   "tie R1, palo noin 10 m tiestä — liekit tien reunassa (liekit 1–2 m), ajo ei turvallista" (the flame table's band since 20 Oct
  *   2026, was "0,3–1 m"; the key, "unsafe", rests on "ajo ei turvallista", unchanged).
- * - V4 (steps 5–6), W1 Haukilampi: available. VPK fills there at 14:47 (step 5). (Fix pass 2: KY21 no longer drives
+ * - V4 (steps 5–6), W1 Haukilampi: available. VPK fills there at 15:01 (step 6; 14:47 in step 5 before the road-graph drive, gate R). (Fix pass 2: KY21 no longer drives
  *   there; the water shuttle EK13 fills its basin at the line.)
  * - V5 (step 7), R1: passable with care, low fire at the roadside ("with_care"; SPEC/33 stage 9, 20 Oct 2026, the rebuilt map; it
  *   was "open" from 2 Oct 2026). DR2 road report at step 7: "tie R1 Kuivakankaan eteläpuolella, palo noin 10 m tiestä — matalaa
@@ -155,7 +155,7 @@ const INFRA_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   0: ["evt.vp.013"],
   // Found by content (3 Oct 2026): generated ids shift whenever the traffic is regenerated.
   2: [trafficId(3, /DR1 tiehavainto: tie R1.*ajo ei turvallista/), trafficId(2, /DR1 tiehavainto: tie R1.*ajo ei turvallista/)],
-  4: [trafficId(5, /VPK täytti säiliön, Haukilampi/)],
+  4: [trafficId(6, /VPK täytti säiliön, Haukilampi/)], // gate R (R1): VPK is full at 15.01 (step 6), 6.0 km from its line by road
   // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): DR2's 15.27 report now reads "matalaa paloa tien reunassa (liekit alle 0,3 m),
   // ajettavissa varoen" (was "palanut alue tien reunassa — ei liekkejä, ajettavissa"): the key moves from "open" to "with_care".
   5: [trafficId(7, /DR2 tiehavainto: tie R1.*matalaa paloa tien reunassa.*ajettavissa varoen/)],

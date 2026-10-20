@@ -84,8 +84,8 @@ export const SAFETY_LINES: Readonly<Record<string, { readonly re: RegExp; readon
   "7:EK11": { re: /^EK11: pistepalo PP1 takanamme/ },
   // SPEC/33 stage 8: V6, 15:40–16:00: EK11, at its truck after pulling back, is downwind of the brook crossing beside it; its 15:42 line.
   "8:EK11": { re: /^EK11: palo ylitti ojan vierestämme\. Miehet siirtyivät palaneelle alueelle turvaan/ },
-  // SPEC/33 stage 8: V6: the backed wind moves the edge VPK mops up over its stretch; VPK steps into the black and says so (recorded).
-  "8:VPK": { re: /^VPK: tuulen kääntyessä reuna lähti kohdallamme liikkeelle\. Siirryimme palaneelle alueelle/ },
+  // SPEC/33 gate R (R1): "8:VPK" removed with its line — back from W1 at 15:15 on the road graph (the 15:20 map), VPK mops up a stretch
+  // of L4 the backed wind does not run over (crew-safety finds nothing there; was overrun when it returned at 15:00).
   // V7, 16:20: EK14 back from the radio dead zone (F3) takes the new line on the flank that ran at 16:00–16:20; it says where it
   // waited and that all are accounted for (revision (aj): it withdrew into the black at 15:40, so steps 8–9 have no finding).
   "10:EK14": { re: /^EK14: yhteys palasi/ },

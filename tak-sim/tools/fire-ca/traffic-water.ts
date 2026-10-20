@@ -22,6 +22,7 @@
 
 import { FEATURES, UNIT_PLAN, type P } from "./deployment.js";
 import { actorTypeOf, dist, hm, L, pl, say, stepStartS } from "./traffic-text.js";
+import { alongRoute, truckRoute } from "./road-route.js";
 import type { Out, ShuttleState, TankState, TrafficCycleInput, TrafficState, TrafficUnit } from "./traffic-types.js";
 import type { UnitWork } from "../../app/scenario/types.js";
 import { sortedKeys } from "../../app/engine/deterministic-object.js";
@@ -95,10 +96,35 @@ export function withTankLevels(unitWork: Record<string, UnitWork>, state: Traffi
     unitWork[id] = { ...unitWork[id]!, waterPct: pct };
   }
 }
-const nearestWater = (p: P) => WATER.reduce((a, b) => (dist(b.at, p) < dist(a.at, p) ? b : a));
-/** Roads wind round bogs and lakes: a drive is about this much longer than the straight line (fix pass 3, 18: Koivuoja → south of the origin is 2.6 km straight, ~4 km by R1 and the forest road). */
-const ROAD_DETOUR = 1.4;
-const driveS = (a: P, b: P) => Math.round(((dist(a, b) * ROAD_DETOUR) / DRIVE_MPM) * 60);
+/**
+ * Every drive runs on the truck roads, the 16 t bridge closed (`road-route.ts`; SPEC/33 gate R, review R1, 20 Oct 2026). Was the
+ * straight line × 1.4 (`ROAD_DETOUR`), which promised the legs to and from the Honkaharju forest road 4–10 min early: that road
+ * reaches W1 only by R1 → R2 → its east end. A fill goes to the nearest water point by road among the day's points: W1 (the point
+ * command chose, "Vesipiste W1 valittu, matka pitkä") and W3 until 18.00, W2 too from then (the south-east front, `afterJob`).
+ */
+const driveS = (a: P, b: P) => Math.round((truckRoute(a, b).m / DRIVE_MPM) * 60);
+const nearestWater = (p: P, atS: number) => (atS < PHASE_B_SHUTTLE_S ? WATER.filter((w) => w.id !== "W2") : WATER).reduce((a, b) => (truckRoute(p, b.at).m < truckRoute(p, a.at).m ? b : a));
+/** A drive from `from` to `to` starting at `fromS`, logged with its road route (the map draws the shuttle along it, review R4). */
+const leg = (fromS: number, toS: number, from: P, to: P) => ({ fromS, toS, from, to, path: truckRoute(from, to).path });
+/** How long a truck the plan moves waits into the next step for a basin already on its way (s). */
+const MOVE_WAIT_S = 600;
+/** When a move's radio message goes out, seconds into its step (`site-export.ts`: moves from 90 s). */
+const MOVE_RADIO_S = 90;
+
+/**
+ * A unit's own drive for water (a scripted move, reason `water`; SPEC/33 gate R, R1): it leaves its line as the move is radioed,
+ * drives to the water point on the truck roads, fills, and drives back the same way. Was a fill 7–9 min into the step whatever the
+ * distance (VPK "säiliö täynnä klo 14.47" 6.0 km from its line). The move's message (`deployment.ts` `moveMessageFi`) and the
+ * tank's fill (`stepWater`) both read this. Simulation seconds; `awayMin` rounded to 5 min, as a crew says it.
+ */
+export function refillTrip(cycle: number, from: P, point: P): { readonly leaveS: number; readonly fullS: number; readonly backS: number; readonly awayMin: number } {
+  const leaveS = stepStartS(cycle) + MOVE_RADIO_S;
+  const drive = driveS(from, point);
+  const fullS = leaveS + drive + FILL_MIN * 60;
+  const backS = fullS + drive;
+  return { leaveS, fullS, backS, awayMin: Math.max(5, Math.round((backS - leaveS) / 300) * 5) };
+}
+
 /** The longest wait for the shuttle on the south-east front before a farmer's slurry tanker is called instead (min). */
 const SLURRY_IF_WAIT_MIN = 10;
 /** From this simulation second (18.00, step 15) the shuttle works the south-east front from W2 (`afterJob`). */
@@ -119,7 +145,7 @@ function shuttleOf(state: TrafficState): ShuttleState {
 /** The shuttle drives to the water point and fills up; it is free again when full. */
 function fillShuttle(sh: ShuttleState, fromS: number, w: (typeof WATER)[number]): void {
   const arrive = fromS + driveS(sh.at, w.at);
-  sh.legs.push({ fromS, toS: arrive, from: sh.at, to: w.at });
+  sh.legs.push(leg(fromS, arrive, sh.at, w.at));
   sh.jobs.push({ fromS, toS: arrive, kind: "drive_fill", what: w.fi });
   const full = arrive + FILL_MIN * 60;
   sh.jobs.push({ fromS: arrive, toS: full, kind: "fill", what: w.fi });
@@ -137,11 +163,11 @@ function fillShuttle(sh: ShuttleState, fromS: number, w: (typeof WATER)[number])
  * Honkaharju and R2 lines it serves.
  */
 function afterJob(sh: ShuttleState, t: number, lastTo: P): void {
-  if (t < PHASE_B_SHUTTLE_S) { if (sh.m3 < DELIVERY_M3) fillShuttle(sh, t, nearestWater(lastTo)); return; }
+  if (t < PHASE_B_SHUTTLE_S) { if (sh.m3 < DELIVERY_M3) fillShuttle(sh, t, nearestWater(lastTo, t)); return; }
   if (sh.m3 < SHUTTLE_M3) fillShuttle(sh, t, WATER.find((w) => w.id === "W2")!);
   const from = sh.freeS;
   const arrive = from + driveS(sh.at, FEATURES.R2_FR);
-  sh.legs.push({ fromS: from, toS: arrive, from: sh.at, to: FEATURES.R2_FR });
+  sh.legs.push(leg(from, arrive, sh.at, FEATURES.R2_FR));
   sh.jobs.push({ fromS: from, toS: arrive, kind: "drive_standby", what: "R2:n ja metsäautotien risteys" });
   sh.at = FEATURES.R2_FR;
   sh.freeS = arrive;
@@ -149,10 +175,10 @@ function afterJob(sh: ShuttleState, t: number, lastTo: P): void {
 
 /** One delivery asked for at `reqS` to the vehicle at `to`: the simulation second the basin is full and the tank topped up. */
 function deliver(sh: ShuttleState, reqS: number, to: P, unitId: string): number {
-  if (sh.m3 < DELIVERY_M3) fillShuttle(sh, Math.max(reqS, sh.freeS), nearestWater(sh.at));
+  if (sh.m3 < DELIVERY_M3) fillShuttle(sh, Math.max(reqS, sh.freeS), nearestWater(sh.at, Math.max(reqS, sh.freeS)));
   const start = Math.max(reqS, sh.freeS);
   const arrive = start + driveS(sh.at, to);
-  sh.legs.push({ fromS: start, toS: arrive, from: sh.at, to });
+  sh.legs.push(leg(start, arrive, sh.at, to));
   sh.jobs.push({ fromS: start, toS: arrive, kind: "drive_basin", what: unitId });
   const done = arrive + BASIN_MIN * 60;
   sh.jobs.push({ fromS: arrive, toS: done, kind: "basin", what: unitId });
@@ -189,18 +215,18 @@ export function shuttleJobAt(state: TrafficState, atS: number): ShuttleState["jo
 /** When a delivery asked for at `reqS` would be done, without booking it (the shuttle as it stands). */
 function estimateDelivery(sh: ShuttleState, reqS: number, to: P): number {
   let at = sh.at, free = sh.freeS;
-  if (sh.m3 < DELIVERY_M3) { const w = nearestWater(sh.at); free = Math.max(reqS, free) + driveS(at, w.at) + FILL_MIN * 60; at = w.at; }
+  if (sh.m3 < DELIVERY_M3) { const w = nearestWater(sh.at, Math.max(reqS, free)); free = Math.max(reqS, free) + driveS(at, w.at) + FILL_MIN * 60; at = w.at; }
   return Math.max(reqS, free) + driveS(at, to) + BASIN_MIN * 60;
 }
 
-/** Where the shuttle is at simulation second `atS` (on a drive, where it has got to), site metres. */
+/** Where the shuttle is at simulation second `atS` (on a drive, where it has got to along its road route, review R4), site metres. */
 export function shuttlePosition(state: TrafficState, atS: number): P {
   const sh = state.shuttle;
   if (!sh) return SHUTTLE_HOME;
   let at = SHUTTLE_HOME;
   for (const g of sh.legs) {
     if (g.fromS > atS) break;
-    if (atS < g.toS) { const f = (atS - g.fromS) / Math.max(1, g.toS - g.fromS); return { x: g.from.x + (g.to.x - g.from.x) * f, y: g.from.y + (g.to.y - g.from.y) * f }; }
+    if (atS < g.toS) return alongRoute(g.path, (atS - g.fromS) / Math.max(1, g.toS - g.fromS));
     at = g.to;
   }
   return at;
@@ -226,6 +252,15 @@ export function stepWater(inp: TrafficCycleInput, state: TrafficState, out: Out)
   const high: { unit: TrafficUnit; pct: number }[] = [];
   const deliveries: { unit: TrafficUnit; atOffset: number; doneS: number }[] = [];
   const t0 = stepStartS(inp.n), t1 = t0 + 1200;
+  // At 18.00 a shuttle waiting at a phase-A water point moves to its phase-B stand-by (gate R: on the road graph its last phase-A
+  // job ended at 17.52, and it sat full at W3 for an hour while the south-east front's crews called farmers' slurry tankers).
+  if (t0 >= PHASE_B_SHUTTLE_S && sh.freeS <= t0 && dist(sh.at, FEATURES.R2_FR) > 1) {
+    sh.freeS = t0;
+    afterJob(sh, t0, sh.at);
+    out.push({ offsetS: 30, actor: "VESIHUOLTO", actor_type: "command", addressee: null, pos: FEATURES.R2_FR, place: null, location: null, event_type: "status", task: null,
+      content: L(`Vesihuoltoloki: ${SHUTTLE_ID} siirtyy valmiuteen R2:n ja metsäautotien risteykseen kaakkoisrintaman linjoja varten, perillä klo ${hm(sh.freeS)}.`, `Water supply log: ${SHUTTLE_ID} is moving to stand-by at the junction of R2 and the forest road for the south-east front's lines, there at ${hm(sh.freeS)}.`),
+      tier: "T2_system", channel: "system_log", nav: "vesi_reitit" });
+  }
   let slot = 0;
   const log = (u: TrafficUnit, atOffset: number, content: string) => out.push({ offsetS: Math.min(1195, atOffset), actor: "VESIHUOLTO", actor_type: "command", addressee: null,
     pos: u.pos, place: u.place, location: u.sector, event_type: "status", task: u.task, content, tier: "T2_system", channel: "system_log", nav: "vesi_reitit" });
@@ -250,18 +285,28 @@ export function stepWater(inp: TrafficCycleInput, state: TrafficState, out: Out)
     }
     const plan = UNIT_PLAN[u.id]!;
     const scheduled = plan.moves.find((m) => m.reason === "water" && m.cycle > inp.n && m.cycle <= inp.n + 2);
+    // Where its vehicle stood last step: a scripted water move drives from there (`refillTrip`).
+    const lastVehicle = s.vehicleAt ?? null;
+    s.vehicleAt = u.vehicle ?? u.pos;
     if (u.task === "refill") {
-      const at = 420 + Math.floor(draw.rnd() * 120);
-      s.away = { fromS: t0, toS: t0 + at, pointFi: u.place ?? "vesipiste" };
-      track.push({ atS: t0 + at, pct: s.pct });
-      refill(s, t0 + at, u.place ?? "vesipiste", 100);
-      track.push({ atS: t0 + at, pct: 100 }, { atS: t1, pct: 100 });
+      // The drive, the fill and the drive back on the roads (review R1). A fill after the step's end (VPK: W1 is 6.0 km from its
+      // line) keeps the unit at the water point into the next step, where the fill and its report fall.
+      const pointFi = u.place ?? "vesipiste";
+      if (u.moved) s.trip = { ...refillTrip(inp.n, lastVehicle ?? u.pos, u.vehicle ?? u.pos), pointFi };
+      const trip = s.trip;
+      if (!trip || trip.fullS < t0) { track.push({ atS: t1, pct: s.pct }); continue; }
+      s.away = { fromS: Math.max(t0, trip.leaveS), toS: Math.min(t1, trip.fullS), pointFi };
+      if (trip.fullS >= t1) { track.push({ atS: t1, pct: s.pct }); continue; }
+      const at = trip.fullS - t0;
+      track.push({ atS: trip.fullS, pct: s.pct });
+      refill(s, trip.fullS, pointFi, 100);
+      track.push({ atS: trip.fullS, pct: 100 }, { atS: t1, pct: 100 });
       const next = plan.moves.find((m) => m.cycle > inp.n);
-      log(u, at, L(`Vesihuoltoloki: ${u.id} täytti säiliön, ${u.place ?? "vesipiste"}, klo ${hm(t0 + at)}.`, `Water supply log: ${u.id} filled its tank, ${pl(u.place ?? "vesipiste")}, at ${hm(t0 + at)}.`));
-      out.push({ offsetS: at + 45, actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: "JOHTO", pos: u.pos, place: u.place, location: u.sector, event_type: "report", task: u.task,
+      log(u, at, L(`Vesihuoltoloki: ${u.id} täytti säiliön, ${pointFi}, klo ${hm(trip.fullS)}.`, `Water supply log: ${u.id} filled its tank, ${pl(pointFi)}, at ${hm(trip.fullS)}.`));
+      out.push({ offsetS: Math.min(1195, at + 45), actor: u.id, actor_type: actorTypeOf(u.id, null), addressee: "JOHTO", pos: u.pos, place: u.place, location: u.sector, event_type: "report", task: u.task,
         content: say(u.id, u.place, next && next.cycle === inp.n + 1
-          ? L(`säiliö täynnä klo ${hm(t0 + at)}. Palaamme linjalle, perillä noin klo ${hm(t0 + 1200 + 90)}.`, `tank full at ${hm(t0 + at)}. Returning to the line, there at about ${hm(t0 + 1200 + 90)}.`)
-          : L(`säiliö täynnä klo ${hm(t0 + at)}. Odotamme täällä uutta tehtävää.`, `tank full at ${hm(t0 + at)}. We are waiting here for a new task.`)), tier: "T1_pushed", channel: "radio_command", nav: "vesi_reitit" });
+          ? L(`säiliö täynnä klo ${hm(trip.fullS)}. Palaamme linjalle, perillä noin klo ${hm(trip.backS)}.`, `tank full at ${hm(trip.fullS)}. Returning to the line, there at about ${hm(trip.backS)}.`)
+          : L(`säiliö täynnä klo ${hm(trip.fullS)}. Odotamme täällä uutta tehtävää.`, `tank full at ${hm(trip.fullS)}. We are waiting here for a new task.`)), tier: "T1_pushed", channel: "radio_command", nav: "vesi_reitit" });
       continue;
     }
     // A basin the shuttle fills in this step for a request of an earlier step: the tank is topped up when it said.
@@ -327,6 +372,13 @@ export function stepWater(inp: TrafficCycleInput, state: TrafficState, out: Out)
   for (const r of requests) {
     const { u, s, track, reqAt, reqPct, perS, level0, useFrom } = r;
     const reqS = t0 + reqAt;
+    // A crew the plan moves off its line at the next step: its truck waits up to ten minutes into that step for a basin and then follows
+    // the crew; a longer wait and the crew asks from its new line (gate R: KY21 asked at 14.38 for a basin due 15.16, and moved at 14.40).
+    if (UNIT_PLAN[u.id]!.moves.some((m) => m.cycle === inp.n + 1) && estimateDelivery(sh, reqS, u.vehicle ?? u.pos) > t1 + MOVE_WAIT_S) {
+      track.push({ atS: t1, pct: r.end });
+      if (s.pct >= 60) high.push({ unit: u, pct: s.pct });
+      continue;
+    }
     const doneS = deliver(sh, reqS, u.vehicle ?? u.pos, u.id);
     const waitMin = Math.max(1, Math.round((doneS - reqS) / 60));
     // Radio ST-05 (SPEC/31): "säiliö 4 %, riittää noin 20 min" — with no draw on record the minutes came from a fixed 20. The tank now

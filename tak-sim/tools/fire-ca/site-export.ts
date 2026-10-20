@@ -31,7 +31,7 @@ import { bilingual, englishById, holdEn, radioEnglish, withoutEnglish } from "./
 import { buildFireDisplay } from "./fire-display.js";
 import { cycleTraffic, newTrafficState, reportedExtent, siteTrafficHelpers, toInteractionEvents, type TrafficAircraft, type TrafficCycleInput } from "./traffic.js";
 import { distanceTransform, makeFireProbe } from "./traffic-fire.js";
-import { practiceTraffic } from "./traffic-practice.js"; import { forecastTraffic } from "./traffic-forecast.js"; import { patrolTraffic } from "./traffic-patrol.js"; import { shuttleJobAt, shuttlePosition, withTankLevels } from "./traffic-water.js"; import { makePlacer } from "./placement.js";
+import { practiceTraffic } from "./traffic-practice.js"; import { forecastTraffic } from "./traffic-forecast.js"; import { patrolTraffic } from "./traffic-patrol.js"; import { refillTrip, shuttleJobAt, shuttlePosition, withTankLevels } from "./traffic-water.js"; import { makePlacer } from "./placement.js";
 import type { SpotLabels } from "./fire-display.js";
 import { hm, isBog, stepStartS } from "./traffic-text.js";
 import { ANCHOR_PLACE } from "./traffic-places.js";
@@ -333,7 +333,7 @@ export function exportSiteScenario({ site, ignitionTm35, forcing, result, views 
           // Review fixes (ah): no nudge into burned ground (the safety zone in the black on R1: a nudged point there had no road out).
           const nudged = { x: s.x + nudge.x * 0.4, y: s.y + nudge.y * 0.4 };
           const nc = Math.floor((nudged.x + site.ignitionM.eastM) / frame.cellSizeM), nr = Math.floor((nudged.y + site.ignitionM.northM) / frame.cellSizeM);
-          p = placer.vehicleFor(mask[nr * frame.cols + nc] ? s : nudged, truckRoadPoints); // a safe road point no other vehicle took
+          p = placer.vehicleFor(mask[nr * frame.cols + nc] || (WATER_POINTS as readonly string[]).includes(a.slice(3)) ? s : nudged, truckRoadPoints); // a safe road point no other vehicle took; at a water point no nudge (gate R: EK12 parked across the bridge from W3)
         }
         // Crews arriving at one anchor take their own stretch of it: 150 m apart, alternating sides.
         // Crews already holding this anchor count too (review fixes (ah): units arriving at one anchor in different steps stacked).
@@ -347,7 +347,7 @@ export function exportSiteScenario({ site, ignitionTm35, forcing, result, views 
         const keep = plan.stale?.includes(n) && st ? st : null;
         unitState[id] = { pos: p, onEdge: onEdgeAnchor(a), shown: keep ? keep.shown : p, task: taskFor(id, mv), shownWork: keep ? keep.shownWork : null, anchor: a, shownAnchor: keep ? keep.shownAnchor : a };
         homeOf[id] = p;
-        if (n > 1) radio.push({ cycle: n, atOffsetS: 0, from: id, kind: "move", text: moveMessageFi(id, mv), textEn: moveMessageEn(id, mv), reason: mv.reason });
+        if (n > 1) { const trip = mv.reason === "water" ? refillTrip(n, lastVehicle ?? p, p) : undefined; radio.push({ cycle: n, atOffsetS: 0, from: id, kind: "move", text: moveMessageFi(id, mv, trip), textEn: moveMessageEn(id, mv, trip), reason: mv.reason }); } // a water move states its road trip (review R1)
       } else {
         const reach = reachOf(id, st!.task);
         // A fire-break crew cuts on along the edge (60–80 m a step, `18` ab.2) and a mop-up crew works along its stretch, so neither

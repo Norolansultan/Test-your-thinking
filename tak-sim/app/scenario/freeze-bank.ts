@@ -119,6 +119,10 @@ function cpSafeKey(): string {
  * at 13.2x (V1) and EK14's and KY21's arrival radios (V2) — against EK11's pushed relief request at 4.5 h. The key is the crew with the
  * most time after EK11, at least half an hour ahead of the next (a close call fails the build).
  */
+/** V5 `hose_short`'s basis: EK11's tank when asked at 15.25 (asked-only), read from the record (SPEC/33 gate R, R1). */
+const EK11_TANK_V5 = trafficFigure(7, /^EK11 \(kysyttäessä\): Vettä säiliössä noin (\d+) %/);
+/** VPK's pushed relief request in V8 (step 11), in either generated wording. */
+export const VPK_RELIEF_RE = /^VPK täällä .*(?:ilman lepoa tai ruokataukoa\. Pyydän korvaavaa yksikköä|Pyydämme vuoronvaihtoa tai lepovuoroa)/;
 const RELIEF = (() => {
   const now = 16 * 60 + 20;
   const onScene = (h: number, at: number) => h + (now - at) / 60;
@@ -129,7 +133,15 @@ const RELIEF = (() => {
   };
   const ranked = sortedEntries(hours).sort((a, b) => b[1] - a[1]);
   if (ranked[0]![1] - ranked[1]![1] < 0.5) throw new Error(`freeze key V7 relief_next: no clear next crew (${JSON.stringify(ranked)})`);
-  return { key: ranked[0]![0], hours, ids: [vpk.id, ek12.id] };
+  // The relief requests the basis quotes, read from the records (SPEC/33 gate R, R1: the re-seeded step 11 draws VPK's other wording).
+  const asked = (step: number, re: RegExp) => {
+    const t = SITE_SCENARIO.traffic.find((x) => x.cycle === step && x.tier === "T1_pushed" && re.test(x.content));
+    if (!t) throw new Error(`freeze key V7 relief_next: no pushed relief request at step ${step} matches ${re}`);
+    return t.timestamp.slice(0, 5).replace(":", ".");
+  };
+  const ek11At = asked(10, /^EK11, Koivuoja: miehistö ollut kentällä \d+,\d h\. Pyydämme vuoronvaihtoa/);
+  const vpkAt = asked(11, VPK_RELIEF_RE);
+  return { key: ranked[0]![0], hours, ids: [vpk.id, ek12.id], ek11At, vpkAt };
 })();
 
 export const PRACTICE_BANK: readonly ItemDef[] = [
@@ -185,7 +197,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       // 680 m line with pressure enough); the "lipsuu paikoin" (13.48) and "kärki menee ohitsemme" (13.51) reports are recorded, step 2.
       // The key is unchanged.
       keyAtomIds: [trafficId(1, /^EK12, kärki, eteläsivusta: olemme olleet täällä.*kärki noin \d+ m meistä pohjoiseen/), trafficId(3, /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta, liekit 1–2 m\. Letkulinja \d+ m, paine riittää/)], rule: "cited",
-      basis: "integrates EK12's two pushed reports: the head some 300 m north of its stretch, running past it to the north-east (13.20), and its own stretch a surface fire in dry pine heath, flames 1–2 m, the 680 m line with pressure enough (14.08): the flank is held low while the head runs on past it; recorded: 'saamme reunaa kiinni, mutta se lipsuu paikoin' (13.48) and 'kärki menee ohitsemme koilliseen' (13.51); EK13 refilled EK12's basin at 13.54 (recorded)",
+      basis: "integrates EK12's two pushed reports: the head some 300 m north of its stretch, running past it to the north-east (13.20), and its own stretch a surface fire in dry pine heath, flames 1–2 m, the 680 m line with pressure enough (14.08): the flank is held low while the head runs on past it; recorded: 'kärki etenee koilliseen meidän ohi, omalla pätkällämme matalaa paloa' (13.51); EK13 refilled EK12's basin at 14.01 (recorded; gate R: 13.54 before the shuttle drove on the road graph, and the re-seeded step 2 no longer has the 13.48 'lipsuu paikoin' line)",
     }),
     choice({
       slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(2, 4))}?`,
@@ -238,7 +250,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["stops", "Kärki pysähtyy tiehen R1 palaneella alueella"], ["calm", "Kärki on rauhoittunut, ja työ jatkuu sivustoilla"],
       ], key: "free",
       keyAtomIds: [RADIO.ek11Withdraws, RADIO.ek12Withdraws, trafficId(6, /^EK11, tie R1, palanut alue: .*Odotamme tiellä, kunnes kärki rauhoittuu/)], rule: "cited",
-      basis: "integrates the two pushed withdrawals to R1 in the black (radio 6.0, 6.1: the crown fire, the near miss) and EK11's pushed 15.02 'we wait on the road until the head calms': no crew works the head during the crown run (EK14 holds the north edge, VPK the origin, KY21 the south flank with 4 % water)",
+      basis: "integrates the two pushed withdrawals to R1 in the black (radio 6.0, 6.1: the crown fire, the near miss) and EK11's pushed 15.03 'we wait on the road until the head calms': no crew works the head during the crown run (EK14 holds the north edge, VPK is refilling at W1 and back on the origin at 15.15 — gate R: was on the origin from 15.00 —, KY21 the south flank with 4 % water)",
     }),
     // `31` F01 (RC): replaces growth_next, keyed on a report series V4's map never drew (step 6), whose report band (~9.5 ha) and the CA's
     // crown run (~23.5 ha) could not share a band under any band set. A consequence of the crown run with a delivered basis instead.
@@ -249,7 +261,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["head_back", "Kärki, joka kääntyy takaisin tielle R1"], ["fatigue", "Uupumus, kun työvuoro on venynyt pitkäksi"],
       ], key: "spots",
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: ["atom.demo.6.0"],
-      basis: "`31` F01 (DRAFT, RC; domain review): spotting 200–400 m ahead is on record (story 6.0, pushed); when the crown fire drops at Koivuoja (15.20) EK11 returns to the line and spot fire PP1 starts behind it beside its route to the vehicle, so it pulls its men out (step 7: DR1 15.28, EK11 15.30, pushed in V5). No record to step 6 names a spot fire behind a crew",
+      basis: "`31` F01 (DRAFT, RC; domain review): spotting 200–400 m ahead is on record (story 6.0, pushed); when the crown fire drops at Koivuoja (15.20) EK11 returns to the line and spot fire PP1 starts behind it beside its route to the vehicle, so it pulls its men out (step 7: DR1 15.31, EK11 15.30, pushed in V5). No record to step 6 names a spot fire behind a crew",
     }),
     // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Koivuoja and Korpioja are map names; no record names either before step 7.
     choice({
@@ -295,7 +307,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["ek11", "EK11 pitää ylityskohdan Koivuojan linjaltaan käsin"], ["dies", "Uusi palo sammuu itsestään ojan kosteaan rantaan"],
       ], key: "no_barrier",
       keyAtomIds: [RADIO.sparksKorpioja, trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/)], rule: "cited",
-      basis: "integrates the pushed step-7 crossing (radio 7.1: a new fire on the far side of Korpioja, no crew near, nothing done) with where the crews are (EK11 at Koivuoja, pushed 15.25; EK12 and EK14 on R1 and the north edge): the fire beyond Korpioja burns with nobody on it, and the brook no longer bounds the fire",
+      basis: "integrates the pushed step-7 crossing (radio 7.2: a new fire on the far side of Korpioja, no crew near, nothing done) with where the crews are (EK11 at Koivuoja, pushed 15.24; EK12 and EK14 on R1 and the north edge): the fire beyond Korpioja burns with nobody on it, and the brook no longer bounds the fire",
     }),
     choice({
       // `31` F10: replaces units_enough (EK11's request for more units recalled); two EK11 reports related to keeping up with the head.
@@ -305,7 +317,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
       ], key: "hose",
       keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 600 m, varaletkua alle 200 m/)], rule: "cited",
-      basis: "integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.25) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35): the line cannot follow the head; EK11's tank is at 63 % (asked-only, 15.25) and the water shuttle runs, so water is not the limit",
+      basis: `integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.24) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35): the line cannot follow the head; EK11's tank is at ${EK11_TANK_V5.value} % (asked-only, 15.25; gate R: read from the record, was 63 % before the road-graph shuttle) and the water shuttle runs, so water is not the limit`,
     }),
     choice({
       // SPEC/30 §5.1 (DRAFT, domain review). `31` F07: before wind_shift, and the stem no longer names the forecast turn (it told everyone of
@@ -334,7 +346,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // SPEC/30 §5.1. A line that fails: a brook that stopped the surface fire is crossed by embers. `31` F15: two per polarity.
     // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review): was "Pitääkö Kuusimäen metsäautotie palon muualla …"
     // (a second ember crossing of that road at 15:40); the rebuilt map has no forest road there, and the line that fails next is Koivuoja:
-    // the surface fire stopped at it at 15.00–15.20 (radio 7.2, pushed: the lure), and embers cross it at 15.20–15.40 (radio 8, pushed
+    // the surface fire stopped at it at 15.00–15.20 (radio 7.3 since gate R, pushed: the lure), and embers cross it at 15.20–15.40 (radio 8, pushed
     // in V6). The slug is kept (a shared id).
     choice({
       slug: "road_jump", level: "L3", goal: "containment", keySteps: [7, 8], promptFi: `Pysäyttääkö Koivuoja palon etenemisen ${withinMinutesFi(minutesAhead(5, 8))}?`,
@@ -343,7 +355,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["once", "Kyllä, kosteat rannat pysäyttävät palon ojaan"], ["crews", "Kyllä, EK11:n linja ojan varressa pitää palon"],
       ], key: "again",
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [RADIO.koivuojaStop, RADIO.sparksKorpioja],
-      basis: "SPEC/30 §5.1 (DRAFT; SPEC/33 stage 9): the step-8 radio (pushed in V6) 'Kipinät lensivät Koivuojan yli, uusi palo toisella puolella. EK11 joutui vetäytymään' (15.20–15.40); delivered by the freeze: the surface fire stopped at Koivuoja at 15.00–15.20 (radio 7.2, pushed: the lure) and embers crossed Korpioja in the crown run (radio 7.1, pushed)",
+      basis: "SPEC/30 §5.1 (DRAFT; SPEC/33 stage 9): the step-8 radio (pushed in V6) 'Kipinät lensivät Koivuojan yli, uusi palo toisella puolella. EK11 joutui vetäytymään' (15.20–15.40); delivered by the freeze: the surface fire stopped at Koivuoja at 15.00–15.20 (radio 7.3, pushed: the lure) and embers crossed Korpioja in the crown run (radio 7.2, pushed; gate R: VPK's return from W1 is radio 7.1 now)",
     }),
   ],
   7: [
@@ -411,7 +423,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       slug: "relief_next", level: "L3", goal: "safety", keySteps: [10, 11], promptFi: `Kenen miehistö pyytää EK11:n jälkeen seuraavana vuoronvaihtoa tai korvaavaa yksikköä ${withinMinutesFi(minutesAhead(7, 11))}?`,
       options: [["VPK", "VPK:n miehistö"], ["EK12", "EK12:n miehistö"], ["EK14", "EK14:n miehistö"], ["KY21", "KY21:n miehistö"]], key: RELIEF.key,
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [...RELIEF.ids, RADIO.ek14Arrives, RADIO.ky21Arrives, trafficId(10, /^EK11, Koivuoja: miehistö ollut kentällä \d+,\d h\. Pyydämme vuoronvaihtoa/)],
-      basis: `SPEC/30 §5.1 (DRAFT; \`31\` F19): time on scene at 16.20 from pushed records only (VPK and EK12 'olemme olleet täällä' at 13.2x, EK14's and KY21's arrival radios): ${Object.entries(RELIEF.hours).map(([u, h]) => `${u} ${h.toFixed(1)} h`).join(", ")}; EK11 asks for relief at 4.5 h (16.26, pushed); VPK asks for a replacement unit at 16.53 (pushed in V8, 'linjalla 4,6 h ilman lepoa')`,
+      basis: `SPEC/30 §5.1 (DRAFT; \`31\` F19): time on scene at 16.20 from pushed records only (VPK and EK12 'olemme olleet täällä' at 13.2x, EK14's and KY21's arrival radios): ${Object.entries(RELIEF.hours).map(([u, h]) => `${u} ${h.toFixed(1)} h`).join(", ")}; EK11 asks for relief at 4.5 h (${RELIEF.ek11At}, pushed); VPK asks for relief at ${RELIEF.vpkAt} (pushed in V8)`,
     }),
   ],
 };

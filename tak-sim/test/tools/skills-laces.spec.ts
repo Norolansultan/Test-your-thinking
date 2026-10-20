@@ -54,9 +54,9 @@ describe("D8: what counts as a stated escape route, safety zone and lookout", ()
 
 describe("D8: the crews' LCES lines reach the placements", () => {
   const R2_CREWS: Readonly<Record<number, Readonly<Record<string, string>>>> = {
-    // SPEC/33 stage 7–9 (20 Oct 2026): the generated ids of the regenerated traffic (the same crews' own statements).
-    19: { EK11: "evt.c19.008", EK12: "evt.c19.011", EK16: "evt.c19.034", KY21: "evt.c19.036", OUT1: "evt.c19.046", OUT2: "evt.c19.048", VPK: "evt.c19.050" },
-    20: { EK11: "evt.c20.007", EK12: "evt.c20.011", EK16: "evt.c20.032", KY21: "evt.c20.034", OUT1: "evt.c20.040", OUT2: "evt.c20.043", VPK: "evt.c20.044" },
+    // SPEC/33 stage 7–9 and gate R (20 Oct 2026, the road-graph shuttle re-seeded the step draws): the generated ids of the regenerated traffic (the same crews' own statements).
+    19: { EK11: "evt.c19.007", EK12: "evt.c19.012", EK16: "evt.c19.031", KY21: "evt.c19.034", OUT1: "evt.c19.042", OUT2: "evt.c19.045", VPK: "evt.c19.048" },
+    20: { EK11: "evt.c20.008", EK12: "evt.c20.011", EK16: "evt.c20.032", KY21: "evt.c20.035", OUT1: "evt.c20.041", OUT2: "evt.c20.043", VPK: "evt.c20.045" },
   };
 
   it("gives the R2 crews at 19.20–20.00 their stated escape route and named safety zone, with the record ids", () => {
@@ -111,7 +111,7 @@ describe("D8: the crews' LCES lines reach the placements", () => {
 
 describe("D8: an item holds for the crew's posting only, and stays null where nothing is stated", () => {
   it("does not carry a stated route over a move: KY21 after its 900 m move at 16.00, EK16 after its withdrawal at 19.20", () => {
-    expect(placement(8, "KY21").escape_route_source).toBe("evt.c08.030"); // SPEC/33 stage 7–9: restated at 15.5x (was the 15.1x line, evt.c06.033)
+    expect(placement(8, "KY21").escape_route_source).toBe("evt.c08.029"); // SPEC/33 stage 7–9: restated at 15.5x (was the 15.1x line, evt.c06.033); gate R: .029
     const ky21 = placement(9, "KY21");
     expect(ky21.posting_from_cycle).toBe(9);
     expect([ky21.escape_route, ky21.safety_zone, ky21.lookout]).toEqual([null, null, null]);

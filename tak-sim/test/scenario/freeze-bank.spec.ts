@@ -15,7 +15,7 @@ import {
   reportedDetachedClosingAt, reportedDetachedToLineM, reportedGrowthHa, sectorOf, siteStep, trafficId, truthHeadAtEndOf, unitsByDistanceToHead,
 } from "../../app/scenario/freeze-keys.js";
 import { arrangeOptions, minutesAhead, nowStepOf } from "../../app/scenario/freeze-bank-core.js";
-import { FREEZE_BANK, PRACTICE_BANK, V2_AREA, V2_JUNCTION, V5_AREA } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK, PRACTICE_BANK, V2_AREA, V2_JUNCTION, V5_AREA, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
 import { V10_AREA, V10_R2, V12_VILLAGE, V14_R2, V14_SPRINKLERS } from "../../app/scenario/freeze-bank-b.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { CycleIndex, LatLon } from "../../app/engine/primitives.js";
@@ -358,7 +358,7 @@ describe("the cited keys hold against the data", () => {
     expect(keys(2, "ek11_between")).toEqual(["atom.radio.3.0"]);
     expect(keys(4, "ek12_where")).toEqual(["atom.radio.6.1"]);
     expect(keys(4, "head_unattended")).toEqual(["atom.radio.6.0", "atom.radio.6.1"]);
-    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.1"]); // SPEC/33 stage 9: the Korpioja crossing only (the Kuusimäki road crossing is gone)
+    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.2"]); // SPEC/33 stage 9: the Korpioja crossing only; gate R (R1): 7.2, VPK's return from W1 (7.0) now goes out in step 7
     expect(keys(7, "ky21_where")).toEqual(["atom.radio.10.3"]);
     expect(keys(7, "north_help")).toEqual(["atom.radio.10.3", "atom.radio.10.4", "atom.radio.10.1"]);
     expect(keys(14, "shift_change")).toEqual(["atom.radio.19.3", "atom.radio.19.1"]); // the relief on the line (EK11 shift change 19.3, VPK move 19.1)
@@ -369,7 +369,7 @@ describe("the cited keys hold against the data", () => {
 
   it("V7 relief_next (`31` F19): keyed on pushed records — VPK has been on scene longest after EK11, and asks for relief in V8", () => {
     expect(key(7, "relief_next")).toBe("VPK");
-    expect(SITE_SCENARIO.traffic.some((t) => t.cycle === 11 && t.tier === "T1_pushed" && /^VPK täällä .*ilman lepoa tai ruokataukoa\. Pyydän korvaavaa yksikköä/.test(t.content))).toBe(true);
+    expect(SITE_SCENARIO.traffic.some((t) => t.cycle === 11 && t.tier === "T1_pushed" && VPK_RELIEF_RE.test(t.content))).toBe(true); // gate R (R1): either wording
     for (const id of item(7, "relief_next").basisAtomIds ?? []) {
       const a = scenario.atoms.find((x) => x.id === id)!;
       expect(a.tier, id).toBe("T1_pushed");

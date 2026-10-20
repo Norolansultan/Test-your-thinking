@@ -125,6 +125,10 @@ export interface TankState {
   away: { readonly fromS: number; readonly toS: number; readonly pointFi: string } | null;
   /** When the crew asked for the shuttle's basin that is filled only after this step (simulation second); unset otherwise. */
   askedS?: number;
+  /** Where its vehicle stood at the end of the last step (a scripted water move drives from there, `traffic-water.ts` `refillTrip`). */
+  vehicleAt?: P;
+  /** Its own drive for water under way (`refillTrip`): leaves, full, back on the line (simulation seconds), and the water point. */
+  trip?: { readonly leaveS: number; readonly fullS: number; readonly backS: number; readonly pointFi: string };
 }
 
 /**
@@ -139,7 +143,7 @@ export interface ShuttleState {
   /** When it is free for the next delivery. */
   freeS: number;
   /** Its drives so far (stops lie between them), for where the map draws it at a step's start. */
-  readonly legs: { readonly fromS: number; readonly toS: number; readonly from: P; readonly to: P }[];
+  readonly legs: { readonly fromS: number; readonly toS: number; readonly from: P; readonly to: P; /** Its road route (`road-route.ts`). */ readonly path: readonly P[] }[];
   /** Water aboard over time (each change, in order), for the crew's answer and the hover card. */
   readonly load: { readonly atS: number; readonly m3: number }[];
   /** What it does when (fix pass 4): driving to fill, filling, driving to a line, filling the line's basin, moving to stand-by. */

@@ -111,13 +111,16 @@ export const V14_R2_PROJECTION = projectionOptionFor(projectedLineDistanceAt(14,
  */
 export const V14_SPRINKLERS = (() => {
   const ky21 = trafficFigure(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*palo noin (\d+) m länteen/);
-  const out1 = trafficFigure(20, /^OUT1, tie R2: ei omaa reunaa, palo (\d+) m luoteeseen/);
+  const out1 = trafficFigure(20, /^OUT1, tie R2: (?:ei omaa reunaa, palo|meillä hiljaista, palon reuna) (\d+) m/); // gate R (R1): the re-seeded step draws the second wording, the same 900 m
   const rate = trafficFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin (\d+,\d) m\/min/);
-  const trigger = trafficFigure(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*vesi kytketään altaasta kun palo on noin (\d+) m päässä/);
+  // SPEC/33 gate R (R1): the re-seeded step-20 draws give KY21's shorter sprinkler wording ("vesi kytketään kun palo lähestyy", no
+  // figure); OUT1's pushed R2 line (Lahdenkylä's sprinklers) states the trigger now, the same ~100 m.
+  const trigger = trafficFigure(20, /^OUT1, tie R2: .*vesi kytketään (?:altaasta )?kun palo on noin (\d+) m päässä/);
   const nearest = Math.min(ky21.value, out1.value);
   const at20 = nearest - rate.value * minutesAhead(14, 21);
   if (at20 < 2 * trigger.value) throw new Error(`freeze key V14 se_front_r2: the front ${at20.toFixed(0)} m from R2 in 20 minutes is too near the ${trigger.value} m trigger; re-author`);
-  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, out1.id, rate.id] };
+  const hm = (id: string) => SITE_SCENARIO.traffic.find((x) => x.id === id)!.timestamp.slice(0, 5).replace(":", ".");
+  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, out1.id, rate.id], ky21At: hm(ky21.id), out1At: hm(out1.id) };
 })();
 
 export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
@@ -131,13 +134,15 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // Fix pass 2 (7 Oct 2026, P2-4): replaces why_rekindle ("no crew in the sector"), which cued V10's no-fit decision (crew
     // the new front); an L2 item away from the new front. Since the regen (FF3) the water shuttle brings a basin to the line.
     choice({
-      slug: "ek12_water", level: "L2", goal: "resources", promptFi: "Mitä EK12:n vesitilanne merkitsee sen työlle kärjen eteläsivustalla?",
+      // SPEC/33 gate R (R1, R3; 20 Oct 2026; DRAFT, panel): EK12 mops up its 15:40 stretch on the south-east flank from R1 (was the head's
+      // south flank from the north spur's dead end), and the shuttle drives on the road graph: the stem names the flank, the key is unchanged.
+      slug: "ek12_water", level: "L2", goal: "resources", promptFi: "Mitä EK12:n vesitilanne merkitsee sen työlle kaakkoissivustalla?",
       options: [
         ["brought", "EK12 jää linjalle, lisävesi tuodaan sen luo"], ["leaves", "EK12 lähtee täyttämään, sivusta jää ilman vettä"],
         ["out", "Vesi on loppu, sivustan työ keskeytyy illaksi"], ["none", "Ei vaikutusta, säiliö riittää illan loppuun asti"],
       ], key: "brought",
-      keyAtomIds: [trafficId(13, /^EK12, kärki, eteläsivusta: vesi loppumassa \(25 %\)\. Pyysimme EK13:lta vesiajon/), trafficId(13, /^EK12, EK13: selvä, tuomme altaan linjanne päähän/)],
-      rule: "cited", basis: "EK12 (step 13): water running low (25 %), it asked EK13 for a water run to a basin, due 17.43 (the record; was 17.41 before gate R, 20 Oct 2026); EK13 confirms it brings the basin to the end of EK12's line: the crew stays on the flank",
+      keyAtomIds: [trafficId(13, /^EK12, kaakkoissivusta: vesi loppumassa \(25 %\)\. Pyysimme EK13:lta vesiajon/), trafficId(13, /^EK12, EK13: selvä, tuomme altaan linjanne päähän/)],
+      rule: "cited", basis: "EK12 (step 13, on the south-east flank by R1): water running low (25 %), it asked EK13 for a water run to a basin, due 17.41 (the road route from VPK's line, 1.5 km; was 17.43 on the north spur before gate R R1/R3); EK13 confirms it brings the basin to the end of EK12's line: the crew stays on the flank",
     }),
     choice({
       // `31` F27: "palanut ala" as V2 and V5 say, the new front's inclusion stated.
@@ -230,7 +235,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["near", "Kyllä, rintama on silloin alle 100 metrin päässä tiestä"], ["sparks", "Kyllä, kipinät ylittävät tien ennen rintamaa"],
       ], key: V14_SPRINKLERS.key,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: V14_SPRINKLERS.ids,
-      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance (KY21 19.47, OUT1 19.52: ${V14_SPRINKLERS.nearest} m) less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (KY21, pushed)`,
+      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance (KY21 ${V14_SPRINKLERS.ky21At}, OUT1 ${V14_SPRINKLERS.out1At}: ${V14_SPRINKLERS.nearest} m) less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (OUT1, pushed; gate R: was KY21's line)`,
     }),
     choice({
       // `31` F03: replaces the V14 map item (head_later: the head at "now" was 168 m from its key, and no truth exists after 20.00); the

@@ -114,7 +114,7 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
     id: "ek14_fuel", view: 5, expected: "record_only",
     statementFi: "EK14 pyysi bensiiniä moottoriruiskuunsa, jonka polttoaine oli loppumassa.",
     statementEn: "EK14 asked for petrol for its portable pump, which was running out of fuel.",
-    atomIds: [recordAt(7, /^EK14 pohjoisreuna — moottoriruiskun polttoaine riittää noin 40 min/), recordAt(10, /^EK14 pohjoisreuna, Karhujärven puoli — moottoriruiskun polttoaine riittää noin 60 min/)],
+    atomIds: [recordAt(7, /^EK14 pohjoisreuna — moottoriruiskun polttoaine riittää noin \d+ min/), recordAt(10, /^EK14 pohjoisreuna, Karhujärven puoli — moottoriruiskun polttoaine riittää noin \d+ min/)], // gate R (R1): the minutes are drawn (40 → 70 at step 7)
     keyStatements: { fi: [`EK14${S(120)}(?:polttoaine|bensiini|bensaa)`, `(?:polttoaine|bensiini)\\w*${S(80)}EK14`], en: [`EK14${S(120)}(?:fuel|petrol|gasoline)`, `(?:fuel|petrol)${S(80)}EK14`] },
   },
   {

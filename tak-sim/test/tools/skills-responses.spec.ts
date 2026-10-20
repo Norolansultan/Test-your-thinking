@@ -58,11 +58,11 @@ function answersFor(r: Running, pick: Pick): FreezeItemAnsweredDetail[] {
  * step's records) could put them there, none of them pushed in the AI condition, none searched by the driver:
  * - V5 (step 7): the digest holds the newest forecast `evt.wx.03` (step 6), the key record of V5's L3 item `freeze.5.ek14_shelter`
  *   (H2's window), and the grid operator's record (F7's contradicting record, step 6); the recent matches hold DR2's road record
- *   `evt.c07.017` (step 7), the key of V5's retrieval-only L1 item `freeze.5.infra` (sagat F30).
+ *   `evt.c07.016` (step 7), the key of V5's retrieval-only L1 item `freeze.5.infra` (sagat F30).
  * - V6 (step 8): the digest holds the planted false record (step 8; H9's `plantedExposure`).
  */
 const GUIDE_CONTEXT: ReadonlyMap<number, { readonly digest: readonly string[]; readonly recent: readonly string[] }> = new Map([
-  [5, { digest: ["evt.wx.03", F7_GRID_ATOM_ID], recent: ["evt.c07.017"] }],
+  [5, { digest: ["evt.wx.03", F7_GRID_ATOM_ID], recent: ["evt.c07.016"] }],
   [6, { digest: [F7_PLANTED_ATOM_ID], recent: [] }],
 ]);
 /** V5's items the context reaches: the key by the digest, the key by the recent matches, and one with only one of its two key records. */
@@ -221,7 +221,7 @@ describe("a driven guide-group session whose answers carry the model's context (
   const records = () => parseSessionFile(guide()).records;
   const RETRIEVED_ONLY: ExposureOptions = { includeModelContext: false };
   /** P-SK2's exposure rows by the model's context: V5's answer is in cycle (step) 7, V6's in 8; sorted by cycle, then id. */
-  const CONTEXT_ROWS = ["P-SK2,evt.c07.017,7,recent", "P-SK2,evt.wx.03,7,digest", `P-SK2,${F7_GRID_ATOM_ID},7,digest`, `P-SK2,${F7_PLANTED_ATOM_ID},8,digest`];
+  const CONTEXT_ROWS = ["P-SK2,evt.c07.016,7,recent", "P-SK2,evt.wx.03,7,digest", `P-SK2,${F7_GRID_ATOM_ID},7,digest`, `P-SK2,${F7_PLANTED_ATOM_ID},8,digest`];
   const v5Item = (id: string) => scenario.freezes.find((f) => f.cycle === 5)!.items.find((it) => it.id === id)!;
 
   it("is the fixture it claims: guide group, answers before the freezes with valid ids released by then, none reaching the participant otherwise", () => {
@@ -251,7 +251,7 @@ describe("a driven guide-group session whose answers carry the model's context (
     expect(v5Item(DIGEST_ITEM)).toMatchObject({ level: "L3", keyAtomIds: ["evt.wx.03"], basisKind: "record", basisAtomIds: ["evt.wx.03"] });
     expect(H2_PRIMARY_WINDOW.views).toContain(5);
     expect(items.find((i) => i.id === DIGEST_ITEM)!.fact_ids).toEqual(["evt.wx.03"]);
-    expect(v5Item(RECENT_ITEM)).toMatchObject({ level: "L1", keyAtomIds: ["evt.c07.017"] });
+    expect(v5Item(RECENT_ITEM)).toMatchObject({ level: "L1", keyAtomIds: ["evt.c07.016"] });
     expect(v5Item(HALF_ITEM).keyAtomIds).toEqual(["evt.wx.03", "evt.wx.02"]);
   });
 

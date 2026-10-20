@@ -13,7 +13,7 @@
  */
 
 import type { AirKind, UnitTask } from "../../app/scenario/types.js";
-import { ROADS } from "../topo-map/roads.js";
+import { BRIDGE, ROADS } from "../topo-map/roads.js";
 import { hm, stepStartS } from "./traffic-text.js";
 import { flameAt } from "./flame-table.js";
 
@@ -228,14 +228,11 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
     moves: [
       m(1, "edge:L3", "arrive"),
       m(4, "edge:L4", "reassign", "jälkisammutus syttymäkohdassa", "mop_up"),
-      // Fix pass 3 (N1): VPK is itself a tanker, and the shuttle is busy on the south edge's other line (KY21's).
-      // SPEC/33 stage 8 (20 Oct 2026, the rebuilt road graph): VPK's truck stands on the Honkaharju forest road south of the origin, and
-      // the drive to Haukilampi (W1) and back is ~12.4 km on the new roads (it was ~5 km straight-line × 1.4), so the crew is away about
-      // half an hour, not twenty minutes (the standard sentence's figure); said in full, the rest of the sentence unchanged.
-      said(m(5, "at:POND_W1", "water", "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla"),
-        "VPK: lähdemme täyttämään vettä, Haukilammelle, vesipiste W1; vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla. Poissa linjalta noin 30 min, palaamme noin 15.10.",
-        "VPK: we are refilling water, Haukilampi, water point W1; the water was running out; the tanker drove itself, EK13 was busy at KY21's line. Away from the line for about 30 min, back at about 15.10."),
-      m(6, "edge:L4", "return", undefined, "mop_up"),
+      // Fix pass 3 (N1): VPK is itself a tanker, and the shuttle is busy at another line. SPEC/33 gate R (R1): its truck stands on the
+      // Honkaharju road and W1 is 6.0 km away by road, so the message states the road trip (`refillTrip`, ~35 min) and the truck is
+      // still filling at 15:00: it is back on its line on the 15:20 map (was 15:00, a stated 30 min and a fill "at 14.47").
+      m(5, "at:POND_W1", "water", "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni EK12:n linjalla"),
+      m(7, "edge:L4", "return", undefined, "mop_up"),
       // SPEC/26 §5: on the origin's south edge before the lull, so it is there to object when moved off it.
       m(9, "edge:L3", "reassign", "syttymäkohdan eteläreunan jälkisammutus"),
       said(m(10, "edge:L1B", "reassign", "KY21:n käskystä, lohko 3 hallinnassa"), // against its recorded objection
@@ -265,10 +262,11 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
       // Revision (aj): back on the crown-run lobe's south-east flank from R1, the flank upwind in the backed (SSE) wind — not at the
       // tip across Koivuoja beside the spot fires with a 650 m hose line through the crown-run ground (was `head:R`).
       m(8, "edge:L2SE", "return", "latvapalon jälkeen sivustahyökkäys palaneen reunasta, kärjen eteen ei mennä"),
-      // Fix pass 3 (N1): the shuttle is busy at KY21's line at 16.20, so EK12 drives to W3 itself (in the lull, as a unit).
-      m(10, "at:BRIDGE_W3", "water", "säiliö oli tyhjä; EK13 oli kiinni KY21:n linjalla"),
-      // Revision (ak) (reviewer, MEDIUM): L2 was secured at 16:20, so the return is said as what it is — mop-up on a stretch in hand.
-      m(11, "head:R", "return", "kärki hallinnassa, jälkisammutus", "mop_up"),
+      // Fix pass 3 (N1): EK12 drives to W3 itself in the lull; gate R (R1): W3 is 1.8 km away by road, so the shuttle stays free for the other lines.
+      m(10, "at:BRIDGE_W3", "water", "säiliö oli tyhjä; ajamme itse, vesipiste on lähellä ja EK13 jää muiden linjojen käyttöön"),
+      // Revision (ak): mop-up on a stretch in hand. SPEC/33 gate R (R3): back on its own 15:40 stretch, the south-east flank on R1's side
+      // (a ~300 m line from R1), not at the head's south flank (a 780 m line from the north spur's dead end across Koivuoja).
+      m(11, "edge:L2SE", "return", "kärki hallinnassa, jälkisammutus", "mop_up"),
       // Revision (ak) (both reviewers, MEDIUM): its own stretch of R2 south of the junction, between EK11 at the junction and OUT2
       // towards Lahdenkylä (was `at:R2_FR`, 70 m from EK11 on one point for two hours).
       m(15, "at:R2_MID", "reassign", "linja tielle R2 risteyksen eteläpuolelle, kaakkoisrintaman eteen", "road_line"),
@@ -434,9 +432,6 @@ export const EXTRA_RADIO: readonly { readonly cycle: number; readonly from: stri
   // 15:00–15:20: KY21 on the south flank, 3 m from the crown run's burning edge.
   { cycle: 6, atOffsetS: 420, from: "KY21", recorded: true, text: "KY21: eteläsivustalla latvapalo menee meistä koilliseen ohi. Työskentelemme palaneen reunasta, perääntymistie palaneelle alueelle, tähystäjä seuraa kärkeä. Kaikki tallessa.",
     textEn: "KY21: on the south flank the crown fire is running past us to the north-east. We are working from the burned edge; escape route into the burned area, the lookout is watching the head. All accounted for." },
-  // 15:40–16:00: the wind backs to the south-south-east and the edge VPK mops up starts to move over its stretch.
-  { cycle: 8, atOffsetS: 420, from: "VPK", recorded: true, text: "VPK: tuulen kääntyessä reuna lähti kohdallamme liikkeelle. Siirryimme palaneelle alueelle, perääntymistie palaneen kautta autolle. Vahvuus tarkistettu, kaikki tallessa.",
-    textEn: "VOL1: as the wind turned, the edge on our stretch started to move. We moved into the burned area; escape route through the burned area to the truck. Headcount done, all accounted for." },
   // 16:40–17:00: KY21 and VPK on the north edge, downwind in the southerly; KY21, the sector leader, says it for both crews.
   { cycle: 11, atOffsetS: 420, from: "KY21", recorded: true, text: "KY21: pohjoisreunalla me ja VPK olemme reunassa kiinni, etelätuuli painaa reunaa meitä kohti. Työskentelemme palaneen reunasta, perääntymistie palaneelle alueelle, tähystäjä nimetty, kaikki tallessa.",
     textEn: "KY21: on the north edge we and VOL1 are on the edge; the southerly is pushing it towards us. We are working from the burned edge; escape route into the burned area, lookout posted, all accounted for." },
@@ -528,7 +523,7 @@ export function roadPoints(classes: ReadonlySet<string> | null): P[] {
     for (let i = 1; i < r.line.length; i++) {
       const a = r.line[i - 1]!, b = r.line[i]!;
       const k = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 10));
-      for (let j = 0; j < k; j++) pts.push({ x: a.x + ((b.x - a.x) * j) / k, y: a.y + ((b.y - a.y) * j) / k });
+      for (let j = 0; j < k; j++) { const q = { x: a.x + ((b.x - a.x) * j) / k, y: a.y + ((b.y - a.y) * j) / k }; if (Math.hypot(q.x - BRIDGE.x, q.y - BRIDGE.y) >= 40) pts.push(q); } // nobody parks on the 16 t bridge (gate R)
     }
   }
   return pts;
@@ -611,8 +606,8 @@ const WHY_EN: Readonly<Record<string, string>> = {
   "johdon evakuointipäätös, poliisi toteuttaa": "command's evacuation decision, carried out by the police", // EN-04 (SPEC/31): "johdon" is command's, not the participant's own role
   "vuoronvaihto": "change of shift",
   "poliisi jatkaa kahden talon kanssa yksin; vuoro vaihdettu": "the police carry on with the two households alone; the shift has changed",
-  "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla": "the water was running out; the tanker drove itself, EK13 was busy at KY21's line",
-  "säiliö oli tyhjä; EK13 oli kiinni KY21:n linjalla": "the tank was empty; EK13 was busy at KY21's line",
+  "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni EK12:n linjalla": "the water was running out; the tanker drove itself, EK13 was busy at EK12's line",
+  "säiliö oli tyhjä; ajamme itse, vesipiste on lähellä ja EK13 jää muiden linjojen käyttöön": "the tank was empty; we are driving ourselves, the water point is close and EK13 stays free for the other lines",
   "kärki kuusikon reunalla": "the head is at the spruce edge",
   "kärki hallinnassa, jälkisammutus": "the head is in hand, mop-up",
   "läheltä piti -tilanne latvapalossa; vahvuus tarkistettu, kaikki tallessa, ei loukkaantuneita": "near miss in the crown fire; headcount checked, everyone accounted for, no injuries",
@@ -661,7 +656,7 @@ const spokenFi = (place: string) => place.replace(/ \(lohko (L\d)\)/, ", lohko $
 const spokenEn = (place: string) => place.replace(/ \(sector (L\d)\)/, ", sector $1").replace(/ \(safety zone\)/, ", the safety zone").replace(/ \(water point (W\d)\)/, ", water point $1");
 
 /** The radio message for a move, in English (`moveMessageFi`'s sentence, DRAFT translation). */
-export function moveMessageEn(unit: string, mv: Move): string {
+export function moveMessageEn(unit: string, mv: Move, trip?: { readonly awayMin: number; readonly backS: number }): string {
   if (mv.text) return mv.text.en;
   const place = spokenEn(PLACE_EN[mv.to] ?? mv.to);
   const why = mv.whyFi ? `; ${WHY_EN[mv.whyFi] ?? mv.whyFi}` : "";
@@ -673,15 +668,15 @@ export function moveMessageEn(unit: string, mv: Move): string {
     case "arrive": return `${unit}: we have arrived ${place.replace(/^to /, "at ")}${why}.`;
     case "reassign": return `${unit}: we are moving ${place}${why}.`;
     case "withdraw": return `${unit}: we are withdrawing ${place}${why}.`;
-    case "water": return `${unit}: we are refilling water, ${bare}${why}. Away from the line for about 20 min, back at about ${hm(stepStartS(mv.cycle) + 1290)}.`;
+    case "water": return `${unit}: we are refilling water, ${bare}${why}. Away from the line for about ${trip?.awayMin ?? 20} min, back at about ${hm(trip?.backS ?? stepStartS(mv.cycle) + 1290)}.`;
     case "return": return `${unit}: we are returning to the line, ${bare}${why}.`;
     case "rest": return `${unit}: we are moving ${place}${why}.`;
     case "evacuation": return `${unit}: we are helping the evacuation, ${bare}${why}.`;
   }
 }
 
-/** The radio message for a move, as the unit says it (speech). */
-export function moveMessageFi(unit: string, mv: Move): string {
+/** The radio message for a move, as the unit says it (speech); a water move states its trip on the roads (`traffic-water.ts` `refillTrip`, review R1). */
+export function moveMessageFi(unit: string, mv: Move, trip?: { readonly awayMin: number; readonly backS: number }): string {
   if (mv.text) return mv.text.fi;
   const place = spokenFi(PLACE_FI[mv.to] ?? mv.to);
   const why = mv.whyFi ? `; ${mv.whyFi}` : "";
@@ -692,7 +687,7 @@ export function moveMessageFi(unit: string, mv: Move): string {
     case "arrive": return `${unit}: saavuimme ${place}${why}.`;
     case "reassign": return `${unit}: siirrymme ${place}${why}.`;
     case "withdraw": return `${unit}: vetäydymme ${place}${why}.`;
-    case "water": return `${unit}: lähdemme täyttämään vettä, ${place}${why}. Poissa linjalta noin 20 min, palaamme noin ${hm(stepStartS(mv.cycle) + 1290)}.`;
+    case "water": return `${unit}: lähdemme täyttämään vettä, ${place}${why}. Poissa linjalta noin ${trip?.awayMin ?? 20} min, palaamme noin ${hm(trip?.backS ?? stepStartS(mv.cycle) + 1290)}.`;
     case "return": return `${unit}: palaamme linjalle, ${place}${why}.`;
     case "rest": return `${unit}: siirrymme ${place}${why}.`;
     case "evacuation": return `${unit}: avustamme evakuoinnissa, ${place}${why}.`;

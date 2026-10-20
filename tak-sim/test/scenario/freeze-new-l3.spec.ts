@@ -11,7 +11,7 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
 import { distanceToTruthM, reportedPointDistanceAt, siteStep } from "../../app/scenario/freeze-keys.js";
-import { FREEZE_BANK, V2_JUNCTION } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK, V2_JUNCTION, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
 
@@ -107,7 +107,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     const ranked = ["VPK", "EK12", "EK14", "KY21"].sort((a, b) => hours.get(b)! - hours.get(a)!);
     expect(ranked[0]).toBe("VPK");
     expect(hours.get("VPK")! - hours.get(ranked[1]!)!).toBeGreaterThan(0.25); // VPK 4.0 h at 16:00, EK12 3.7 h at 16:20: ~0.6 h apart at one clock
-    expect(traffic(11).some((t) => /^VPK täällä .*ilman lepoa tai ruokataukoa\. Pyydän korvaavaa yksikköä/.test(t))).toBe(true);
+    expect(traffic(11).some((t) => VPK_RELIEF_RE.test(t))).toBe(true); // gate R (R1): either generated wording
     expect(traffic(10).some((t) => /^EK11, Koivuoja: miehistö ollut kentällä 4,5 h\. Pyydämme vuoronvaihtoa/.test(t))).toBe(true);
     expect(key(7, "relief_next")).toBe("VPK");
   });

@@ -118,12 +118,13 @@ describe("the records that follow it", () => {
   });
 
   it("phase A follows the table: DR1's head records, the crown run's head record (step 6, recorded at 15.25) and the head's sides under direct attack", () => {
-    const traffic = (id: string) => SITE_SCENARIO.traffic.find((e) => e.id === id)!.content;
+    const traffic = (step: number, re: RegExp) => SITE_SCENARIO.traffic.find((e) => e.cycle === step && re.test(e.content))!.content;
     const radio = (step: number, re: RegExp) => SITE_SCENARIO.radio.find((r) => r.cycle === step && re.test(r.text))!.text;
     // SPEC/33 stage 7 (20 Oct 2026, the CA on the rebuilt map): 10,8 and 49,0 m/min (were 10,6 and 51,3); the 15.25 thermal record is evt.c07.009 (was .010).
-    expect(traffic("evt.c04.011")).toMatch(/10,8 m\/min\. Intensiteettiluokka 4\/5, liekit 4–5 m\./); // was 3/5, 1–2 m
-    expect(traffic("evt.c07.011")).toMatch(/49,0 m\/min \(sisältää pistepalojen hypyt\)\. Intensiteettiluokka 5\/5, liekit puiden latvojen yli\./); // was 4/5, 2–4 m
-    expect(traffic("evt.c07.009")).toContain("yhtenäinen reuna noin 30 m/min), liekit puiden latvojen yli, maks.");
+    // SPEC/33 gate R (R1): found by content (the road-graph shuttle re-seeds the step draws: DR1 14.25 draws its other wording, the same 10,8 m/min and 4–5 m).
+    expect(traffic(4, /^DR1 lämpökuva, kärki klo 14\.25: /)).toMatch(/10,8 m\/min.*liekit 4–5 m/); // was 3/5, 1–2 m
+    expect(traffic(7, /^DR1 mittaus: kärjen etenemä/)).toMatch(/49,0 m\/min \(sisältää pistepalojen hypyt\)\. Intensiteettiluokka 5\/5, liekit puiden latvojen yli\./); // was 4/5, 2–4 m
+    expect(traffic(7, /^DR1 lämpökuva, kärki klo 15\.25: /)).toContain("yhtenäinen reuna noin 30 m/min), liekit puiden latvojen yli, maks.");
     expect(radio(1, /^EK11: kärjen molemmat laidat suorassa sammutuksessa/)).toContain(`EK12 oikea laita, ${rows[0]!.flank.fi}.`);
     expect(radio(2, /^EK11: hyökkäämme kärjen vasenta laitaa suoraan/)).toContain(`letkulla, ${rows[1]!.flank.fi}.`);
     // The trigger point is a precursor again: the sides pass three metres only as the head crowns (step 5), not from 13.20 on.

@@ -285,9 +285,9 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
     // 8 Oct 2026 (the re-tuned fire model): the north edge runs 3.5 m/min at 16:20–16:40 (was 1.8); V8 stays unscored.
     // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): EK12's 16:42 line is recorded now (it was pushed), so VPK's pushed 16:42 line —
     // holding the north edge with hand tools while the basin comes — carries the pushed basis.
-    basis: "16:40, the lull: no movement on the head's south flank, hot stumps dug out, the line held (EK12, recorded; the crew reports only its own stretch, FF1); on the north edge VPK holds the edge with hand tools while its water is low (VPK, pushed); the north edge creeps ~3.5 m/min (DR3, recorded); nothing to decide the posture on — not scored",
+    basis: "16:40, the lull: no movement on the lobe's south-east flank, hot stumps dug out, the edge dying down slowly (EK12, recorded; SPEC/33 gate R R3: EK12 back on its 15:40 stretch on R1's side, was the head's south flank; the crew reports only its own stretch, FF1); on the north edge VPK holds the edge with hand tools while its water is low (VPK, pushed); the north edge creeps ~3.5 m/min (DR3, recorded); nothing to decide the posture on — not scored",
     basisAtomIds: [
-      recordAtomId(11, /^EK12, kärki, eteläsivusta: reunalla ei liikettä, kuumia kantoja kaivetaan auki/),
+      recordAtomId(11, /^EK12, kaakkoissivusta: reunalla ei liikettä, kuumia kantoja kaivetaan auki/),
       recordAtomId(11, /^VPK täällä pohjoisreuna, Karhujärven puoli\. Vettä säiliössä enää noin \d+ %.*pidämme reunaa käsityökaluin/),
       recordAtomId(11, /^DR3 mittaus: pohjoisreunan etenemä \d+ m klo 16\.20–16\.40/),
     ],

@@ -1,14 +1,14 @@
 /**
  * Farms and fields of the generated site (SPEC/33 §4 stage 4). Farmsteads stand where there is flat clay or fine moraine near a
  * public road (and none within 5 km of IGN but the designed village); each field block is cut into rectangular parcels (50–150 m
- * wide, 150–450 m long), the long side running back from the road or down the slope to the brook, with a field ditch along each
- * parcel's long side and a main ditch from the block's low corner to the nearest stream. Oriented-box parcelling after
- * stavguo/obb-parcelling (MIT, SPEC/33 §8).
+ * wide, 150–450 m long), the long side running back from the road or down the slope to the brook, with a field ditch along about
+ * one strip edge in eight (the map shows the main ditches only) and a main ditch from the block's low corner to the nearest
+ * stream. Oriented-box parcelling after stavguo/obb-parcelling (MIT, SPEC/33 §8).
  */
 
 import { Mulberry32 } from "../fire-ca/model.js";
 import {
-  bearingOf, cellOf, cellX, cellY, closestOnPolyline, GN, HALF_M, lineField, polar, sampleGrid, VILLAGE, type P,
+  bearingOf, cellOf, cellX, cellY, chaikin, closestOnPolyline, GN, HALF_M, hash2, simplify, lineField, polar, sampleGrid, VILLAGE, type P,
 } from "./terrain-base.js";
 import { ELEV, LAKE_ID, REC, RIVER, STREAM_CELL } from "./water.js";
 import { riverDistCell } from "./water-query.js";
@@ -156,6 +156,7 @@ function buildParcels(): { parcels: Parcel[]; ditches: P[][] } {
       return k / n;
     };
     const R = site.r;
+    let stripNo = 0;
     for (let vOff = -R; vOff < R;) {
       const wid = 50 + rng.nextFloat() * 100;
       let uOff = -R;
@@ -173,9 +174,13 @@ function buildParcels(): { parcels: Parcel[]; ditches: P[][] } {
         }
         uOff += len;
       }
+      // On the maastokartta a field is a plain fill: only an occasional main field ditch shows, along some parcel edges (about one
+      // strip edge in eight), never the open ditch of every parcel.
+      const edgeDitch = strip.length > 0 && hash2(block, stripNo++, 8301) < 0.12;
       for (const p of strip) {
         parcels.push(p);
-        // The field ditch along the parcel's long side (the +v side; the next strip's parcel has its own on its far side).
+        if (!edgeDitch) continue;
+        // The ditch along the parcel's long side (the +v side, between this strip and the next).
         const ex = p.cx + v.x * (p.halfWid + 4);
         const ey = p.cy + v.y * (p.halfWid + 4);
         ditches.push([{ x: ex - u.x * p.halfLen, y: ey - u.y * p.halfLen }, { x: ex + u.x * p.halfLen, y: ey + u.y * p.halfLen }]);
@@ -198,7 +203,7 @@ function buildParcels(): { parcels: Parcel[]; ditches: P[][] } {
       i = REC[i]!;
       path.push({ x: cellX(i % GN), y: cellY(Math.floor(i / GN)) });
     }
-    if (path.length > 2 && (STREAM_CELL[i]! >= 0 || LAKE_ID[i]! >= 0)) ditches.push(path);
+    if (path.length > 2 && (STREAM_CELL[i]! >= 0 || LAKE_ID[i]! >= 0)) ditches.push(chaikin(simplify(path, 14), 2));
   });
   return { parcels, ditches };
 }

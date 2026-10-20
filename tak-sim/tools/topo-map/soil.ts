@@ -13,7 +13,7 @@
  */
 
 import {
-  BASE, basinInside, bearingOf, blur, cellX, cellY, components, G, GN, hash2, ISO_RAHKASUO_BASIN, RAHKASUO_BASIN, sampleGrid, smoothstep,
+  BASE, basinInside, bearingOf, blur, cellX, cellY, components, fbm, G, GN, hash2, ISO_RAHKASUO_BASIN, RAHKASUO_BASIN, sampleGrid, smoothstep,
 } from "./terrain-base.js";
 import { ACC, ELEV, FILLED, HOLLOW, LAKE_ID, ORDER, REC, STREAM_CELL } from "./water.js";
 import { RIVER_DIST } from "./water-query.js";
@@ -61,6 +61,24 @@ const ISO_CORE = basinMask(ISO_RAHKASUO_BASIN, -40);
 const RAHKA_NEAR = basinMask(RAHKASUO_BASIN, 150);
 const ISO_NEAR = basinMask(ISO_RAHKASUO_BASIN, 150);
 
+/** Cells over the area of their convex hull (cell centres, each cell counted as a unit square): 1 for a filled convex shape. */
+function cellConvexity(cells: readonly number[]): number {
+  if (cells.length < 3) return 1;
+  const pts = cells.map((i) => [i % GN, Math.floor(i / GN)] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: readonly number[], a: readonly number[], b: readonly number[]) => (a[0]! - o[0]!) * (b[1]! - o[1]!) - (a[1]! - o[1]!) * (b[0]! - o[0]!);
+  const lo: (readonly number[])[] = [];
+  const up: (readonly number[])[] = [];
+  for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2]!, lo[lo.length - 1]!, p) <= 0) lo.pop(); lo.push(p); }
+  for (let k = pts.length - 1; k >= 0; k--) { const p = pts[k]!; while (up.length >= 2 && cross(up[up.length - 2]!, up[up.length - 1]!, p) <= 0) up.pop(); up.push(p); }
+  const hull = [...lo.slice(0, -1), ...up.slice(0, -1)];
+  let a = 0;
+  for (let k = 0; k < hull.length; k++) { const p = hull[k]!; const q = hull[(k + 1) % hull.length]!; a += p[0]! * q[1]! - q[0]! * p[1]!; }
+  // The hull of cell centres misses half a cell all round: add it back (perimeter / 2 + 1).
+  let per = 0;
+  for (let k = 0; k < hull.length; k++) { const p = hull[k]!; const q = hull[(k + 1) % hull.length]!; per += Math.hypot(q[0]! - p[0]!, q[1]! - p[1]!); }
+  return cells.length / (Math.abs(a) / 2 + per / 2 + 1);
+}
+
 function buildMires(): { kind: Uint8Array; soft: Float32Array; drained: Uint8Array } {
   const raw = new Uint8Array(GN * GN);
   for (let i = 0; i < GN * GN; i++) {
@@ -78,10 +96,20 @@ function buildMires(): { kind: Uint8Array; soft: Float32Array; drained: Uint8Arr
     if (wet || hollow) raw[i] = 1;
   }
   for (let i = 0; i < GN * GN; i++) if (LAKE_ID[i]! < 0 && (RAHKA_CORE[i] || ISO_CORE[i])) raw[i] = 1;
-  // Lobed outlines: a blur and threshold removes the raster speckle; then specks < 3 ha go and holes < 2 ha are filled.
+  // Lobed outlines: a blur and threshold removes the raster speckle; then specks < 3 ha go and holes < 2 ha are filled. The
+  // blurred field is read through a domain warp (typically ±35 m, up to 100 m, ~180 m wavelength) and the threshold wanders a little, so the
+  // blur does not round a small mire into an oval: its edge pushes out into the forest in lobes and draws back in bays, as peat
+  // spreads along the hollows.
   const soft = blur(raw, 3, 2);
   const mask = new Uint8Array(GN * GN);
-  for (let i = 0; i < GN * GN; i++) mask[i] = soft[i]! > 0.5 && LAKE_ID[i]! < 0 ? 1 : 0;
+  for (let i = 0; i < GN * GN; i++) {
+    const x = cellX(i % GN);
+    const y = cellY(Math.floor(i / GN));
+    const wx = 100 * fbm(x / 180, y / 180, 2, 4423);
+    const wy = 100 * fbm(x / 180, y / 180, 2, 4425);
+    const lobe = 0.2 * fbm(x / 200, y / 200, 3, 4421);
+    mask[i] = sampleGrid(soft, x + wx, y + wy) > 0.5 + lobe && LAKE_ID[i]! < 0 ? 1 : 0;
+  }
   const comp = components(mask);
   for (let i = 0; i < GN * GN; i++) if (mask[i] && comp.sizes[comp.label[i]!]! < 125) mask[i] = 0;
   const inv = new Uint8Array(GN * GN);
@@ -107,6 +135,24 @@ function buildMires(): { kind: Uint8Array; soft: Float32Array; drained: Uint8Arr
     if (r + 1 < GN) inner[i] = Math.min(inner[i]!, inner[i + GN]! + 1);
     if (r + 1 < GN && c + 1 < GN) inner[i] = Math.min(inner[i]!, inner[i + GN + 1]! + 1.414);
     if (r + 1 < GN && c > 0) inner[i] = Math.min(inner[i]!, inner[i + GN - 1]! + 1.414);
+  }
+  // Bays: a mire of 6–60 ha that is still an oval (a peat-filled kettle hollow is round; its mire is not) gets firm ground reaching
+  // into its margin (within ~70 m of its edge) where a ~130 m noise is high, more each round until it is lobed (cell convexity
+  // ≤ 0.88). The designed Rahkasuo and Iso-Rahkasuo keep their edges.
+  {
+    const mc0 = components(mask);
+    const cellsOf: number[][] = mc0.sizes.map(() => []);
+    for (let i = 0; i < GN * GN; i++) if (mask[i] && mc0.sizes[mc0.label[i]!]! >= 150 && mc0.sizes[mc0.label[i]!]! <= 1500) cellsOf[mc0.label[i]!]!.push(i);
+    for (const cells of cellsOf) {
+      if (cells.length === 0 || cells.some((i) => RAHKA_NEAR[i] || ISO_NEAR[i])) continue;
+      for (const cut of [0.25, 0.05, -0.15, -0.35]) {
+        if (cellConvexity(cells.filter((i) => mask[i])) <= 0.88) break;
+        for (const i of cells) {
+          if (inner[i]! > 3.5) continue;
+          if (fbm(cellX(i % GN) / 130, cellY(Math.floor(i / GN)) / 130, 2, 4427) > cut + inner[i]! * 0.06) mask[i] = 0;
+        }
+      }
+    }
   }
   // Drained or not: per mire, or per 1 km block of a mire larger than 4 km².
   const mc = components(mask);

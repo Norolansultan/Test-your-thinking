@@ -89,14 +89,17 @@ describe("D1: the flame-length table when the scenario has one, else the records
     else expect(table).toBeNull();
   });
 
-  it("WP-1's `flameTable(steps)`: the table's values in phase B, where the records follow it; phase A keeps the records' bands", async () => {
+  it("WP-1's `flameTable(steps)`: the table's values where the records follow it (every step 1–20 since 20 Oct 2026; a crown run's head has no number)", async () => {
     const table = (await loadFlameTable())!;
     const head17 = table.at(17, "head")!;
     expect(head17.hiM).toBeGreaterThan(4);
     expect(head17.hiM).toBeLessThan(4.4); // inside the Kalajoki surface envelope (0.5–4.4 m), as the records' "4–5 m" band's upper bound is not
     expect(head17.fireType).toBe("surface");
     expect(table.at(17, "flank")!.hiM).toBeCloseTo(head17.hiM * 0.65, 1);
-    expect(table.at(3, "head")).toBeNull(); // phase A: the records do not follow the table
+    // Phase A follows the table too (`flame-table.ts` RECORDS_FOLLOW_FROM_STEP): step 3's head at 10.6 m/min; the step-6 crown run's head
+    // has no number (the export then reads the head record's class: "liekit puiden latvojen yli", 5/5).
+    expect(table.at(3, "head")!.hiM).toBeCloseTo(4.4, 1);
+    expect(table.at(6, "head")).toBeNull();
   });
 
   it("without a table: every flame value is quoted from a record of the window", () => {

@@ -77,7 +77,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     const wx = scenario.atoms.find((a) => a.id === "evt.wx.03")!;
     expect(Number(wx.cycle)).toBeLessThanOrEqual(7);
     expect(item(5, "ek14_shelter").keyAtomIds).toEqual(["evt.wx.03"]);
-    expect(radio(8).some((t) => /^EK14 vetäytyy tielle R1 palaneen alueen keskelle \(turva-alue\).*alatuuleen/.test(t))).toBe(true);
+    expect(radio(8).some((t) => /^EK14: vetäydymme tielle R1 palaneen alueen keskelle, turva-alueelle; .*alatuuleen/.test(t))).toBe(true); // radio ST-07: speech
     expect(key(5, "ek14_shelter")).toBe("shelter");
   });
 

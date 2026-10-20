@@ -2,7 +2,8 @@
  * `npm run thinker:index -- --carry` (SPEC/31 §7 WP-1, 19 Oct 2026): a PROVISIONAL index for a machine without the embedding model
  * (Hugging Face is blocked in the build container). No vector is computed; every atom gets a vector of the PREVIOUS index:
  *
- * - its own, when its passage is unchanged (the text hash is found in the previous index, whatever the atom's id now is): exact;
+ * - its own, when its passage is unchanged (the text hash is found in the previous index, whatever the atom's id now is): exact,
+ *   unless that previous entry was itself carried, which keeps its `carriedFrom` and counts as carried;
  * - else the vector of the previous atom whose Finnish text is most like it (token overlap), the same id first when it still reads
  *   alike, else the most alike record of the same step: an approximation of a reworded record, marked `carriedFrom` in the entry.
  *
@@ -55,13 +56,21 @@ const SAME_ID_OVERLAP = 0.5;
 export function carryIndexText(
   atoms: readonly InfoAtom[], lang: RetrievalLang, previous: VectorIndexFile, texts: ReadonlyMap<string, PreviousText>, passageFiOf: (a: InfoAtom) => string,
 ): { readonly text: string; readonly count: number; readonly carried: number } {
-  const byHash = new Map(previous.atoms.map((a) => [a.textHash, a] as const));
-  const byId = new Map(previous.atoms.map((a) => [a.id, a] as const));
+  // A previous entry that was itself carried (a second `--carry` before the model rebuild, 20 Oct 2026) keeps its `carriedFrom`
+  // and counts as carried: its vector still belongs to another text, though its passage is unchanged (the first carry's 210/281
+  // vectors would otherwise read as exact).
+  const prevAtoms = previous.atoms as readonly ((typeof previous.atoms)[number] & { readonly carriedFrom?: string })[];
+  const byHash = new Map(prevAtoms.map((a) => [a.textHash, a] as const));
+  const byId = new Map(prevAtoms.map((a) => [a.id, a] as const));
   const sorted = [...atoms].sort((a, b) => compareStrings(a.id, b.id));
   let carried = 0;
   const entries = sorted.map((atom) => {
     const textHash = passageHash(atom, lang);
-    const exact = byHash.get(textHash);
+    // Its own previous entry first: two atoms with one passage may carry different vectors (the first carry's), and an unchanged
+    // atom keeps its own.
+    const mine = byId.get(atom.id);
+    const exact = mine?.textHash === textHash ? mine : byHash.get(textHash);
+    if (exact?.carriedFrom !== undefined) { carried += 1; return { id: atom.id, textHash, carriedFrom: exact.carriedFrom, v: exact.v }; }
     if (exact) return { id: atom.id, textHash, v: exact.v };
     const fi = passageFiOf(atom);
     const own = texts.get(atom.id);

@@ -31,11 +31,15 @@ import {
 
 const F = SITE_SCENARIO.features;
 
-/** Crew radio key atoms, found by content (`radioId`): their indices shift whenever the radio is regenerated. */
+/**
+ * Crew radio key atoms, found by content (`radioId`): their indices shift whenever the radio is regenerated. Radio ST-07 (SPEC/31; 20 Oct
+ * 2026): the three moves below are said as speech now ("EK11: siirrymme …", "EK11: vetäydymme …"; were "EK11 siirtyy …", "EK11 vetäytyy
+ * …"), the same records (`test/scenario/freeze-bank.spec.ts`).
+ */
 const RADIO = {
-  ek11Ridge: radioId(3, /^EK11 siirtyy .*harjulle/),
-  ek11Withdraws: radioId(6, /^EK11 vetäytyy .*latvapalo/),
-  ek12Withdraws: radioId(6, /^EK12 vetäytyy .*palaneelle alueelle/), // review fixes (ah): to R1 in the black (was the R1/R2 junction)
+  ek11Ridge: radioId(3, /^EK11: siirrymme .*harjulle/),
+  ek11Withdraws: radioId(6, /^EK11: vetäydymme .*latvapalo/),
+  ek12Withdraws: radioId(6, /^EK12: vetäydymme .*palaneelle alueelle/), // review fixes (ah): to R1 in the black (was the R1/R2 junction)
   sparksRoad: radioId(7, /^Kipinät lensivät metsäautotien \(Kuusimäki\) yli/),
   sparksKorpioja: radioId(7, /^Kipinät lensivät Korpiojan yli/),
   ky21North: radioId(10, /^KY21, lohkon L3 johtaja: .*siirrän .*KY21:n ja VPK:n nyt pohjoisreunalle/), // fix pass 3: the L3 sector leader moves KY21 and VPK (FF11)
@@ -158,13 +162,16 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // `31` F10: replaces fuel_ahead (DR1's 'tiheä kuusikko' recalled, and a cue to spruce_behaviour); two EK12 reports integrated.
+      // FOR THE RESEARCHER (20 Oct 2026, the phase-A flame table): EK12's 14.06 report now states the table's "liekit 2–3 m" (was
+      // "0,3–1 m"), while its 14.08 report still says "matalaa paloa" (a descriptor, not a band) and the key's option reads "Reuna pysyy
+      // matalana". The key is unchanged ("held_low"; the other options stay false); whether the option or the item is re-worded is yours.
       slug: "south_flank", level: "L2", goal: "containment", promptFi: "Mitä EK12:n ilmoitukset kertovat kärjen eteläsivustan tilanteesta?",
       options: [
         ["held_low", "Reuna pysyy matalana, mutta kärki pääsee ohi"], ["stopped", "Kärki on pysäytetty EK12:n linjaan"],
         ["lost", "Sivusta on menetetty, palo leviää etelään"], ["dry", "Vesi on loppunut, ja linja on keskeytetty"],
       ], key: "held_low",
       keyAtomIds: [trafficId(3, /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta.*lipsuu paikoin/), trafficId(3, /^EK12, kärki, eteläsivusta: kärki etenee koilliseen meidän ohi/)], rule: "cited",
-      basis: "integrates EK12's two pushed step-3 reports: flames 0.3–1 m, the edge held though it slips in places (14.06), and the head passing it to the north-east, low fire on its own stretch (14.08): the flank is held low while the head runs past; EK13 refilled EK12's basin at 13.54 (recorded)",
+      basis: "integrates EK12's two pushed step-3 reports: flames 2–3 m (the flame table's band; 0.3–1 m before 20 Oct 2026), the edge held though it slips in places (14.06), and the head passing it to the north-east, low fire on its own stretch (14.08): the flank is held low while the head runs past; EK13 refilled EK12's basin at 13.54 (recorded)",
     }),
     choice({
       slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(2, 4))}?`,

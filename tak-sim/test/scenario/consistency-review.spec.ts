@@ -114,19 +114,21 @@ describe("items 2–3: one battery model for the log and the roster", () => {
 describe("items 4–6: arrivals, time on scene and escape routes", () => {
   it("units already working at the handover do not 'arrive' at 13:20; they say how long they have been there", () => {
     const step1 = generated.filter((e) => e.cycle === 1);
-    expect(step1.some((e) => /^(VPK|EK12) saapunut/.test(e.content))).toBe(false);
+    expect(step1.some((e) => /^(VPK|EK12)(?: saapunut|: saavuimme)/.test(e.content))).toBe(false);
     expect(step1.some((e) => /^VPK, .*olemme olleet täällä noin 1,3 h/.test(e.content))).toBe(true);
   });
 
+  // Radio ST-07 (SPEC/31): an arrival is said as speech ("EK15: saavuimme …"; the last logged ones, EK15 and OUT1/OUT2, since 20 Oct 2026).
   it("every unit arrives once", () => {
     const arrivals = new Map<string, string[]>();
-    for (const e of LOG.filter((x) => /^\S+ saapunut\b/.test(x.content))) arrivals.set(e.actor, [...(arrivals.get(e.actor) ?? []), e.id]);
+    for (const e of LOG.filter((x) => /^\S+ saapunut\b|^\S+: saavuimme\b/.test(x.content))) arrivals.set(e.actor, [...(arrivals.get(e.actor) ?? []), e.id]);
+    expect(arrivals.size).toBeGreaterThanOrEqual(7);
     for (const [id, recs] of arrivals) expect(recs, id).toHaveLength(1);
   });
 
   it("a late arrival's first size-up comes after its arrival message", () => {
     for (const s of generated.filter((e) => /ensimmäinen tilannearvio/.test(e.content))) {
-      const arrival = LOG.find((e) => e.actor === s.actor && /saapunut/.test(e.content) && e.cycle === s.cycle);
+      const arrival = LOG.find((e) => e.actor === s.actor && /saapunut|saavuimme/.test(e.content) && e.cycle === s.cycle);
       if (arrival) expect(arrival.sim_time_s, s.id).toBeLessThan(s.sim_time_s);
     }
   });

@@ -31,7 +31,7 @@ import {
   actorTypeOf, bearing, cap, clockAt, dirFrom, dirTo, dist, drawFrom, FLAME_FI, flameWords, fmt1, FUEL_FI, hm, intensityClass, isBog, L, LL, pl, r50, say, stepStartS,
   TASK_FI, vary, voiceOf, type LandCoverFi,
 } from "./traffic-text.js";
-import { PHASE_B_FIRST_STEP } from "./flame-table.js";
+import { RECORDS_FOLLOW_FROM_STEP } from "./flame-table.js";
 import { stationReading } from "./station-weather.js";
 import { NEW_FIRE_STEPS, recordTape, type Lane, type Out, type Tape, type TrafficCycleInput, type TrafficEvent, type TrafficState, type TrafficUnit } from "./traffic-types.js";
 
@@ -233,7 +233,7 @@ function crewSees(u: TrafficUnit, inp: TrafficCycleInput, out: Out): { text: str
   const rate = measured * (0.8 + rnd() * 0.4);
   const active = inp.fire.freshHa(u.pos, OWN_EDGE_M) > 0 || inp.fire.currentFreshHa(u.pos, OWN_EDGE_M) > 0;
   const cls = intensityClass(lc, measured, active);
-  // The flame the crew states: from the hinge, the provisional table's at its own edge's rate (SPEC/31 §3.11); the class still drives the wording.
+  // The flame the crew states: the provisional table's at its own edge's rate (SPEC/31 §3.11), at every step; the class still drives the wording.
   const fw = flameWords(cls, measured, lc, inp.n);
   const hedge = chance(0.3) ? ` (${pick(voiceOf(u.id).hedge)})` : "";
   const moveDeg = cen.old && cen.fresh ? bearing(cen.old, cen.fresh) : atHead ? inp.headingDeg : bearing(inp.head, u.pos);
@@ -256,8 +256,8 @@ function crewSees(u: TrafficUnit, inp: TrafficCycleInput, out: Out): { text: str
   else if (isBog(lc)) text = out.fresh([L(`palo menee turpeeseen, pinnalla savuavia laikkuja, ${fw}`, `the fire is going into the peat, smoking patches on the surface, ${fw}`), L("turve palaa pinnan alla, savua paljon, liekkejä vähän", "the peat is burning under the surface, a lot of smoke, few flames"), L(`suon reuna savuaa leveältä alalta, ${rateFi}`, `the bog edge is smoking over a wide area, ${rateFi}`), L(`turpeesta nousee savua ojan varresta, ${fw}`, `smoke rising from the peat along the ditch, ${fw}`)]);
   else if (cls <= 1) text = out.fresh([L(`matalaa pintapaloa, ${FLAME_FI[1]}, reuna ryömii hitaasti`, `low surface fire, ${FLAME_FI[1]}, the edge creeping slowly`), L(`hehkuvaa kariketta ja pientä liekkiä, ${rateFi}`, `glowing litter and small flames, ${rateFi}`), L(`pieni liekki sammalessa, ${rateFi}`, `small flames in the moss, ${rateFi}`)]);
   else if (cls === 2) text = ((f) => out.fresh([L(`pintapaloa ${f}, ${fw}`, `surface fire in ${f}, ${fw}`), L(`reuna ${rateFi}, ${fw}`, `edge ${rateFi}, ${fw}`), L(`sivulla tasaista pintapaloa, ${fw}`, `steady surface fire on the flank, ${fw}`), L(`kanerva palaa tasaisesti, ${rateFi}`, `the heather is burning steadily, ${rateFi}`), L(`liekki kulkee maata pitkin, ${fw}; ${rateFi}`, `flames running along the ground, ${fw}; ${rateFi}`)]))(pick(FUEL_FI[lc]));
-  // "liekit pari metriä" before the hinge; from it the table's band (FT-C16: KY21 18:26 and DR2 18:25 now state the same physics).
-  else if (cls === 3) text = ((f) => out.fresh([L(`voimakas pintapalo, ${fw}, yksittäisiä puita syttyy`, `intense surface fire, ${fw}, single trees catching`), L(`reuna painuu ${dir}, ${fw}; ${rateFi}`, `the edge is pushing ${dir}, ${fw}; ${rateFi}`), L(`kova pintapalo ${f}, ${rateFi}`, `hard surface fire in ${f}, ${rateFi}`), L(`${inp.n >= PHASE_B_FIRST_STEP ? fw : "liekit pari metriä"}, alikasvos syttyy, ${rateFi}`, `${inp.n >= PHASE_B_FIRST_STEP ? fw : "flames a couple of metres"}, the undergrowth is catching, ${rateFi}`)]))(pick(FUEL_FI[lc]));
+  // The table's band at every step since 20 Oct 2026, was "liekit pari metriä" before the hinge (FT-C16: KY21 18:26, DR2 18:25 agree).
+  else if (cls === 3) text = ((f) => out.fresh([L(`voimakas pintapalo, ${fw}, yksittäisiä puita syttyy`, `intense surface fire, ${fw}, single trees catching`), L(`reuna painuu ${dir}, ${fw}; ${rateFi}`, `the edge is pushing ${dir}, ${fw}; ${rateFi}`), L(`kova pintapalo ${f}, ${rateFi}`, `hard surface fire in ${f}, ${rateFi}`), L(`${inp.n >= RECORDS_FOLLOW_FROM_STEP ? fw : "liekit pari metriä"}, alikasvos syttyy, ${rateFi}`, `${inp.n >= RECORDS_FOLLOW_FROM_STEP ? fw : "flames a couple of metres"}, the undergrowth is catching, ${rateFi}`)]))(pick(FUEL_FI[lc]));
   else if (cls === 4) text = ((f) => out.fresh([L(`puita syttyy latvoiltaan, ${fw}, suora hyökkäys ei onnistu`, `trees torching, ${fw}, no direct attack possible`), L(`rajua paloa ${f}, ${rateFi}`, `fierce fire in ${f}, ${rateFi}`), L(`yksittäisiä latvoja leimahtaa, kuumuus ajaa meidät taaksepäin; ${rateFi}`, `single crowns flaring up, the heat is driving us back; ${rateFi}`)]))(pick(FUEL_FI[lc]));
   else text = out.fresh([L(`latvapaloa, ${FLAME_FI[5]}, kipinöitä satoja metrejä eteen`, `crown fire, ${FLAME_FI[5]}, embers hundreds of metres ahead`), L(`kuusikko palaa latvoissa, ${rateFi}`, `the spruce stand is burning in the crowns, ${rateFi}`), L(`latvoissa jatkuva tulirintama, ${rateFi}`, `a continuous fire front in the crowns, ${rateFi}`)]);
   if (atHead && cls >= 4 && chance(0.35)) text += L(", en näe kärkeä savun takia", ", I cannot see the head for the smoke");

@@ -25,7 +25,7 @@ const RADIO = {
   // Fix pass 3 (researcher decision 7 Oct 2026): at 19:20 the next shift takes over EK11's vehicle and line, and VPK returns to the line
   // with its shift changed; neither goes to the CP any more.
   ek11Relief: radioId(19, /^Vuoronvaihto klo 19\.20: seuraava vuoro otti EK11:n auton ja linjan/),
-  vpkRelief: radioId(19, /^VPK palaa linjalle, .*vuoro vaihdettu/),
+  vpkRelief: radioId(19, /^VPK: palaamme linjalle, .*vuoro vaihdettu/), // radio ST-07 (20 Oct 2026): speech, was "VPK palaa linjalle, …"
   roadStop: radioId(18, /^Palo pysähtyi metsäautotien \(Honkaharju\)/),
   roadCrossed: radioId(19, /^Palon kärki ylitti metsäautotien \(Honkaharju\)/),
   ek16ToR2: radioId(19, /^EK16: vetäydymme tielle R2/),
@@ -229,12 +229,17 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // `31` F03: replaces the V14 map item (head_later: the head at "now" was 168 m from its key, and no truth exists after 20.00); the
       // deciding front of V14, asked after the plan, report-keyed on the pushed records and the wind the map shows.
+      // SPEC/31 (az) phase 4, finding 5 (20 Oct 2026): the cited records are its key records, so its told class is computed, not
+      // assumed: both are pushed before the freeze, so it is stream-told. FOR THE DOMAIN REVIEWER: the item fails the repaired recall
+      // guard (`test/scenario/freeze-bank.spec.ts`, smoke-direction wording): the pushed 19.42 line "Savu painuu kaakkoon Rahkasuon
+      // suuntaan" (story 20.1) and the recorded 19.30 pass "Savu painuu kaakkoon" (story 19.3) nearly state the key "spreads south-east".
+      // Kept, not deleted: the reviewer decides whether it stays (classed stream-told in H2t) or is re-authored.
       slug: "flare_next", level: "L3", goal: "containment", keySteps: [21, 23], promptFi: `Mitä syttymäkohdan länsipuolen uudelleensyttymälle todennäköisesti tapahtuu ${withinMinutesFi(minutesAhead(14, 23))}, jos sitä ei sammuteta?`,
       options: [
         ["spreads_se", "Se laajenee kaakkoon tuulen mukana"], ["spreads_nw", "Se leviää luoteeseen kohti Karhujärveä"],
         ["dies", "Se sammuu itsestään, liekit ovat matalia"], ["smoulders", "Se jää kytemään paikoilleen ilman liekkejä"],
       ], key: "spreads_se",
-      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: ["atom.demo.19.2", "atom.demo.20.1"],
+      keyAtomIds: ["atom.demo.19.2", "atom.demo.20.1"], rule: "cited", basisKind: "record", basisAtomIds: ["atom.demo.19.2", "atom.demo.20.1"],
       basis: "REPORT-keyed (`31` F03; no truth after 20.00; DRAFT, domain review): the flare-up still burns with visible flames, its smoke driven south-east towards Rahkasuo (story 20.1, pushed 19.42; story 19.2, pushed 19.23), in the north-westerly the map's wind arrow shows; unattended, a litter fire in that wind runs south-east (the V14 directive key's basis, `demo-directive.ts`)",
     }),
   ],

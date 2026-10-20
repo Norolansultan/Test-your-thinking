@@ -104,7 +104,7 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
     id: "ek15_arrival", view: 7, expected: "record_only",
     statementFi: "Vahvennusyksikkö EK15 saapui johtopaikalle noin klo 16.20.",
     statementEn: "The reinforcement unit EK15 arrived at the command post at about 16.20.",
-    atomIds: [recordAt(10, /^EK15 saapunut johtopaikalle/), recordAt(10, /^EK15, johtopaikka: valmiina johtopaikalla/)],
+    atomIds: [recordAt(10, /^EK15: saavuimme johtopaikalle/), recordAt(10, /^EK15, johtopaikka: valmiina johtopaikalla/)],
     keyStatements: { fi: [`EK15${S(80)}(?:saapu|johtopaik)`, `(?:saapu\\w*|johtopaik\\w*)${S(60)}EK15`], en: [`EK15${S(80)}(?:arriv|command post)`, `(?:arriv\\w*|command post)${S(60)}EK15`] },
   },
   {

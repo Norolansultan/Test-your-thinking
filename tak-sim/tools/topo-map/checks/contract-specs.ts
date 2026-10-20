@@ -84,7 +84,7 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   // --- Vehicles stand on their roads (deployment.ts at: anchors) ------------------------------------------------------------------
   ...["R1_W", "R1_MID", "R1_BLACK", "R1_BLACK_MID", "R1_R2"].map((a) => onRoad(`anchor.${a}`, "R1", [u(DEP, `at:${a}`), u(TP, `at:${a}`)])),
   ...["R1_R2", "R2_BOG", "R2_FR", "R2_MID", "R2_S"].map((a) => onRoad(`anchor.${a}`, "R2", [u(DEP, `at:${a}`), u(FK, "R2_LINE"), u(TD, "STRETCHES")])),
-  ...["FR_W", "FR_MID", "FR_E", "R2_FR"].map((a) => onRoad(`anchor.${a}`, "HONKAHARJU_ROAD", [u(DEP, `at:${a}`), u(TD, "ROADS[48]", "the Honkaharju road by index"), u(FBB, "freeze.14.road_crossed")])),
+  ...["FR_W", "FR_MID", "FR_E", "R2_FR"].map((a) => onRoad(`anchor.${a}`, "HONKAHARJU_ROAD", [u(DEP, `at:${a}`), u(TD, "roadById(\"honkaharju\")", "the Honkaharju road by its stable id"), u(FBB, "freeze.14.road_crossed")])),
   onRoad("anchor.R3_BRIDGE_W", "R3_E", [u(DEP, "at:R3_BRIDGE_W")]), onRoad("anchor.R3_BRIDGE_E", "R3_E", [u(DEP, "at:R3_BRIDGE_E")]),
   onRoad("anchor.BRIDGE_W3", "R3_E", [u(DEP, "at:BRIDGE_W3", "~18 m south of R3")]),
   onRoad("CP", "R1", [u(DEP, "at:CP"), u("content/site/site.json", "commandPointTm35")], 5), onRoad("CP", "R3_W", [u(DEP, "at:CP", "the R1/R3 junction")], 5),

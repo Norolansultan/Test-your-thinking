@@ -282,7 +282,7 @@ export function contractIntegrity(c: Contract): string[] {
   return problems;
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const { loadBuiltMap } = await import("./contract-map.js");
   const { contractCoverage } = await import("./contract-coverage.js");
   const contract = readContract();

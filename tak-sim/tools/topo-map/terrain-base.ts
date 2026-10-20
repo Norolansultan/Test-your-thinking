@@ -1,191 +1,150 @@
 /**
- * The generated site's ground before hydrography (SPEC/23 §11, §13): noise, geometry, lakes,
- * settlement fields, mire weights and the uncarved elevation surface `baseElevation`. terrain.ts
- * traces Kotkanjoki and the brooks over this surface and carves their valleys into it; everything
- * else imports the finished terrain from terrain.ts, which re-exports this module.
+ * The generated site's ground before hydrography (SPEC/33 §4 stage 1): a south-east Finnish glacial landscape on the 20 m grid.
  *
- * Coordinates are local metres: x east, y north, origin at the ignition point IGN. The map covers
- * ±10 km (the "Alue" zoom level, 20 km). Everything is deterministic: integer-hash value noise and
- * the project's seeded generator, no Math.random.
+ *   - a regional surface falling gently north, towards Kotkanjoki's broad clay valley and the big lake's basin (SE);
+ *   - the grain of the ice flow (NNW–SSE, 150°): drumlinised moraine ridges, and bedrock-knoll fields ("kalliomäet") with a weaker
+ *     grain, in regions of their own;
+ *   - two eskers as long narrow sand ridges along the ice flow: Kuivakangas (NE of IGN) and Honkaharju (S of IGN, its crest
+ *     carrying the forest road), each with a sand apron where the bedrock knolls are buried, and kettle hollows on their flanks;
+ *   - the macro-valleys the streams follow (Kotkanjoki's, Korpilaakso's E–W valley, Koivuoja's shallow one), with floors that
+ *     fall monotonically downstream and walls whose width varies (no parallel-contour canyon);
+ *   - bowls for the named lakes and flat basins for the named mires; everything else (other lakes, mires) comes out of the
+ *     hydrology (water.ts, soil.ts).
+ *
+ * Nothing here is radial about IGN: the fire's ground is distinct only because it is the esker system's sand.
+ * Deterministic: integer-hash noise, fixed seed.
  */
 
 import { Mulberry32 } from "../fire-ca/model.js";
+import {
+  chaikin, clamp01, fbm, G, GN, cellX, cellY, HALF_M, polar, resample, simplify, smoothstep, type P,
+} from "./geom.js";
 
-export const HALF_M = 10_000;
-/** IGN placed at a plausible ETRS-TM35FIN position inside the SPEC/03 §1.1 box. */
-export const IGN_TM35 = { eastM: 519_000, northM: 6_746_000 } as const;
-export const SEED = 0x2030_0723;
-
-// ---------------------------------------------------------------------------
-// Noise
-// ---------------------------------------------------------------------------
-
-function hash2(ix: number, iy: number, salt: number): number {
-  let h = Math.imul(ix, 0x27d4eb2d) ^ Math.imul(iy, 0x165667b1) ^ Math.imul(salt + 1, 0x9e3779b1) ^ SEED;
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
-
-function valueNoise(x: number, y: number, salt: number): number {
-  const ix = Math.floor(x);
-  const iy = Math.floor(y);
-  const fx = x - ix;
-  const fy = y - iy;
-  const sx = fx * fx * (3 - 2 * fx);
-  const sy = fy * fy * (3 - 2 * fy);
-  const a = hash2(ix, iy, salt);
-  const b = hash2(ix + 1, iy, salt);
-  const c = hash2(ix, iy + 1, salt);
-  const d = hash2(ix + 1, iy + 1, salt);
-  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
-}
-
-/** Fractal value noise, roughly in [-1, 1]. */
-export function fbm(x: number, y: number, octaves: number, salt: number): number {
-  let sum = 0;
-  let amp = 1;
-  let norm = 0;
-  let f = 1;
-  for (let o = 0; o < octaves; o++) {
-    sum += amp * (valueNoise(x * f, y * f, salt + o * 101) * 2 - 1);
-    norm += amp;
-    amp *= 0.5;
-    f *= 2.03;
-  }
-  return sum / norm;
-}
+export * from "./geom.js";
 
 // ---------------------------------------------------------------------------
-// Geometry helpers
+// Named places (fixed by the scenario, SPEC/33 §3)
 // ---------------------------------------------------------------------------
 
-export interface P { readonly x: number; readonly y: number }
-
-export function polar(bearingDeg: number, d: number): P {
-  const t = (bearingDeg * Math.PI) / 180;
-  return { x: Math.sin(t) * d, y: Math.cos(t) * d };
-}
-
-export function bearingOf(x: number, y: number): number {
-  const b = (Math.atan2(x, y) * 180) / Math.PI;
-  return b < 0 ? b + 360 : b;
-}
-
-export function closestOnPolyline(x: number, y: number, line: readonly P[]): P {
-  let best: P = line[0]!;
-  let bd = Infinity;
-  for (let i = 0; i + 1 < line.length; i++) {
-    const a = line[i]!;
-    const b = line[i + 1]!;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len2 = dx * dx + dy * dy;
-    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2));
-    const p = { x: a.x + t * dx, y: a.y + t * dy };
-    const d = Math.hypot(x - p.x, y - p.y);
-    if (d < bd) { bd = d; best = p; }
-  }
-  return best;
-}
-
-export function distToPolyline(x: number, y: number, line: readonly P[]): number {
-  const p = closestOnPolyline(x, y, line);
-  return Math.hypot(x - p.x, y - p.y);
-}
-
-/** Densifies a polyline to `stepM` and displaces it sideways with noise, for natural-looking lines. */
-export function meander(points: readonly P[], stepM: number, amplitudeM: number, wavelengthM: number, salt: number): P[] {
-  const out: P[] = [];
-  let s = 0;
-  for (let i = 0; i + 1 < points.length; i++) {
-    const a = points[i]!;
-    const b = points[i + 1]!;
-    const len = Math.hypot(b.x - a.x, b.y - a.y);
-    const n = Math.max(1, Math.round(len / stepM));
-    const nx = -(b.y - a.y) / len;
-    const ny = (b.x - a.x) / len;
-    for (let k = 0; k < n; k++) {
-      const t = k / n;
-      const off = amplitudeM * fbm((s + t * len) / wavelengthM, 0.5, 2, salt);
-      out.push({ x: a.x + (b.x - a.x) * t + nx * off, y: a.y + (b.y - a.y) * t + ny * off });
-    }
-    s += len;
-  }
-  out.push(points[points.length - 1]!);
-  return out;
-}
-
-function inPolygon(x: number, y: number, pts: readonly P[]): boolean {
-  let inside = false;
-  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-    const a = pts[i]!;
-    const b = pts[j]!;
-    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
-  }
-  return inside;
-}
-
-/** 0 outside, 1 well inside, linear over `edgeM` across a boundary at signed distance `inside` (m). */
-export const softEdge = (inside: number, edgeM: number) => Math.max(0, Math.min(1, inside / edgeM + 0.5));
+/** SPEC/18 §5 BRIDGE: the timber bridge where R3 crosses Kotkanjoki. The river is pinned through it. */
+export const BRIDGE: P = { x: 3050, y: 390 };
+export const ESKER_CENTRE = polar(45, 1000);
+export const VILLAGE = polar(135, 3000);
+export const VILLAGE_NAME = "Lahdenkylä";
+/** Hiekkala: a small roadside hamlet on the southern gravel road. */
+export const HAMLET_S: P = { x: -975, y: -6600 };
+/** The ice-flow grain (bearing, degrees): drumlins and eskers run NNW–SSE. */
+export const GRAIN_DEG = 150;
 
 // ---------------------------------------------------------------------------
-// Lakes
+// Eskers
 // ---------------------------------------------------------------------------
 
-export interface Lake {
-  readonly name: string; readonly cx: number; readonly cy: number; readonly r: number;
-  /** Water level (m); 0 = set by terrain.ts (Kotkanjoki's level for lakes on its course, else 72). */
-  readonly level: number;
-  /** Large lake with bays, points and islands (see `bigLakeShore`) rather than a noisy disc. */
-  readonly big?: boolean;
+export interface Esker { readonly name: string; readonly crest: readonly P[]; readonly height: number; readonly halfWidth: number }
+
+/** Kuivakangas: 2.6 km of esker through ESKER_CENTRE, and a lower fragment north-west of it that forms Karhujärvi's south-east
+ * shore, where Mökkiranta's cottages stand on its sandy flank. */
+const KUIVAKANGAS: Esker = {
+  name: "Kuivakangas", height: 15, halfWidth: 85,
+  crest: chaikin([{ x: -260, y: 1330 }, { x: 260, y: 1060 }, ESKER_CENTRE, { x: 1180, y: 300 }, { x: 1640, y: -120 }, { x: 2000, y: -420 }], 2),
+};
+const KUIVAKANGAS_N: Esker = {
+  name: "Kuivakangas N", height: 9, halfWidth: 100,
+  crest: chaikin([{ x: -2000, y: 1060 }, { x: -1600, y: 1300 }, { x: -1300, y: 1480 }, { x: -1060, y: 1690 }], 2),
+};
+/** Honkaharju: the esker south of IGN; its crest is where the forest road runs (FR_W, FR_MID, FR_E, R2_FR, SPEC/33 §3). */
+export const HONKAHARJU_CREST: readonly P[] = chaikin([
+  { x: -2050, y: 330 }, { x: -1250, y: 40 }, { x: -560, y: -230 }, { x: -60, y: -335 }, { x: 259, y: -385 }, { x: 720, y: -492 },
+  { x: 1100, y: -640 }, { x: 1525, y: -846 }, { x: 1980, y: -1130 }, { x: 2420, y: -1500 },
+], 2);
+const HONKAHARJU: Esker = { name: "Honkaharju", height: 11, halfWidth: 80, crest: HONKAHARJU_CREST };
+export const ESKERS: readonly Esker[] = [KUIVAKANGAS, KUIVAKANGAS_N, HONKAHARJU];
+
+// ---------------------------------------------------------------------------
+// Valleys
+// ---------------------------------------------------------------------------
+
+export interface Valley {
+  readonly name: string;
+  /** Centre line, downstream order. */
+  readonly line: readonly P[];
+  /** Floor elevation at the upstream and downstream ends (m); linear in arc length between. */
+  readonly z0: number; readonly z1: number;
+  readonly floorHalf: number; readonly wall: number;
 }
 
-const LAKE_NAMES = ["Mustajärvi", "Pitkäjärvi", "Ahvenlampi", "Valkealampi", "Kaitajärvi", "Särkijärvi", "Pirttilampi", "Kivijärvi", "Ruokolampi", "Heinäjärvi", "Kuikkalampi", "Hauklampi"];
+/** Kotkanjoki's valley, south → north (the river flows north with the regional slope). */
+export const RIVER_VALLEY: Valley = {
+  name: "Kotkanjoki", z0: 84.5, z1: 70.5, floorHalf: 300, wall: 900,
+  line: chaikin([
+    { x: 4500, y: -10400 }, { x: 3300, y: -8900 }, { x: 4600, y: -7100 }, { x: 3100, y: -5400 }, { x: 4000, y: -3800 }, { x: 3000, y: -2500 },
+    { x: 3650, y: -1200 }, { x: 3060, y: 390 }, { x: 2500, y: 1700 }, { x: 3500, y: 3300 }, { x: 2400, y: 4900 }, { x: 1700, y: 6500 },
+    { x: 2900, y: 8100 }, { x: 2100, y: 10400 },
+  ], 3),
+};
+/** Korpilaakso: Korpioja's valley from Karhujärvi to Kotkanjoki (VALLEY-N), winding between the knolls. */
+export const KORPI_VALLEY: Valley = {
+  name: "Korpilaakso", z0: 80.5, z1: 76.8, floorHalf: 130, wall: 420,
+  line: chaikin([{ x: -1300, y: 1930 }, { x: -950, y: 1720 }, { x: -700, y: 1470 }, { x: -250, y: 1660 }, { x: 250, y: 1420 }, { x: 800, y: 1650 }, { x: 1350, y: 1390 }, { x: 1900, y: 1630 }, { x: 2350, y: 1400 }, { x: 2800, y: 1560 }], 3),
+};
+/** Koivuoja's shallow valley, NW → SE along the grain into Korpioja. */
+export const KOIVU_VALLEY: Valley = {
+  name: "Koivuoja", z0: 84, z1: 78.2, floorHalf: 50, wall: 280,
+  line: chaikin([{ x: 480, y: 2800 }, { x: 900, y: 2520 }, { x: 1050, y: 2150 }, { x: 1450, y: 1900 }, { x: 1620, y: 1640 }, { x: 1940, y: 1580 }], 3),
+};
+export const VALLEYS: readonly Valley[] = [RIVER_VALLEY, KORPI_VALLEY, KOIVU_VALLEY];
 
-function buildLakes(): Lake[] {
-  const lakeN = polar(320, 2500);
-  const pond = polar(315, 1500);
-  const lakes: Lake[] = [
-    { name: "Karhujärvi", cx: lakeN.x, cy: lakeN.y, r: 420, level: 74 },
-    { name: "Haukilampi", cx: pond.x, cy: pond.y, r: 150, level: 79 },
-  ];
-  const rng = new Mulberry32(SEED ^ 0x1a4e);
-  let tries = 0;
-  while (lakes.length < 2 + LAKE_NAMES.length && tries < 2000) {
-    tries++;
-    const cx = (rng.nextFloat() * 2 - 1) * (HALF_M - 800);
-    const cy = (rng.nextFloat() * 2 - 1) * (HALF_M - 800);
-    const r = 180 + rng.nextFloat() * 520;
-    if (Math.hypot(cx, cy) < 4300 + r) continue; // keep the fire's ground forested (SPEC/23 H6)
-    if (lakes.some((l) => Math.hypot(l.cx - cx, l.cy - cy) < l.r + r + 500)) continue;
-    lakes.push({ name: LAKE_NAMES[lakes.length - 2]!, cx, cy, r, level: 0 });
-  }
-  // The district's big lake, in the SE corner (clear of every other lake, the main roads and the
-  // river) and cut by the sheet edges, as large lakes are on real sheets. Appended after the random
-  // lakes so their placement is unchanged.
-  lakes.push({ name: "Iso-Hirvijärvi", cx: 8700, cy: -8700, r: 1500, level: 70, big: true });
-  return lakes;
+// ---------------------------------------------------------------------------
+// Named lake bowls and mire basins
+// ---------------------------------------------------------------------------
+
+export interface Basin {
+  readonly name: string;
+  readonly cx: number; readonly cy: number;
+  /** Semi-axes (m) along and across `rotDeg` (bearing of the long axis). */
+  readonly a: number; readonly b: number; readonly rotDeg: number;
+  /** Lake: the bowl's floor (m a.s.l.). Mire: how far (m) the basin is lowered below the ground around it before the peat fills
+   * it flat (the flat's outline is then the natural contour at its spill level). */
+  readonly floor: number;
+  readonly kind: "lake" | "mire";
+  readonly lobes: number;
 }
 
-export const LAKES: readonly Lake[] = buildLakes();
+/** Lobed, grain-elongated outline: signed distance (m, negative inside), approximately. */
+export function basinInside(b: Basin, x: number, y: number): number {
+  const t = (b.rotDeg * Math.PI) / 180;
+  // Domain warp: the outline wanders by up to a fifth of the basin's width, so no side of it runs straight.
+  const wx = 0.22 * Math.min(b.a, b.b) * fbm(x / 420, y / 420, 2, 651);
+  const wy = 0.22 * Math.min(b.a, b.b) * fbm(x / 420, y / 420, 2, 653);
+  const dx = x + wx - b.cx;
+  const dy = y + wy - b.cy;
+  const along = dx * Math.sin(t) + dy * Math.cos(t);
+  const across = dx * Math.cos(t) - dy * Math.sin(t);
+  const phi = Math.atan2(across / b.b, along / b.a);
+  const rho = Math.hypot(along / b.a, across / b.b);
+  const salt = Math.round(Math.abs(b.cx) + Math.abs(b.cy));
+  const wob = 1 + b.lobes * (0.16 * Math.sin(3 * phi + (salt % 7)) + 0.1 * Math.sin(5 * phi + (salt % 5)) + 0.18 * fbm(x / 260, y / 260, 3, salt));
+  return (rho - wob) * Math.min(b.a, b.b);
+}
 
-/** Bounding half-width of a lake, in units of r. */
-export const lakeReach = (l: Lake) => (l.big ? 1.75 : 1.4);
+export const KARHUJARVI_BASIN: Basin = { name: "Karhujärvi", cx: -1920, cy: 2220, a: 650, b: 360, rotDeg: 148, floor: 72, kind: "lake", lobes: 1 };
+export const HAUKILAMPI_BASIN: Basin = { name: "Haukilampi", cx: -1085, cy: 1085, a: 190, b: 120, rotDeg: 140, floor: 79, kind: "lake", lobes: 0.6 };
+/** Iso-Hirvijärvi, the district's big lake, cut by the south and east sheet edges; its level is set, not spilled. */
+export const BIG_LAKE = { name: "Iso-Hirvijärvi", cx: 8900, cy: -8800, r: 1750, level: 74 } as const;
+export const RAHKASUO_BASIN: Basin = { name: "Rahkasuo", cx: 520, cy: -1250, a: 700, b: 450, rotDeg: 118, floor: 3, kind: "mire", lobes: 1.4 };
+export const ISO_RAHKASUO_BASIN: Basin = { name: "Iso-Rahkasuo", cx: -2420, cy: -330, a: 820, b: 560, rotDeg: 152, floor: 3.5, kind: "mire", lobes: 1.4 };
+export const BASINS: readonly Basin[] = [KARHUJARVI_BASIN, HAUKILAMPI_BASIN, RAHKASUO_BASIN, ISO_RAHKASUO_BASIN];
 
-const BIG_LAKE_ISLANDS: readonly (readonly [number, number, number])[] = [[8950, -8250, 170], [8150, -9150, 90], [9450, -8900, 60]];
-
-/** Signed distance (m) from a big lake's outer shoreline, negative inside; islands not included. */
-export function bigLakeShore(l: Lake, x: number, y: number): number {
-  const dx = x - l.cx;
-  const dy = y - l.cy;
+/** Signed distance (m) from the big lake's outer shore, negative inside, before the islands. */
+export function bigLakeShore(x: number, y: number): number {
+  const dx = x - BIG_LAKE.cx;
+  const dy = y - BIG_LAKE.cy;
   const t = Math.atan2(dy, dx);
-  const shore = l.r * (1 + 0.17 * Math.sin(3 * t + 0.7) + 0.1 * Math.sin(5 * t + 2.1) + 0.07 * Math.sin(9 * t + 0.3) +
-    0.2 * fbm(x / 700, y / 700, 3, 931) + 0.06 * fbm(x / 160, y / 160, 2, 937));
+  const shore = BIG_LAKE.r * (1 + 0.2 * Math.sin(3 * t + 0.7) + 0.12 * Math.sin(5 * t + 2.1) + 0.08 * Math.sin(9 * t + 0.3) +
+    0.22 * fbm(x / 700, y / 700, 3, 931) + 0.08 * fbm(x / 160, y / 160, 2, 937));
   return Math.hypot(dx, dy) - shore;
 }
-
+const BIG_LAKE_ISLANDS: readonly (readonly [number, number, number])[] = [[9100, -8300, 190], [8250, -9250, 110], [9650, -9000, 80], [7900, -8150, 70]];
 /** 0 outside every island; > 0 inside one (1 at its centre). */
 export function bigLakeIsland(x: number, y: number): number {
   let best = 0;
@@ -196,233 +155,209 @@ export function bigLakeIsland(x: number, y: number): number {
   return best;
 }
 
-export function inLake(l: Lake, x: number, y: number): boolean {
-  if (l.big) return bigLakeShore(l, x, y) < 0 && bigLakeIsland(x, y) <= 0;
-  const d = Math.hypot(x - l.cx, y - l.cy);
-  return d < l.r * (1 + 0.32 * fbm(x / 260, y / 260, 3, 900 + Math.round(l.r)));
-}
-
-/** The lake containing (x, y), if any. */
-export function lakeAt(x: number, y: number): Lake | undefined {
-  return LAKES.find((l) => Math.abs(x - l.cx) < l.r * lakeReach(l) && Math.abs(y - l.cy) < l.r * lakeReach(l) && inLake(l, x, y));
-}
-
 // ---------------------------------------------------------------------------
-// Settlement and fields
+// Distance fields on the grid
 // ---------------------------------------------------------------------------
 
-/** SPEC/18 §5 BOG-S: drained, ditched peatland 0.6–1.8 km S/SE. */
-export function inBogS(x: number, y: number): boolean {
-  const d = Math.hypot(x, y);
-  const b = bearingOf(x, y);
-  const wobble = 140 * fbm(x / 400, y / 400, 2, 71);
-  return d > 600 + wobble && d < 1800 + wobble && b > 135 && b < 200;
-}
+export interface LineField { readonly d: Float32Array; readonly s: Float32Array }
 
-export const VILLAGE = polar(135, 3000);
-export const VILLAGE_NAME = "Lahdenkylä";
-
-/**
- * A clearing's field outline: a star-shaped polygon with straight edges, elongated along `rotDeg`.
- * Finnish fields are cleared parcels with straight edges against the forest, stretched along the
- * road or valley they follow, not round clearings.
- */
-function fieldPolygon(cx: number, cy: number, r: number, rotDeg: number, aspect: number, seed: number): P[] {
-  const rng = new Mulberry32(seed);
-  const k = 6 + Math.floor(rng.nextFloat() * 4);
-  const a = r * Math.sqrt(aspect);
-  const b = r / Math.sqrt(aspect);
-  const t = (rotDeg * Math.PI) / 180;
-  const pts: P[] = [];
-  for (let i = 0; i < k; i++) {
-    const phi = (2 * Math.PI * (i + (rng.nextFloat() - 0.5) * 0.5)) / k;
-    const rho = 0.8 + 0.4 * rng.nextFloat();
-    const along = a * rho * Math.cos(phi);
-    const across = b * rho * Math.sin(phi);
-    pts.push({ x: cx + along * Math.sin(t) + across * Math.cos(t), y: cy + along * Math.cos(t) - across * Math.sin(t) });
-  }
-  return pts;
-}
-
-/** Lahdenkylä's fields: stretched along the Kotkanjoki valley (N–S), as the village lies by the river. */
-const VILLAGE_FIELDS = fieldPolygon(VILLAGE.x, VILLAGE.y, 760, 170, 1.6, SEED ^ 0x7f10);
-
-export function inVillageFields(x: number, y: number): boolean {
-  return Math.abs(x - VILLAGE.x) < 1400 && Math.abs(y - VILLAGE.y) < 1400 && inPolygon(x, y, VILLAGE_FIELDS);
-}
-
-export interface Farm {
-  readonly name: string; readonly x: number; readonly y: number; readonly r: number;
-  /** A small field beside a road/hamlet, with no farmstead of its own (no buildings, road or label):
-   * a road-aligned parcel (bearing `rot`°, r×1.4 by r×0.7). */
-  readonly fieldOnly?: boolean;
-  readonly rot?: number;
-  /** A farmstead's field outline (see `fieldPolygon`); the yard (80 m) around the buildings stays unfielded. */
-  readonly poly?: readonly P[];
-}
-
-function inFarm(f: Farm, x: number, y: number): boolean {
-  if (f.poly) {
-    const d = Math.hypot(x - f.x, y - f.y);
-    return d > 80 && d < f.r * 2.2 && inPolygon(x, y, f.poly);
-  }
-  const t = ((f.rot ?? 0) * Math.PI) / 180;
-  const along = (x - f.x) * Math.sin(t) + (y - f.y) * Math.cos(t);
-  const across = (x - f.x) * Math.cos(t) - (y - f.y) * Math.sin(t);
-  const edge = 1 + 0.06 * fbm(x / 60, y / 60, 2, 85);
-  return Math.abs(along) < f.r * 1.4 * edge && Math.abs(across) < f.r * 0.7 * edge;
-}
-
-/** Hiekkala: a small roadside hamlet on the southern gravel road (see roads.ts). */
-export const HAMLET_S: P = { x: -975, y: -6600 };
-const FARM_NAMES = ["Rinne", "Mäkelä", "Niemelä", "Koivula", "Harju", "Peltola"];
-
-function buildFarms(): Farm[] {
-  const rng = new Mulberry32(SEED ^ 0x7a2b);
-  const farms: Farm[] = [];
-  let tries = 0;
-  while (farms.length < FARM_NAMES.length && tries < 2000) {
-    tries++;
-    const x = (rng.nextFloat() * 2 - 1) * (HALF_M - 900);
-    const y = (rng.nextFloat() * 2 - 1) * (HALF_M - 900);
-    if (Math.hypot(x, y) < 5000) continue;
-    if (LAKES.some((l) => Math.hypot(l.cx - x, l.cy - y) < l.r + 700)) continue;
-    if (farms.some((f) => Math.hypot(f.x - x, f.y - y) < 2500)) continue;
-    farms.push({ name: FARM_NAMES[farms.length]!, x, y, r: 260 + rng.nextFloat() * 260 });
-  }
-  // Field outlines from their own generator, so the farm placement sequence above is unchanged.
-  const shaped = farms.map((f, i) => {
-    const g = new Mulberry32(SEED ^ (0x7f20 + i));
-    return { ...f, poly: fieldPolygon(f.x, f.y, f.r, g.nextFloat() * 180, 1.5 + 0.7 * g.nextFloat(), SEED ^ (0x7f40 + i)) };
-  });
-  // Small roadside fields (3–6 ha): two either side of the road at Hiekkala, one on the maantie
-  // east of Lahdenkylä — all beyond 4 km of IGN, outside the H6 screen radius.
-  return [
-    ...shaped,
-    { name: "", x: HAMLET_S.x + 140, y: HAMLET_S.y + 130, r: 115, fieldOnly: true, rot: 137 },
-    { name: "", x: HAMLET_S.x - 45, y: HAMLET_S.y - 245, r: 130, fieldOnly: true, rot: 137 },
-    { name: "", x: 3750, y: -2420, r: 110, fieldOnly: true, rot: 80 },
-  ];
-}
-
-export const FARMS: readonly Farm[] = buildFarms();
-
-export function inFarmFields(x: number, y: number): boolean {
-  return FARMS.some((f) => inFarm(f, x, y));
-}
-
-/** A farmstead's yard (the 80 m around its buildings): firm ground, never field or mire. */
-export function inFarmYard(x: number, y: number): boolean {
-  return FARMS.some((f) => f.poly !== undefined && Math.hypot(x - f.x, y - f.y) <= 80);
-}
-
-/** Cleared fields lie on flat clay lowland, not on bedrock knolls: 1 under fields, fading out beyond. */
-function fieldWeight(x: number, y: number): number {
-  let w = softEdge(1100 - Math.hypot(x - VILLAGE.x, y - VILLAGE.y), 500);
-  for (const f of FARMS) w = Math.max(w, softEdge(f.r * (f.poly ? 1.7 : 1.3) + 250 - Math.hypot(x - f.x, y - f.y), 400));
-  return w;
-}
-
-// ---------------------------------------------------------------------------
-// Mires, knolls and the uncarved elevation surface
-// ---------------------------------------------------------------------------
-
-export const ESKER_CENTRE = polar(45, 1000);
-
-function bogSWeight(x: number, y: number): number {
-  const d = Math.hypot(x, y);
-  const b = bearingOf(x, y);
-  const wobble = 140 * fbm(x / 400, y / 400, 2, 71);
-  const angDeg = Math.max(-90, Math.min(90, Math.min(b - 135, 200 - b)));
-  const angM = d * Math.sin((angDeg * Math.PI) / 180);
-  return softEdge(Math.min(d - 600 - wobble, 1800 + wobble - d, angM), 160);
-}
-
-/** Signed distance (m, positive inside) into Iso-Rahkasuo's irregular outline. */
-export function bogWInside(x: number, y: number): number {
-  return 640 + 260 * fbm(x / 380, y / 380, 3, 511) - Math.hypot(x + 2400, (y + 300) * 1.25);
-}
-
-function bogWWeight(x: number, y: number): number {
-  return softEdge(bogWInside(x, y), 200);
-}
-
-/**
- * Bedrock-knoll field. South-east Finland's forest terrain is hummocky bedrock ("kalliomäet")
- * 5–30 m high with a NW–SE fracture grain, peat filling the hollows between — the pattern L521's
- * dense, closed 5 m contours show. Positive = knoll, negative = lowland (where mires form).
- */
-export function knollField(x: number, y: number): number {
-  const u = (x - y) * Math.SQRT1_2;
-  const v = (x + y) * Math.SQRT1_2;
-  return fbm(u / 1250, v / 850, 5, 301);
-}
-
-/** Relief damping: the fire's own ground around IGN is glaciofluvial sand plain (Honkaharju,
- * Kuivakangas), so knolls stay low there and the esker remains the dominant landform. */
-export function knollScale(x: number, y: number): number {
-  const d = Math.hypot(x, y);
-  return 0.3 + 0.7 * Math.max(0, Math.min(1, (d - 1600) / 1800));
-}
-
-/** Mire propensity: deep in a knoll-field hollow and/or in a wet noise patch. > 0.15 is peat. The
- * bar rises toward IGN (fewer, smaller mires on the fire's own ground, SPEC/23 H6) without a hard
- * edge, and mires never cover IGN itself or the designed NE ridge/spruce/birch stands (SPEC/18 §5). */
-export function mireIndex(x: number, y: number): number {
-  const d = Math.hypot(x, y);
-  const b = bearingOf(x, y);
-  if (d < 1300 || (d < 2700 && b > 10 && b < 85)) return -1;
-  const bar = 0.22 * Math.max(0, Math.min(1, (3100 - d) / 1600));
-  return -(knollField(x, y) + 0.02) + 0.55 * fbm(x / 900, y / 900, 3, 61) - bar;
-}
-
-/** Terrain without the river and brook valleys (terrain.ts carves those in). Lakes with level 0
- * read as 72 m here; terrain.ts sets the level of the lakes Kotkanjoki flows through. */
-export function baseElevation(x: number, y: number): number {
-  // Glacial grain: drumlins elongated NW–SE.
-  const a = Math.PI / 4;
-  const u = x * Math.cos(a) - y * Math.sin(a);
-  const v = x * Math.sin(a) + y * Math.cos(a);
-  const k = knollField(x, y);
-  const bogFlat = Math.max(bogSWeight(x, y), bogWWeight(x, y), softEdge(mireIndex(x, y) - 0.12, 0.08));
-  const fieldFlat = fieldWeight(x, y);
-  const rough = 1 - 0.8 * Math.max(bogFlat, fieldFlat);
-  let e = 84 + 13 * fbm(u / 5200, v / 2100, 4, 1) + 4.5 * rough * fbm(x / 650, y / 650, 3, 7);
-  // RIDGE: an esker crossing the NE direction, 0.8–1.2 km from IGN.
-  const sx = x - ESKER_CENTRE.x;
-  const sy = y - ESKER_CENTRE.y;
-  const along = sx * Math.SQRT1_2 - sy * Math.SQRT1_2;
-  const across = sx * Math.SQRT1_2 + sy * Math.SQRT1_2 - 70 * Math.sin(along / 450);
-  const taper = Math.max(0, 1 - Math.abs(along) / 2200);
-  e += 17 * taper * Math.exp(-((across / 95) ** 2));
-  // Knolls soft-capped at ~34 m: the region's local relief is 20–40 m (L521's contours), not hills.
-  // Kept off the esker's flanks so it stays the dominant landform it is designed to be.
-  const knoll = Math.max(0, k + 0.02);
-  const knollH = 34 * Math.tanh((95 * knoll ** 1.35) / 34);
-  const eskerClear = 1 - 0.9 * taper * Math.exp(-((across / 450) ** 2));
-  e += eskerClear * knollScale(x, y) * (1 - fieldFlat) * (knollH + 5 * Math.min(1, knoll * 6) * fbm(x / 170, y / 170, 3, 305));
-  // VALLEY-N.
-  e -= 11 * Math.exp(-(((y - 1500) / 380) ** 2)) * Math.max(0, 1 - Math.abs(x) / 4200);
-  // BOG-S and Iso-Rahkasuo are flat peat surfaces, blended in over a soft edge (no contour step).
-  const ws = bogSWeight(x, y);
-  if (ws > 0) e = e * (1 - 0.8 * ws) + 79.5 * 0.8 * ws;
-  const ww = bogWWeight(x, y);
-  if (ww > 0) e = e * (1 - 0.7 * ww) + 81 * 0.7 * ww;
-  // Lakes: flat water surface, the shore sloping into it.
-  for (const l of LAKES) {
-    const d = Math.hypot(x - l.cx, y - l.cy);
-    if (d > l.r * (l.big ? 2.2 : 1.6) + 300) continue;
-    const level = l.level > 0 ? l.level : 72;
-    if (l.big) {
-      // A big lake sits in a broad basin: the land eases down to it over ~800 m; islands are low knolls.
-      const s = bigLakeShore(l, x, y);
-      const isle = bigLakeIsland(x, y);
-      if (s < 0) return isle > 0 ? level + 1 + 7 * isle : level;
-      e = level + 0.8 + (e - level - 0.8) * Math.min(1, s / 800) ** 0.7;
-      continue;
+/** Distance (m) to `line` and arc length at the nearest point, for cells within `radiusM` (∞ beyond). */
+export function lineField(lineIn: readonly P[], radiusM: number): LineField {
+  const d = new Float32Array(GN * GN).fill(Infinity);
+  const s = new Float32Array(GN * GN);
+  // Nearly collinear vertices (a smoothed or resampled line) add work, not shape: drop those within 0.5 m.
+  const line = simplify(lineIn, 0.5);
+  let arc = 0;
+  for (let k = 0; k + 1 < line.length; k++) {
+    const a = line[k]!;
+    const b = line[k + 1]!;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    const len = Math.sqrt(len2);
+    const c0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - radiusM + HALF_M) / G));
+    const c1 = Math.min(GN - 1, Math.floor((Math.max(a.x, b.x) + radiusM + HALF_M) / G));
+    const r0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - radiusM + HALF_M) / G));
+    const r1 = Math.min(GN - 1, Math.floor((Math.max(a.y, b.y) + radiusM + HALF_M) / G));
+    for (let r = r0; r <= r1; r++) {
+      const y = cellY(r);
+      for (let c = c0; c <= c1; c++) {
+        const x = cellX(c);
+        const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2));
+        const dd = Math.hypot(x - a.x - t * dx, y - a.y - t * dy);
+        const i = r * GN + c;
+        if (dd < d[i]! && dd <= radiusM) { d[i] = dd; s[i] = arc + t * len; }
+      }
     }
-    if (inLake(l, x, y)) return level;
-    e = Math.max(level + 0.8, e - 6 * Math.max(0, 1 - (d - l.r) / 300));
+    arc += len;
   }
-  return e;
+  return { d, s };
 }
+
+// ---------------------------------------------------------------------------
+// Kettle hollows on the esker flanks
+// ---------------------------------------------------------------------------
+
+export interface Kettle { readonly x: number; readonly y: number; readonly r: number; readonly depth: number }
+
+function buildKettles(): Kettle[] {
+  const rng = new Mulberry32(0x6e771e);
+  const out: Kettle[] = [];
+  for (const e of ESKERS) {
+    const pts = resample(e.crest, 260);
+    for (let k = 1; k + 1 < pts.length; k++) {
+      if (rng.nextFloat() < 0.45) continue;
+      const a = pts[k - 1]!;
+      const b = pts[k + 1]!;
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      const side = rng.nextFloat() < 0.5 ? 1 : -1;
+      const off = 170 + rng.nextFloat() * 180;
+      const x = pts[k]!.x + (side * (b.y - a.y) * off) / len;
+      const y = pts[k]!.y - (side * (b.x - a.x) * off) / len;
+      // None on the fire's own ground (the sand between the eskers within 1.6 km of IGN stays dry and firm).
+      if (Math.hypot(x, y) < 1600) continue;
+      out.push({ x, y, r: 45 + rng.nextFloat() * 80, depth: 3 + rng.nextFloat() * 4 });
+    }
+  }
+  return out;
+}
+export const KETTLES: readonly Kettle[] = buildKettles();
+
+// ---------------------------------------------------------------------------
+// The base elevation grid
+// ---------------------------------------------------------------------------
+
+export interface BaseGround {
+  /** Elevation (m a.s.l.) before the streams are carved. */
+  readonly dem: Float32Array;
+  /** 0–1: glaciofluvial sand (eskers and their aprons). */
+  readonly sand: Float32Array;
+  /** Bedrock-knoll prominence (m above the hummocky surface): where outcrops form. */
+  readonly knoll: Float32Array;
+  /** 0–1: the macro-valley floors (clay). */
+  readonly valleyFloor: Float32Array;
+}
+
+const GA = (GRAIN_DEG * Math.PI) / 180;
+const GU = { x: Math.sin(GA), y: Math.cos(GA) };
+
+function buildBase(): BaseGround {
+  const dem = new Float32Array(GN * GN);
+  const sand = new Float32Array(GN * GN);
+  const knoll = new Float32Array(GN * GN);
+  const valleyFloor = new Float32Array(GN * GN);
+  const eskerFields = ESKERS.map((e) => ({ e, f: lineField(e.crest, 700), len: e.crest.reduce((s, p, k) => (k ? s + Math.hypot(p.x - e.crest[k - 1]!.x, p.y - e.crest[k - 1]!.y) : 0), 0) }));
+  const valleyFields = VALLEYS.map((v) => ({ v, f: lineField(v.line, v.floorHalf + v.wall * 1.6), len: v.line.reduce((s, p, k) => (k ? s + Math.hypot(p.x - v.line[k - 1]!.x, p.y - v.line[k - 1]!.y) : 0), 0) }));
+  for (let r = 0; r < GN; r++) {
+    const y = cellY(r);
+    for (let c = 0; c < GN; c++) {
+      const x = cellX(c);
+      const i = r * GN + c;
+      const u = x * GU.x + y * GU.y; // along the grain
+      const v = x * GU.y - y * GU.x; // across it
+      // Regional surface: falling ~10 m northward over the sheet, and towards the big lake's basin in the SE.
+      let e = 92.5 - 0.00055 * y + 4 * fbm(x / 8000, y / 8000, 3, 11);
+      e -= 13 * smoothstep(5200, 1900, Math.hypot(x - BIG_LAKE.cx, y - BIG_LAKE.cy));
+      // Terrain regions: bedrock knolls vs drumlinised moraine, in patches of a few km.
+      const rocky = smoothstep(-0.2, 0.25, fbm(x / 4200, y / 4200, 3, 801));
+      // Sand: within an esker's apron (noise-edged, elongated along the ridge).
+      let sandW = 0;
+      let esk = 0;
+      for (const { e: ek, f, len } of eskerFields) {
+        const d = f.d[i]!;
+        if (!Number.isFinite(d)) continue;
+        const sAlong = f.s[i]!;
+        const taper = smoothstep(0, 420, sAlong) * smoothstep(0, 420, len - sAlong);
+        // A beaded crest (saddles and summits a few hundred metres apart), varying width and flanks of unequal steepness:
+        // an esker's contours break into elongated closed shapes of different sizes, never one set of concentric ellipses.
+        const beads = 0.62 + 0.38 * fbm(sAlong / 330, 0.3, 3, 611 + Math.round(len));
+        const w = ek.halfWidth * (0.75 + 0.5 * (0.5 + 0.5 * fbm(sAlong / 260, 0.7, 2, 613))) * (1 + 0.25 * fbm(x / 120, y / 120, 2, 615));
+        esk = Math.max(esk, ek.height * taper * beads * Math.exp(-((d / w) ** 2)) + 1.2 * taper * Math.exp(-((d / (w * 2.2)) ** 2)) * fbm(x / 90, y / 90, 2, 619));
+        sandW = Math.max(sandW, smoothstep(560 + 140 * fbm(x / 500, y / 500, 2, 617), 160, d) * (0.4 + 0.6 * taper));
+      }
+      // Moraine relief: drumlins along the grain, hummocks, and bedrock knolls with outcrop-rough tops.
+      const drum = 7.5 * Math.max(0, fbm(u / 1500, v / 380, 3, 701) + 0.08) ** 0.9;
+      const hum = 2.6 * fbm(x / 320, y / 320, 3, 7);
+      const kraw = fbm(u / 820, v / 560, 4, 301);
+      const kn = 32 * Math.max(0, kraw + 0.02) ** 1.4 + 5.5 * Math.max(0, kraw) * fbm(x / 120, y / 120, 3, 305);
+      const hollow = -4 * Math.max(0, -kraw - 0.15) - 2.5 * Math.max(0, -fbm(u / 1500, v / 380, 3, 701) - 0.25);
+      const buried = 1 - 0.7 * sandW; // sand buries most of the bedrock knolls; the highest still crop out through it
+      const relief = (1 - rocky) * (drum + hum + 0.35 * kn) + rocky * (kn + 0.6 * hum) + hollow;
+      e += buried * relief + sandW * (3.2 * fbm(x / 240, y / 240, 3, 619)) + esk;
+      knoll[i] = buried * (rocky * kn + (1 - rocky) * 0.35 * kn);
+      sand[i] = Math.max(sandW, clamp01(esk / 4));
+      // Valleys: the floor falls linearly downstream. The land eases towards a valley over kilometres; the wall's distance is
+      // domain-warped and its width varies, and the moraine relief survives on it, so the contours meander along the valley
+      // side instead of running parallel to the river.
+      for (const { v: vl, f, len } of valleyFields) {
+        const d = f.d[i]!;
+        if (!Number.isFinite(d)) continue;
+        const sNorm = clamp01(f.s[i]! / len);
+        // The floor falls downstream and, gently, towards the centre line, so side drainage joins the stream instead of running
+        // parallel to it down the floor.
+        const floorZ = vl.z0 + (vl.z1 - vl.z0) * sNorm + 0.0035 * d + 0.3 * fbm(x / 500, y / 500, 2, 631);
+        const reach = vl.floorHalf + vl.wall * 1.6;
+        e -= (vl === RIVER_VALLEY ? 5 : 2) * smoothstep(reach, vl.floorHalf, d);
+        const warp = vl.wall * (0.45 * fbm(x / 900, y / 900, 3, 641) + 0.15 * fbm(x / 260, y / 260, 2, 643));
+        const dw = Math.max(0, d + warp);
+        const half = vl.floorHalf * (0.6 + 0.8 * (0.5 + 0.5 * fbm(f.s[i]! / 1800, 0.1, 2, 633)));
+        const wall = vl.wall * (0.5 + (0.5 + 0.5 * fbm(x / 1600, y / 1600, 2, 635)));
+        const b = 1 - smoothstep(half, half + wall, dw);
+        if (b <= 0) continue;
+        const target = floorZ + 0.25 * Math.max(0, kn) * (1 - b);
+        if (target < e) e = e + (target - e) * b;
+        valleyFloor[i] = Math.max(valleyFloor[i]!, smoothstep(0.6, 0.97, b));
+      }
+      // Kettles.
+      for (const k of KETTLES) {
+        const dd = Math.hypot(x - k.x, y - k.y);
+        if (dd < k.r * 2) e -= k.depth * smoothstep(k.r * 2, k.r * 0.5, dd);
+      }
+      dem[i] = e;
+    }
+  }
+  // Named lake bowls and mire basins: the ground eases into a bowl (lake) or a flat (mire) of the basin's floor.
+  for (const b of BASINS) {
+    const reach = Math.max(b.a, b.b) * 2.2;
+    const c0 = Math.max(0, Math.floor((b.cx - reach + HALF_M) / G));
+    const c1 = Math.min(GN - 1, Math.floor((b.cx + reach + HALF_M) / G));
+    const r0 = Math.max(0, Math.floor((b.cy - reach + HALF_M) / G));
+    const r1 = Math.min(GN - 1, Math.floor((b.cy + reach + HALF_M) / G));
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+      const i = r * GN + c;
+      const s = basinInside(b, cellX(c), cellY(r));
+      if (b.kind === "mire") {
+        const w = smoothstep(220, -180, s);
+        if (w <= 0) continue;
+        dem[i] = dem[i]! - b.floor * w;
+        sand[i] = sand[i]! * (1 - w);
+        knoll[i] = knoll[i]! * (1 - w);
+        continue;
+      }
+      const w = smoothstep(140, -40, s);
+      if (w <= 0) continue;
+      const bottom = b.floor - 5 * smoothstep(0, -Math.min(b.a, b.b) * 0.6, s);
+      const target = Math.min(dem[i]!, bottom + (dem[i]! - bottom) * (1 - w) * 0.8);
+      dem[i] = dem[i]! * (1 - w) + target * w;
+      knoll[i] = knoll[i]! * (1 - w);
+    }
+  }
+  // The big lake's basin: the land eases down to it over ~900 m; islands are low rocky knolls.
+  for (let r = 0; r < GN; r++) {
+    const y = cellY(r);
+    if (y > BIG_LAKE.cy + BIG_LAKE.r * 2.4) continue;
+    for (let c = 0; c < GN; c++) {
+      const x = cellX(c);
+      if (x < BIG_LAKE.cx - BIG_LAKE.r * 2.4) continue;
+      const i = r * GN + c;
+      const s = bigLakeShore(x, y);
+      if (s > 900) continue;
+      const isle = bigLakeIsland(x, y);
+      if (s < 0) dem[i] = isle > 0 ? BIG_LAKE.level + 0.5 + 9 * isle : BIG_LAKE.level - 1.5 - 6 * clamp01(-s / 600);
+      else dem[i] = BIG_LAKE.level + 0.8 + (dem[i]! - BIG_LAKE.level - 0.8) * clamp01(s / 900) ** 0.7;
+    }
+  }
+  return { dem, sand, knoll, valleyFloor };
+}
+
+export const BASE: BaseGround = buildBase();

@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **20 Oct 2026 (ba)** — `32`: §3.4 "pull only" becomes pull plus the plan review at commitment in phase B (both groups; the guide group sees the premise lines); §6 adds H15c (criterion) and the primary-switch rule, restates H17; §9 gains the suggestions rejected after the critical reading; §11 re-run with the review (exposure 1). See the revision at the end.
 > - **19 Oct 2026 (az)** — §11 re-run after WP-3 (`31` §3.12): H2 unchanged; H2t under the three-way split falls to 49 % at a small effect; H13 under the act coding and V14's secondary route falls to 53–86 % at exposure .8. See the revision at the end.
 > - **19 Oct 2026 (ay)** — the skills review (`31`) amends §3 (V14 P2 not contradicted; P1 re-worded, DRAFT; "sparks over the Honkaharju forest road"), §4 (the notice yields to a freeze due within 15 s), §5.1 (V12's freeze after the plan; "now" = the view's end for view-end freezes; the 240 s cap; the V4 and V14 items re-authored), §5.2 (tool-aided probes; H-T as an item-level model), §5.3 (three-way told split; digest and recent matches logged), §5.5 (two lure facts), §6 (H13 codes the act, RC; V14 sound only via the secondary route, RC; fallbacks), §8 (replaced by `31` §6), §11 (re-runs). See the revision at the end.
 > - **19 Oct 2026** — created. Researcher decisions of 14–19 Oct 2026: only 100 participants; two groups instead of three; the study is framed as human–AI teaming (how teaming with an AI changes the commander's own situational understanding and metacognition, and whether an AI can act as a facilitator and strategic guide); a critical review cut the additions that cost more than they bring (§9).
@@ -238,3 +239,23 @@ With V11 keyed mixed (two fit views) H14 falls to 34 % (exp .8, δ 1.0) and 49 %
 | Null | 7 · 5 · 6 % | 6 · 6 · 4 % | 6 · 6 · 5 % | 7 · 5 · 5 % |
 
 Point 3 of the reading above becomes: H15 is the most sensitive test of the check (90 % at exp .8 and δ 1.0; 65 % at exp .6) and stays blind to the amplifier (4–7 %).
+
+## Revision 20 Oct 2026 (ba) — after the critical reading (`32`)
+
+- **§3.4.** Pull, plus the plan review at commitment: once per phase-B view, when the plan would become final, both groups see their plan with keep / change; the guide group also sees the premise lines (the table's, never model text). The consult notice and the chip stay. Definitions in `32` §3.
+- **§6.** H13–H15 code the final plan. **H15c (secondary)**: the criterion, the group's main effect on alignment over the six keyed views. **Primary rule (RC):** H13 unless pilot 2's Haku fit-view departure rate is ≥ 15 %, then H15. **H17** becomes the share of no-fit views moved to C at the review, and opening the cited record (guide only, exploratory).
+- **§5.4.** `tools.trust` and `thinker.trust` become the S-TIAS (`08` (ba)); trust calibration measures in `09` (ba).
+- **§9, also considered and cut (20 Oct 2026):** dropping freezes for stealth measures; a single end-of-run freeze; a guide that pushes recommendations or streams a recommending "leader voice"; opaque vs transparent chain of thought; in-session trust pulses; a deliberately wrong premise flag; a time-pressure factor, a third arm, MCDA weights, an NLP intent grammar; a closed-loop adaptive director; webcam or eye-tracking features; points, scores or outcome feedback in the session. Reasons and sources in `32` §2.
+
+**§11 re-run** (`paper2-power.ts` at this revision, 1000 replicates, seed 20261004; the rows above are unchanged, the review rows are appended). 50 / 50 · 40 / 40 · 70 / 70:
+
+| Scenario | H13 act | H14 | H15 act | H15c criterion |
+|---|---|---|---|---|
+| Check, exp .8, δ 1.0 (as before) | 53 · 45 · 68 % | 43 · 35 · 55 % | 90 · 83 · 98 % | 22 · 19 · 31 % |
+| Check, exp .8, δ 1.5 | 86 · 74 · 95 % | 65 · 57 · 82 % | 100 · 98 · 100 % | 50 · 39 · 65 % |
+| **Review, exp 1, δ 1.0** | **75** · 63 · 87 % | 62 · 54 · 78 % | 98 · 95 · 100 % | 35 · 29 · 47 % |
+| **Review, exp 1, δ 1.5** | **96** · 91 · 99 % | 89 · 80 · 97 % | 100 % | 69 · 60 · 85 % |
+| Compliance amplifier | 45 · 38 · 58 % | 41 · 32 · 50 % | 5 · 6 · 5 % | **77** · 70 · 88 % |
+| Null | 5 · 6 · 6 % | 5 · 5 · 5 % | 7 · 5 · 6 % | 6 · 6 · 5 % |
+
+**Reading.** The review raises H13 from 53 % to 75 % at δ 1.0 (86 → 96 % at δ 1.5), assuming a line shown at the review moves plans as much as one asked for; pilot 2 measures that. H15c is the test that sees the amplifier (77 %) where H15 is blind (5 %); with the check it moves less (35 % at δ 1.0), as a discrimination effect should.

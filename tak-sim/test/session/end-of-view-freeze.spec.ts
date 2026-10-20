@@ -11,7 +11,7 @@ import { cycleScheduleOf, FREEZE_MAX_SECONDS } from "../../app/scenario/views.js
 import { planSessionResume } from "../../app/telemetry/resume.js";
 import { InMemoryLogSink } from "../../app/telemetry/log.js";
 import { completeView as completeFast, newSession } from "./session-run.js";
-import { PLAN, runOutView } from "./view-flow.js";
+import { keepReview, PLAN, runOutView } from "./view-flow.js";
 import { atView, HeldSink, indexOfKind, ofKind, scenario, settle } from "./spec30-helpers.js";
 
 beforeEach(() => vi.useFakeTimers());
@@ -28,6 +28,7 @@ describe("the freeze at the view's end (SPEC/30 §5.1)", () => {
     expect(steps.has("freeze")).toBe(false); // no pre-planned moment inside the view
     await vi.advanceTimersByTimeAsync(4_000);
     await o.submitAllocation(PLAN);
+    expect(await keepReview(o)).toBe(true); // SPEC/32 §3: phase B, the plan review first
     expect(snap()).toMatchObject({ currentCycle: 10, step: "plan_confidence" });
     expect(ofKind(await o.logRecords(), "freeze_started", 10)).toEqual([]); // the freeze comes after the plan's confidence
 
@@ -72,6 +73,7 @@ describe("the freeze at the view's end (SPEC/30 §5.1)", () => {
     const { o, snap } = await atView(14, "radio", { visibleProbes: true });
     await runOutView(o, snap);
     await o.submitAllocation(PLAN);
+    await keepReview(o);
     await o.submitPlanConfidence(75);
     expect(snap()).toMatchObject({ currentCycle: 14, step: "freeze" });
     await o.submitFreeze([]);
@@ -107,6 +109,7 @@ describe("the freeze at the view's end (SPEC/30 §5.1)", () => {
     while (first.snap().currentCycle !== 10) await completeFast(first.o, first.snap);
     await runOutView(first.o, first.snap);
     await first.o.submitAllocation(PLAN);
+    await keepReview(first.o);
     await first.o.submitPlanConfidence(50);
     expect(first.snap()).toMatchObject({ currentCycle: 10, step: "freeze" });
     await first.o.markFreezeItemAnswered(v10Items[0]!.id);
@@ -121,6 +124,7 @@ describe("the freeze at the view's end (SPEC/30 §5.1)", () => {
     await runOutView(second.o, second.snap);
     expect(second.snap().step).not.toBe("freeze");
     await second.o.submitAllocation(PLAN);
+    await keepReview(second.o);
     await second.o.submitPlanConfidence(75);
     expect(second.snap()).toMatchObject({ currentCycle: 10, step: "freeze" });
     await second.o.submitFreeze([]);

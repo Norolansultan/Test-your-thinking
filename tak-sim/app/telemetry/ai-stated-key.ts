@@ -10,6 +10,9 @@
  *   arrives during the freeze is hidden by the blank screen and does not count). Haku's text is its four parts; the
  *   Thinker's, its answer (`answer.vastaus`). An Open Thinker fallback shows "unavailable", not text, and is skipped;
  *   Haku's fallback (the local template) is shown and counts.
+ * - **The plan review's premise lines** (SPEC/32 §3, 20 Oct 2026): the guide group's lines on `plan_review_shown` are AI-stated
+ *   text shown at that record (its seq, its view, its virtual time), counted as a Thinker answer (`tool: "thinker"`). The Haku
+ *   group's review and a failed lookup carry no lines and count for nothing.
  * - **The window** (SPEC/31 §3.6, sagat F16): only answers in the freeze's view or the one before, and asked at or after the
  *   item's basis records were released (its `keyAtomIds` and `basisAtomIds`, by `releaseS`: when each became reachable, from
  *   `recordReleaseTimes`; without `releaseS`, or with none of the item's records in it, the view window alone). `allEarlierAnswers`
@@ -33,7 +36,7 @@ import { STEP_SECONDS } from "../scenario/views.js";
 import { tr } from "../i18n/text.js";
 import type { Lang } from "../i18n/lang.js";
 import type { LogHeader, LogRecord } from "./log.js";
-import type { AiChatAnswerReceivedDetail, FreezeStartedDetail, FreezeSubmittedDetail } from "./record-kinds.js";
+import type { AiChatAnswerReceivedDetail, FreezeStartedDetail, FreezeSubmittedDetail, PlanReviewShownDetail } from "./record-kinds.js";
 import { keyMatcher, lureMatchers, type KeyRule } from "./key-statement-match.js";
 import { atomExposure, replayedViews, type AnalysisFreezeItem, type FreezeContentLike } from "./freeze-measures.js";
 
@@ -87,10 +90,16 @@ export interface AiStatedKeyOptions {
 
 interface ShownAnswer { readonly seq: number; readonly view: number; readonly virtualTimeS: number; readonly tool: StatingTool; readonly text: string }
 
-/** Every chat answer that reached the screen with text, in log order. */
+/** Every chat answer that reached the screen with text, and every plan review's premise lines (SPEC/32 §3), in log order. */
 export function shownAnswers(records: readonly LogRecord[]): ShownAnswer[] {
   const out: ShownAnswer[] = [];
   for (const r of records) {
+    if (r.kind === "plan_review_shown") {
+      const d = r.detail as PlanReviewShownDetail;
+      const text = (d.premiseLines ?? []).join("\n");
+      if (text.trim()) out.push({ seq: r.seq as number, view: d.cycle as number, virtualTimeS: r.tVirtual as number, tool: "thinker", text });
+      continue;
+    }
     if (r.kind !== "ai_chat_answer_received") continue;
     const d = r.detail as AiChatAnswerReceivedDetail;
     const tool: StatingTool = d.tool === "haku" ? "haku" : "thinker"; // no `tool`: the structured Thinker, before 8 Oct 2026

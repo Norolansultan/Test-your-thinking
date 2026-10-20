@@ -1,12 +1,14 @@
 /**
  * The proxy's HTTP layer (SPEC/05 revision (q)): `POST /api/thinker` (a JSON body of at most 16 KiB)
  * and `POST /api/thinker-open` (at most 64 KiB: the history, F2), CORS restricted to localhost
- * origins. No framework: `node:http` only.
+ * origins. SPEC/32 §3: `POST /api/thinker/premise-review` (16 KiB), the plan review's premise lookup (no model call).
+ * No framework: `node:http` only.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { OPEN_THINKER_MAX_BODY_BYTES, THINKER_ENDPOINT, THINKER_MAX_BODY_BYTES, THINKER_OPEN_ENDPOINT } from "../../app/session/thinker-protocol.js";
+import { OPEN_THINKER_MAX_BODY_BYTES, PREMISE_REVIEW_ENDPOINT, THINKER_ENDPOINT, THINKER_MAX_BODY_BYTES, THINKER_OPEN_ENDPOINT } from "../../app/session/thinker-protocol.js";
 import { handleThinkerRequest, handleOpenThinkerRequest, type ThinkerDeps } from "./handler.js";
+import { handlePremiseReviewRequest } from "./premise-review.js";
 
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/;
 
@@ -44,7 +46,7 @@ export function createThinkerServer(deps: ThinkerDeps): Server {
       const origin = req.headers.origin;
       if (!isAllowedOrigin(origin)) return send(res, 403, { error: "origin not allowed" }, undefined);
       const path = (req.url ?? "").split("?")[0];
-      if (path !== THINKER_ENDPOINT && path !== THINKER_OPEN_ENDPOINT) return send(res, 404, { error: "not found" }, origin);
+      if (path !== THINKER_ENDPOINT && path !== THINKER_OPEN_ENDPOINT && path !== PREMISE_REVIEW_ENDPOINT) return send(res, 404, { error: "not found" }, origin);
       if (req.method === "OPTIONS") {
         res.writeHead(204, {
           "access-control-allow-origin": origin ?? "",
@@ -62,7 +64,9 @@ export function createThinkerServer(deps: ThinkerDeps): Server {
       } catch (e) {
         return send(res, e instanceof BodyTooLargeError ? 413 : 400, { error: e instanceof BodyTooLargeError ? "body too large" : "invalid JSON" }, origin);
       }
-      const result = path === THINKER_ENDPOINT ? await handleThinkerRequest(deps, body) : await handleOpenThinkerRequest(deps, body);
+      const result = path === THINKER_ENDPOINT ? await handleThinkerRequest(deps, body)
+        : path === PREMISE_REVIEW_ENDPOINT ? await handlePremiseReviewRequest(deps, body)
+        : await handleOpenThinkerRequest(deps, body);
       send(res, result.status, result.body, origin);
     })().catch((e: unknown) => {
       console.error("thinker: request failed", e instanceof Error ? e.message : e);

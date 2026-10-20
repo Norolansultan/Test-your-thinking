@@ -320,6 +320,14 @@ export interface UiText {
    */
   readonly consult: { readonly notice: string; readonly openHaku: string; readonly openThinker: string; readonly close: string; readonly chip: string; readonly chipLabel: string };
   readonly planConfidence: { readonly prompt: string; readonly note: string };
+  /**
+   * SPEC/32 §3 (20 Oct 2026): the plan review at commitment (phase B, both groups; `PlanReviewPanel`). The guide group also sees
+   * the premise lines under `premisesLabel` (the lines themselves are the server's fixed template). DRAFT (native and domain review).
+   */
+  readonly planReview: {
+    readonly title: string; readonly note: string; readonly planLabel: string; readonly keep: string; readonly revise: string;
+    readonly premisesLabel: string; readonly citedLabel: string; readonly openRecord: string; readonly loading: string; readonly notInLog: string;
+  };
   /** The manipulation check on the hinge screen (brief D3): the directive's acknowledgement and the note under the question. */
   readonly hingeCheck: { readonly read: string; readonly note: string };
   /** D1 (8 Oct 2026): the label of the persistent command-directive line at the top of the right panel, from V8 on; identical in every cell. */
@@ -520,6 +528,12 @@ const FI: UiText = {
     chip: SUGGESTED_QUESTION.fi, chipLabel: "Ehdotettu kysymys",
   },
   planConfidence: { prompt: "Kuinka varma olet, että suunnitelmasi sopii tilanteeseen?", note: "Jakso on päättynyt. Valitse varmuutesi ja vahvista." },
+  // DRAFT (SPEC/32 §3, 20 Oct 2026): native and domain review.
+  planReview: {
+    title: "Tarkista kohdennus ennen kuin se on lopullinen", note: "Jakson aika on pysähdyksissä tarkistuksen ajan.", planLabel: "Kirjattu kohdennus:",
+    keep: "Vahvista kohdennus", revise: "Muuta kohdennusta", premisesLabel: "Thinker — linjauksen oletukset", citedLabel: "Viitatut ilmoitukset:",
+    openRecord: "Näytä viestilokissa", loading: "Ladataan…", notInLog: "Ilmoitus ei ole viestilokissa; se näkyy tässä.",
+  },
   hingeCheck: { read: "Olen lukenut linjauksen", note: "Vastaa kysymykseen, niin voit jatkaa." },
   // DRAFT (8 Oct 2026): native review.
   directiveBanner: "Johdon linjaus",
@@ -698,6 +712,12 @@ const EN: UiText = {
     chip: SUGGESTED_QUESTION.en, chipLabel: "Suggested question",
   },
   planConfidence: { prompt: "How confident are you that your plan fits the situation?", note: "The period has ended. Choose your confidence and confirm." },
+  // DRAFT (SPEC/32 §3, 20 Oct 2026): native and domain review.
+  planReview: {
+    title: "Review the plan before it becomes final", note: "The period's time is stopped while you review.", planLabel: "Plan recorded:",
+    keep: "Confirm the plan", revise: "Change the plan", premisesLabel: "Thinker — the directive's premises", citedLabel: "Records cited:",
+    openRecord: "Show in the message log", loading: "Loading…", notInLog: "This record is not in the message log; it is shown here.",
+  },
   hingeCheck: { read: "I have read the directive", note: "Answer the question to continue." },
   directiveBanner: "Command directive",
   thinkerUnavailable: "Thinker is unavailable right now — ask again or use Search.",

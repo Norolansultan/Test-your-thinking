@@ -23,6 +23,8 @@ import { UI_TEXT } from "../../app/i18n/ui.js";
 import { assertNoTruthKeysPresent } from "../../app/boundary/render-boundary.js";
 import type { Cell } from "../../app/scenario/types.js";
 import { PLAN } from "./view-flow.js";
+import { handlePremiseReviewRequest } from "../../server/thinker/premise-review.js";
+import type { PremiseReviewResponse } from "../../app/session/thinker-protocol.js";
 
 const scenario = buildDemoScenario();
 /** Finnish words that never belong in English text (as `test/i18n/coverage.spec.ts`, plus a few the probes and shell use). */
@@ -73,13 +75,23 @@ function collect(s: SessionSnapshot, seen: Seen): void {
   if (s.debrief) for (const p of STUDY_TEXT.en.debrief.paragraphs(s.debrief.cell)) seen.english.add(p);
   if (s.aiLiteracy) for (const it of s.aiLiteracy.items) seen.english.add(it.text);
   for (const turn of s.aiChatHistory) for (const v of [turn.answer.answerFi, turn.answer.basisFi, turn.answer.certaintyFi, turn.answer.wouldChangeIfFi]) seen.english.add(v);
+  // SPEC/32 §3: the guide group's premise lines at the plan review (the server's template in the session language), and the records they cite.
+  for (const line of s.planReview?.premiseLines ?? []) seen.english.add(line);
+  for (const c of s.planReview?.citedRecords ?? []) seen.records.add(c.atomId);
 }
+
+/** SPEC/32 §3: the premise lookup answered by the server's own handler (no network, no model). */
+const premiseReview = async (request: unknown) => {
+  const r = await handlePremiseReviewRequest({ scenario, appendLog: async () => undefined, nowMs: () => 0, nowIso: () => "2026-10-20T00:00:00.000Z" }, request);
+  if (r.status !== 200) throw new Error(r.body.error);
+  return r.body as PremiseReviewResponse;
+};
 
 async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { readonly sink?: LogSink; readonly resume?: SessionResume; readonly stopWhen?: (s: SessionSnapshot) => boolean } = {}) {
   const transport = vi.fn(async () => { throw new TypeError("network down"); });
   const o = new SessionOrchestrator(scenario, conditionOfCell(cell), {
     cell, language: "en", studyShell: true, visibleProbes: true, guidedTour: true, showProbeLevels: false, aiLiteracyTest: true,
-    participantCode, realClockMs: () => Date.now(), thinker: { transport, openTransport: transport as never, wait: async () => undefined },
+    participantCode, realClockMs: () => Date.now(), thinker: { transport, openTransport: transport as never, premiseReview, wait: async () => undefined },
     ...(run.sink ? { sink: run.sink } : {}), ...(run.resume ? { resume: run.resume } : {}),
   });
   const seen: Seen = { labels: new Set(), records: new Set(), english: new Set(), steps: new Set(), probeTypes: new Set() };
@@ -138,6 +150,11 @@ async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { rea
         break;
       case "debrief": await o.finishDebrief(); break;
       case "freeze": await o.submitFreeze([]); break;
+      case "plan_review": // SPEC/32 §3: phase B; a cited record opened once (the guide group), then the plan kept
+        if (!s.planReview) await vi.advanceTimersByTimeAsync(0);
+        else if (s.planReview.citedRecords.length > 0 && s.planReview.openedAtomId === null) await o.openReviewRecord(s.planReview.citedRecords[0]!.atomId);
+        else await o.keepPlan();
+        break;
       case "plan_confidence": // SPEC/30 §5.4: shown once its record is durable
         if (s.planConfidence) await o.submitPlanConfidence(75); else await vi.advanceTimersByTimeAsync(0);
         break;
@@ -157,7 +174,7 @@ describe("a whole English study session (consent to the end)", () => {
     it(`${cell}: every participant-facing string is English, no truth key reaches the screen, the shell frames the run`, async () => {
       const { seen, records, o } = await runEnglishSession(cell);
       // The session went through everything.
-      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "plan_confidence", "hinge_pause", "debrief", "complete"]) {
+      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "plan_review", "plan_confidence", "hinge_pause", "debrief", "complete"]) {
         expect(seen.steps.has(step), step).toBe(true);
       }
       expect([...seen.probeTypes].sort()).toEqual(["U"]);

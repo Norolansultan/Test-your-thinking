@@ -226,7 +226,7 @@ describe("a driven guide-group session whose answers carry the model's context (
 
   it("is the fixture it claims: guide group, answers before the freezes with valid ids released by then, none reaching the participant otherwise", () => {
     const s = parseSessionFile(guide());
-    expect(s.header).toMatchObject({ participantCode: "P-SK2", cell: "reasoning_intent", formatVersion: "0.11.0" });
+    expect(s.header).toMatchObject({ participantCode: "P-SK2", cell: "reasoning_intent", formatVersion: "0.12.0" });
     const answers = s.records.filter((r) => r.kind === "ai_chat_answer_received");
     expect(answers.map((r) => r.detail as AiChatAnswerReceivedDetail).map((d) => [d.view, d.tool, d.fallback, d.retrieved, d.digestAtomIds, d.recentAtomIds]))
       .toEqual([...GUIDE_CONTEXT].map(([view, c]) => [view, "open_thinker", false, [], c.digest, c.recent]));

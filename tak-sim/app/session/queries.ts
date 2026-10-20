@@ -45,6 +45,7 @@ import {
 import {
   assertOpenThinkerResponseShape, assertThinkerResponseShape, httpOpenThinkerTransport, httpThinkerTransport, type OpenThinkerTransport, type ThinkerTransport,
 } from "./thinker-transport.js";
+import { httpPremiseReviewTransport, requestPremiseReview, type PremiseReviewOutcome, type PremiseReviewTransport } from "./plan-review-transport.js";
 
 /** What the query tools read from the running session. */
 export interface QueryContext {
@@ -72,6 +73,8 @@ export interface QueryContext {
 export interface ThinkerOptions {
   readonly transport?: ThinkerTransport;
   readonly openTransport?: OpenThinkerTransport;
+  /** SPEC/32 §3: the guide group's premise lookup at the plan review (`plan-review-transport.ts`); the default calls `/api/thinker/premise-review`. */
+  readonly premiseReview?: PremiseReviewTransport;
   readonly wait?: (ms: number) => Promise<void>;
 }
 
@@ -110,11 +113,13 @@ export class SessionQueries {
   private practiceTurnsInHistory = false;
   private readonly transport: ThinkerTransport;
   private readonly openTransport: OpenThinkerTransport;
+  private readonly premiseTransport: PremiseReviewTransport;
   private readonly wait: (ms: number) => Promise<void>;
 
   constructor(private readonly ctx: QueryContext, thinker: ThinkerOptions = {}) {
     this.transport = thinker.transport ?? httpThinkerTransport();
     this.openTransport = thinker.openTransport ?? httpOpenThinkerTransport();
+    this.premiseTransport = thinker.premiseReview ?? httpPremiseReviewTransport();
     this.wait = thinker.wait ?? sleep;
   }
 
@@ -268,6 +273,20 @@ export class SessionQueries {
       detail: { queryId: asked.queryId, text: query, view: asked.view, virtualTimeS: asked.virtualTimeS, phase: asked.phase, tool, ...(viaChip ? { viaChip: true as const } : {}) },
     });
     return asked;
+  }
+
+  /**
+   * SPEC/32 §3 (20 Oct 2026): the plan review's premise lookup — the session, its cell, the view and the virtual time now (the
+   * server time-gates at it and reads the records clock, as for the Open Thinker), the language, and a table-assigned session's
+   * code. Never throws (`requestPremiseReview`); nothing is logged here (the review's own record carries the outcome).
+   */
+  premiseReview(): Promise<PremiseReviewOutcome> {
+    const header = this.ctx.log.header;
+    const code = header.assignment?.source === "table" ? { participantCode: header.participantCode } : {};
+    return requestPremiseReview(this.premiseTransport, {
+      sessionId: header.sessionId, cell: this.ctx.cell?.() ?? "reasoning_once", view: this.ctx.view(), virtualTimeS: this.ctx.now() as number,
+      language: this.ctx.language?.() ?? "fi", ...code,
+    });
   }
 
   /** What both requests carry: the session, the view and its virtual time, the question, the language and (table-assigned) the code. */

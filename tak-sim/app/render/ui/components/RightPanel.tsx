@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { createContext } from "preact";
+import { useContext, useEffect, useRef, useState } from "preact/hooks";
 import { TOUR_OPEN_TOOL_EVENT } from "../tour.js";
 import type { RadioLogEntry, SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
 
@@ -256,6 +257,12 @@ export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly 
   );
 }
 
+/**
+ * SPEC/32 §3: the record the plan review last opened (`SessionSnapshot.planReview.openedAtomId`), provided by `SessionView` around
+ * both shells; every message-log row (the classic log, GeoChat, the log under a search tool) marks it and brings it into view.
+ */
+export const OpenedRecordContext = createContext<string | null>(null);
+
 function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
   const { t } = useLang();
   return (
@@ -279,8 +286,13 @@ function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly
  */
 export function MessageLogRow({ entry, wrapSource = false }: { readonly entry: RadioLogEntry; readonly wrapSource?: boolean }) {
   const { rec, src, lang } = useLang();
+  // SPEC/32 §3: a record the plan review cites, opened from the review, is brought into view and marked (once per opening).
+  const opened = useContext(OpenedRecordContext);
+  const highlighted = opened !== null && entry.id === opened;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (highlighted) ref.current?.scrollIntoView?.({ block: "nearest" }); }, [highlighted]);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6 }}>
+    <div ref={ref} data-testid={highlighted ? "log-row-opened" : undefined} style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6, ...(highlighted ? { outline: "2px solid #8ab4f8", outlineOffset: 2, borderRadius: 4 } : {}) }}>
       <div style={{ opacity: 0.5, fontFamily: "monospace" }}>{entry.clockLabel}</div>
       <div style={{ fontWeight: 600, fontFamily: "monospace", ...(wrapSource ? { overflowWrap: "anywhere" as const } : {}) }}>{src(entry.from)}</div>
       <div>{rec(entry.id, entry.text)}</div>

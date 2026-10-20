@@ -179,6 +179,10 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "consult_prompt_dismissed", detail: { cycle: 4, tool: "thinker", cause: "view_end" } },
   { kind: "plan_confidence_presented", detail: { cycle: 3 } },
   { kind: "plan_confidence_submitted", detail: { cycle: 3, value: 75 } },
+  // SPEC/32 §3 (20 Oct 2026)
+  { kind: "plan_review_shown", detail: { cycle: 9, atViewSeconds: 120, trigger: "minimum_reached", premiseLines: ["P1 … — no longer holds: SPOT 17.01."], premiseStatuses: [{ premiseId: "P1", status: "contradicted", atomIds: ["atom.demo.12.0"] }, { premiseId: "P2", status: "not_contradicted", atomIds: [] }], tableSha256: "0".repeat(64) } },
+  { kind: "plan_review_record_opened", detail: { cycle: 9, atomId: "atom.demo.12.0" } },
+  { kind: "plan_review_closed", detail: { cycle: 9, choice: "revise", dwellMs: 8200, capExtendedToSeconds: 165 } },
 ];
 
 export interface ScriptedSessionResult {

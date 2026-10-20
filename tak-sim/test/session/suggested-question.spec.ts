@@ -11,6 +11,7 @@ import type { OpenThinkerResponse } from "../../app/session/thinker-protocol.js"
 import type { OpenThinkerTransport } from "../../app/session/thinker-transport.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { atView, ofKind, startSession } from "./spec30-helpers.js";
+import { keepReview } from "./view-flow.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -82,10 +83,13 @@ describe("the suggested question (SPEC/30 §4)", () => {
     }
   });
 
-  it("is refused where the Thinker is (a step without the tools: the plan-confidence item after the view's end)", async () => {
+  it("is refused where the Thinker is (a step without the tools: the plan review, then the plan-confidence item after the view's end)", async () => {
     const { o, snap } = await atView(9, "reasoning_intent"); // V9: no SPAM item to force at the end
     await vi.advanceTimersByTimeAsync(130_000);
     await o.submitAllocation({ mainEffort: "L2", posture: "direct_attack", secondary: null, drones: null });
+    expect(snap()).toMatchObject({ step: "plan_review", toolsLocked: true }); // SPEC/32 §3
+    await expect(o.askSuggestedQuestion()).rejects.toThrow(/Haku and Thinker work only inside a view/);
+    await keepReview(o);
     expect(snap()).toMatchObject({ step: "plan_confidence", toolsLocked: true });
     await expect(o.askSuggestedQuestion()).rejects.toThrow(/Haku and Thinker work only inside a view/);
   });

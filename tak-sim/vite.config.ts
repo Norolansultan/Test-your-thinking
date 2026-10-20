@@ -94,6 +94,8 @@ export default defineConfig({
     proxy: {
       "/api/thinker": { target: `http://127.0.0.1:${process.env.THINKER_PORT ?? 8787}` },
       "/api/thinker-open": { target: `http://127.0.0.1:${process.env.THINKER_PORT ?? 8787}` },
+      // SPEC/32 §3: the plan review's premise lookup (already under the "/api/thinker" prefix; named for clarity).
+      "/api/thinker/premise-review": { target: `http://127.0.0.1:${process.env.THINKER_PORT ?? 8787}` },
       // SPEC/05 §9: the post-run session-log upload (`npm run session-log:server`).
       "/api/session-log": { target: `http://127.0.0.1:${process.env.SESSION_LOG_PORT ?? 8788}` },
     },

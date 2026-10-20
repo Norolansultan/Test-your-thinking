@@ -340,3 +340,80 @@ export function validateThinkerRequest(body: unknown, tool: ThinkerTool = "haku"
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// SPEC/32 §3 (20 Oct 2026): the plan review's premise lookup (the guide cell only, no model call)
+// ---------------------------------------------------------------------------
+
+/** The guide group's premise lines at the plan review (`server/thinker/premise-review.ts`). */
+export const PREMISE_REVIEW_ENDPOINT = "/api/thinker/premise-review";
+/** The browser's timeout for the lookup (SPEC/32 §3): a table lookup, so a few seconds; on a timeout the neutral review shows. */
+export const PREMISE_REVIEW_CLIENT_TIMEOUT_MS = 4_000;
+/** The only cell the lookup answers: the guide group (SPEC/32 §3). */
+export const PREMISE_REVIEW_CELL: ThinkerCell = "reasoning_intent";
+
+export interface PremiseReviewRequest {
+  readonly sessionId: string;
+  /** Must be {@link PREMISE_REVIEW_CELL}; any other cell is refused (HTTP 400). */
+  readonly cell: Cell;
+  /** A phase-B view, V8–V14 (the directive in force). */
+  readonly view: number;
+  /** The session's virtual time when the review opened; the server time-gates and reads the records clock at it. */
+  readonly virtualTimeS: number;
+  readonly language?: "fi" | "en";
+  /** The allocation table's code, for a table-assigned session (SPEC/27 §2.2): the cell is checked against the table. */
+  readonly participantCode?: string;
+}
+
+/** One premise's status as the lookup returns it (the premise-evidence table's at the records clock). */
+export interface PremiseReviewStatus {
+  readonly premiseId: string;
+  readonly status: "contradicted" | "not_contradicted";
+  readonly atomIds: readonly string[];
+}
+
+export interface PremiseReviewResponse {
+  /** The fixed template's lines (`premiseLines`), in the request's language. */
+  readonly lines: readonly string[];
+  readonly statuses: readonly PremiseReviewStatus[];
+  /** The premise-evidence table's sha256 (the manifest's `premiseEvidence.sha256`). */
+  readonly tableSha256: string;
+}
+
+export type PremiseReviewValidation = { readonly ok: true; readonly request: PremiseReviewRequest } | { readonly ok: false; readonly error: string };
+
+/** Validates a premise-review body at the proxy boundary: the guide cell only, a phase-B view, a finite virtual time. */
+export function validatePremiseReviewRequest(body: unknown): PremiseReviewValidation {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return { ok: false, error: "body must be a JSON object" };
+  const b = body as Record<string, unknown>;
+  if (typeof b.sessionId !== "string" || !SESSION_ID.test(b.sessionId)) return { ok: false, error: "invalid sessionId" };
+  if (b.cell !== PREMISE_REVIEW_CELL) return { ok: false, error: `the premise review is for the ${PREMISE_REVIEW_CELL} cell only` };
+  if (typeof b.view !== "number" || !Number.isInteger(b.view) || b.view < STRATEGY_FROM_VIEW || b.view > MAIN_VIEW_COUNT) return { ok: false, error: "invalid view (V8–V14 only)" };
+  if (typeof b.virtualTimeS !== "number" || !Number.isFinite(b.virtualTimeS)) return { ok: false, error: "invalid virtualTimeS" };
+  if (b.language !== undefined && b.language !== "fi" && b.language !== "en") return { ok: false, error: "invalid language" };
+  if (b.participantCode !== undefined && (typeof b.participantCode !== "string" || !SESSION_ID.test(b.participantCode))) return { ok: false, error: "invalid participantCode" };
+  return {
+    ok: true,
+    request: {
+      sessionId: b.sessionId, cell: PREMISE_REVIEW_CELL, view: b.view, virtualTimeS: b.virtualTimeS,
+      ...(b.language !== undefined ? { language: b.language as "fi" | "en" } : {}),
+      ...(b.participantCode !== undefined ? { participantCode: b.participantCode as string } : {}),
+    },
+  };
+}
+
+/** The browser's check of a lookup's reply: lines are strings, statuses {premiseId, status, atomIds}, the table's hash a hex string. Null: well formed. */
+export function premiseReviewResponseProblem(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return "not an object";
+  const b = body as Record<string, unknown>;
+  if (!Array.isArray(b.lines) || !b.lines.every((l) => typeof l === "string")) return "lines is not an array of strings";
+  if (!Array.isArray(b.statuses)) return "statuses is not an array";
+  for (const s of b.statuses as unknown[]) {
+    if (typeof s !== "object" || s === null) return "a status is not an object";
+    const { premiseId, status, atomIds } = s as Record<string, unknown>;
+    if (typeof premiseId !== "string" || (status !== "contradicted" && status !== "not_contradicted")) return "a status lacks premiseId or status";
+    if (!Array.isArray(atomIds) || !atomIds.every((a) => typeof a === "string")) return "a status's atomIds is not an array of ids";
+  }
+  if (typeof b.tableSha256 !== "string" || !/^[0-9a-f]{64}$/.test(b.tableSha256)) return "tableSha256 is not a sha256";
+  return null;
+}

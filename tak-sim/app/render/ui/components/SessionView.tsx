@@ -3,7 +3,7 @@ import { useSession, type SessionPersistence } from "../useSession.js";
 import { SessionEnd } from "./SessionEnd.js";
 import { StatusStrip } from "./StatusStrip.js";
 import { MapView } from "./MapView.js";
-import { RightPanel } from "./RightPanel.js";
+import { OpenedRecordContext, RightPanel } from "./RightPanel.js";
 import { FreezeScreen } from "./FreezeScreen.js";
 import { JudgementPanel } from "./JudgementPanel.js";
 import { EMPTY_PLAN_DRAFT, heldPlanDraft, type HeldPlanDraft } from "./DecisionPanels.js";
@@ -118,7 +118,9 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   // mounted, so the map is not rebuilt and its basemap re-uploaded after every freeze.
   const frozen = snapshot.step === "freeze" && snapshot.freeze !== null;
 
+  // SPEC/32 §3: the record the plan review opened is marked in whichever message log is on screen (`MessageLogRow`).
   return (
+    <OpenedRecordContext.Provider value={snapshot.planReview?.openedAtomId ?? null}>
     <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
       {/* Below the minimum window size a cover asks for a larger window (revision (al)); logged, the session runs on. */}
       {minWindowGuard && <WindowSizeGuard onLog={(e) => orchestrator.logMapUse(e)} />}
@@ -156,6 +158,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
         <RightPanel snapshot={snapshot} orchestrator={orchestrator} condition={condition} aiPresent={capabilities.aiDrawerPresent} hakuFreeText={capabilities.crossSourceFreeTextQuery} stacked={narrow} indexedSearch={indexedSearch} />
       </div>}
     </div>
+    </OpenedRecordContext.Provider>
   );
 }
 

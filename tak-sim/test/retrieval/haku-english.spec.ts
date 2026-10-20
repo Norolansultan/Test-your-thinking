@@ -17,10 +17,10 @@ const corpus = reachableAtoms(scenario.atoms, 8);
 
 describe("English Haku free text", () => {
   it("finds the planted record and the grid record by English words and the code", () => {
-    const r = retrieveClosedEn("110 kV line de-energised", corpus).map((a) => a.id);
+    const r = retrieveClosedEn("20 kV line de-energised", corpus).map((a) => a.id);
     expect(r[0]).toBe(DESIGNED_EVENT_IDS.planted);
     expect(r).toContain(DESIGNED_EVENT_IDS.gridRecord);
-    assertClosedOverCorpus(retrieveClosedEn("110 kV line", corpus), corpus);
+    assertClosedOverCorpus(retrieveClosedEn("20 kV line", corpus), corpus);
   });
 
   it("matches the English text where the Finnish search finds nothing", () => {
@@ -60,13 +60,13 @@ describe("the session's Haku and local fallback by language", () => {
     expect(queries("en", 8).searchAtoms("de-energised").map((a) => a.id)).toContain(DESIGNED_EVENT_IDS.planted);
     expect(queries("en", 7).searchAtoms("de-energised").map((a) => a.id)).not.toContain(DESIGNED_EVENT_IDS.planted);
     expect(queries("fi", 8).searchAtoms("de-energised")).toHaveLength(0);
-    expect(queries("fi", 8).searchAtoms("110 kV linja").map((a) => a.id)).toContain(DESIGNED_EVENT_IDS.gridRecord); // planted.spec: the Finnish search, unchanged
+    expect(queries("fi", 8).searchAtoms("20 kV linja").map((a) => a.id)).toContain(DESIGNED_EVENT_IDS.gridRecord); // planted.spec: the Finnish search, unchanged
   });
 
   it("the local Thinker fallback retrieves over the English passages and says so", () => {
     const q = queries("en", 8);
     const fallback = (q as unknown as { localFallback(query: string, reason: ThinkerFallbackReason, variant: ThinkerPromptVariant): ThinkerResponse }).localFallback;
-    const r = fallback.call(q, "Is the 110 kV line de-energised?", "network_error", "standard");
+    const r = fallback.call(q, "Is the 20 kV line de-energised?", "network_error", "standard");
     expect(r).toMatchObject({ retrievalMode: "lexical_only", retrievalLanguage: "en", fallback: true });
     expect(r.retrieved[0]!.id).toBe(DESIGNED_EVENT_IDS.planted);
   });

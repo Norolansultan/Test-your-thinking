@@ -6,7 +6,7 @@
   "needsFrom": "content/thinker/neutral-eval.json",
   "needs": "Each question has exactly the needs of the Finnish question with the same id (same view, same stable features: actor, event_type, content substring of the Finnish source record, newest-or-any). The needs name records, not words, so they are language-independent; they are read from the Finnish file at every run and never copied here.",
   "translation": "Faithful translations of the Finnish questions, written 5 Oct 2026 before any English retrieval was run and not tuned to it; the English UI's terms (lohko = sector, kaakkoisrintama = south-east front, syttymäkohta = point of origin); unit codes unchanged; revision (ae), 9 Oct 2026: the place names and VPK in their English form from app/i18n/place-names.ts, as the English records now name them (Lahdenkylä = Bay Village, Mökkiranta = Lakeside Cottages, Karhujärvi = Bear Lake), nothing else changed. DRAFT, for native and domain review.",
-  "exclusions": "As the Finnish set: nothing about VPK's rekindle objection, the bog/Rahkasuo smoulder, the 110 kV line / F7 / power line, or the step-18 contradiction.",
+  "exclusions": "As the Finnish set: nothing about VPK's rekindle objection, the bog/Rahkasuo smoulder, the 20 kV line / F7 / power line, or the step-18 contradiction.",
   "questions": [
     {"id":"n01","question":"How much water does EK11 have left?"},
     {"id":"n02","question":"What is KY21's water situation?"},

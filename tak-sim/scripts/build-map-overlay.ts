@@ -1,6 +1,6 @@
 /**
  * Writes `app/render/ui/map-overlay.json`: the live map's static reference overlay (SPEC/12 revision (al)) — the
- * 1 km ETRS-TM35FIN grid, the anchor points of the road labels R1/R2/R3, the R3 bridge, the 110 kV power line's
+ * 1 km ETRS-TM35FIN grid, the anchor points of the road labels R1/R2/R3, the R3 bridge, the 20 kV power line's
  * label and the command post. Build-time only: every coordinate conversion stays at the bundle-build boundary
  * (SPEC/03 §1.1); the browser reads the JSON. Deterministic (no randomness, fixed rounding).
  *
@@ -53,7 +53,7 @@ const roads = [
 // The power line: a straight 45° line through (1500, 0); its label sits 3 km south-west of that, far from the fire.
 const [pa, pb] = [POWER_LINE[0]!, POWER_LINE[1]!];
 const along = (d: number): P => { const L = Math.hypot(pb.x - pa.x, pb.y - pa.y); const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2; return { x: mx + ((pb.x - pa.x) / L) * d, y: my + ((pb.y - pa.y) / L) * d }; };
-const powerLine = { label: "110 kV", at: ll(along(-3000)), towards: ll(along(-2900)) };
+const powerLine = { label: "20 kV", at: ll(along(-3000)), towards: ll(along(-2900)) };
 
 // The 1 km grid: TM35 easting and northing lines at whole kilometres, ±13 km about IGN (the pan limit is 12 km), each
 // sampled every 2 km (the lines are straight in TM35; the chord error over 2 km is far below a pixel).

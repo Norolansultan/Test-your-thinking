@@ -38,7 +38,7 @@ describe("the neutral evaluation set", () => {
   });
 
   it("asks nothing about the designed events", () => {
-    for (const q of file.questions) expect(q.question).not.toMatch(/(^|\s)suo(n|lla|lta|sta)?\b|Rahkasuo|kyte|\b110\b|\bkV\b|voimajoh|jännit|F7|pohjoisreuna/i);
+    for (const q of file.questions) expect(q.question).not.toMatch(/(^|\s)suo(n|lla|lta|sta)?\b|Rahkasuo|kyte|\b110\b|\bkV\b|voimajoh|sähkölinj|jännit|F7|pohjoisreuna/i);
   });
 });
 

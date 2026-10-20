@@ -81,10 +81,11 @@ describe("C2: the current step's best matches", () => {
       expect(a.cycle).toBe(step);
       expect(retrieved.map((r) => r.atom.id)).not.toContain(a.id);
     }
-    // At V5 the three spot fires DR1 confirmed (PP1–PP3) reach the model (the review's V5 answer said "none, certain"). Revision (aj):
+    // At V5 the spot fires DR1 confirmed reach the model (the review's V5 answer said "none, certain"); since SPEC/33 stage 7 (the rebuilt
+    // map) the crown run throws two, PP1 and PP2 (was PP1–PP3). Revision (aj):
     // EK11's 15:20 move names PP1 and PP2 as well and takes a recent-match slot, so each spot fire is checked by name, not by record id.
     const seen = [...retrieved.map((r) => r.atom), ...recent];
-    for (const pp of ["PP1", "PP2", "PP3"]) expect(seen.some((a) => JSON.stringify(a).includes(pp)), pp).toBe(true);
+    for (const pp of ["PP1", "PP2"]) expect(seen.some((a) => JSON.stringify(a).includes(pp)), pp).toBe(true);
   });
 
   it("both chats send them under their own heading, tagged after the retrieved records, and log them as `recent`", async () => {

@@ -12,7 +12,7 @@ export const AUTHORED_QUESTIONS = {
   /** SPEC/26 §5: the narrow bog questions. */
   narrowBog: ["VPK syttymäkohta", "kyteekö syttymäkohta"],
   /** The power-line questions (F7, SPEC/02 revision (o) §5). */
-  powerLine: ["110 kV linja", "voimajohto", "onko 110 kV linja jännitteetön?"],
+  powerLine: ["20 kV linja", "sähkölinja", "onko 20 kV linja jännitteetön?"], // SPEC/33 (bc): the line is 20 kV (was "110 kV linja", "voimajohto", "onko 110 kV linja jännitteetön?")
   /** SPEC/14 revision (q): code tokens. */
   codes: ["EK11", "L3"],
 } as const;
@@ -35,7 +35,7 @@ export const ALL_AUTHORED_QUESTIONS: readonly string[] = [
 export const AUTHORED_QUESTIONS_EN = {
   broadBog: ["is sector 3 under control?"],
   narrowBog: ["VOL1 point of origin", "is the point of origin smouldering"],
-  powerLine: ["110 kV line", "power line", "is the 110 kV line de-energised?"],
+  powerLine: ["20 kV line", "power line", "is the 20 kV line de-energised?"], // SPEC/33 (bc): was "110 kV line", "is the 110 kV line de-energised?"
   codes: ["EK11", "L3"],
 } as const satisfies { readonly [K in keyof typeof AUTHORED_QUESTIONS]: readonly string[] };
 
@@ -70,7 +70,7 @@ export const PLANTED_PROBES: readonly {
   { view: 7, target: "objection", fi: "onko lohko 3 hallinnassa?", en: "is sector 3 under control?" },
   { view: 7, target: "objection", fi: "Onko syttymäkohdan reuna varmasti sammunut?", en: "Is the edge at the point of origin definitely out?" },
   { view: 7, target: "objection", fi: "Mitä VPK on sanonut syttymäkohdasta?", en: "What has VOL1 said about the point of origin?" },
-  { view: 6, target: "planted", fi: "Onko 110 kV linja jännitteetön?", en: "Is the 110 kV line de-energised?" },
-  { view: 7, target: "planted", fi: "Voiko helikopteri pudottaa vettä voimajohdon lähellä?", en: "Can the helicopter drop water near the power line?" },
-  { view: 12, target: "planted", fi: "Mikä on voimajohdon tilanne?", en: "What is the status of the power line?" },
+  { view: 6, target: "planted", fi: "Onko 20 kV linja jännitteetön?", en: "Is the 20 kV line de-energised?" },
+  { view: 7, target: "planted", fi: "Voiko helikopteri pudottaa vettä sähkölinjan lähellä?", en: "Can the helicopter drop water near the power line?" },
+  { view: 12, target: "planted", fi: "Mikä on sähkölinjan tilanne?", en: "What is the status of the power line?" },
 ];

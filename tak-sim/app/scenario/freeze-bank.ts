@@ -40,8 +40,12 @@ const RADIO = {
   ek11Ridge: radioId(3, /^EK11: siirrymme .*harjulle/),
   ek11Withdraws: radioId(6, /^EK11: vetäydymme .*latvapalo/),
   ek12Withdraws: radioId(6, /^EK12: vetäydymme .*palaneelle alueelle/), // review fixes (ah): to R1 in the black (was the R1/R2 junction)
-  sparksRoad: radioId(7, /^Kipinät lensivät metsäautotien \(Kuusimäki\) yli/),
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): no forest road crosses the crown run's path at Kuusimäki any more, so the step-7
+  // "Kipinät lensivät metsäautotien (Kuusimäki) yli" crossing and its step-8 repeat are gone; the step-7 Koivuoja stop and the step-8
+  // ember crossing of Koivuoja carry V5's two crossing items instead.
   sparksKorpioja: radioId(7, /^Kipinät lensivät Korpiojan yli/),
+  koivuojaStop: radioId(7, /^Palo pysähtyi Koivuojan kohdalle/),
+  koivuojaSparks: radioId(8, /^Kipinät lensivät Koivuojan yli/),
   ky21North: radioId(10, /^KY21, lohkon L3 johtaja: .*siirrän .*KY21:n ja VPK:n nyt pohjoisreunalle/), // fix pass 3: the L3 sector leader moves KY21 and VPK (FF11)
   vpkNorth: radioId(10, /^VPK: lohkonjohtaja KY21:n käskystä siirrymme nyt pohjoisreunalle/),
   ek14North: radioId(10, /^EK14: siirrymme pohjoisreunalle Karhujärven suuntaan/),
@@ -66,9 +70,11 @@ const R1_ARRIVAL = (() => {
 /**
  * V2 (now 14.00; REPORT-keyed, D4; `31` rule (1)): the burnt area 40 minutes on (14.40, the end of step 4) through the reported fire the
  * maps of V1 and V2 draw (steps 1 and 2; V2's second step is not drawn). Edges 15/25/35 (`31` §3.5: were 15/22/30, where the CA's ~23 ha
- * fell in another band than the reports' ~18.5 ha); the map now (~10.6 ha) and DR3's recorded 14.15 survey (12.9 ha) are under 15.
+ * fell in another band than the reports' ~18.5 ha). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 20/35/50 (were 15/25/35, where the
+ * reports' ~24.8 ha lay 0.2 ha from the 25 edge); the reports give ~24.8 ha, the truth ~29.7 ha, both in 20–35; the map now (~13.7 ha) and
+ * DR3's recorded 14.15 survey (18.3 ha) are the lures, under 20.
  */
-export const V2_AREA = keyBand(deliveredAreaAt(1, 2, 4), [15, 25, 35], ["lt15", "m15_25", "m25_35", "gt35"], 2, "V2 area_40", { value: siteStep(4).areaHa, minMargin: 2 });
+export const V2_AREA = keyBand(deliveredAreaAt(1, 2, 4), [20, 35, 50], ["lt20", "m20_35", "m35_50", "gt50"], 2, "V2 area_40", { value: siteStep(4).areaHa, minMargin: 2 });
 
 /**
  * V5 (now 15.20; REPORT-keyed, D4): the burnt area an hour on (16.20, the end of step 9): the pushed 15.35 perimeter survey (DR3: the
@@ -78,7 +84,9 @@ const V5_SURVEY = {
   area: trafficFigure(7, /^DR3 kehäkartoitus valmis klo 15\.35: palanut ala noin (\d+,\d) ha/),
   added: trafficFigure(7, /^DR3 kehäkartoitus valmis klo 15\.35: .*\((\d+,\d) ha uutta/),
 };
-export const V5_AREA = keyBand(V5_SURVEY.area.value + 3 * V5_SURVEY.added.value, [80, 110, 140], ["lt80", "m80_110", "m110_140", "gt140"], 5, "V5 area_hour", { value: siteStep(9).areaHa, minMargin: 5 });
+// SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 90/140/190 (were 80/110/140, where the survey's 76.4 + 3 × 35.8 ≈ 184 ha and the
+// truth's ~148 ha both fell in the open top band, which has no key statements); both now in 140–190, the map now (~77 ha) under 90.
+export const V5_AREA = keyBand(V5_SURVEY.area.value + 3 * V5_SURVEY.added.value, [90, 140, 190], ["lt90", "m90_140", "m140_190", "gt190"], 5, "V5 area_hour", { value: siteStep(9).areaHa, minMargin: 5 });
 
 /**
  * V2 (SPEC/30 §5.1; REPORT-keyed, D4; `31` rule (1)): the reported fire's distance to the R1/R2 junction (where the water-shuttle road
@@ -157,8 +165,10 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["between", "EK11 voi jäädä kärjen ja uuden palon väliin"], ["head", "EK11 pääsee nyt sammuttamaan kärkeä edestä"],
         ["south", "EK11 joutuu siirtymään eteläsivustalle"], ["out", "Uusi palo on sammunut, EK11 palaa kärkeen"],
       ], key: "between",
-      keyAtomIds: [RADIO.ek11Ridge, "atom.demo.3.0", trafficId(3, /^EK11, Kuivakangas: olemme kärjen vasemmalla sivustalla/)], rule: "cited",
-      basis: "integrates EK11's move to the new ignition on the esker (radio 3.0, pushed), the new smoke ~150 m from the head (story 3.0, pushed) and EK11's own place ~50 m from the head on its left flank (14.03, pushed): a crew between the head and a fire ahead of it can be cut off (EK11's recorded 14.05 radio: it will not go between them)",
+      // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): on the new esker EK11 works the head's right (south-east) flank, so its 14.03 report
+      // says "oikealla sivustalla" (was "vasemmalla"); the new ignition is ~100 m ahead of the head (was ~150 m).
+      keyAtomIds: [RADIO.ek11Ridge, "atom.demo.3.0", trafficId(3, /^EK11, Kuivakangas: olemme kärjen oikealla sivustalla/)], rule: "cited",
+      basis: "integrates EK11's move to the new ignition on the esker (radio 3.0, pushed), the new smoke ~100 m from the head (story 3.0, pushed) and EK11's own place ~50 m from the head on its right flank (14.03, pushed): a crew between the head and a fire ahead of it can be cut off (EK11's recorded 14.05 radio: it will not go between them)",
     }),
     choice({
       // `31` F10: replaces fuel_ahead (DR1's 'tiheä kuusikko' recalled, and a cue to spruce_behaviour); two EK12 reports integrated.
@@ -170,14 +180,18 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["held_low", "Reuna pysyy matalana, mutta kärki pääsee ohi"], ["stopped", "Kärki on pysäytetty EK12:n linjaan"],
         ["lost", "Sivusta on menetetty, palo leviää etelään"], ["dry", "Vesi on loppunut, ja linja on keskeytetty"],
       ], key: "held_low",
-      keyAtomIds: [trafficId(3, /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta.*lipsuu paikoin/), trafficId(3, /^EK12, kärki, eteläsivusta: kärki etenee koilliseen meidän ohi/)], rule: "cited",
-      basis: "integrates EK12's two pushed step-3 reports: flames 2–3 m (the flame table's band; 0.3–1 m before 20 Oct 2026), the edge held though it slips in places (14.06), and the head passing it to the north-east, low fire on its own stretch (14.08): the flank is held low while the head runs past; EK13 refilled EK12's basin at 13.54 (recorded)",
+      // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the generated EK12 reports changed with the fire. By the V2 freeze EK12 has pushed
+      // two: 13.20 (flames 2–3 m on its stretch, the head ~300 m to its north) and 14.08 (surface fire in dry pine heath, flames 1–2 m, its
+      // 680 m line with pressure enough); the "lipsuu paikoin" (13.48) and "kärki menee ohitsemme" (13.51) reports are recorded, step 2.
+      // The key is unchanged.
+      keyAtomIds: [trafficId(1, /^EK12, kärki, eteläsivusta: olemme olleet täällä.*kärki noin \d+ m meistä pohjoiseen/), trafficId(3, /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta, liekit 1–2 m\. Letkulinja \d+ m, paine riittää/)], rule: "cited",
+      basis: "integrates EK12's two pushed reports: the head some 300 m north of its stretch, running past it to the north-east (13.20), and its own stretch a surface fire in dry pine heath, flames 1–2 m, the 680 m line with pressure enough (14.08): the flank is held low while the head runs on past it; recorded: 'saamme reunaa kiinni, mutta se lipsuu paikoin' (13.48) and 'kärki menee ohitsemme koilliseen' (13.51); EK13 refilled EK12's basin at 13.54 (recorded)",
     }),
     choice({
       slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(2, 4))}?`,
-      options: [["lt15", "Alle 15 hehtaaria"], ["m15_25", "15–25 hehtaaria"], ["m25_35", "25–35 hehtaaria"], ["gt35", "Yli 35 hehtaaria"]], key: V2_AREA.id,
+      options: [["lt20", "Alle 20 hehtaaria"], ["m20_35", "20–35 hehtaaria"], ["m35_50", "35–50 hehtaaria"], ["gt50", "Yli 50 hehtaaria"]], key: V2_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [1, 2],
-      basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 4 (14.40) through the reported fire the maps of V1 and V2 draw (steps 1, 2), ${figures(V2_AREA, "ha")}; the map now ~10.6 ha and DR3's recorded 14.15 survey 12.9 ha (the lures, under 15)`,
+      basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 4 (14.40) through the reported fire the maps of V1 and V2 draw (steps 1, 2), ${figures(V2_AREA, "ha")}; the map now ~13.7 ha and DR3's recorded 14.15 survey 18.3 ha (the lures, under 20)`,
     }),
     // SPEC/30 §5.1 (19 Oct 2026): two more L3 items in each phase-A freeze (2×L1, 2×L2, 4×L3). DRAFT, domain review (SPEC/30 §8).
     choice({
@@ -272,14 +286,16 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // `31` F10, F25: replaces spot_cause (the crossing mechanism, EK12's record recalled, and stated by V4 korpioja_spot's key);
-      // comprehension of the two crossings for containment.
-      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä metsäautotien ja Korpiojan ylitykset merkitsevät palon rajaamiselle?",
+      // comprehension of the crossing for containment. SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review):
+      // the forest-road crossing at Kuusimäki is gone, so the item relates the one crossing (Korpioja) to where the crews are; it states
+      // nothing about Koivuoja, which `road_jump` asks about.
+      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä Korpiojan ylitys merkitsee palon rajaamiselle nyt?",
       options: [
-        ["no_barrier", "Tie ja oja eivät enää rajaa paloa"], ["put_out", "Ylityskohdat on sammutettu, linjat pitävät"],
-        ["one", "Vain Korpioja ylittyi, metsäautotie pitää"], ["back", "Palo kääntyy takaisin tien ja ojan kohdalla"],
+        ["no_barrier", "Korpiojan takana palaa uusi palo, jota kukaan ei sammuta"], ["put_out", "Ylityskohta on jo sammutettu, ja Korpioja rajaa palon"],
+        ["ek11", "EK11 pitää ylityskohdan Koivuojan linjaltaan käsin"], ["dies", "Uusi palo sammuu itsestään ojan kosteaan rantaan"],
       ], key: "no_barrier",
-      keyAtomIds: [RADIO.sparksRoad, RADIO.sparksKorpioja], rule: "cited",
-      basis: "integrates the two pushed step-7 crossings (radio 7.1, 7.2: new fires on the far side of the Kuusimäki forest road and of Korpioja, no crew near, nothing done): neither line holds the fire any more",
+      keyAtomIds: [RADIO.sparksKorpioja, trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/)], rule: "cited",
+      basis: "integrates the pushed step-7 crossing (radio 7.1: a new fire on the far side of Korpioja, no crew near, nothing done) with where the crews are (EK11 at Koivuoja, pushed 15.25; EK12 and EK14 on R1 and the north edge): the fire beyond Korpioja burns with nobody on it, and the brook no longer bounds the fire",
     }),
     choice({
       // `31` F10: replaces units_enough (EK11's request for more units recalled); two EK11 reports related to keeping up with the head.
@@ -288,8 +304,8 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["hose", "Letkua on liian vähän kärjen perässä pysymiseen"], ["water", "Vesi loppuu, koska vesiajo ei ehdi linjalle"],
         ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
       ], key: "hose",
-      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 500 m, varaletkua alle 200 m/)], rule: "cited",
-      basis: "integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.24) and its 500 m line has under 200 m of hose in reserve, more hose asked for (15.36): the line cannot follow the head; EK11's tank is at 62 % (asked-only, 15.25) and the water shuttle runs, so water is not the limit",
+      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 600 m, varaletkua alle 200 m/)], rule: "cited",
+      basis: "integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.25) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35): the line cannot follow the head; EK11's tank is at 63 % (asked-only, 15.25) and the water shuttle runs, so water is not the limit",
     }),
     choice({
       // SPEC/30 §5.1 (DRAFT, domain review). `31` F07: before wind_shift, and the stem no longer names the forecast turn (it told everyone of
@@ -311,19 +327,23 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // Fix pass 5 (8 Oct 2026, researcher decision): replaces rate_next. The area NOW is on record (the map, DR3's 15:35 survey); the hour's growth is the projection.
     choice({
       slug: "area_hour", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(5, 9))}?`,
-      options: [["lt80", "Alle 80 hehtaaria"], ["m80_110", "80–110 hehtaaria"], ["m110_140", "110–140 hehtaaria"], ["gt140", "Yli 140 hehtaaria"]], key: V5_AREA.id,
+      options: [["lt90", "Alle 90 hehtaaria"], ["m90_140", "90–140 hehtaaria"], ["m140_190", "140–190 hehtaaria"], ["gt190", "Yli 190 hehtaaria"]], key: V5_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: [V5_SURVEY.area.id], basisSteps: [7],
-      basis: `REPORT-keyed (D4; \`31\` rule (1)): the pushed 15.35 survey (DR3: ${V5_SURVEY.area.value} ha, ${V5_SURVEY.added.value} ha new in 20 minutes; the map draws step 7) carried on to the end of step 9 (16.20), ${figures(V5_AREA, "ha")}; ~56 ha now`,
+      basis: `REPORT-keyed (D4; \`31\` rule (1)): the pushed 15.35 survey (DR3: ${V5_SURVEY.area.value} ha, ${V5_SURVEY.added.value} ha new in 20 minutes; the map draws step 7) carried on to the end of step 9 (16.20), ${figures(V5_AREA, "ha")}; ~77 ha now`,
     }),
-    // SPEC/30 §5.1. A line that fails again: spotting crosses the forest road at a second point (KY21 tries to hold it). `31` F15: two per polarity.
+    // SPEC/30 §5.1. A line that fails: a brook that stopped the surface fire is crossed by embers. `31` F15: two per polarity.
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review): was "Pitääkö Kuusimäen metsäautotie palon muualla …"
+    // (a second ember crossing of that road at 15:40); the rebuilt map has no forest road there, and the line that fails next is Koivuoja:
+    // the surface fire stopped at it at 15.00–15.20 (radio 7.2, pushed: the lure), and embers cross it at 15.20–15.40 (radio 8, pushed
+    // in V6). The slug is kept (a shared id).
     choice({
-      slug: "road_jump", level: "L3", goal: "containment", keySteps: [7, 8], promptFi: `Pitääkö Kuusimäen metsäautotie palon muualla ${withinMinutesFi(minutesAhead(5, 8))}?`,
+      slug: "road_jump", level: "L3", goal: "containment", keySteps: [7, 8], promptFi: `Pysäyttääkö Koivuoja palon etenemisen ${withinMinutesFi(minutesAhead(5, 8))}?`,
       options: [
-        ["again", "Ei, kipinät ylittävät tien toisessakin kohdassa"], ["creep", "Ei, palo ryömii tien yli pintapalona"],
-        ["once", "Kyllä, ylitys jää tähän yhteen kohtaan"], ["crews", "Kyllä, tien varren yksiköt pitävät sen"],
+        ["again", "Ei, kipinät lentävät ojan yli ja sytyttävät uuden palon"], ["creep", "Ei, palo ryömii ojan yli matalana pintapalona"],
+        ["once", "Kyllä, kosteat rannat pysäyttävät palon ojaan"], ["crews", "Kyllä, EK11:n linja ojan varressa pitää palon"],
       ], key: "again",
-      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [RADIO.sparksRoad],
-      basis: "SPEC/30 §5.1 (DRAFT): the step-8 radio (pushed in V6) 'Kipinät lensivät metsäautotien (Kuusimäki) yli toisessa kohdassa, noin 400 m lounaaseen edellisestä ylityksestä ... KY21 yritti pitää linjan, mutta palo pääsi yli'; the first crossing, by sparks, is on record at step 7 (radio 7.1, pushed)",
+      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [RADIO.koivuojaStop, RADIO.sparksKorpioja],
+      basis: "SPEC/30 §5.1 (DRAFT; SPEC/33 stage 9): the step-8 radio (pushed in V6) 'Kipinät lensivät Koivuojan yli, uusi palo toisella puolella. EK11 joutui vetäytymään' (15.20–15.40); delivered by the freeze: the surface fire stopped at Koivuoja at 15.00–15.20 (radio 7.2, pushed: the lure) and embers crossed Korpioja in the crown run (radio 7.1, pushed)",
     }),
   ],
   7: [

@@ -24,7 +24,7 @@ import { stubEmbedder } from "./stub-embedder.js";
 describe("the English tokeniser (declared: en-sstem-prefix5-v1)", () => {
   it("keeps codes whole, drops possessives and a code's colon ending, S-stems then prefix-cuts words", () => {
     expect(EN_TOKENISER_ID).toBe("en-sstem-prefix5-v1");
-    expect(tokeniseEn("EK11's tank, KY21:n hoses — TOIMINTA-2 on the 110 kV lines")).toEqual(["ek11", "tank", "ky21", "hose", "toiminta-2", "on", "the", "110", "kv", "line"]);
+    expect(tokeniseEn("EK11's tank, KY21:n hoses — TOIMINTA-2 on the 20 kV lines")).toEqual(["ek11", "tank", "ky21", "hose", "toiminta-2", "on", "the", "20", "kv", "line"]); // SPEC/33 (bc): the line is 20 kV
     expect(tokeniseEn("The units' fires; crews’ batteries")).toEqual(["the", "unit", "fire", "crew", "batte"]);
     expect(tokenise("Spreading south-east", "en")).toEqual(["sprea", "south"]);
   });
@@ -46,8 +46,8 @@ describe("the English tokeniser (declared: en-sstem-prefix5-v1)", () => {
   });
 
   it("leaves the Finnish tokeniser unchanged", () => {
-    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 110 kV voimajohdon")).toEqual(["toiminta-2", "ky21", "l1", "110", "kv", "voima"]);
-    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 110 kV voimajohdon", "fi")).toEqual(tokenise("TOIMINTA-2: KY21:n L1:lle, 110 kV voimajohdon"));
+    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 20 kV sähkölinjan")).toEqual(["toiminta-2", "ky21", "l1", "20", "kv", "sähkö"]); // SPEC/33 (bc): the line is 20 kV
+    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 20 kV sähkölinjan", "fi")).toEqual(tokenise("TOIMINTA-2: KY21:n L1:lle, 20 kV sähkölinjan"));
   });
 });
 

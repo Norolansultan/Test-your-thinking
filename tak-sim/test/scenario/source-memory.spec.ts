@@ -118,8 +118,8 @@ describe("the source-memory facts (SPEC/30 §5.5, `31` F17)", () => {
 
   it("an AI answer stating a fact in passing is detected; one naming the topic without the fact is not", () => {
     const rate = SOURCE_MEMORY_FACTS.find((f) => f.id === "head_rate_1420")!;
-    expect(statesFact("DR1:n mukaan kärki eteni klo 14.00–14.20 noin 10,6 m/min koilliseen.", rate, "fi")).toBe(true);
-    expect(statesFact("The head was moving at about 10.6 m/min towards the north-east.", rate, "en")).toBe(true);
+    expect(statesFact("DR1:n mukaan kärki eteni klo 14.00–14.20 noin 10,8 m/min koilliseen.", rate, "fi")).toBe(true);
+    expect(statesFact("The head was moving at about 10.8 m/min towards the north-east.", rate, "en")).toBe(true);
     expect(statesFact("Kärki eteni noin 7,1 m/min.", rate, "fi")).toBe(false);
     const cabins = SOURCE_MEMORY_FACTS.find((f) => f.id === "cabins_nw")!;
     expect(statesFact("The Lakeside Cottages are 2.1 km north-west of the head.", cabins, "en")).toBe(true);

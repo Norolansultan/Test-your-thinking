@@ -166,7 +166,7 @@ describe("revision (al), 10 Oct 2026: what each Thinker cell's text says it know
   it("the practice tour describes the four sectors by terrain only, and asks the participant to zoom in to see the fire", () => {
     for (const [lines, lang] of [[SECTORS_FI, "fi"], [SECTORS_EN, "en"]] as const) {
       expect(lines.map((l) => l.slice(0, 2))).toEqual(["L1", "L2", "L3", "L4"]);
-      for (const l of lines) expect(l).not.toMatch(/110 kV|voimajohto|power line|vesipiste|water point|W\d/i);
+      for (const l of lines) expect(l).not.toMatch(/(?:110|20) kV|voimajohto|sähkölinj|power line|vesipiste|water point|W\d/i);
       expect(UI_TEXT[lang].tour.steps.sectors.body).toBe(lines.join("\n"));
     }
     expect(UI_TEXT.fi.tour.steps.zoom.body).toMatch(/Lähennä karttaa nähdäksesi palon/);

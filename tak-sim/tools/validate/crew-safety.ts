@@ -60,35 +60,44 @@ export interface SafetyFinding {
  */
 export const SAFETY_LINES: Readonly<Record<string, { readonly re: RegExp; readonly inStep?: number; readonly from?: string }>> = {
   // V1, 13:20 (the handover): both head crews in a direct attack on the head's sides, EK11 states the LCES for both (revision (aj)).
+  // SPEC/33 stage 8 (20 Oct 2026, the rebuilt map): EK11 on the head's left side is now downwind of the head's run too; its own line
+  // states the LCES.
+  "1:EK11": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/ },
   "1:EK12": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/, from: "EK11" },
   // V2, 13:40: direct attack on the head's left side, low flames: escape route into the black, lookout. The same assignment
   // and the same arrangement through V2–V3 (steps 3–4; revision (aj)).
   "2:EK11": { re: /^EK11: hyökkäämme kärjen vasenta laitaa suoraan/ },
+  // SPEC/33 stage 8: EK12 holds the same direct attack on the head's right side at 13:40 (16 m from the burning edge); the handover line
+  // that states both crews' LCES is in force (no move between).
+  "2:EK12": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/, inStep: 1, from: "EK11" },
   // V2 second step and V3 (steps 3–4): the esker ignition ahead of the head — EK11's 14:0x line (revision (ak): attack from the flank, not
   // from between the head and the spot).
   "3:EK11": { re: /^EK11: uusi palo harjulla/ },
   "4:EK11": { re: /^EK11: uusi palo harjulla/, inStep: 3 },
-  // V4, 14:40: the forest-fire unit's pump right at the north edge; the head crews' trigger point before the crown run (revision (aj)).
-  "5:EK14": { re: /^EK14: työskentelemme pohjoisreunalla aivan reunassa/ },
+  // V4, 14:40: the head crews' trigger point before the crown run (revision (aj)). SPEC/33 stage 8: EK14's and EK12's 14:40 findings are
+  // gone on the rebuilt map (their exemptions removed; EK14's line still states its LCES).
   "5:EK11": { re: /^EK11: kärki kiihtyy kuusikkoon/ },
-  "5:EK12": { re: /^EK11: kärki kiihtyy kuusikkoon/, from: "EK11" },
+  // SPEC/33 stage 8: V4, 15:00–15:20: KY21 on the south flank, 3 m from the crown run's burning edge, states its LCES (recorded).
+  "6:KY21": { re: /^KY21: eteläsivustalla latvapalo menee meistä koilliseen ohi\. .*perääntymistie palaneelle alueelle, tähystäjä/ },
   // V5, 15:20–15:40: EK11 back on the Koivuoja birch strip after the crown run; PP1 lands behind it (safety reviewer, HIGH).
   // It pulls back into the burned area at 15:31; at 15:42, as the fire crosses Koivuoja beside it, it reports its safety.
   "7:EK11": { re: /^EK11: pistepalo PP1 takanamme/ },
+  // SPEC/33 stage 8: V6, 15:40–16:00: EK11, at its truck after pulling back, is downwind of the brook crossing beside it; its 15:42 line.
+  "8:EK11": { re: /^EK11: palo ylitti ojan vierestämme\. Miehet siirtyivät palaneelle alueelle turvaan/ },
+  // SPEC/33 stage 8: V6: the backed wind moves the edge VPK mops up over its stretch; VPK steps into the black and says so (recorded).
+  "8:VPK": { re: /^VPK: tuulen kääntyessä reuna lähti kohdallamme liikkeelle\. Siirryimme palaneelle alueelle/ },
   // V7, 16:20: EK14 back from the radio dead zone (F3) takes the new line on the flank that ran at 16:00–16:20; it says where it
   // waited and that all are accounted for (revision (aj): it withdrew into the black at 15:40, so steps 8–9 have no finding).
   "10:EK14": { re: /^EK14: yhteys palasi/ },
-  // V8, 16:40: EK15's firebreak on the north edge, downwind of the stretch that ran before the lull (revision (aj)).
-  // SPEC/31 (radio, the move said as speech): "EK15: siirrymme …" (was "EK15 siirtyy … (lohko L1) (…)").
-  "11:EK15": { re: /^EK15: siirrymme pohjoisreunalle Karhujärven suuntaan, lohko L1; palokatko .*perääntymistie palaneelle alueelle, tähystäjä nimetty/ },
-  // V12, 18:20–19:00: the road lines ahead of the south-east front — KY21's trigger point (it leaves at 18:40), EK16's escape
-  // route along the road (stated at 18:4x, the head crosses at 19:00–19:20 and EK16 withdraws) (revision (aj)).
-  "16:KY21": { re: /^KY21: rintama lähestyy metsäautotietä/ },
-  // Revision (ak): KY21 holds the road through the stop (18:40–19:00) — the traced outline has the fire at the road's verge, so the
-  // crew on the road reads as inside it by a few metres — under the 18:26 line's LCES (sprinklers, trigger, escape route east along
-  // the road, lookout), and withdraws at 19:00 as sparks cross.
+  // SPEC/33 stage 8: V8, 16:40: KY21 and VPK on the north edge, downwind in the southerly; KY21, the sector leader, states the LCES for
+  // both (recorded). EK15's firebreak there has no finding on the rebuilt map (its exemption removed; its move still states its LCES).
+  "11:KY21": { re: /^KY21: pohjoisreunalla me ja VPK olemme reunassa kiinni.*perääntymistie palaneelle alueelle, tähystäjä nimetty/ },
+  "11:VPK": { re: /^KY21: pohjoisreunalla me ja VPK olemme reunassa kiinni.*perääntymistie palaneelle alueelle, tähystäjä nimetty/, from: "KY21" },
+  // V12, 18:40–19:00: KY21 holds the road through the stop (revision (ak)) — the traced outline has the fire at the road's verge, so the
+  // crew on the road reads as inside it by a few metres — under its 18:26 line's LCES (sprinklers, trigger, escape route north into the
+  // black, lookout), and withdraws at 19:00 as sparks cross. SPEC/33 stage 8: its 18:20 finding is gone on the rebuilt map (removed).
   "17:KY21": { re: /^KY21: rintama lähestyy metsäautotietä/, inStep: 16 },
-  // Revision (al): EK16 150 m west along the road (off the 110 kV corridor) stands ~185 m downwind of the running head already on
+  // Revision (al): EK16 150 m west along the road (off the power-line corridor) stands ~185 m downwind of the running head already on
   // the 18:40 map; the same 18:4x report (trigger point, escape route east to the log landing, lookout) covers it.
   "17:EK16": { re: /^Kärki lähestyy metsäautotietä luoteesta/ },
   // SPEC/31 D8: at 19:0x, its trigger point met, EK16 states why it stays and its LCES (escape route east, lookout, the new trigger).

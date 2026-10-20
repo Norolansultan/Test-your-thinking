@@ -62,8 +62,8 @@ describe("the SPAM items (round 2: answerable from the screen, tools locked)", (
         expect(inLogAt(v, id), `V${v} ${id}`).toBe(true);
       }
     }
-    expect(text(SPAM_KEY_ATOMS[3]![0]!)).toMatch(/palanut ala noin 17,8 ha/);
-    expect(keyText(3)).toBe("Noin 18 ha");
+    expect(text(SPAM_KEY_ATOMS[3]![0]!)).toMatch(/palanut ala noin 24,3 ha/); // SPEC/33 stage 9: the rebuilt map (was 17,8)
+    expect(keyText(3)).toBe("Noin 24 ha");
     expect(text(SPAM_KEY_ATOMS[6]![0]!)).toMatch(/Koivuojan yli.*EK11 joutui vetäytymään/); // safety re-check (ah): EK11's crew in the black at 15:40
     expect(keyText(6)).toBe("Palo on ylittänyt ojan, linja on murtunut");
     expect(text(SPAM_KEY_ATOMS[8]![0]!)).toMatch(/käyttöaste ei tiedossa, poliisi pyydetty tarkistamaan/);
@@ -74,14 +74,14 @@ describe("the SPAM items (round 2: answerable from the screen, tools locked)", (
   });
 
   it("V3's key is the LATEST survey: the stale figure is a lure, and no newer area figure is in the log by V3", () => {
-    // `31` F25: the stale lure is DR3's 13.55 survey (~10 ha); the 14.15 one (12.9 ha) is V3.b's basis and is no longer an option.
-    expect(text(spamRecordId(2, /^DR3 kehäkartoitus valmis klo 13\.55: palanut ala noin 10,3 ha/))).toBeTruthy();
-    expect(SPAM_ITEMS[3]!.options).toContain("Noin 10 ha");
-    expect(SPAM_ITEMS[3]!.options).not.toContain("Noin 13 ha");
+    // `31` F25: the stale lure is DR3's 13.55 survey (~14 ha; ~10 before SPEC/33); the 14.15 one (18.3 ha) is V3.b's basis, not an option.
+    expect(text(spamRecordId(2, /^DR3 kehäkartoitus valmis klo 13\.55: palanut ala noin 13,8 ha/))).toBeTruthy();
+    expect(SPAM_ITEMS[3]!.options).toContain("Noin 14 ha");
+    expect(SPAM_ITEMS[3]!.options).not.toContain("Noin 18 ha");
     const areas = scenario.cycles.filter((c) => c.index <= 3).flatMap((c) => c.pushedAtomIds.filter((id, k) => c.index < 3 || c.deliveryOffsetsSeconds[k]! < STEP_SECONDS))
       .map(text).filter((t) => /palanut ala noin/.test(t));
-    expect(areas.at(-1)).toMatch(/17,8 ha/);
-    expect(SPAM_ITEMS[3]!.options).toEqual(["Noin 10 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"]); // a quantity, ascending
+    expect(areas.at(-1)).toMatch(/24,3 ha/);
+    expect(SPAM_ITEMS[3]!.options).toEqual(["Noin 14 ha", "Noin 24 ha", "Noin 35 ha", "Noin 45 ha"]); // a quantity, ascending
   });
 
   it("V8: nothing in the log by V8 reports the Mökkiranta cabins checked", () => {
@@ -101,7 +101,7 @@ describe("the SPAM items (round 2: answerable from the screen, tools locked)", (
         expect(atom(id).loadBearing, id).toBe(false);
       }
       const words = [SPAM_ITEMS[v]!.prompt, ...SPAM_ITEMS[v]!.options].join(" ");
-      expect(words, `V${v}`).not.toMatch(/voimajoh|110 kV|sähkö|helikop|HELI|drooni|DR\d|syttymäkoh|lämpökamer|ennuste|tuul|vesipiste|Haukilamp|W\d|Haku|Thinker|tekoäly|haku/i);
+      expect(words, `V${v}`).not.toMatch(/voimajoh|sähkölinj|(?:110|20) kV|sähkö|helikop|HELI|drooni|DR\d|syttymäkoh|lämpökamer|ennuste|tuul|vesipiste|Haukilamp|W\d|Haku|Thinker|tekoäly|haku/i);
     }
   });
 

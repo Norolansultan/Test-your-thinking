@@ -24,7 +24,7 @@ const post = (seq: number, values: Readonly<Record<string, string | null>>) => [
   rec(seq + 1, "questionnaire_submitted", { questionnaireId: "post", dwellMs: 1, answers: SOURCE_MEMORY_FACTS.map((f) => ({ itemId: sourceItemId(f.id), value: values[sourceItemId(f.id)] ?? null })) }),
 ];
 const row = (records: readonly LogRecord[], factId = RATE.id, opts = {}): SourceMemoryRow => sourceMemoryMeasures(records, opts).find((r) => r.factId === factId)!;
-const STATED_FI = "DR1:n mukaan kärki eteni klo 14.00–14.20 noin 10,6 m/min koilliseen.";
+const STATED_FI = "DR1:n mukaan kärki eteni klo 14.00–14.20 noin 10,8 m/min koilliseen.";
 
 describe("source-memory measures (SPEC/30 §5.5)", () => {
   it("one row per fact, in the facts' order, with the item id", () => {
@@ -69,7 +69,7 @@ describe("source-memory measures (SPEC/30 §5.5)", () => {
     expect(row(en, "cabins_nw", { language: "fi" }).aiStated).toBe(false);
     expect(row(en, "cabins_nw", { language: "en" }).aiStated).toBe(true);
     expect(row(en, "cabins_nw").aiStated).toBe(true); // both languages when none is given
-    expect(row([answer(5, "The head was moving at about 10.6 m/min north-east.")], RATE.id, { language: "en" }).aiStated).toBe(true);
+    expect(row([answer(5, "The head was moving at about 10.8 m/min north-east.")], RATE.id, { language: "en" }).aiStated).toBe(true);
     const question = rec(5, "ai_chat_answer_received", { ...(answer(5, "Ei tietoa.").detail as object), text: STATED_FI });
     expect(row([question, ...post(10, { [ITEM]: "self" })]).aiStated).toBe(false);
     expect(aiAnswerText(answer(1, "a").detail as never)).toBe("a");

@@ -176,11 +176,11 @@ describe("designed records unchanged", () => {
     expect(byId.get("rekindle.objection")).toMatchObject({ timestamp: "16:21:05", actor: "VPK", content: "Syttymäkohdan reunalla kannot ja hakkuutähteet voivat vielä kyteä pinnan alla. Jos tuuli kääntyy, se voi syttyä uudelleen. Pitäisi tarkistaa lämpökameralla ennen kuin lähdetään." });
     expect(byId.get("rekindle.overruled")).toMatchObject({ actor: "KY21", content: "Ei ole väkeä tarkistukseen. Lohko on hallinnassa, siirrytään L1:lle." });
     expect(byId.get("t4.private_doubt")).toMatchObject({ cycle: 11, actor: "VPK", content: "Meidät käskettiin pois syttymäkohdan eteläreunalta. En ole ollenkaan varma, että vanha reuna pitää, jos tuuli kääntyy." });
-    expect(byId.get("f7.planted_record")).toMatchObject({ cycle: 8, content: "110 kV linja jännitteetön, vahvistettu." });
+    expect(byId.get("f7.planted_record")).toMatchObject({ cycle: 8, content: "20 kV linja jännitteetön, vahvistettu." }); // SPEC/33 (bc): was 110 kV
     expect(byId.get("f7.grid_record")!.cycle).toBe(6);
   });
   it("no generated record touches the power line, so nothing corrects F7", () => {
-    for (const e of LOG.filter(generated)) expect(e.content, e.id).not.toMatch(/110 kV|voimajohto|jännite/i);
+    for (const e of LOG.filter(generated)) expect(e.content, e.id).not.toMatch(/\b(?:110|20) kV|voimajohto|sähkölinj|jännite/i); // SPEC/33 (bc): the line is 20 kV
   });
 });
 

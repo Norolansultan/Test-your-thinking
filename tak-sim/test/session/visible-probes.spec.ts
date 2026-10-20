@@ -111,8 +111,8 @@ describe("the schedule: where U goes, against the view's other moments", () => {
 
   it("the backup's pairs cite real pushed reports", () => {
     const pushed = scenario.atoms.filter((a) => a.tier === "T1_pushed").map((a) => (a.record as { text?: string; content?: string }).text ?? (a.record as { content?: string }).content ?? "");
-    for (const re of [/^Pohjoisreuna leimahtanut uudelleen, havaittu uutta savua/, /^Oma linjamme pitää, ei muutosta/, /^Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon arviolta 10 m\/min/, /^DR2 lämpökuva, kaakkoisrintama.*10,1 m\/min/,
-      /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle/, /^Palon kärki ylitti metsäautotien \(Honkaharju\) klo 19\.00–19\.20 puuskissa \(12 m\/s\)/, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha/, /^SPOT: .*Palanut ala ilmasta arvioiden noin 140 ha/]) {
+    for (const re of [/^Pohjoisreuna leimahtanut uudelleen, havaittu uutta savua/, /^Oma linjamme pitää, ei muutosta/, /^Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon arviolta 10 m\/min/, /^DR2 lämpökuva, kaakkoisrintama.*11,5 m\/min/,
+      /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle/, /^Palon kärki ylitti metsäautotien \(Honkaharju\) klo 19\.00–19\.20 puuskissa \(12 m\/s\)/, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 24,3 ha/, /^SPOT: .*Palanut ala ilmasta arvioiden noin 160 ha/] /* SPEC/33 stage 9: 11,5, 24,3, 160 (were 10,1, 17,8, 140) */) {
       expect(pushed.some((t) => re.test(t)), String(re)).toBe(true);
     }
   });

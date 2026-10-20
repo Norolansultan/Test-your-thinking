@@ -44,14 +44,16 @@ describe("the projection-direction key (SPEC/16 revision (x), built in revision 
     // Revision (aj), 9 Oct 2026: with the rekindle grown out of the old edge the map's front is ~557 m from R2 at 19:40 and barely
     // closing (report-keyed ~546 m); the projection reaches ~568 m. Edges 150/450/650 keep both ≥ 40 m from an edge, in one band.
     const projected = projectedLineDistanceAt(14, 20, R2_LINE);
-    expect(projected).toBeGreaterThan(450 + 40);
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the map's fire is ~487 m from R2 (its nearest point, the old fire by the R1/R2
+    // junction) and the projection the same; edges 150/400/650 (were 150/450/650) keep it ≥ 40 m from an edge.
+    expect(projected).toBeGreaterThan(400 + 40);
     expect(projected).toBeLessThan(650 - 40);
-    expect(V14_R2.id).toBe("m450_650");
+    expect(V14_R2.id).toBe("m400_650");
     expect(V14_R2_PROJECTION).toBeNull();
     const item = scenario.freezes.find((f) => f.cycle === 14)!.items.find((it) => it.id === "freeze.14.se_front_r2")!;
     expect(item.projectionOptionId).toBeUndefined();
     const answer = (optionId: string, seq: number) => rec(seq, "freeze_submitted", { cycle: 14, responses: [{ itemId: item.id, optionId, confidence: 50 }] });
-    const reads = [...projectionChoiceReliance([answer("m450_650", 1)], scenario.freezes), ...projectionChoiceReliance([answer("gt650", 2)], scenario.freezes)];
+    const reads = [...projectionChoiceReliance([answer("m400_650", 1)], scenario.freezes), ...projectionChoiceReliance([answer("gt650", 2)], scenario.freezes)];
     expect(reads.map((r) => r.reading)).not.toContain("projection");
   });
 });

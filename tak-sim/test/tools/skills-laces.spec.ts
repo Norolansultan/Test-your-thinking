@@ -54,8 +54,9 @@ describe("D8: what counts as a stated escape route, safety zone and lookout", ()
 
 describe("D8: the crews' LCES lines reach the placements", () => {
   const R2_CREWS: Readonly<Record<number, Readonly<Record<string, string>>>> = {
-    19: { EK11: "evt.c19.008", EK12: "evt.c19.011", EK16: "evt.c19.032", KY21: "evt.c19.034", OUT1: "evt.c19.045", OUT2: "evt.c19.048", VPK: "evt.c19.050" },
-    20: { EK11: "evt.c20.007", EK12: "evt.c20.010", EK16: "evt.c20.031", KY21: "evt.c20.034", OUT1: "evt.c20.040", OUT2: "evt.c20.043", VPK: "evt.c20.045" },
+    // SPEC/33 stage 7–9 (20 Oct 2026): the generated ids of the regenerated traffic (the same crews' own statements).
+    19: { EK11: "evt.c19.008", EK12: "evt.c19.011", EK16: "evt.c19.034", KY21: "evt.c19.036", OUT1: "evt.c19.046", OUT2: "evt.c19.048", VPK: "evt.c19.050" },
+    20: { EK11: "evt.c20.007", EK12: "evt.c20.011", EK16: "evt.c20.032", KY21: "evt.c20.034", OUT1: "evt.c20.040", OUT2: "evt.c20.043", VPK: "evt.c20.044" },
   };
 
   it("gives the R2 crews at 19.20–20.00 their stated escape route and named safety zone, with the record ids", () => {
@@ -110,7 +111,7 @@ describe("D8: the crews' LCES lines reach the placements", () => {
 
 describe("D8: an item holds for the crew's posting only, and stays null where nothing is stated", () => {
   it("does not carry a stated route over a move: KY21 after its 900 m move at 16.00, EK16 after its withdrawal at 19.20", () => {
-    expect(placement(8, "KY21").escape_route_source).toBe("evt.c06.033");
+    expect(placement(8, "KY21").escape_route_source).toBe("evt.c08.030"); // SPEC/33 stage 7–9: restated at 15.5x (was the 15.1x line, evt.c06.033)
     const ky21 = placement(9, "KY21");
     expect(ky21.posting_from_cycle).toBe(9);
     expect([ky21.escape_route, ky21.safety_zone, ky21.lookout]).toEqual([null, null, null]);
@@ -120,10 +121,12 @@ describe("D8: an item holds for the crew's posting only, and stays null where no
     expect(recordById.get(ek16.escape_route_source as string)!.step).toBe(19); // restated after the move, not carried
   });
 
-  it("treats a task changed in place as a new task: EK14's 18.40 route does not carry into its mop-up at 19.00", () => {
-    expect(placement(18, "EK14").escape_route_source).toBe("evt.c18.026");
-    expect(placement(19, "EK14").task).not.toBe(placement(18, "EK14").task);
-    expect(placement(19, "EK14").escape_route).toBeNull();
+  // SPEC/33 stage 7–9 (20 Oct 2026): on the regenerated traffic EK14's task changes in place at 18.40 (mop-up → pump attack on the
+  // north edge) and it states no route in that step, so the example moves one step earlier (was its 18.40 route not carried into 19.00).
+  it("treats a task changed in place as a new task: EK14's 18.20 route does not carry into its pump attack at 18.40", () => {
+    expect(placement(17, "EK14").escape_route_source).toBe("evt.c17.024");
+    expect(placement(18, "EK14").task).not.toBe(placement(17, "EK14").task);
+    expect(placement(18, "EK14").escape_route).toBeNull();
   });
 
   it("keeps null for a crew that never states one: the water shuttle EK13", () => {

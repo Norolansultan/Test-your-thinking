@@ -17,7 +17,7 @@ import { stubEmbedder } from "../retrieval/stub-embedder.js";
 
 const V6_START = scenario.cycles.find((c) => c.index === 6)!.startsAtVirtual;
 const BASE = { sessionId: "en-1", condition: "substitutive", view: 6, virtualTimeS: V6_START, cell: "reasoning_once" };
-const FI_Q = "onko 110 kV linja jännitteetön?"; // an authored question: its frozen vector exists
+const FI_Q = "onko 20 kV linja jännitteetön?"; // an authored question: its frozen vector exists (SPEC/33 (bc): was 110 kV)
 
 function deps(over: Partial<ThinkerDeps>, logs: Record<string, unknown>[] = []): ThinkerDeps {
   return {
@@ -80,7 +80,7 @@ describe("the handler by language", () => {
 
   it("a lexical-only proxy retrieves an English question over the English passages", async () => {
     const logs: Record<string, unknown>[] = [];
-    const res = await handleThinkerRequest(deps({ vector: null }, logs), { ...BASE, question: "Is the 110 kV line de-energised?", language: "en" });
+    const res = await handleThinkerRequest(deps({ vector: null }, logs), { ...BASE, question: "Is the 20 kV line de-energised?", language: "en" });
     expect(res.status).toBe(200);
     if (res.status !== 200) return;
     expect(res.body).toMatchObject({ retrievalMode: "lexical_only", retrievalLanguage: "en" });
@@ -92,7 +92,7 @@ describe("the handler by language", () => {
     const file = JSON.parse((await buildIndexText(scenario.atoms, stubEmbedder, "en", 26)).text) as VectorIndexFile;
     const logs: Record<string, unknown>[] = [];
     const d = deps({ vector: { embedder: stubEmbedder, index: vectorIndexOf({ ...file, language: "fi", atoms: [] }) }, vectorEn: { embedder: stubEmbedder, index: vectorIndexOf(file) } }, logs);
-    const res = await handleThinkerRequest(d, { ...BASE, question: "Is the 110 kV line de-energised?", language: "en" });
+    const res = await handleThinkerRequest(d, { ...BASE, question: "Is the 20 kV line de-energised?", language: "en" });
     expect(res.status).toBe(200);
     if (res.status !== 200) return;
     expect(res.body).toMatchObject({ retrievalMode: "hybrid", retrievalLanguage: "en" });

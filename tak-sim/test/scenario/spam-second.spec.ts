@@ -53,19 +53,21 @@ describe("the second SPAM items (SPEC/30 §5.2)", () => {
     }
   });
 
-  it("V3: DR3's 14.15 survey (recorded: reached only with the tools) against its pushed 14.35 survey — nearly twice as much new area", () => {
+  it("V3: DR3's 14.15 survey (recorded: reached only with the tools) against its pushed 14.35 survey — about a third more new area (SPEC/33 stage 9: 4,4 → 6,0 ha; was nearly twice)", () => {
     const [before, latest] = SPAM_SECOND_KEY_ATOMS[3]!;
     expect(atom(before!).tier).not.toBe("T1_pushed");
     expect(inLogAt(3, latest!)).toBe(true);
     const newHa = (id: string) => Number(/(\d+,\d) ha uutta/.exec(text(id))![1]!.replace(",", "."));
-    expect(newHa(latest!) / newHa(before!)).toBeGreaterThan(1.6);
-    expect(newHa(latest!) / newHa(before!)).toBeLessThan(2.2);
-    expect(keyText(3)).toBe("Kiihtynyt, uutta alaa lähes kaksi kertaa enemmän");
+    expect(newHa(latest!) / newHa(before!)).toBeGreaterThan(1.2);
+    expect(newHa(latest!) / newHa(before!)).toBeLessThan(1.5);
+    expect(keyText(3)).toBe("Kiihtynyt, uutta alaa noin kolmanneksen enemmän");
   });
 
-  it("`31` F04, F18: V6 — R1 south of Kuivakangas in DR2's two latest road reports on hand, 15.28 'no flames, passable' then 15.47 'low fire at the verge, with care': the fire is back at the verge — the key; both recorded only (retrieval-dependent)", () => {
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): both of DR2's latest reports (15.27, 15.47) now read "low fire at the verge, with
+  // care", so the key is "no change"; the stale change (no flames at 15.07) and the V2-time "not safe" are the lures.
+  it("`31` F04, F18: V6 — R1 south of Kuivakangas in DR2's two latest road reports on hand, 15.27 and 15.47, both 'low fire at the verge, with care': no change — the key; both recorded only (retrieval-dependent)", () => {
     const [before, latest] = SPAM_SECOND_KEY_ATOMS[6]!;
-    expect(text(before!)).toMatch(/tie R1 Kuivakankaan eteläpuolella, palanut alue tien reunassa — ei liekkejä, ajettavissa/);
+    expect(text(before!)).toMatch(/tie R1 Kuivakankaan eteläpuolella, palo noin 10 m tiestä — matalaa paloa tien reunassa.*ajettavissa varoen/);
     expect(text(latest!)).toMatch(/tie R1 Kuivakankaan eteläpuolella, .*matalaa paloa tien reunassa.*ajettavissa varoen/);
     for (const id of [before!, latest!]) {
       expect(atom(id).tier, id).not.toBe("T1_pushed");
@@ -75,8 +77,8 @@ describe("the second SPAM items (SPEC/30 §5.2)", () => {
     expect(r1(7).map((t) => t.id)).toEqual([before]);
     expect(r1(8).map((t) => t.id)).toEqual([latest]); // the latest reachable at the item's moment (V6's first step)
     expect(SPAM_SECOND_ITEMS[6]!.prompt).toMatch(/tien R1 tila Kuivakankaan eteläpuolella/); // F18: the stretch is named
-    expect(keyText(6)).toBe("Paloa on taas tien reunassa, ajettavissa vain varoen");
-    expect(SPAM_SECOND_ITEMS[6]!.options).toContain("Liekit ovat sammuneet, tie on taas ajettavissa"); // the stale change (true at 15.28): the lure
+    expect(keyText(6)).toBe("Ei muutosta, matalaa paloa tien reunassa, ajettavissa varoen");
+    expect(SPAM_SECOND_ITEMS[6]!.options).toContain("Liekit ovat sammuneet, tie on taas ajettavissa"); // the stale change (true at 15.07): the lure
     expect(RETRIEVAL_DEPENDENT_PROBE_IDS).toEqual(["probe.s.cycle_6.b"]);
   });
 
@@ -92,7 +94,7 @@ describe("the second SPAM items (SPEC/30 §5.2)", () => {
         expect(atom(id).loadBearing, id).toBe(false);
       }
       const words = [SPAM_SECOND_ITEMS[v]!.prompt, ...SPAM_SECOND_ITEMS[v]!.options].join(" ");
-      expect(words, `V${v}`).not.toMatch(/voimajoh|110 kV|sähkö|helikop|HELI|drooni|DR\d|syttymäkoh|lämpökamer|ennuste|tuul|vesipiste|Haukilamp|W\d|Haku|Thinker|tekoäly|haku/i);
+      expect(words, `V${v}`).not.toMatch(/voimajoh|sähkölinj|(?:110|20) kV|sähkö|helikop|HELI|drooni|DR\d|syttymäkoh|lämpökamer|ennuste|tuul|vesipiste|Haukilamp|W\d|Haku|Thinker|tekoäly|haku/i);
       expect(words, `V${v}`).not.toMatch(/kaakko|Lahdenkyl|\bR2\b|Honkaharju|Rahkasuo|uudelleen|kyte|Mökkiran/i);
     }
   });

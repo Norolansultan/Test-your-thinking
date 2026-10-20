@@ -12,7 +12,7 @@ import type { ExconEvent, ExconEventKind, ExconWorld } from "./world.js";
 
 export const EVENT_GLYPH: Readonly<Record<ExconEventKind, { readonly letter: string; readonly color: string; readonly label: string }>> = {
   intent: { letter: "I", color: "#8b949e", label: "P2 intent" },
-  f7: { letter: "F7", color: "#d2a8ff", label: "F7 (110 kV)" },
+  f7: { letter: "F7", color: "#d2a8ff", label: "F7 (20 kV)" },
   rekindle: { letter: "R", color: "#ffa657", label: "rekindle arc" },
   t4: { letter: "T4", color: "#79c0ff", label: "load-bearing T4" },
   hinge: { letter: "H", color: "#f0f6fc", label: "hinge" },

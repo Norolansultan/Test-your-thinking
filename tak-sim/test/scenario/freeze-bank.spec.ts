@@ -12,7 +12,7 @@ import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
 import { UNIT_PLAN } from "../../tools/fire-ca/deployment.js";
 import {
   cardinalOf, deliveredAreaAt, detachedFrontToLineM, distanceM, distanceToLineM, firstDetachedFrontAfter, headNow, inPolygon, liveFrontToLineM, R1_LINE, R2_LINE, reportedAreaAt, reportedAreaHa,
-  reportedDetachedClosingAt, reportedDetachedToLineM, reportedGrowthHa, sectorOf, siteStep, truthHeadAtEndOf, unitsByDistanceToHead,
+  reportedDetachedClosingAt, reportedDetachedToLineM, reportedGrowthHa, sectorOf, siteStep, trafficId, truthHeadAtEndOf, unitsByDistanceToHead,
 } from "../../app/scenario/freeze-keys.js";
 import { arrangeOptions, minutesAhead, nowStepOf } from "../../app/scenario/freeze-bank-core.js";
 import { FREEZE_BANK, PRACTICE_BANK, V2_AREA, V2_JUNCTION, V5_AREA } from "../../app/scenario/freeze-bank.js";
@@ -76,14 +76,14 @@ describe("the computed rules", () => {
   it("VP: the head needs over an hour to reach R1 (≈340 m at the drawn 3.5 m/min), and the CA head is at R1 by 13:20", () => {
     expect(distanceToLineM(headNow(-3), R1_LINE)).toBeGreaterThan(300);
     expect(key(0, "r1_arrival")).toBe("gt60");
-    expect(distanceToLineM(headNow(1), R1_LINE)).toBeLessThan(50);
+    expect(distanceToLineM(headNow(1), R1_LINE)).toBeLessThan(75); // SPEC/33 stage 9: the 13:20 head is ~53 m past R1 on the rebuilt map (DR1 "noin 50 m")
   });
 
   it("V2 ek11_between (`31` F10): EK11 works on the esker by the new ignition, nearest the head, which the next unit is twice as far from", () => {
     const [a, b] = unitsByDistanceToHead(3, ["EK11", "EK12", "EK14", "KY21", "VPK"]);
     expect(a!.unit).toBe("EK11");
     expect(b!.m).toBeGreaterThan(2 * a!.m);
-    expect(CYCLE_STORY[3 as CycleIndex].bubbles[0]!.text).toMatch(/^Uusi savu Kuivakankaan harjulla, noin 150 m kärjestä/);
+    expect(CYCLE_STORY[3 as CycleIndex].bubbles[0]!.text).toMatch(/^Uusi savu Kuivakankaan harjulla, noin 100 m kärjestä/); // SPEC/33 stage 9: was 150 m
     expect(key(2, "ek11_between")).toBe("between");
   });
 
@@ -93,12 +93,12 @@ describe("the computed rules", () => {
   });
 
   it("V14 se_front_r2 (`31` F02): 20 minutes from 20.00 the front is still hundreds of metres from R2, past twice the sprinklers' trigger; the retired 450–650 m band stays computed", () => {
-    expect(V14_SPRINKLERS).toMatchObject({ key: "not_yet", nearest: 550, trigger: 100 });
+    expect(V14_SPRINKLERS).toMatchObject({ key: "not_yet", nearest: 500, trigger: 100 }); // SPEC/33 stage 9: KY21 19.47 (was 550, EK11 19.43)
     expect(V14_SPRINKLERS.at20).toBeGreaterThan(2 * V14_SPRINKLERS.trigger);
     expect(key(14, "se_front_r2")).toBe("not_yet");
     expect(item(14, "se_front_r2")).toMatchObject({ level: "L3", goal: "containment", basisKind: "record" });
     expect(item(14, "se_front_r2").projectionOptionId).toBeUndefined();
-    expect(V14_R2.id).toBe("m450_650"); // the band the step-20 lines state: what made the old item answerable by recall
+    expect(V14_R2.id).toBe("m400_650"); // SPEC/33 stage 9 (was m450_650): the band the step-20 lines state: what made the old item answerable by recall
     expect(liveFrontToLineM(20, R2_LINE)).toBeLessThan(liveFrontToLineM(19, R2_LINE));
   });
 
@@ -124,7 +124,7 @@ describe("the computed rules", () => {
   });
 
   it("V10 (now 17.40, the view's end): the reports put the south front 700–1000 m from R2 in an hour and 20 minutes, as the CA does; the cabins are 1.5–2.5 km from the fire now", () => {
-    expect(key(10, "front_r2_80")).toBe("m700_1000");
+    expect(key(10, "front_r2_80")).toBe("m650_950"); // SPEC/33 stage 9: bands 350/650/950 (were 400/700/1000)
     expect(item(10, "front_r2_80").promptFi).toMatch(/tunnin ja 20 minuutin kuluttua/);
     expect(reportedDetachedClosingAt(13, 15, R2_LINE)).toBeGreaterThan(1000); // the hour item's key was the recalled band
     expect(cardinalOf(96)).toBe("east");
@@ -282,17 +282,20 @@ describe("no L3 key is stated by a record on hand before the freeze (fix pass 5,
       options: [["lt150", "Alle 150 metrin päässä"], ["m150_450", "150–450 metrin päässä"], ["m450_650", "450–650 metrin päässä"], ["gt650", "Yli 650 metrin päässä"]].map(([id, labelFi]) => ({ id: id!, labelFi: labelFi!, correct: id === "m450_650" })),
     };
     const hits = recallHits(14, legacy, { subject: /R2|tie/i, value: /\bpalo (?:noin )?(\d+) m/gi }).map((h) => h.id);
-    expect(hits).toEqual(expect.arrayContaining(["evt.c20.005", "evt.c20.033"])); // EK11 19.43 "palo 600 m länteen", KY21 19.52 "Palo noin 550 m päässä"
-    expect(scenario.atoms.find((a) => a.id === "evt.c20.005")!.tier).toBe("T1_pushed");
-    expect(scenario.atoms.find((a) => a.id === "evt.c20.033")!.tier).toBe("T1_pushed");
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the step-20 lines that state the band are now KY21's pushed 19.47 line ("palo noin
+    // 500 m länteen") and DR2's recorded 19.47 road report ("palo noin 500 m tiestä"); EK11's "palo 600 m länteen" is no longer generated.
+    const ky21 = trafficId(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*palo noin 500 m länteen/);
+    const dr2 = trafficId(20, /^DR2 tiehavainto: tie R2 metsäautotien risteyksessä, palo noin 500 m tiestä/);
+    expect(hits).toEqual(expect.arrayContaining([ky21, dr2]));
+    expect(scenario.atoms.find((a) => a.id === ky21)!.tier).toBe("T1_pushed");
     // The guard's source holds no control character any more.
     expect(String(CHECKS["area_hour"] && (CHECKS["area_hour"] as { value: RegExp }).value.source)).not.toMatch(/[\u0000-\u001f]/);
   });
 
   it("the report-keyed projections key with a margin from every band edge, and the fire model's truth falls in the same band (`31` §3.5 rule (5))", () => {
     for (const [name, k, id, margin] of [
-      ["V2 area_40", V2_AREA, "m15_25", 2], ["V2 junction_hour", V2_JUNCTION, "m400_700", 50], ["V5 area_hour", V5_AREA, "m110_140", 5],
-      ["V10 area_total_hour", V10_AREA, "m129_138", 2.5], ["V10 front_r2_80", V10_R2, "m700_1000", 50], ["V12 village_distance", V12_VILLAGE, "m1600_2100", 100],
+      ["V2 area_40", V2_AREA, "m20_35", 2], ["V2 junction_hour", V2_JUNCTION, "m400_700", 50], ["V5 area_hour", V5_AREA, "m140_190", 5], // SPEC/33 stage 9: re-keyed
+      ["V10 area_total_hour", V10_AREA, "m155_167", 2.5], ["V10 front_r2_80", V10_R2, "m650_950", 50], ["V12 village_distance", V12_VILLAGE, "m1600_2100", 100],
     ] as const) {
       expect(k.id, name).toBe(id);
       expect(k.margin, name).toBeGreaterThanOrEqual(margin);
@@ -355,7 +358,7 @@ describe("the cited keys hold against the data", () => {
     expect(keys(2, "ek11_between")).toEqual(["atom.radio.3.0"]);
     expect(keys(4, "ek12_where")).toEqual(["atom.radio.6.1"]);
     expect(keys(4, "head_unattended")).toEqual(["atom.radio.6.0", "atom.radio.6.1"]);
-    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.1", "atom.radio.7.2"]);
+    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.1"]); // SPEC/33 stage 9: the Korpioja crossing only (the Kuusimäki road crossing is gone)
     expect(keys(7, "ky21_where")).toEqual(["atom.radio.10.3"]);
     expect(keys(7, "north_help")).toEqual(["atom.radio.10.3", "atom.radio.10.4", "atom.radio.10.1"]);
     expect(keys(14, "shift_change")).toEqual(["atom.radio.19.3", "atom.radio.19.1"]); // the relief on the line (EK11 shift change 19.3, VPK move 19.1)
@@ -453,7 +456,7 @@ describe("the numeric L3 keys are REPORT-keyed (fix pass 6, D4) on DELIVERED rep
     expect(siteStep(6).areaHa - siteStep(5).areaHa).toBeGreaterThan(3 * (reportedAreaHa(5) - reportedAreaHa(4)));
     expect(Number.isFinite(delivered)).toBe(true);
     // At V10's two hours the reports and the CA were two bands apart; at 80 minutes they agree (`front_r2_80`).
-    const bandIx = (v: number) => [400, 700, 1000].filter((e) => v >= e).length;
+    const bandIx = (v: number) => [350, 650, 950].filter((e) => v >= e).length; // SPEC/33 stage 9: the re-keyed edges
     expect(bandIx(reportedDetachedClosingAt(13, 19, R2_LINE))).not.toBe(bandIx(detachedFrontToLineM(19, R2_LINE)));
     expect(bandIx(reportedDetachedClosingAt(13, 17, R2_LINE))).toBe(bandIx(detachedFrontToLineM(17, R2_LINE)));
   });

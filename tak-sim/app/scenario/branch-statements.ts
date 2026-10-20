@@ -65,8 +65,12 @@ export const BRANCH_OMISSION_VIEW = 9;
 export const BRANCH_SPECS: Readonly<Record<number, readonly [BranchSpec, BranchSpec, BranchSpec, BranchSpec]>> = {
   1: [{ kind: "dir", sectors: ["NE"], m: 100 }, { kind: "dir", sectors: ["SW"], m: 100 }, { kind: "growth", ha: 10 }, { kind: "stalls" }],
   2: [{ kind: "dir", sectors: ["NE"], m: 300 }, { kind: "dir", sectors: ["W"], m: 300 }, { kind: "growth", ha: 20 }, { kind: "stalls" }],
-  3: [{ kind: "dir", sectors: ["NE"], m: 100 }, { kind: "dir", sectors: ["S"], m: 100 }, { kind: "growth", ha: 15 }, { kind: "new_front" }],
-  4: [{ kind: "new_front" }, { kind: "bounded", m: 300 }, { kind: "dir", sectors: ["SW"], m: 100 }, { kind: "growth", ha: 60 }],
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): V3's south advance is 101 m (grey for "S, 100 m"), so the second statement names the
+  // south-west (0 m, false). V4: the crown run's spots merge with the head by 15:20 (no new front in the CA, while the 15:20 map draws
+  // two spots: grey by construction, as in V2, V5, V6), and its growth is 45 ha (grey for 60 ha): the true statement is the head's
+  // run north-east (~1040 m, over 1.15 × 600 m, every other sector ≤ 523 m), the growth one 100 ha (false). Were "S, 100 m"; new front, 60 ha.
+  3: [{ kind: "dir", sectors: ["NE"], m: 100 }, { kind: "dir", sectors: ["SW"], m: 100 }, { kind: "growth", ha: 15 }, { kind: "new_front" }],
+  4: [{ kind: "dir", sectors: ["NE"], m: 600 }, { kind: "bounded", m: 300 }, { kind: "dir", sectors: ["SW"], m: 100 }, { kind: "growth", ha: 100 }],
   5: [{ kind: "bounded", m: 300 }, { kind: "stalls" }, { kind: "dir", sectors: ["E"], m: 300 }, { kind: "dir", sectors: ["S"], m: 300 }],
   6: [{ kind: "dir", sectors: ["N", "NW"], m: 200 }, { kind: "dir", sectors: ["E", "SE"], m: 200 }, { kind: "growth", ha: 100 }, { kind: "stalls" }],
   // 8 Oct 2026 fire retune: V7's furthest advance is 71 m (grey for "stalls" and "bounded"), growth 4.9 ha.

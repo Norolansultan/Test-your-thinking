@@ -242,7 +242,7 @@ export function plantedFalseValueHeld(
 
 // ---------------------------------------------------------------------------
 // Exposure to the planted record (fix pass 6, H9): did the participant meet the planted false record (step 8:
-// "110 kV linja jännitteetön, vahvistettu."), and also the grid operator's own record that contradicts it (step 6: the line
+// "20 kV linja jännitteetön, vahvistettu." (110 kV before SPEC/33 (bc))), and also the grid operator's own record that contradicts it (step 6: the line
 // is live, de-energising only requested), before the V12 freeze was shown? Read from the same arrivals as `freezeItemExposure`
 // (a pushed bubble, a Haku result, a Thinker retrieval); a retrieval is not proof it was read.
 // ---------------------------------------------------------------------------

@@ -35,7 +35,7 @@ describe("Thinker in English", () => {
     const virtualTimeS = scenario.cycles.find((c) => c.index === 6)!.startsAtVirtual;
     const result = await handleThinkerRequest(
       { scenario, vector: null, prompt: loadSystemPrompt("fi"), promptEn: loadSystemPrompt("en"), client: null, appendLog: async (_s, l) => { lines.push(l); }, nowMs: () => 0, nowIso: () => "t" },
-      { ...base, virtualTimeS, question: "110 kV power line", language: "en" },
+      { ...base, virtualTimeS, question: "20 kV power line", language: "en" }, // SPEC/33 (bc): was 110 kV
     );
     expect(result.status).toBe(200);
     if (result.status !== 200) return;
@@ -53,7 +53,7 @@ describe("Thinker in English", () => {
 
   it("answers the fallback template in English", () => {
     const a = templateThinkerAnswer([toRenderable(atom)], "en");
-    expect(a.vastaus).toContain("110 kV power line");
+    expect(a.vastaus).toContain("20 kV power line"); // SPEC/33 (bc): was 110 kV
     expect(a.perusteet).toMatch(/ at \d\d\.\d\d/);
     expect(templateThinkerAnswer([], "en").vastaus).toMatch(/^No hits/);
   });

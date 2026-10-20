@@ -6,7 +6,7 @@
  *
  * Draft goal set (before a proper GDTA with rescue officers, which comes later):
  * - safety: crew positions against the fire, escape routes, spotting, crown-fire danger, fatigue;
- * - values: the Mökkiranta cabins, Lahdenkylä village, the 110 kV line;
+ * - values: the Mökkiranta cabins, Lahdenkylä village, the 20 kV line (110 kV before SPEC/33 (bc));
  * - containment: the head, the flanks, lines holding, wind, fuel ahead;
  * - resources: water points, roads, arrivals, availability.
  *

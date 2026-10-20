@@ -24,7 +24,7 @@ describe("the generated item table (`31` F22)", () => {
     for (const r of rows.filter((x) => x.includes("| L3 |"))) expect(r, r.slice(0, 40)).toMatch(/\| (record|map|knowledge|ca_truth) \|/);
     const row = (view: string, slug: string) => rows.find((r) => r.startsWith(`| ${view} | \`${slug}\``))!;
     expect(row("V4", "ek12_where")).toContain("Tiellä R1 palaneella alueella");
-    expect(row("V10", "area_total_hour")).toContain("129–138");
+    expect(row("V10", "area_total_hour")).toContain("155–167"); // SPEC/33 stage 9: re-keyed on the rebuilt map (was 129–138)
     expect(row("V12", "village_distance")).toContain("1600–2100");
     expect(row("V14", "se_front_r2")).toContain("| 21–21 |");
     expect(row("V14", "flare_next")).toBeDefined();

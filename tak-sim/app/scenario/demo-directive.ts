@@ -283,9 +283,12 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
   8: {
     aligned: PHASE_B, againstSecondaryTaskId: AGAINST_SECONDARY, sound: null, fit: "neutral",
     // 8 Oct 2026 (the re-tuned fire model): the north edge runs 3.5 m/min at 16:20–16:40 (was 1.8); V8 stays unscored.
-    basis: "16:40, the lull: no movement on the head's south flank, hot stumps dug out, the edge dying slowly (EK12; the crew reports only its own stretch, FF1); the north edge creeps ~3.5 m/min (DR3, recorded); nothing to decide the posture on — not scored",
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): EK12's 16:42 line is recorded now (it was pushed), so VPK's pushed 16:42 line —
+    // holding the north edge with hand tools while the basin comes — carries the pushed basis.
+    basis: "16:40, the lull: no movement on the head's south flank, hot stumps dug out, the line held (EK12, recorded; the crew reports only its own stretch, FF1); on the north edge VPK holds the edge with hand tools while its water is low (VPK, pushed); the north edge creeps ~3.5 m/min (DR3, recorded); nothing to decide the posture on — not scored",
     basisAtomIds: [
       recordAtomId(11, /^EK12, kärki, eteläsivusta: reunalla ei liikettä, kuumia kantoja kaivetaan auki/),
+      recordAtomId(11, /^VPK täällä pohjoisreuna, Karhujärven puoli\. Vettä säiliössä enää noin \d+ %.*pidämme reunaa käsityökaluin/),
       recordAtomId(11, /^DR3 mittaus: pohjoisreunan etenemä \d+ m klo 16\.20–16\.40/),
     ],
   },
@@ -345,7 +348,7 @@ export const DIRECTIVE_KEYS: Readonly<Record<number, DirectiveKey | null>> = {
     basis: `19:00–19:20: the forest road stopped the fire over ~${recordFigure(18, /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle klo 18\.40–19\.00 noin (\d+) metrin matkalta/)} m in 18.40–19.00 (KY21, which held that stretch until 19:00 — revision (ak); pushed; the re-tuned fire model of 8 Oct 2026 restores the stop), the head pressing it at ~${recordFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin (\d+,\d) m\/min/)} m/min with flames ${recordFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: .*liekit (\d+(?:,\d+)?–\d+) m/)} m (DR2 thermal 19.05, pushed; round 2: the lines are on the roads); the directive names no line, so it still fits: the next barrier (service road R2) or protecting Lahdenkylä, in the head's sector (${headSectors(18).join(" or ")}, within 50 m of its boundary; fix pass 2)${BURNOUT_IN_LINE}`,
     basisAtomIds: [
       recordAtomId(18, /^Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle klo 18\.40–19\.00/),
-      recordAtomId(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin 10,1 m\/min/), // revision (aj): 10,1 (was 10,6)
+      recordAtomId(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin 11,5 m\/min/), // SPEC/33 stage 9 (20 Oct 2026): 11,5 on the rebuilt map (was 10,1; revision (aj): 10,6 before)
     ],
   },
   // Round 2 (researcher decision 5 Oct 2026): a late no-fit view (SPEC/27 §7.4 candidate (ii)), which

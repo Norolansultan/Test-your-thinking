@@ -2,10 +2,11 @@
  * The two designed content events, as authored corpus atoms — SYNTHETIC PLACEHOLDER CONTENT: every
  * Finnish text here is a DRAFT for native-speaker and domain review (`content/demo/README.md`).
  *
- * 1. Fault F7, the planted false record (SPEC/02 revision (o) §5, SPEC/18 §10). The 110 kV line
- *    (V4) is live for the whole incident. At step 6 the grid operator's control room records that
+ * 1. Fault F7, the planted false record (SPEC/02 revision (o) §5, SPEC/18 §10). The power line — a 20 kV distribution line on
+ *    wooden poles since SPEC/33 (bc), 20 Oct 2026 (was 110 kV) — (V4) is live for the whole incident. At step 6 the regional
+ *    distribution company's control room records that
  *    it is still energised and that de-energising has been requested (load-bearing). At step 8
- *    the command-post operator logs the request as done: "110 kV linja jännitteetön, vahvistettu."
+ *    the command-post operator logs the request as done: "20 kV linja jännitteetön, vahvistettu."
  *    It is never corrected, and no record anywhere confirms de-energisation. Later traffic still
  *    treats the line as a hazard. The truth is the invariant `F7_TRUTH_INVARIANT` ("live").
  * 2. The rekindle arc (SPEC/26 §5; revised 2 Oct 2026: no shower, the rekindle is at the origin). At
@@ -29,7 +30,7 @@ import { DESIGNED_EVENT_IDS, type Consequence, type EventType, type ExpectedInva
 import { STEP_SECONDS } from "./views.js";
 
 /** Non-unit sources (the query builder's KUKA list shows them as they are). */
-export const GRID_OPERATOR_SOURCE = "VERKKOYHTIÖ"; // the network company's control room (verkkoyhtiön käyttökeskus); generic, no real company
+export const GRID_OPERATOR_SOURCE = "VERKKOYHTIÖ"; // the regional distribution network company's control room (alueen verkkoyhtiön käyttökeskus); generic, no real company (SPEC/33 (bc): the 20 kV line's owner, not the national grid operator)
 export const COMMAND_POST_SOURCE = "JOHTOPAIKKA"; // the command-post operator, who keeps the situation log (tilannepäiväkirja)
 
 /** SPEC/02 revision (o) §5: the line's true state for the whole incident. V12's freeze item, the only one on the line, scores against it (`demo-probes.ts`). */
@@ -60,26 +61,28 @@ const SEEDS: readonly DesignedSeed[] = [
   // --- F7 -------------------------------------------------------------------------------------------
   {
     id: DESIGNED_EVENT_IDS.gridRecord, step: 6, atS: 360, source: GRID_OPERATOR_SOURCE, origin: "above", sourceClassId: "sc.experienced", nav: "vesi_reitit",
-    text: "Verkkoyhtiön käyttökeskus: 110 kV voimajohto palon itäpuolella on edelleen jännitteinen. Johdon poiskytkentää on pyydetty, tieto kytkennästä annetaan erikseen. Toistaiseksi turvaetäisyydet voimassa.",
-    keys: ["110", "kv", "voimajohto", "linja", "jännite", "verkkoyhtiö", "käyttökeskus", "poiskytkentä"],
-    queries: ["110 kV linja", "voimajohto"],
+    // SPEC/33 (bc), 20 Oct 2026: a 20 kV distribution line on wooden poles, owned by the regional distribution network company (its
+    // control room takes the request to de-energise); was "110 kV voimajohto". DRAFT Finnish for the native check.
+    text: "Alueen verkkoyhtiön käyttökeskus: 20 kV:n sähkölinja palon itäpuolella on edelleen jännitteinen. Linjan poiskytkentää on pyydetty, tieto kytkennästä annetaan erikseen. Toistaiseksi turvaetäisyydet voimassa.",
+    keys: ["20", "kv", "sähkölinja", "linja", "jännite", "verkkoyhtiö", "käyttökeskus", "poiskytkentä"],
+    queries: ["20 kV linja", "sähkölinja"],
     tierRationale: "a phone call to the command post, logged (T2); SPEC/02 revision (o) §5 — the record that contradicts F7",
     loadBearing: { description: "the grid operator's own record: the line is live and de-energising is only requested; contradicts the F7 planted record from step 8", manifestsAtCycle: 8, measureId: "f7.grid_record" },
   },
   {
     id: DESIGNED_EVENT_IDS.planted, step: 8, atS: 360, source: COMMAND_POST_SOURCE, origin: "above", sourceClassId: "sc.experienced", nav: "vesi_reitit",
-    text: "110 kV linja jännitteetön, vahvistettu.",
-    keys: ["110", "kv", "linja", "voimajohto", "jännite", "tilannepäiväkirja", "johtopaikka"],
-    queries: ["110 kV linja", "voimajohto"],
+    text: "20 kV linja jännitteetön, vahvistettu.",
+    keys: ["20", "kv", "linja", "sähkölinja", "jännite", "tilannepäiväkirja", "johtopaikka"],
+    queries: ["20 kV linja", "sähkölinja"],
     isGroundTruth: false,
     tierRationale: "SPEC/02 revision (o) §5: a data-entry error in the situation log (the request logged as confirmed); never corrected",
     loadBearing: { description: "F7: false for the whole incident; holding 'de-energised' is scored wrong and coded for H9", manifestsAtCycle: 8, measureId: "h9.f7_false_value" },
   },
   {
     id: DESIGNED_EVENT_IDS.heliLineClearance, step: 9, atS: 420, source: "HELI1", origin: "sensor", sourceClassId: "sc.sensor", nav: "vesi_reitit",
-    text: "HELI1: kauhalennot kärkeen jatkuvat. Reitti kiertää 110 kV voimajohdon, pysymme reilusti erossa johtimista emmekä pudota vettä johdon päälle.",
-    keys: ["heli1", "110", "kv", "voimajohto", "johtimet", "kauha"],
-    queries: ["HELI1 voimajohto"],
+    text: "HELI1: kauhalennot kärkeen jatkuvat. Reitti kiertää 20 kV:n sähkölinjan, pysymme reilusti erossa johtimista emmekä pudota vettä linjan päälle.",
+    keys: ["heli1", "20", "kv", "sähkölinja", "johtimet", "kauha"],
+    queries: ["HELI1 sähkölinja"],
     tierRationale: "SPEC/02 revision (o) §5: later traffic still treating the line as a hazard (recorded, not a correction)",
   },
   // --- Rekindle, step 10 (V7) -----------------------------------------------------------------------

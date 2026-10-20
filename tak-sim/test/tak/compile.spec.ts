@@ -100,7 +100,7 @@ describe("one view step's events (SPEC/28 §3–§4)", () => {
   it("units carry the roster and their task; drones their battery, track and camera", () => {
     const ek11 = of("V01", "unit").find((e) => e.uid === "TAKSIM-UNIT-EK11")!;
     expect(ek11.type).toBe("a-f-G-E-V");
-    expect(ek11.detail.remarks!.text).toBe("Pelastusyksikkö + säiliö · miehistö 1+5 · Tehtävä: Sammutus letkulinjalla · letku 260 m · vesi 64 %");
+    expect(ek11.detail.remarks!.text).toBe("Pelastusyksikkö + säiliö · miehistö 1+5 · Tehtävä: Sammutus letkulinjalla · letku 240 m · vesi 64 %"); // SPEC/33 stage 7–9: 240 m on the rebuilt map (was 260)
     const dr1 = of("V01", "aircraft").find((e) => e.uid === "TAKSIM-AIR-DR1")!;
     expect(dr1.type).toBe("a-f-A-M-H-Q");
     expect(dr1.detail.status).toEqual({ battery: 51 }); // SPEC/18 §8.2: DR1 is up at the handover on a pack at 51 %

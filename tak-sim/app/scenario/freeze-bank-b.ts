@@ -57,18 +57,21 @@ export function settlementKey(step: number): string {
 
 /**
  * V10 (now 17.40, the view's end; REPORT-keyed, D4; `31` rule (1), §3.8): the whole burnt area an hour on (18.40, the end of step 16)
- * through the reported fire the maps of V9 and V10 draw (steps 12, 13). Edges 129/138/148 (`31` §3.5: were 127/134/144, keyed at 18.20,
- * where the truth fell in another band); the map now (~128 ha) and DR3's recorded 17.35 survey (126 ha) are the lures, under 129.
+ * through the reported fire the maps of V9 and V10 draw (steps 12, 13). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 143/155/167
+ * (were 129/138/148, where both the reports' ~158 ha and the truth's ~164 ha fell in the open top band); both now in 155–167; the map now
+ * (~154 ha) and DR3's recorded 17.35 survey (153.6 ha) are the lures, in 143–155.
  */
-export const V10_AREA = keyBand(deliveredAreaAt(12, 13, 16), [129, 138, 148], ["lt129", "m129_138", "m138_148", "gt148"], 2.5, "V10 area_total_hour", { value: siteStep(16).areaHa, minMargin: 2.5 });
+export const V10_AREA = keyBand(deliveredAreaAt(12, 13, 16), [143, 155, 167], ["lt143", "m143_155", "m155_167", "gt167"], 2.5, "V10 area_total_hour", { value: siteStep(16).areaHa, minMargin: 2.5 });
 
 /**
  * V10 (REPORT-keyed, D4; `31` §3.8): the south front's distance to service road R2 an hour and 20 minutes on from the view's end (19.00,
  * the end of step 17): the map shows the front first at step 13 and DR2's pushed line gives it as "runsaan kilometrin päässä"; the drawn
  * head rate of step 13, taken as closing straight on the road, gives the key (`reportedDetachedClosingAt`). Two hours on (19.40) the CA
- * front is ~550 m from R2 while the reports give ~785 m (two bands apart); 80 minutes on the two agree. "Over a kilometre" is the lure.
+ * front is ~550 m from R2 while the reports give ~785 m (two bands apart); 80 minutes on the two agree. SPEC/33 stage 9 (20 Oct 2026, the
+ * rebuilt map): edges 350/650/950 (were 400/700/1000, where the truth's ~746 m lay 46 m from the 700 m edge); the reports give ~869 m and
+ * the truth ~746 m, both in 650–950. "Runsaan kilometrin" (~1.3 km at 17.20, over 950 m) is the lure.
  */
-export const V10_R2 = keyBand(reportedDetachedClosingAt(13, 17, R2_LINE), [400, 700, 1000], ["lt400", "m400_700", "m700_1000", "gt1000"], 50, "V10 front_r2_80", { value: detachedFrontToLineM(17, R2_LINE), minMargin: 50 });
+export const V10_R2 = keyBand(reportedDetachedClosingAt(13, 17, R2_LINE), [350, 650, 950], ["lt350", "m350_650", "m650_950", "gt950"], 50, "V10 front_r2_80", { value: detachedFrontToLineM(17, R2_LINE), minMargin: 50 });
 
 /** The band the CA fire's distance to a settlement falls in at the end of `step` (`31` F11: ascending bands, no "already there"). */
 function distanceBandKey(feature: string, step: number): string {
@@ -90,28 +93,31 @@ export const V12_VILLAGE = keyBand(deliveredPointDistanceAt(16, 17, 19, F["VILLA
  * The retired V14 `se_front_r2` band (fix pass 7 → revision (aj)): the map's fire 20 minutes on from 19.40, 450–650 m from R2 — the band
  * the pushed step-20 road-crew lines state ("palo 600 m länteen", "Palo noin 550 m päässä"), so the item was answerable by recall (`31`
  * F02; the repaired recall guard in `freeze-bank.spec.ts` finds both). No item keys on it since `31`; kept for the projection reading's
- * check (`test/scenario/open-items-fixpass7.spec.ts`).
+ * check (`test/scenario/open-items-fixpass7.spec.ts`). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 150/400/650 (were 150/450/650,
+ * where the map's ~487 m lay 37 m from the 450 m edge); the pushed step-20 line now states ~500 m (KY21 19.47), inside 400–650.
  */
-const V14_R2_EDGES = [150, 450, 650] as const;
-const V14_R2_IDS = ["lt150", "m150_450", "m450_650", "gt650"] as const;
+const V14_R2_EDGES = [150, 400, 650] as const;
+const V14_R2_IDS = ["lt150", "m150_400", "m400_650", "gt650"] as const;
 export const V14_R2 = bandOf(reportedLineDistanceAt(20, 20, R2_LINE), V14_R2_EDGES, V14_R2_IDS, 40, "V14 se_front_r2 (retired band)");
 export const V14_R2_PROJECTION = projectionOptionFor(projectedLineDistanceAt(14, 20, R2_LINE), V14_R2.id, V14_R2_EDGES, V14_R2_IDS, 40, "V14 se_front_r2 (retired band)");
 
 /**
  * V14 `se_front_r2` (`31` F02, §3.8; REPORT-keyed, no truth after 20.00): the consequence for R2's sprinkler lines 20 minutes on from the
- * view's end. The nearest distance the pushed step-20 lines give (KY21 19.52, EK11 19.43) less the fastest pushed rate of the south-east
- * front (DR2 19.05) times 20 minutes, against the trigger EK11's line states (water on when the fire is ~100 m away): a key only when the
- * front is still at least twice the trigger away (else the build fails: re-author).
+ * view's end. The nearest distance the pushed step-20 lines give (KY21 19.47, OUT1 19.52) less the fastest pushed rate of the south-east
+ * front (DR2 19.05) times 20 minutes, against the trigger KY21's line states (water on when the fire is ~100 m away): a key only when the
+ * front is still at least twice the trigger away (else the build fails: re-author). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): EK11's
+ * step-20 "ei omaa reunaa, palo … m länteen" line is no longer generated (it reports the cancelled burnout instead), so OUT1's pushed line
+ * gives the second distance and KY21's own line the trigger.
  */
 export const V14_SPRINKLERS = (() => {
   const ky21 = trafficFigure(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*palo noin (\d+) m länteen/);
-  const ek11 = trafficFigure(20, /^EK11, R2:n ja metsäautotien risteys: ei omaa reunaa, palo (\d+) m länteen/);
+  const out1 = trafficFigure(20, /^OUT1, tie R2: ei omaa reunaa, palo (\d+) m luoteeseen/);
   const rate = trafficFigure(18, /^DR2 lämpökuva, kaakkoisrintama klo 19\.05: reuna etenee kaakkoon noin (\d+,\d) m\/min/);
-  const trigger = trafficFigure(20, /^EK11, R2:n ja metsäautotien risteys: .*vesi kytketään altaasta kun palo on noin (\d+) m päässä/);
-  const nearest = Math.min(ky21.value, ek11.value);
+  const trigger = trafficFigure(20, /^Johto, KY21, tie R2: kärki ylitti metsäautotien.*vesi kytketään altaasta kun palo on noin (\d+) m päässä/);
+  const nearest = Math.min(ky21.value, out1.value);
   const at20 = nearest - rate.value * minutesAhead(14, 21);
   if (at20 < 2 * trigger.value) throw new Error(`freeze key V14 se_front_r2: the front ${at20.toFixed(0)} m from R2 in 20 minutes is too near the ${trigger.value} m trigger; re-author`);
-  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, ek11.id, rate.id] };
+  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, out1.id, rate.id] };
 })();
 
 export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
@@ -136,15 +142,15 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // `31` F27: "palanut ala" as V2 and V5 say, the new front's inclusion stated.
       slug: "area_total_hour", level: "L3", goal: "containment", keySteps: [14, 16], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(10, 16))}, uusi rintama mukaan lukien?`,
-      options: [["lt129", "Alle 129 hehtaaria"], ["m129_138", "129–138 hehtaaria"], ["m138_148", "138–148 hehtaaria"], ["gt148", "Yli 148 hehtaaria"]], key: V10_AREA.id,
+      options: [["lt143", "Alle 143 hehtaaria"], ["m143_155", "143–155 hehtaaria"], ["m155_167", "155–167 hehtaaria"], ["gt167", "Yli 167 hehtaaria"]], key: V10_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [12, 13],
-      basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 16 (18.40, an hour from the view's end) through the reported fire the maps of V9 and V10 draw (steps 12, 13), ${figures(V10_AREA, "ha")}; the map now ~128 ha and DR3's recorded 17.35 survey 126 ha (the lures, under 129)`,
+      basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 16 (18.40, an hour from the view's end) through the reported fire the maps of V9 and V10 draw (steps 12, 13), ${figures(V10_AREA, "ha")}; the map now ~154 ha and DR3's recorded 17.35 survey 153.6 ha (the lures, 143–155)`,
     }),
     choice({
       slug: "front_r2_80", level: "L3", goal: "containment", keySteps: [14, 17], promptFi: `Kuinka kaukana eteläinen palorintama on huoltotiestä R2 ${inMinutesFi(minutesAhead(10, 17))}?`,
-      options: [["lt400", "Alle 400 metrin päässä"], ["m400_700", "400–700 metrin päässä"], ["m700_1000", "700–1000 metrin päässä"], ["gt1000", "Yli kilometrin päässä"]], key: V10_R2.id,
+      options: [["lt350", "Alle 350 metrin päässä"], ["m350_650", "350–650 metrin päässä"], ["m650_950", "650–950 metrin päässä"], ["gt950", "Yli 950 metrin päässä"]], key: V10_R2.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [13],
-      basis: `REPORT-keyed (D4; \`31\` §3.8): the south front's reported distance to R2 at 17.20 (~${f0(reportedDetachedToLineM(13, R2_LINE))} m, the front step 13 draws; 'runsaan kilometrin', DR2 pushed: the lure, over 1 km) less its drawn rate (${siteStep(13).observedHead.rateMpm} m/min) × 100 min to 19.00, ${figures(V10_R2, "m", f0)}`,
+      basis: `REPORT-keyed (D4; \`31\` §3.8): the south front's reported distance to R2 at 17.20 (~${f0(reportedDetachedToLineM(13, R2_LINE))} m, the front step 13 draws; 'runsaan kilometrin', DR2 pushed: the lure, over 950 m) less its drawn rate (${siteStep(13).observedHead.rateMpm} m/min) × 100 min to 19.00, ${figures(V10_R2, "m", f0)}`,
     }),
     // Fix pass 2 (7 Oct 2026, P2-4): replaces south_units; researcher decision 8 Oct 2026: L2. `31` F29: the present tense (it is keyed on now
     // and on record); F11, F26: ascending bands, and "Palo on jo mökeillä" (implausible with DR1's ~1700 m) is gone.
@@ -224,7 +230,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["near", "Kyllä, rintama on silloin alle 100 metrin päässä tiestä"], ["sparks", "Kyllä, kipinät ylittävät tien ennen rintamaa"],
       ], key: V14_SPRINKLERS.key,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: V14_SPRINKLERS.ids,
-      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance (KY21 19.52, EK11 19.43: ${V14_SPRINKLERS.nearest} m) less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (EK11, pushed)`,
+      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance (KY21 19.47, OUT1 19.52: ${V14_SPRINKLERS.nearest} m) less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (KY21, pushed)`,
     }),
     choice({
       // `31` F03: replaces the V14 map item (head_later: the head at "now" was 168 m from its key, and no truth exists after 20.00); the

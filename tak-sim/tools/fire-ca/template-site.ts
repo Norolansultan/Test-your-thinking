@@ -97,7 +97,8 @@ export function buildTemplateSite(cellSizeM = 25, sizeM = 8000): SiteModel {
       }
       // BIRCH — birch–aspen strip along a brook at 2.3 km NE.
       if (d >= 2250 && d <= 2450 && b >= 15 && b <= 80) fuel = staleFuel = F("birch_aspen");
-      // PL — 110 kV line NE–SW through a point 1.5 km E.
+      // PL — power line NE–SW through a point 1.5 km E (the template keeps the old 36 m corridor; the generated site's line is a 20 kV
+      // distribution line with a ~10 m corridor since SPEC/33 (bc)).
       if (lineDist(1500, 0, 45) <= 18) fuel = staleFuel = F("cleared_corridor");
       // VILLAGE-E — fields and houses 3.5–4 km SE.
       const [vx, vy] = polar(135, 3750);

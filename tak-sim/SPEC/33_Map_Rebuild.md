@@ -126,3 +126,5 @@ Four maastokartta screenshots (`docs/audits/2026-10-20-map/reference/`, © Maanm
 - Roads: a few red public roads curving with the terrain; black private and forest roads branching off at near-right angles and ending in the forest; dashed tracks; roads skirt mires and cross them briefly; no closed geometric shapes.
 - A power line is a long straight thin line crossing everything.
 - Names: villages bold, farms and houses regular, terrain and mires italic (…mäki, …kalliot, …suo, …räme, …neva), lakes and rivers in blue italic.
+
+**(ba) 20 Oct 2026 — no red roads.** The maastokartta draws public roads red, but SPEC/12 (revision of 24 Sep) reserves red and orange for the live fire, and the fire edge `#D62828` is nearly the MML road red `#c00000`. Roads are firebreaks the freeze items ask about, so a road must never read as a fire edge: public roads are drawn cased (black casing, light `#fff4d6` core), as on older Finnish base maps; the legend follows. Everything else keeps the §9 palette.

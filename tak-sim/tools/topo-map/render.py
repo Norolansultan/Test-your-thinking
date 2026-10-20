@@ -212,6 +212,8 @@ def draw_roads(draw, fx):
                 dashed(draw, pts, colour, width, *st.DASH[cls])
             else:
                 line(draw, pts, colour, width)
+                if cls in st.CASED:
+                    line(draw, pts, st.ROAD_CASED_CORE, width * st.CASED[cls])
 
 
 def draw_power_line(draw, fx):

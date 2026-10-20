@@ -35,7 +35,8 @@ CONTOUR_INDEX = rgb("#9c6c3c")  # index contour, darker, labelled with its heigh
 WATER_FILL = rgb("#80ffff")  # lakes: cyan (sampled from the screenshots)
 WATER_SHORE = rgb("#0071bb")  # shore line and river banks (MML rantaviiva)
 STREAM = rgb("#1a86dc")  # streams and ditches: the screenshots' thin blue lines
-ROAD_RED = rgb("#c00000")  # public roads (II and III class)
+ROAD_RED = rgb("#c00000")  # MML public-road red: NOT drawn in the study (SPEC/12 reserves red for the live fire; SPEC/33 §9 (ba))
+ROAD_CASED_CORE = rgb("#fff4d6")  # public roads: a light core inside a black casing (SPEC/33 §9 (ba))
 ROAD_BLACK = rgb("#141414")  # private and forest roads, tracks, paths
 ROAD_REF = rgb("#e000e0")  # road numbers in magenta (drawn only when a road carries "ref")
 BUILDING = rgb("#000000")  # houses: small black squares
@@ -57,8 +58,10 @@ W = {
 }
 # Dashes (on, off) in final px: ajopolku (track) and polku (path), as in the screenshots.
 DASH = {"track": (9, 4), "path": (5, 3)}
-ROAD_COLOUR = {"main": ROAD_RED, "gravel": ROAD_RED, "public": ROAD_RED,
+ROAD_COLOUR = {"main": ROAD_BLACK, "gravel": ROAD_BLACK, "public": ROAD_BLACK,
                "forest": ROAD_BLACK, "private": ROAD_BLACK, "track": ROAD_BLACK, "path": ROAD_BLACK}
+# Public roads are cased (black casing at the class width, a light core at about half of it), so no road is red.
+CASED = {"main": 0.5, "gravel": 0.42, "public": 0.42}
 # Drawing order, minor classes first; unknown classes are drawn as thin black lines before these.
 ROAD_ORDER = ("path", "track", "forest", "private", "gravel", "public", "main")
 

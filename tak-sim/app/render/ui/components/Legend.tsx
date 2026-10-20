@@ -137,7 +137,7 @@ export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols }: {
     ["stack", sample(<><rect x={6} y={1.5} width={14} height={8} fill="#12151a" stroke={OWN} stroke-width={1.6} stroke-dasharray="none" /><text x={13} y={8.3} text-anchor="middle" font-size="7" font-weight="700" fill={OWN} font-family="monospace">3</text></>), M.stack],
     ["air", symbols ? symRow(sym(symbols.air)) : sample(<><line x1={0} y1={y + 2} x2={w} y2={y + 2} stroke={OWN} stroke-width={1.2} stroke-dasharray="3 2" opacity={0.8} />{frame(7, false, true)}</>), M.air],
     ["sector", sample(<line x1={0} y1={y} x2={w} y2={y} stroke={SECTOR_LINE.color} stroke-width={SECTOR_LINE.widthPx} stroke-dasharray={SECTOR_LINE.dash.join(" ")} />), M.sector],
-    ["road", sample(<line x1={0} y1={y} x2={w} y2={y} stroke="#707070" stroke-width={2.4} />), M.road],
+    ["road", sample(<><line x1={0} y1={y} x2={w} y2={y} stroke="#141414" stroke-width={3} /><line x1={0} y1={y} x2={w} y2={y} stroke="#fff4d6" stroke-width={1.3} /></>), M.road],
     ["power", sample(<><line x1={0} y1={y} x2={w} y2={y} stroke="#2d2d2d" stroke-width={0.9} />{[5, 13, 21].map((x) => <line x1={x} y1={y - 2.5} x2={x} y2={y + 2.5} stroke="#2d2d2d" stroke-width={0.9} />)}</>), M.power],
     ["region", sample(<path d="M13 1 17.5 5.5 13 10 8.5 5.5Z" fill="#8e1b12" />), M.region],
   ];

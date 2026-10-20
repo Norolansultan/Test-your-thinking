@@ -137,7 +137,9 @@ describe("decoded world", () => {
     }
     // Unnamed water is named after a map label: the village's farm pond (W2), a lake beside Pitkäjärvi.
     expect(world.waterPoints.find((w) => w.nameFi === "Lahdenkylän lampi")?.nameEn).toBe("Bay Village Pond");
-    expect(world.waterPoints.some((w) => w.nameFi === "Pikku-Pitkäjärvi" && w.nameEn === "Little Long Lake")).toBe(true);
+    // SPEC/33 gate R (20 Oct 2026): with the north band's roads joined to the network (the Koivuoja forest-road link) three of its
+    // points lie on Pikku-Pitkäjärvi, told apart by side ("Pikku-Pitkäjärvi (itä)").
+    expect(world.waterPoints.some((w) => /^Pikku-Pitkäjärvi( \(|$)/.test(w.nameFi) && /^Little Long Lake( \(|$)/.test(w.nameEn))).toBe(true);
   });
 
   it("has the directive's two settlements, each with its houses", () => {

@@ -93,10 +93,11 @@ describe("unit-marker declutter at the Palo zoom (revision (al))", () => {
       }
     }
     expect(before).toBeGreaterThan(50);
-    // SPEC/33 stage 9 (20 Oct 2026): on the rebuilt map 179 of 700 samples stay under a marker (74 % less), most under DR3's orbit over
-    // the zig-zag north edge at V7–V8 and EK11 at V6, where a push off one segment lands on the next; was 77 of 604 (87 % less) with a
-    // 0.2 bound. FOR THE RENDER OWNER: the bound is 0.3 until the declutter handles a zig-zag edge (`app/render/unit-declutter.ts`).
-    expect(after / before, `${after} of ${before} edge samples still under a marker`).toBeLessThan(0.3);
+    // SPEC/33 stage 9 (20 Oct 2026): on the rebuilt map 179 of 700 samples stayed under a marker, most under DR3's orbit over the
+    // zig-zag north edge at V7–V8 and EK11 at V6, where a push off one segment landed on the next (the bound was relaxed to 0.3). The
+    // cause was the declutter, not the positions: gate R (20 Oct 2026) moves a marker on a jagged edge to the nearest spot within its
+    // cap clear of every segment, or that hides the least of it (`clearOfLines`): 39 of 700 (94 % less); the 0.2 bound is back.
+    expect(after / before, `${after} of ${before} edge samples still under a marker`).toBeLessThan(0.2);
   });
 
   it("pushes a box crossing a segment to the side its centre is on, just clear of the line", () => {

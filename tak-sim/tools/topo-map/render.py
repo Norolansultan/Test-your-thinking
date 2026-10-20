@@ -111,7 +111,7 @@ def road_classes(fx):
 
 def draw_ground(im, draw, fx):
     """Area fills, bottom to top."""
-    # the 110 kV corridor and the log landing: open ground, under everything else
+    # the 20 kV line's corridor and the log landing: open ground, under everything else
     pl = fx.get("powerLine") or []
     if len(pl) >= 2 and fx.get("powerCorridorPx"):
         draw.line(sc(pl), fill=st.CLEARED_FILL, width=px(fx["powerCorridorPx"]))

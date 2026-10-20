@@ -21,7 +21,7 @@ export * from "./water-query.js";
 export * from "./soil.js";
 export * from "./landcover.js";
 
-/** The 110 kV power line: one straight cleared corridor NE–SW, 1.06 km SE of IGN at its nearest. */
+/** The 20 kV power line (SPEC/33 (bc); was 110 kV): one straight cleared corridor NE–SW, 1.06 km SE of IGN at its nearest. */
 export const POWER_LINE: readonly P[] = [
   { x: 1500 - 15000 * Math.sin(Math.PI / 4), y: -15000 * Math.cos(Math.PI / 4) },
   { x: 1500 + 15000 * Math.sin(Math.PI / 4), y: 15000 * Math.cos(Math.PI / 4) },

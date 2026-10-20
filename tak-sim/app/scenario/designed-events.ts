@@ -8,7 +8,8 @@
  *    it is still energised and that de-energising has been requested (load-bearing). At step 8
  *    the command-post operator logs the request as done: "20 kV linja jännitteetön, vahvistettu."
  *    It is never corrected, and no record anywhere confirms de-energisation. Later traffic still
- *    treats the line as a hazard. The truth is the invariant `F7_TRUTH_INVARIANT` ("live").
+ *    treats the line as a hazard; at step 18 (19:18), when the south-east front reaches the line, the company's second
+ *    call says it is still live and de-energising requested (SPEC/33 gate R). The truth is the invariant `F7_TRUTH_INVARIANT` ("live").
  * 2. The rekindle arc (SPEC/26 §5; revised 2 Oct 2026: no shower, the rekindle is at the origin). At
  *    step 10 (V7), as the wind eases and backs, crews report L3, the origin's south side, in hand; the
  *    L3 sector leader (KY21's leader) moves KY21 and VPK to the north flank (the moves are radio,
@@ -85,6 +86,18 @@ const SEEDS: readonly DesignedSeed[] = [
     queries: ["HELI1 sähkölinja"],
     tierRationale: "SPEC/02 revision (o) §5: later traffic still treating the line as a hazard (recorded, not a correction)",
   },
+  {
+    // SPEC/33 gate R (20 Oct 2026): the south-east front reaches the line in 19:00–19:20 (the CA's front 201 m from it at 19:00, 7 m at
+    // 19:20, 1 m at 19:40) and no record said so, where an incident commander expects word of it. The company's second call, at 19:18,
+    // in V13 — after V12's F7 freeze at 19:00, the only item on the line (V14's items ask nothing of it). Like its step-6 record it says
+    // live and only requested, never de-energised: H9's planted record stays the only one that says so, and nothing supersedes it.
+    // DRAFT Finnish.
+    id: DESIGNED_EVENT_IDS.gridAtLine, step: 18, atS: 1080, source: GRID_OPERATOR_SOURCE, origin: "above", sourceClassId: "sc.experienced", nav: "vesi_reitit",
+    text: "Alueen verkkoyhtiön käyttökeskus: palo on nyt 20 kV:n sähkölinjan kohdalla kaakkoisrintamalla. Linja on edelleen jännitteinen. Poiskytkentää on pyydetty ja asentaja on matkalla erottimelle, tieto kytkennästä annetaan erikseen. Turvaetäisyydet voimassa, palava pylväs voi pudottaa johtimen maahan.",
+    keys: ["20", "kv", "sähkölinja", "linja", "jännite", "verkkoyhtiö", "käyttökeskus", "poiskytkentä", "pylväs", "kaakkoisrintama"],
+    queries: ["20 kV linja", "sähkölinja"],
+    tierRationale: "a phone call to the command post, logged (T2), as the company's step-6 record: the line still live when the fire reaches it (not a correction of the planted record)",
+  },
   // --- Rekindle, step 10 (V7) -----------------------------------------------------------------------
   {
     id: DESIGNED_EVENT_IDS.inHand[0], step: 10, atS: 15, source: "KY21", origin: "below", sourceClassId: "sc.experienced", nav: "palo",
@@ -135,6 +148,7 @@ export const DESIGNED_LOG: Readonly<Record<string, { readonly addressee: string 
   [DESIGNED_EVENT_IDS.gridRecord]: { addressee: null, channel: "system_log", event_type: "report" },
   [DESIGNED_EVENT_IDS.planted]: { addressee: null, channel: "system_log", event_type: "status" },
   [DESIGNED_EVENT_IDS.heliLineClearance]: { addressee: "JOHTO", channel: "radio_command", event_type: "report" },
+  [DESIGNED_EVENT_IDS.gridAtLine]: { addressee: null, channel: "system_log", event_type: "report" },
   [DESIGNED_EVENT_IDS.inHand[0]]: { addressee: "JOHTO", channel: "radio_command", event_type: "status", positionStep: 9 },
   [DESIGNED_EVENT_IDS.inHand[1]]: { addressee: "JOHTO", channel: "radio_command", event_type: "status", positionStep: 9 },
   [DESIGNED_EVENT_IDS.inHand[2]]: { addressee: null, channel: "system_log", event_type: "status" },

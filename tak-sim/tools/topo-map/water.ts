@@ -17,7 +17,7 @@ import {
   cellOf, cellX, cellY, distToPolyline, fbm, G, GN, HALF_M, resample, sampleGrid, type P,
 } from "./terrain-base.js";
 import { accumulate, d8Receivers, depressions, flowPath, priorityFlood, topoOrder, type Depression } from "./hydrology.js";
-import { brookProfile, carve, cellPoint, cellsToLine, channelSurface, enforceMonotone, leastCostPath, markLine, naturalise, rillProfile, riverProfile } from "./channels.js";
+import { brookProfile, carve, cellPoint, cellsToLine, channelSurface, enforceMonotone, leastCostPath, markLine, naturalise, rillProfile, riverProfile, throughPin } from "./channels.js";
 
 export const RIVER_NAME = "Kotkanjoki";
 const LAKE_NAMES = ["Mustajärvi", "Pitkäjärvi", "Ahvenlampi", "Valkealampi", "Kaitajärvi", "Särkijärvi", "Pirttilampi", "Kivijärvi", "Ruokolampi", "Heinäjärvi", "Kuikkalampi", "Hauklampi"];
@@ -96,7 +96,9 @@ function traceRiver(): P[] {
   const mouth = { x: cellPoint(down[down.length - 1]!).x, y: HALF_M };
   const a = naturalise(cellsToLine(up, 10, src, below), 230, 950, 31, valleyFlat);
   const b = naturalise(cellsToLine(down, 10, above, mouth), 230, 950, 32, valleyFlat);
-  return [...a, BRIDGE, ...b];
+  // Gate R: through the bridge on a smooth bend, square to R3 (was a straight reach below → BRIDGE → above, a hairpin at each end).
+  const axisLen = Math.hypot(above.x - below.x, above.y - below.y);
+  return throughPin(a, BRIDGE, b, { x: (above.x - below.x) / axisLen, y: (above.y - below.y) / axisLen }, 260);
 }
 
 /** Kotkanjoki, in flow order: from the south sheet edge, through BRIDGE, to the north edge. */

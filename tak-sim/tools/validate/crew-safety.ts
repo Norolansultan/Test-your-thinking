@@ -64,9 +64,9 @@ export const SAFETY_LINES: Readonly<Record<string, { readonly re: RegExp; readon
   // states the LCES.
   "1:EK11": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/ },
   "1:EK12": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/, from: "EK11" },
-  // V2, 13:40: direct attack on the head's left side, low flames: escape route into the black, lookout. The same assignment
-  // and the same arrangement through V2–V3 (steps 3–4; revision (aj)).
-  "2:EK11": { re: /^EK11: hyökkäämme kärjen vasenta laitaa suoraan/ },
+  // V2, 13:40: direct attack on the head's left side, low flames: escape route into the black, lookout (EK11's 13:4x line). SPEC/33
+  // gate R (20 Oct 2026): no finding left — EK11's truck, which stood where the west flank crosses R1 by 14:00, backs out along R1
+  // ahead of the flank (`placement.ts` `backOut`), so the exemption "2:EK11" is gone.
   // SPEC/33 stage 8: EK12 holds the same direct attack on the head's right side at 13:40 (16 m from the burning edge); the handover line
   // that states both crews' LCES is in force (no move between).
   "2:EK12": { re: /^EK11: kärjen molemmat laidat suorassa sammutuksessa/, inStep: 1, from: "EK11" },

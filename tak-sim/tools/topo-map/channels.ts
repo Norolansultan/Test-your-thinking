@@ -145,3 +145,30 @@ export const riverProfile = (d: number) => (d <= FLOOR_M ? 0 : d <= 40 ? (1.4 * 
 export const brookProfile = (d: number) => (d <= FLOOR_M ? 0 : 0.5 + 0.03 * (d - FLOOR_M));
 /** Ditch-sized outlet stream. */
 export const rillProfile = (d: number) => (d <= FLOOR_M ? 0 : 0.3 + 0.03 * (d - FLOOR_M));
+
+/**
+ * A channel led smoothly through a pinned point (SPEC/33 gate R, 20 Oct 2026: Kotkanjoki at the R3 bridge ran a ruler-straight
+ * 280 m reach through the bridge with a hairpin kink at each end). `a` flows to the pin, `b` on from it; each loses the stretch
+ * within `reachM` of the pin, replaced by a cubic Bézier that leaves the kept line on its own heading and crosses the pin along
+ * `axis` (the unit flow direction there, square to the bridge). Points about `stepM` apart.
+ */
+export function throughPin(a: readonly P[], pin: P, b: readonly P[], axis: P, reachM: number, stepM = 10): P[] {
+  const dist = (p: P, q: P) => Math.hypot(p.x - q.x, p.y - q.y);
+  const unit = (p: P, q: P): P => { const d = Math.max(1e-9, dist(p, q)); return { x: (q.x - p.x) / d, y: (q.y - p.y) / d }; };
+  let ka = a.length - 1;
+  while (ka > 1 && dist(a[ka]!, pin) < reachM) ka--;
+  let kb = 0;
+  while (kb < b.length - 2 && dist(b[kb]!, pin) < reachM) kb++;
+  const h = reachM * 0.4;
+  const bez = (p0: P, p1: P, p2: P, p3: P): P[] => {
+    const n = Math.max(2, Math.ceil((dist(p0, p1) + dist(p1, p2) + dist(p2, p3)) / stepM));
+    return Array.from({ length: n - 1 }, (_, i) => {
+      const t = (i + 1) / n, u = 1 - t;
+      return { x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x, y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y };
+    });
+  };
+  const ta = unit(a[ka - 1]!, a[ka]!), tb = unit(b[kb]!, b[kb + 1]!);
+  const inA = bez(a[ka]!, { x: a[ka]!.x + ta.x * h, y: a[ka]!.y + ta.y * h }, { x: pin.x - axis.x * h, y: pin.y - axis.y * h }, pin);
+  const outB = bez(pin, { x: pin.x + axis.x * h, y: pin.y + axis.y * h }, { x: b[kb]!.x - tb.x * h, y: b[kb]!.y - tb.y * h }, b[kb]!);
+  return [...a.slice(0, ka + 1), ...inA.slice(0, -1), pin, ...outB, ...b.slice(kb)];
+}

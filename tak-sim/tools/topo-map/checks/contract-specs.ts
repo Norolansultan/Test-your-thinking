@@ -65,7 +65,7 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   ...fromIgn("HONKAHARJU_ROAD", [u(FBB, "freeze.14.road_crossed"), u(DD, "panel.V12"), u(DD, "panel.V13"), u(PE, "premise.V12.P2")], "phase-B line on the forest road S of the rekindle (deployment.ts FR_*)"),
   ...fromIgn("KORPIOJA", [u(FB, "freeze.4.korpioja_spot"), u(FB, "RADIO.sparksKorpioja")], "the brook N of the crown run, crossed by spotting in step 7"),
   ...fromIgn("KOIVUOJA", [u(DP, "spam.6"), u(FB, "freeze.4.crown_drops")]),
-  ...fromIgn("POWER_LINE", [u(DP, "freeze.12.f7"), u(TR, "grid operator")], "SPEC/18 §5 PL: 110 kV NE–SW, ~1.5 km E"),
+  ...fromIgn("POWER_LINE", [u(DP, "freeze.12.f7"), u(TR, "grid operator")], "SPEC/18 §5 PL, SPEC/33 (bc): 20 kV distribution line on wooden poles (was 110 kV), NE–SW, ~1.5 km E"),
   ...fromIgn("BRIDGE", [u(DP, "freeze.14.infra"), u(DEP, "OUT1/OUT2 step 16")], "SPEC/18 §5 BRIDGE: timber bridge, load limit 16 t, ~3 km E"),
   ...fromIgn("KOTKANJOKI", [u(DP, "freeze.7.infra"), u(FB, "freeze.4.crown_drops", "the 'river' distractor")]),
   ...fromIgn("CP", [u(FB, "freeze.7.cp_safe"), u("content/site/site.json", "commandPointTm35")], "SPEC/18 §5 CP: R1/R3 junction ~1 km W"),

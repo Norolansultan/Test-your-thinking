@@ -104,7 +104,7 @@ export function adaptFlameTable(mod: Raw, source: string): FlameTable | null {
   const version = typeof mod.FLAME_TABLE_VERSION === "string" ? ` ${mod.FLAME_TABLE_VERSION}` : "";
   const label = `${source}${version}`;
   // WP-1's module (SPEC/31 §5 D1): `flameTable(steps)` builds the rows from the steps' head rates (its `flameAt(rate, landCover)` is
-  // not a step lookup). Its values are used only where the records follow the table (`recordsFollow`: phase B); elsewhere the
+  // not a step lookup). Its values are used only where the records follow the table (`recordsFollow`: every step 1–20 since 20 Oct 2026); elsewhere the
   // export keeps quoting the records, so a phase-A record whose band its rate cannot give stays visible to the fire check.
   if (typeof mod.flameTable === "function") {
     const rows = (mod.flameTable as (steps: typeof SITE_SCENARIO.steps) => Raw[])(SITE_SCENARIO.steps);

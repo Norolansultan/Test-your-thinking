@@ -18,7 +18,7 @@ state of their checks, not released gates.
 
 | Gate | Status | Evidence (script: counts) | What still blocks it | Owner |
 |---|---|---|---|---|
-| A fire | **blocked** (external Prometheus run, D10) | `fire_check.py`: 0 LIKELY_ERROR, 3 REVIEW, 1 INFO (phase 1: 0 / 9 / 0); `perimeter_compare.py` not run (no ensemble) | Prometheus ensemble and comparison; the phase-A crown run (steps 5–6) | Researcher, FMI, panel |
+| A fire | **blocked** (external Prometheus run, D10) | `fire_check.py`: 0 LIKELY_ERROR, 2 REVIEW, 1 INFO since the phase-A flame pass of 20 Oct (19 Oct: 0 / 3 / 1; phase 1: 0 / 9 / 0); `perimeter_compare.py` not run (no ensemble) | Prometheus ensemble and comparison; the phase-A crown run (steps 5–6) | Researcher, FMI, panel |
 | Tactics (no letter) | reference material, **review items** | `tactical_check.py`, 21 cycles: 140/163 ground placements INFEASIBLE (110 on LACES fields only; was 163 and 133 before the LACES export), 60/60 aircraft feasible; 262 unverifiable checks | LACES exported from the crews' own statements since `6fcb385` (null where a crew states none); MPV25 lay limit, line production and hose carried missing | Panel, Pelastusopisto |
 | B panel | **not started** | No script; packet parts exist (rating sheet DRAFT, `review:export`) | Packet assembly and instructions; the ratings (≥ 4 of 5) | Researcher/INT, panel, native speaker |
 | C parity | **pass with review items** | `parity_check.py`: between groups 0 problems (phase 1: 0); raw pushed-vs-retrievable 781 by design (phase 1: 784) | VERIFY 1–15 and the WP-6 pass; native review of WP-1 rewrites | Pelastusopisto, WP-6, native speaker |
@@ -30,7 +30,9 @@ state of their checks, not released gates.
 `perimeter_compare.py` was not run: `dist/skills/scenario/spatial/` holds only `perimeters_scripted.geojson` and
 `barriers.geojson`; no Prometheus member exists (D10).
 
-**Result: 0 LIKELY_ERROR, 3 REVIEW, 1 INFO**, all in the phase-A crown run (same as `SPEC/31` (az) at `3d3b101`):
+**Update 20 Oct 2026:** after the phase-A records follow the flame table (`743cf49`), 0 LIKELY_ERROR, 2 REVIEW, 1 INFO: step 5 crown at 14.1 m/min (Kalajoki 15–30) and its missing spotting distance (INFO), and step 6 now an active crown at 38 m/min (above 15–30); the step-6 "surface at 38 m/min" and "spotting without active crown" flags are gone. Both remaining REVIEW flags are the CA's calibrated crown-run rates (FMI, panel).
+
+**Result at the time of this report: 0 LIKELY_ERROR, 3 REVIEW, 1 INFO**, all in the phase-A crown run (same as `SPEC/31` (az) at `3d3b101`):
 
 | Cycle | Level | Rule | Message (script) |
 |---|---|---|---|
@@ -214,7 +216,7 @@ None. Every script ran with exit 0 on the export's shape. Two shape notes, docum
 2. FMI/PromS: run the 7-member ensemble with the Finnish lookup; return HFI, the flame-table check, FWI/ISI, evening RH, US3.
 3. Researcher: `perimeter_compare.py` on the ensemble per the scope rules; revise the forcing if out of tolerance; re-run
    `fire_check.py`; write the methods paragraph with real numbers.
-4. Panel and FMI: the step-5/6 crown-run flags (3 REVIEW, 1 INFO). Panel and WP-6: the 24 phase-A flame records.
+4. Panel and FMI: the step-5/6 crown-run rates (2 REVIEW, 1 INFO since 20 Oct). The 24 phase-A flame records now follow the table (20 Oct); the domain reviewer checks the narrative lines left "low" (`SPEC/31` (az), phase-4 fixes).
 5. Researcher: confirm the provisional flame table (RC, §3.11) and record the fire as PROVISIONAL in the pre-registration.
 
 **Tactics**

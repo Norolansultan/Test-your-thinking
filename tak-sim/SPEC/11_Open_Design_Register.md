@@ -1009,6 +1009,7 @@ Phase 3 (`31` §7, WP-1 to WP-5) is merged and reconciled (`31` (az)); `npm run 
 
 - **Item 1 (researcher, RC):** the act coding reads the core front for the primary and the boundary sectors only in the sensitivity (`31` (az) item 2); confirm with §3.1. The power reading that follows from §3.1–3.2 is `30` (az): H13 needs about +15 points at exposure .8 for 80 %.
 - **Item 1 (researcher, RC), phase 4:** H15 reads the act's alignment, with the label's as its sensitivity (`31` (az) phase 4, item 1); §3.1's rule as built: C when the key's secondary route accepts the main effort, else D (item 2). Confirm the three DRAFT plan-text edits of the panel packet (`PLAN_EDITS` in `tools/review/panel-packet.ts`) and its Finnish instructions (native speaker).
+- **Items 1 and 3 (researcher, domain reviewer), 20 Oct:** V2 `south_flank` after the phase-A flame pass (re-key or re-author); EK11's 14:45 trigger point at three metres (DRAFT); the "low fire" lines and the practice step's flames; V14 `flare_next` fails the recall guard (`31` (az), phase-4 fixes).
 - **Item 2 (panel):** the packet is `npm run review:panel` (`review-packet/panel/`: the instructions, V9–V14 record sets, the blind rating sheet, 25 questions).
 - **Before pilot 2 (researcher, on a machine that reaches the embedding model):** `npm run thinker:index` (both languages) and `npm run thinker:eval -- --write`; the index in the repository is PROVISIONAL (`31` (az)).
 

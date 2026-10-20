@@ -15,7 +15,7 @@ import { DIRECTIVE_KEYS } from "../../app/scenario/demo-directive.js";
 import { buildDemoScenario, DIRECTIVE_FI } from "../../app/scenario/demo-scenario.js";
 import { SECONDARY_TASK_DEFINITIONS_FI } from "../../app/scenario/briefing.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
-import { PANEL_VIEWS, parseCsv, QUESTION_COLS, RATERS, RATING_COLS, RECORD_COLS, SHEET_COLS, writePanelPacket } from "../../tools/review/panel-packet.js";
+import { PANEL_VIEWS, parseCsv, PREMISE_VIEWS, QUESTION_COLS, RATERS, RATING_COLS, RECORD_COLS, SHEET_COLS, writePanelPacket } from "../../tools/review/panel-packet.js";
 
 const dirA = mkdtempSync(join(tmpdir(), "panel-packet-a-"));
 const dirB = mkdtempSync(join(tmpdir(), "panel-packet-b-"));
@@ -43,8 +43,8 @@ const PLAN_ONLY = new Set(["decision_point_id", "cycle", "option_code", "display
 const KEY_COLUMNS = keyHeader.filter((c) => !PLAN_ONLY.has(c));
 
 describe("panel packet: the files", () => {
-  it("writes README, a markdown and a CSV record set per view V9–V14, the rating sheet and the questions, and nothing else", () => {
-    const expected = ["README.md", ...PANEL_VIEWS.flatMap((v) => [`V${v}.md`, `V${v}.csv`]), "rating_sheet.csv", "questions.csv"];
+  it("writes README, a markdown and a CSV record set per view V8–V14 (V8 for its premises), the rating sheet and the questions, and nothing else", () => {
+    const expected = ["README.md", ...PREMISE_VIEWS.flatMap((v) => [`V${v}.md`, `V${v}.csv`]), "rating_sheet.csv", "questions.csv"];
     expect([...first.files].sort()).toEqual([...expected].sort());
     expect(readdirSync(dirA).sort()).toEqual([...expected].sort());
     for (const name of expected) expect(files.get(name)!.length).toBeGreaterThan(500);
@@ -97,7 +97,7 @@ describe("panel packet: the files", () => {
     expect(header).toEqual(QUESTION_COLS);
     expect(rows.every((r) => r.slice(5).every((c) => c === ""))).toBe(true);
     for (const id of ["coa.F1a", "coa.F1b", "coa.F2", "coa.F5", "coa.F6", "premise.P1.wording", "FT-T3.head", "FT-T3.water", "FT-T7", "FT-T16.KY21", "FT-T18.EK16"]) expect(rows.some((r) => r[0] === id), id).toBe(true);
-    for (const p of directivePremises.premises) for (const v of PANEL_VIEWS) expect(rows.some((r) => r[0] === `premise.${p.id}.V${v}`)).toBe(true);
+    for (const p of directivePremises.premises) for (const v of PREMISE_VIEWS) expect(rows.some((r) => r[0] === `premise.${p.id}.V${v}`)).toBe(true);
   });
 });
 

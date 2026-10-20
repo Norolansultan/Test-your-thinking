@@ -60,3 +60,14 @@ export function gateStatic(url: string, file: StaticFile): StaticFile {
   if (isGameCode(file)) return { status: 404, headers: { "content-type": "text/plain; charset=utf-8" }, body: Buffer.from("not found") };
   return file;
 }
+
+/**
+ * Phase-4 review (SPEC/31 (az)): a gated server refuses to START with a build that still holds the game. The request filter above
+ * refuses only the chunk carrying the marker; the game's other chunks (world, scenarios) would stay fetchable by their hashed names
+ * from an ungated build. So the gate fails closed: build with RECRUITMENT_GATE=1 (`npm run build:prod`, `tools/deploy/game-gate.ts`).
+ * Returns the reason not to start, or null.
+ */
+export function gateStartupError(recruitmentGate: boolean, gameFilesInBuild: readonly string[]): string | null {
+  if (!recruitmentGate || gameFilesInBuild.length === 0) return null;
+  return `RECRUITMENT_GATE=1 but the build still holds the game (${gameFilesInBuild.join(", ")}): rebuild with RECRUITMENT_GATE=1 npm run build:prod (docs/DEPLOYMENT.md §2.1)`;
+}

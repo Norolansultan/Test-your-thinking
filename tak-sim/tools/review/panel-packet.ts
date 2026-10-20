@@ -34,6 +34,8 @@ import { collectCorpus, toCsv, type CorpusRow } from "./export.js";
 
 export const PANEL_DIR = join("review-packet", "panel");
 export const PANEL_VIEWS: readonly number[] = [9, 10, 11, 12, 13, 14];
+/** The views whose premise statuses the panel sets: V8 too (the directive is in force from V8; it has no plans to rate). */
+export const PREMISE_VIEWS: readonly number[] = [8, ...PANEL_VIEWS];
 export const RATERS = 5;
 const DRAFT_SHEET = fileURLToPath(new URL("../../docs/audits/2026-10-19-skills/coa_rating_sheet.csv", import.meta.url));
 /** The draft sheet's columns that identify a plan, and one panellist's rating block (the draft's `rater_id` becomes the block's prefix). */
@@ -197,7 +199,7 @@ export function questions(): Question[] {
     { id: "coa.F6", view: "V13–V14", answer: "remarks (optional)",
       fi: "Vanhan reunan leimahduksia on kirjauksissa useammassa jaksossa (esim. V13 pohjoisreuna, V14 syttymäkohdan länsipuoli). Onko suora sammutus toissijaisena tehtävänä yhtä järkevää kussakin? Arvioi kunkin kohdalla kirjauksista reunan tila (leviääkö se) ja onko miehistö paikalla tai lähellä. " + BY_RATING_FI,
       en: "Flare-ups of old edges are on record in more than one view (e.g. V13 the north edge, V14 west of the point of origin). Is a direct attack on one, as the secondary task, equally sound in each? Judge each from the records: the edge's state (spreading or not) and whether a crew is on or near it. " + BY_RATING_EN },
-    ...premises.flatMap((p) => PANEL_VIEWS.map((v): Question => ({ id: `premise.${p.id}.V${v}`, view: `V${v}`, answer: "contradicted / not contradicted / cannot tell",
+    ...premises.flatMap((p) => PREMISE_VIEWS.map((v): Question => ({ id: `premise.${p.id}.V${v}`, view: `V${v}`, answer: "contradicted / not contradicted / cannot tell",
       fi: `${p.id}: "${p.fi}" — Jakso V${v} (${windowOf(v)}): ovatko jakson loppuun mennessä saatavilla olevat kirjaukset ristiriidassa premissin kanssa?`,
       en: `${p.id}: "${p.en}" — View V${v} (${windowOf(v)}): do the records available by the view's end contradict the premise?` }))),
     { id: "premise.P1.wording", view: "—", answer: "right as it is / your wording (Finnish)",
@@ -232,7 +234,7 @@ export function questions(): Question[] {
 
 function readme(counts: ReadonlyMap<number, { total: number; pushed: number; fresh: number }>, sheetRows: number, qs: readonly Question[]): string {
   const ui = UI_TEXT;
-  const views = PANEL_VIEWS.map((v) => { const c = counts.get(v)!; return `| V${v} | ${windowOf(v)} | ${viewOf(v).steps.join(", ")} | ${c.total} (${c.pushed} PUSHED) | ${c.fresh} | V${v}.md, V${v}.csv |`; });
+  const views = PREMISE_VIEWS.map((v) => { const c = counts.get(v)!; return `| V${v}${PANEL_VIEWS.includes(v) ? "" : " (premises only, no plans)"} | ${windowOf(v)} | ${viewOf(v).steps.join(", ")} | ${c.total} (${c.pushed} PUSHED) | ${c.fresh} | V${v}.md, V${v}.csv |`; });
   const premises = premiseFile.premises.map((p) => `- **${p.id}** — ${p.fi}<br>*${p.en}*`);
   return [
     "# Expert panel packet: the decisions of views V9–V14 (DRAFT)", "",
@@ -290,7 +292,7 @@ function readme(counts: ReadonlyMap<number, { total: number; pushed: number; fre
     "**The directive's premises (DRAFT wording).** For each view, say whether the records available by the view's end contradict the premise; your statuses set the study's table, which is fixed before data collection. Also say whether P1's Finnish wording is right.", "",
     ...premises, "",
     ...qs.filter((q) => !/^premise\.P\d\.V/.test(q.id)).map((q) => `- **${q.id}** (${q.view}; ${q.answer}): ${q.fi}<br>*${q.en}*`),
-    `- **premise.P1.V9 … premise.P2.V14** (${PANEL_VIEWS.length * premiseFile.premises.length} rows; contradicted / not contradicted / cannot tell): one row per premise and view.`, "",
+    `- **premise.P1.V8 … premise.P2.V14** (${PREMISE_VIEWS.length * premiseFile.premises.length} rows; contradicted / not contradicted / cannot tell): one row per premise and view; V8 has no plans to rate, only its premises.`, "",
   ].join("\n");
 }
 
@@ -308,7 +310,7 @@ export function writePanelPacket(outDir = PANEL_DIR): PanelSummary {
   mkdirSync(dir, { recursive: true });
   const files: [string, string][] = [];
   const counts = new Map<number, { total: number; pushed: number; fresh: number }>();
-  for (const v of PANEL_VIEWS) {
+  for (const v of PREMISE_VIEWS) {
     const rows = recordSet(v);
     counts.set(v, { total: rows.length, pushed: rows.filter((r) => r.delivery === "PUSHED").length, fresh: rows.filter((r) => r.new_in_view !== "").length });
     files.push([`V${v}.md`, viewMarkdown(v, rows)], [`V${v}.csv`, toCsv(rows, RECORD_COLS)]);
@@ -318,10 +320,10 @@ export function writePanelPacket(outDir = PANEL_DIR): PanelSummary {
   files.push(["questions.csv", csvText(QUESTION_COLS, qs.map((q) => [q.id, q.view, q.fi, q.en, q.answer, ...raters.map(() => "")]))]);
   files.unshift(["README.md", readme(counts, sheet.rows.length, qs)]);
   for (const [name, text] of files) writeFileSync(join(dir, name), text);
-  return { dir, files: files.map(([n]) => n), recordsPerView: new Map(PANEL_VIEWS.map((v) => [v, counts.get(v)!.total])), sheetRows: sheet.rows.length, questions: qs.length, dropped: sheet.dropped, edited: sheet.edited };
+  return { dir, files: files.map(([n]) => n), recordsPerView: new Map(PREMISE_VIEWS.map((v) => [v, counts.get(v)!.total])), sheetRows: sheet.rows.length, questions: qs.length, dropped: sheet.dropped, edited: sheet.edited };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const s = writePanelPacket(process.argv[2] ?? PANEL_DIR);
-  console.log(`panel packet: ${PANEL_VIEWS.map((v) => `V${v} ${s.recordsPerView.get(v)}`).join(", ")} records; ${s.sheetRows} plans; ${s.questions} questions; ${s.edited} plan edits${s.dropped.length ? `; dropped draft columns: ${s.dropped.join(", ")}` : ""} -> ${s.dir}`);
+  console.log(`panel packet: ${PREMISE_VIEWS.map((v) => `V${v} ${s.recordsPerView.get(v)}`).join(", ")} records; ${s.sheetRows} plans; ${s.questions} questions; ${s.edited} plan edits${s.dropped.length ? `; dropped draft columns: ${s.dropped.join(", ")}` : ""} -> ${s.dir}`);
 }

@@ -14,6 +14,7 @@ import { SessionLogStore } from "../session-log/store.js";
 import { ALLOCATION_TABLE } from "../../app/session/preview.js";
 import { gameLeaks } from "../../tools/deploy/game-gate.js";
 import { listSessions } from "./admin-data.js";
+import { gateStartupError } from "./recruitment-gate.js";
 import { AutoAssigner } from "./auto-assign.js";
 import { loadConfig } from "./config.js";
 import { createAppServer } from "./server.js";
@@ -48,9 +49,13 @@ if (config.autoAssign) {
     process.exit(1);
   }
 }
-// SPEC/29 (ay): a gated server with a build that still holds the game is safe (the server refuses that file) but not
-// the intended set-up; say so.
+// SPEC/29 (ay), SPEC/31 (az) phase 4: a gated server refuses to start with a build that still holds the game (fail closed).
 const gameInBuild = config.recruitmentGate ? gameLeaks(config.staticDir) : [];
+const gateError = gateStartupError(config.recruitmentGate, gameInBuild);
+if (gateError) {
+  console.error(`serve: ${gateError}`);
+  process.exit(1);
+}
 const server = createAppServer({
   staticDir: config.staticDir,
   sessionLog: new SessionLogStore({ dir: config.sessionLogDir }),
@@ -76,7 +81,6 @@ server.listen(config.port, config.host, () => {
   if (!config.recruitmentGate) console.log("serve: recruitment gate OFF (RECRUITMENT_GATE unset): the demonstration start page and game mode are reachable without ?tuotanto");
   else {
     console.log("serve: recruitment gate ON: only study links (?tuotanto) reach the app; no demonstration, no game mode");
-    if (gameInBuild.length > 0) console.warn(`serve: WARNING — ${config.staticDir} still holds the game (${gameInBuild.join(", ")}); it is not served, but build with RECRUITMENT_GATE=1 for recruitment`);
   }
   if (!deps) console.log("serve: Thinker OFF (THINKER=off): /api/thinker answers 404");
   else {

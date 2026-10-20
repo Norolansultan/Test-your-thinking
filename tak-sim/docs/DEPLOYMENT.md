@@ -79,8 +79,9 @@ for months in a small community. While it runs, switch the gate on in **both** p
   query has no `tuotanto` (`/`, `/?solu=…`, `/?pilotti`, `/index.html`, any other path or HTML page,
   `/about.html` included) gets a neutral bilingual 404 page ("not available; open your study link as
   you received it"), uncached — never the demonstration's start page with its condition buttons and
-  its game button. No file that carries the game's marker is served, even from an ungated build (the
-  server warns at start if `dist/ui` still holds one). Study links (`?tuotanto`, with or without
+  its game button. No file that carries the game's marker is served, and the gated server **refuses to
+  start** if `dist/ui` still holds the game (an ungated build would leave the game's other chunks
+  fetchable by their hashed names): build with `RECRUITMENT_GATE=1` first. Study links (`?tuotanto`, with or without
   `koodi`, `pilotti`, `solu`), their assets, the map and every `/api` route are unchanged.
 
 `RECRUITMENT_GATE` accepts `1` (on) or `0`/unset (off); anything else stops the server and the build.

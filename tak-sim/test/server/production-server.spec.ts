@@ -16,7 +16,7 @@ import { createAppServer, originAllowed } from "../../server/production/server.j
 import { resolveInside } from "../../server/production/static.js";
 import { ConfigError, loadConfig, recruitmentGateFrom } from "../../server/production/config.js";
 import { SessionLogStore } from "../../server/session-log/store.js";
-import { isStudyLink } from "../../server/production/recruitment-gate.js";
+import { gateStartupError, isStudyLink } from "../../server/production/recruitment-gate.js";
 import { GAME_CHUNK_MARKER } from "../../app/game/ui/marker.js";
 import { builtFiles, dropGameChunks, gameChunkFiles, gameLeaks, type BuiltChunk, type BuiltFile } from "../../tools/deploy/game-gate.js";
 
@@ -338,6 +338,14 @@ describe("the recruitment build leaves the game out (game-gate.ts)", () => {
     } finally {
       await rm(dist, { recursive: true, force: true });
     }
+  });
+
+  it("fails closed: a gated server refuses to start with a build that still holds the game (phase-4 review)", () => {
+    expect(gateStartupError(false, ["assets/GameApp-x.js"])).toBeNull(); // no gate: the demonstration and game are meant to be there
+    expect(gateStartupError(true, [])).toBeNull(); // a gated build
+    expect(gateStartupError(true, ["assets/GameApp-x.js"])).toMatch(/RECRUITMENT_GATE=1 but the build still holds the game \(assets\/GameApp-x\.js\)/);
+    const main = readFileSync("server/production/main.ts", "utf8");
+    expect(main).toMatch(/const gateError = gateStartupError\(config\.recruitmentGate, gameInBuild\);\s*if \(gateError\) \{[\s\S]{0,120}?process\.exit\(1\);/);
   });
 
   it("is wired into build:prod behind RECRUITMENT_GATE (or --recruitment-gate)", () => {

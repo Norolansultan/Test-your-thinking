@@ -197,7 +197,7 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
     moves: [
       m(1, "head:L", "arrive"),
       m(3, "edge:RIDGE", "reassign", "uusi syttymä harjulla"),
-      m(6, "at:R1_BLACK", "withdraw", "latvapalo, turva-alue palaneella alueella"),
+      m(6, "at:R1_BLACK", "withdraw", "latvapalo"), // ST-07: the safety zone is in the place said ("…, turva-alueelle; latvapalo")
       // Revision (aj): the crew takes the brook line with its LCES stated — the spot fires PP1 and PP2 are on the 15:20 map 250–330 m
       // beyond the brook, so the trigger point is a spot behind the line; it fires at 15:29 (PP1) and the crew is out at 15:31.
       // (The spot fires are not named in the move: DR1's three confirmations are the V5 Thinker's recent matches, `test/server/thinker-review-ah.spec.ts`.)
@@ -241,7 +241,7 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
       m(17, "at:VILLAGE", "evacuation", "johdon evakuointipäätös, poliisi toteuttaa"),
       // Fix pass 3 (decision): VPK's question about the two households that stay is answered (the police go on alone,
       // EXTRA_RADIO) and VPK returns to the line on R2; its next shift came out with the vehicle.
-      m(19, "at:R2_S", "return", "poliisi jatkaa kahden talon kanssa yksin, VPK palaa linjalle; vuoro vaihdettu", "road_line"),
+      m(19, "at:R2_S", "return", "poliisi jatkaa kahden talon kanssa yksin; vuoro vaihdettu", "road_line"),
     ],
     stale: [10], // as KY21: still on the south edge on the 16:20 map, where it objects from
   },
@@ -281,7 +281,7 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
       // `edge:L1N`, where the fire burned to within 25 m of it in 15:40–16:00 and again in 16:00–16:20); it pulls back to its
       // terrain vehicle on road R1 at the edge of the burned area and waits there, lookout posted, until the turned edge has
       // passed its old line. Still in the radio dead zone at 16:00 (F3, `stale`): the 16:00 map shows it where it was at 15:40.
-      m(8, "zone:R1_BLACK_MID", "withdraw", "tuuli kääntyy kaakkoon ja pohjoissivusta jää alatuuleen; miehet maastoautolle tielle R1 palaneelle alueelle (turva-alue), tähystäjä seuraa reunaa", "withdrawn"),
+      m(8, "zone:R1_BLACK_MID", "withdraw", "tuuli kääntyy kaakkoon ja pohjoissivusta jää alatuuleen; miehet maastoautolla, tähystäjä seuraa reunaa", "withdrawn"),
       m(10, "edge:L1B", "reassign", "pohjoisreuna kääntyi Karhujärveä kohti"),
     ],
     stale: [9],
@@ -379,19 +379,26 @@ export const EXTRA_RADIO: readonly { readonly cycle: number; readonly from: stri
     textEn: "P2: KY23 released to you." },
   // Review fixes (ah), 9 Oct 2026 (safety reviewer): a crew within 20 m of the burning zone, overrun or cut off from its vehicle
   // says how it stays safe (escape route, pull-back, headcount); `tools/validate/crew-safety.ts` requires these lines.
-  { cycle: 2, atOffsetS: 400, from: "EK11", text: "EK11: hyökkäämme kärjen vasenta laitaa suoraan letkulla, liekit matalat. Perääntymistie palaneelle alueelle, tähystäjä nimetty.",
-    textEn: "EK11: we are attacking the head's left side directly with a hose, low flames. Escape route into the burned area, lookout posted." },
+  // SPEC/31 §3.11 (D1), phase A since 20 Oct 2026: the head's side states the flame table's flank band at step 2 (7.1 m/min: 2.4 m,
+  // "liekit 2–3 m"; was "liekit matalat"; checked in `test/fire-ca/flame-table.spec.ts`). DRAFT Finnish for the native check.
+  { cycle: 2, atOffsetS: 400, from: "EK11", text: "EK11: hyökkäämme kärjen vasenta laitaa suoraan letkulla, liekit 2–3 m. Perääntymistie palaneelle alueelle, tähystäjä nimetty.",
+    textEn: "EK11: we are attacking the head's left side directly with a hose, flames 2–3 m. Escape route into the burned area, lookout posted." },
   // Revision (aj), 9 Oct 2026 (LCES at every exposure, `tools/validate/crew-safety.ts` `downwind`): the handover's direct attack
   // on both sides of the head, said once for both crews; the trigger point before the crown run (14:4x); KY21's trigger point on
   // the forest road at 18:2x. Recorded, not pushed (T2: in Haku and Thinker), so the views' pushed budget is unchanged. EK15's
   // firebreak line (16:4x) carries its escape route in its move message, EK16's road line (18:4x) in its report above.
-  { cycle: 1, atOffsetS: 240, from: "EK11", recorded: true, text: "EK11: kärjen molemmat laidat suorassa sammutuksessa, EK11 vasen ja EK12 oikea laita, liekit alle metrin. Perääntymistie palaneelle alueelle, tähystäjät nimetty.",
-    textEn: "EK11: both sides of the head under direct attack, EK11 the left and EK12 the right, flames under a metre. Escape route into the burned area, lookouts posted." },
+  // SPEC/31 §3.11 (D1), phase A since 20 Oct 2026: the head's sides state the table's flank band at step 1 (7.1 m/min: 2.4 m, "liekit
+  // 2–3 m"; was "liekit alle metrin"; `test/fire-ca/flame-table.spec.ts`). A direct attack at that flame is for the panel (FT-T3/T7).
+  { cycle: 1, atOffsetS: 240, from: "EK11", recorded: true, text: "EK11: kärjen molemmat laidat suorassa sammutuksessa, EK11 vasen ja EK12 oikea laita, liekit 2–3 m. Perääntymistie palaneelle alueelle, tähystäjät nimetty.",
+    textEn: "EK11: both sides of the head under direct attack, EK11 the left and EK12 the right, flames 2–3 m. Escape route into the burned area, lookouts posted." },
   // Revision (ak), 10 Oct 2026 (commander review): a trigger point is an indicator that comes BEFORE the danger, not the danger
   // itself — torching single trees and flames over two metres precede a crown run; "if the fire crowns" would have the crews
   // 90 m from a head that is already running at 30 m/min (the near miss EK12 then reports is the run outpacing even this trigger).
-  { cycle: 5, atOffsetS: 300, from: "EK11", recorded: true, text: "EK11: kärki kiihtyy kuusikkoon ja liekit nousevat. Laukaisupiste sovittu: kun yksittäiset puut alkavat soihduta tai liekit ylittävät kaksi metriä, EK11 ja EK12 irtautuvat kärjen laidoilta palaneelle alueelle ja tielle R1 odottamatta latvapaloa. Tähystäjät nimetty.",
-    textEn: "EK11: the head is accelerating into the spruce and the flames are rising. Trigger point agreed: when single trees start torching or the flames go over two metres, EK11 and EK12 break off from the head's flanks into the burned area and to road R1, without waiting for the fire to crown. Lookouts posted." },
+  // SPEC/31 §3.11 (D1), phase A since 20 Oct 2026 (DRAFT, domain review): the flame threshold is three metres, was two. Under the table
+  // the head's sides burn at 2–3 m from 13:20 (steps 1–4, flank 2.4–2.9 m; the lines above), so a two-metre trigger was met before it
+  // was set; the sides pass three metres only as the head crowns into the spruce (step 5, flank 3.3 m), as the old trigger did then.
+  { cycle: 5, atOffsetS: 300, from: "EK11", recorded: true, text: "EK11: kärki kiihtyy kuusikkoon ja liekit nousevat. Laukaisupiste sovittu: kun yksittäiset puut alkavat soihduta tai liekit ylittävät kolme metriä, EK11 ja EK12 irtautuvat kärjen laidoilta palaneelle alueelle ja tielle R1 odottamatta latvapaloa. Tähystäjät nimetty.",
+    textEn: "EK11: the head is accelerating into the spruce and the flames are rising. Trigger point agreed: when single trees start torching or the flames go over three metres, EK11 and EK12 break off from the head's flanks into the burned area and to road R1, without waiting for the fire to crown. Lookouts posted." },
   // Revision (ak): the road is the line — the trigger to leave it is fire taking hold on the far side, not a distance the edge
   // had already passed when the line was said (it stood 116 m off at 18:20). KY21 holds through the stop (18:40–19:00) under
   // this line's LCES (the T2 tier is at its band's top, so the 18:4x step carries no line of its own; its generated report says
@@ -552,11 +559,11 @@ const PLACE_EN: Readonly<Record<string, string>> = {
 const WHY_EN: Readonly<Record<string, string>> = {
   "uusi syttymä harjulla": "new ignition on the esker",
   "latvapalo, turvaetäisyys": "crown fire, safe distance",
-  "latvapalo, turva-alue palaneella alueella": "crown fire, safety zone in the burned area",
+  "latvapalo": "crown fire",
   "pistepalo PP1 linjan takana, miehet autolla turvassa": "spot fire PP1 behind the line, the crew safe at the truck",
   "latvapalo laskeutunut koivikkoon; linja palaneen reunasta ojan edessä, perääntymistie palaneen kautta autolle, tähystäjä nimetty": "the crown fire has dropped into the birch stand; the line from the burned edge in front of the brook, escape route through the burned area to the truck, lookout posted",
   "latvapalon jälkeen sivustahyökkäys palaneen reunasta, kärjen eteen ei mennä": "after the crown run a flank attack from the burned edge, nobody goes ahead of the head",
-  "tuuli kääntyy kaakkoon ja pohjoissivusta jää alatuuleen; miehet maastoautolle tielle R1 palaneelle alueelle (turva-alue), tähystäjä seuraa reunaa": "the wind is backing to south-east and the north flank is now downwind; crew to the terrain vehicle on road R1 in the burned area (safety zone), a lookout watches the edge",
+  "tuuli kääntyy kaakkoon ja pohjoissivusta jää alatuuleen; miehet maastoautolla, tähystäjä seuraa reunaa": "the wind is backing to south-east and the north flank is now downwind; the crew at the terrain vehicle, a lookout watches the edge",
   "palo ohitti, linja uudelleen palaneen reunasta": "the fire has passed, the line taken up again from the burned edge",
   "luoteistuuli kääntää itäreunan alatuuleen, jälkisammutus": "the north-westerly puts the east edge downwind, mop-up",
   "pohjoissivustaa kärkeä kohti, kannoilla vain jälkisammutusta": "up the north flank towards the head, only mop-up left at the heel",
@@ -573,7 +580,7 @@ const WHY_EN: Readonly<Record<string, string>> = {
   "avotulta syttymäkohdan eteläpuolella": "open fire south of the point of origin",
   "johdon evakuointipäätös, poliisi toteuttaa": "command's evacuation decision, carried out by the police", // EN-04 (SPEC/31): "johdon" is command's, not the participant's own role
   "vuoronvaihto": "change of shift",
-  "poliisi jatkaa kahden talon kanssa yksin, VPK palaa linjalle; vuoro vaihdettu": "the police carry on with the two households alone, VPK returns to the line; the shift has changed",
+  "poliisi jatkaa kahden talon kanssa yksin; vuoro vaihdettu": "the police carry on with the two households alone; the shift has changed",
   "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla": "the water was running out; the tanker drove itself, EK13 was busy at KY21's line",
   "säiliö oli tyhjä; EK13 oli kiinni KY21:n linjalla": "the tank was empty; EK13 was busy at KY21's line",
   "kärki kuusikon reunalla": "the head is at the spruce edge",
@@ -613,23 +620,19 @@ const WHY_EN: Readonly<Record<string, string>> = {
  * brackets ("… (lohko L1) (palokatko …)"). Proper names keep their one form ("R3:n silta (Kotkanjoki)", "metsäautotie
  * (Honkaharju)"), so at most one bracket remains. The robot's moves are said by its operator.
  *
- * Exception: the moves a key regex OUTSIDE WP-1's files cites (freeze banks, `demo-probes.ts`, `source-memory.ts`) keep their
- * logged wording, byte for byte, until the terminology pass rewrites them with their regexes (SPEC/31 WP-6): EK11 to the esker
- * (step 3, `freeze-bank.ts` RADIO.ek11Ridge), EK11's and EK12's withdrawals in the crown run (step 6, RADIO.ek11Withdraws,
- * .ek12Withdraws), EK15's arrival (step 10, `source-memory.ts`), OUT1's and OUT2's arrival at the bridge (step 16, V14 infra keys),
- * VPK's return to the line (step 19, `freeze-bank-b.ts`) and EK14's withdrawal to the black at 15:40 (step 8, the basis of V5's
- * `ek14_shelter`, read by `test/scenario/freeze-new-l3.spec.ts`).
+ * The eight moves WP-1 left in their logged third-person wording because key regexes cited them (EK11@3, EK11@6, EK12@6, EK14@8,
+ * EK15@10, OUT1@16, OUT2@16, VPK@19; SPEC/31 (az)) are said as speech too since 20 Oct 2026, their citing regexes rewritten with
+ * them (`freeze-bank.ts` RADIO, `freeze-bank-b.ts` vpkRelief, `source-memory.ts`, `demo-probes.ts` V14 infra keys): the same records,
+ * the same key values.
+ *
+ * `spokenFi` / `spokenEn`: a place as said in speech, the sector and the safety zone after a comma, not in brackets.
  */
-export const LOGGED_FORM_MOVES: ReadonlySet<string> = new Set(["EK11@3", "EK11@6", "EK12@6", "EK14@8", "EK15@10", "OUT1@16", "OUT2@16", "VPK@19"]);
-const loggedForm = (unit: string, mv: Move) => LOGGED_FORM_MOVES.has(`${unit}@${mv.cycle}`);
-/** A place as said in speech: the sector and the safety zone after a comma, not in brackets. */
 const spokenFi = (place: string) => place.replace(/ \(lohko (L\d)\)/, ", lohko $1").replace(/ \(turva-alue\)/, ", turva-alueelle").replace(/ \(vesipiste (W\d)\)/, ", vesipiste $1");
 const spokenEn = (place: string) => place.replace(/ \(sector (L\d)\)/, ", sector $1").replace(/ \(safety zone\)/, ", the safety zone").replace(/ \(water point (W\d)\)/, ", water point $1");
 
 /** The radio message for a move, in English (`moveMessageFi`'s sentence, DRAFT translation). */
 export function moveMessageEn(unit: string, mv: Move): string {
   if (mv.text) return mv.text.en;
-  if (loggedForm(unit, mv)) return moveMessageEnLogged(unit, mv);
   const place = spokenEn(PLACE_EN[mv.to] ?? mv.to);
   const why = mv.whyFi ? `; ${WHY_EN[mv.whyFi] ?? mv.whyFi}` : "";
   const bare = place.replace(/^to /, "");
@@ -647,26 +650,9 @@ export function moveMessageEn(unit: string, mv: Move): string {
   }
 }
 
-/** The logged (third-person) wording, kept for the key-cited moves (`LOGGED_FORM_MOVES`). */
-function moveMessageEnLogged(unit: string, mv: Move): string {
-  const place = PLACE_EN[mv.to] ?? mv.to;
-  const why = mv.whyFi ? ` (${WHY_EN[mv.whyFi] ?? mv.whyFi})` : "";
-  switch (mv.reason) {
-    case "arrive": return `${unit} has arrived ${place.replace(/^to /, "at ")}${why}.`;
-    case "reassign": return `${unit} is moving ${place}${why}.`;
-    case "withdraw": return `${unit} is withdrawing ${place}${why}.`;
-    // The map shows the unit at its water point from the step's start, so the message is the present state (fix pass 5, 8 Oct 2026).
-    case "water": return `${unit} is refilling water: ${place.replace(/^to /, "")}${why}. Away from the line for about 20 min, back at about ${hm(stepStartS(mv.cycle) + 1290)}.`;
-    case "return": return `${unit} is returning to the line, ${place.replace(/^to /, "")}${why}.`;
-    case "rest": return `${unit} is moving ${place}${why}.`;
-    case "evacuation": return `${unit} is helping the evacuation, ${place.replace(/^to /, "")}${why}.`;
-  }
-}
-
-/** The radio message for a move, as the unit says it (speech; the key-cited moves in their logged wording, `LOGGED_FORM_MOVES`). */
+/** The radio message for a move, as the unit says it (speech). */
 export function moveMessageFi(unit: string, mv: Move): string {
   if (mv.text) return mv.text.fi;
-  if (loggedForm(unit, mv)) return moveMessageFiLogged(unit, mv);
   const place = spokenFi(PLACE_FI[mv.to] ?? mv.to);
   const why = mv.whyFi ? `; ${mv.whyFi}` : "";
   if (unit.startsWith("UGV")) {
@@ -680,21 +666,6 @@ export function moveMessageFi(unit: string, mv: Move): string {
     case "return": return `${unit}: palaamme linjalle, ${place}${why}.`;
     case "rest": return `${unit}: siirrymme ${place}${why}.`;
     case "evacuation": return `${unit}: avustamme evakuoinnissa, ${place}${why}.`;
-  }
-}
-
-/** The logged (third-person) wording, kept for the key-cited moves (`LOGGED_FORM_MOVES`). */
-function moveMessageFiLogged(unit: string, mv: Move): string {
-  const place = PLACE_FI[mv.to] ?? mv.to;
-  const why = mv.whyFi ? ` (${mv.whyFi})` : "";
-  switch (mv.reason) {
-    case "arrive": return `${unit} saapunut ${place}${why}.`;
-    case "reassign": return `${unit} siirtyy ${place}${why}.`;
-    case "withdraw": return `${unit} vetäytyy ${place}${why}.`;
-    case "water": return `${unit} täyttämässä vettä: ${place}${why}. Poissa linjalta noin 20 min, palaa noin ${hm(stepStartS(mv.cycle) + 1290)}.`;
-    case "return": return `${unit} palaa linjalle, ${place}${why}.`;
-    case "rest": return `${unit} siirtyy ${place}${why}.`;
-    case "evacuation": return `${unit} avustaa evakuoinnissa, ${place}${why}.`;
   }
 }
 

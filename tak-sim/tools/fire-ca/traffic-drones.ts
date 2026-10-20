@@ -129,7 +129,8 @@ function levelNear(id: string, n: number, atS: number): number | null {
 
 function confidenceFi(id: string, n: number, cls: number): string {
   if (id === "DR3" && n === 10) return L("luotettavuus heikko: matala savukerros kuvassa", "reliability poor: a low smoke layer in the image");
-  if (id === "DR3" && n === 6) return L("luotettavuus heikko: lämpökuva kylläinen latvapalon kohdalla, raja epätarkka", "reliability poor: thermal image saturated over the crown fire, edge unclear");
+  // Radio TE-08 (SPEC/31): an image is "saturoitunut", not "kylläinen" (chemistry), as DR1's story beat 6.1 says it (evt.c06.015, .017).
+  if (id === "DR3" && n === 6) return L("luotettavuus heikko: lämpökameran kuva saturoitunut latvapalon kohdalla, reunaa ei erota", "reliability poor: the thermal camera image is saturated over the crown fire, the edge cannot be made out");
   if (id === "DR2" && n === 4) return L("luotettavuus kohtalainen: linkkikatko noin 3 min, osa kuvasta vanhaa", "reliability moderate: link dropped for about 3 min, part of the image is old");
   if (cls >= 4) return L("luotettavuus kohtalainen: paksu savu peittää osan reunasta", "reliability moderate: thick smoke hides part of the edge");
   return L("luotettavuus hyvä", "reliability good");
@@ -277,9 +278,9 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
   // The sector is the one the target lies in, as for the units (A9); the anchor's name stays the place.
   const loc = { pos: tgt, place, location: sectorOfPoint(tgt) };
   let picture: string;
-  // The flame stated: from the hinge the provisional table's at the rate measured here (SPEC/31 §3.11), before it the class band. A
+  // The flame stated: the provisional table's at the rate measured here (SPEC/31 §3.11), at every step (phase A since 20 Oct 2026). A
   // separate fire's own run is not in the footprint's advance (`advanceAt` leaves its cells out): in phase B the separate fire is the
-  // rekindled front, whose head run is the step's observed rate (DR2 17:25: the 17:00–17:20 run).
+  // rekindled front, whose head run is the step's observed rate (DR2 17:25: the 17:00–17:20 run); phase A's images hold none.
   const flameRate = jumped.length > 0 && n >= PHASE_B_FIRST_STEP ? Math.max(rate, inp.observedRateMpm) : rate;
   const fw = flameWords(cls, flameRate, lc, n);
   // The image's hottest pixel reads the class of the flame stated (one draw either way, so the step's stream is unchanged): a
@@ -301,7 +302,7 @@ function orbitProducts(a: TrafficAircraft, inp: TrafficCycleInput, out: Out) {
     // Worded without "pistepalo" (as EK11's 14:0x line): a lexical match on it takes a V5 retrieval slot from DR1's spot-fire
     // confirmations (`test/server/thinker-review-ah.spec.ts` C2); the recorded measurement keeps "(sisältää pistepalojen hypyt)".
     picture = ((t: string) => L(`kärki edennyt ${dirTo(outward ?? inp.headingDeg)} hyppäyksin noin ${r10(adv)} m (klo ${hm(t0 - 1200)}–${hm(t0)}, ${fmt1(rate)} m/min hypyt mukaan lukien; yhtenäinen reuna noin ${front} m/min), ${fw}, maks. ${t}`,
-      `the head has advanced ${dirTo(outward ?? inp.headingDeg)} in jumps, about ${r10(adv)} m (${hm(t0 - 1200)}–${hm(t0)}, ${fmt1(rate)} m/min including the jumps; the continuous front about ${front} m/min), ${fw}, max. ${t}`))(tempFi(cls, out.draw.rnd));
+      `the head has advanced ${dirTo(outward ?? inp.headingDeg)} in jumps, about ${r10(adv)} m (${hm(t0 - 1200)}–${hm(t0)}, ${fmt1(rate)} m/min including the jumps; the continuous front about ${front} m/min), ${fw}, max. ${t}`))(tempFi(tempCls, out.draw.rnd));
   } else if (burned === 0) {
     const d = fire.distanceM(tgt, 4000);
     picture = L(`kuva-alalla ei paloa${Number.isFinite(d) ? `, lähin reuna noin ${r50(d)} m` : ""}`, `no fire in the image${Number.isFinite(d) ? `, nearest edge about ${r50(d)} m` : ""}`);

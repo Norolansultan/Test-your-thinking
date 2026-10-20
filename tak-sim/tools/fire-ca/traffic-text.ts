@@ -7,7 +7,7 @@
 
 import type { ActorType, AirKind } from "../../app/scenario/types.js";
 import type { P } from "./deployment.js";
-import { classOfFlame, flameAt, PHASE_B_FIRST_STEP } from "./flame-table.js";
+import { recordFlameAt, RECORDS_FOLLOW_FROM_STEP } from "./flame-table.js";
 
 /**
  * The language the generator writes (session language "en", 1 Oct 2026). The generator runs once in
@@ -182,21 +182,25 @@ export function vary<T>(key: string, n: number, xs: readonly T[], rnd?: () => nu
   return xs[h % xs.length]!;
 }
 
-/** Whether step n's records read flames from the provisional table (`flame-table.ts`): a spreading edge (class 2–4) from the hinge on. */
-const followsTable = (cls: number, n: number) => n >= PHASE_B_FIRST_STEP && cls >= 2 && cls <= 4;
+/**
+ * Whether step n's records read flames from the provisional table (`flame-table.ts`): a spreading edge (class 2–4) at every step
+ * of the incident (`RECORDS_FOLLOW_FROM_STEP`; WP-1 from the hinge, phase A since 20 Oct 2026).
+ */
+const followsTable = (cls: number, n: number) => n >= RECORDS_FOLLOW_FROM_STEP && cls >= 2 && cls <= 4;
 /**
  * The flame band a record states for an edge of generator class `cls` spreading at `rateMpm` on ground `lc` in step n (SPEC/31
- * §3.11): from the hinge, Byram's flame at that rate (`flame-table.ts`); before it, and for a creeping or crowning edge, the class band.
+ * §3.11): Byram's flame at that rate (`flame-table.ts`), or the crown band over `CROWN_ABOVE_MPM` (the table's rule: the step-6
+ * crown run's head record said "2–4 m" at 38–51 m/min); for a creeping edge (class ≤ 1) or a crowning one (class 5) the class band.
  * The class itself still drives the generator's choices (no draw moves); only the stated flame follows the table.
  */
 export function flameWords(cls: number, rateMpm: number, lc: LandCoverFi, n: number): string {
   if (!followsTable(cls, n)) return FLAME_FI[cls]!;
-  const b = flameAt(rateMpm, lc).band;
+  const b = recordFlameAt(rateMpm, lc).band;
   return LANG === "en" ? b.en : b.fi;
 }
-/** The intensity class a record states: from the hinge, the class of the table's flame (the generator's scale, `classOfFlame`). */
+/** The intensity class a record states: the class of the table's flame (the generator's scale, `classOfFlame`; 5 for a crown run). */
 export function statedClass(cls: number, rateMpm: number, lc: LandCoverFi, n: number): number {
-  return followsTable(cls, n) ? classOfFlame(flameAt(rateMpm, lc).lengthM, false) : cls;
+  return followsTable(cls, n) ? recordFlameAt(rateMpm, lc).cls : cls;
 }
 
 /**

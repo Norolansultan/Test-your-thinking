@@ -227,8 +227,17 @@ const CHECKS: Readonly<Record<string, Check>> = {
   relief_next: { states: /VPK[^.]*(?:lepo|korvaav|vuoronvaih)/i },
   // `31` F02: the consequence for R2's sprinklers 20 minutes on: no record says the water went on or that the front stayed far.
   se_front_r2: { states: /satojen metrien|sadettim\w* (?:on )?kytketty|vesi kytkettiin/i },
-  // `31` F03: the flare-up's spread: no record says it spreads (its smoke "painuu kaakkoon" is the wind, not the fire).
-  flare_next: { states: /(?:uudelleensyttym|länsipuolen (?:uusi )?palo)\w*[^.]*(?:laajen|levi|etene)\w*[^.]*kaakko/i },
+  // `31` F03: the flare-up's spread. SPEC/31 (az) phase 4, finding 5 (20 Oct 2026): the guard also sees the smoke's direction in a
+  // record about the flare-up ("… länsipuolen uusi palo … Savu painuu kaakkoon"), which nearly states the key "spreads south-east".
+  flare_next: { states: /(?:uudelleensyttym|länsipuolen (?:uusi )?palo)\w*(?:[^.]*(?:laajen|levi|etene)\w*[^.]*kaakko|[\s\S]*savu\w* (?:painuu|kulkee|ajautuu|leviää|menee) kaakko)/i },
+};
+/**
+ * L3 items the guard flags that stay in the bank for the domain reviewer, each marked so in its comment in the bank (never a silent
+ * exemption): the stating records are pinned, so a new one, or the item's repair, shows here.
+ */
+const FOR_DOMAIN_REVIEW: Readonly<Record<string, readonly string[]>> = {
+  // V14: SPOT's recorded 19.30 pass and its pushed 19.42 line give the flare-up's smoke south-east (story 19.3, 20.1).
+  "freeze.14.flare_next": ["atom.demo.19.3", "atom.demo.20.1"],
 };
 
 /** The records on hand at a view's freeze that state an L3 choice item's key, by the item's check. */
@@ -247,9 +256,23 @@ describe("no L3 key is stated by a record on hand before the freeze (fix pass 5,
         const check = CHECKS[it.id.split(".").at(-1)!];
         expect(check, `${it.id}: no check`).toBeDefined();
         if (!check) continue;
-        expect(recallHits(f.cycle, it, check).map((h) => h.text), it.id).toEqual([]);
+        const hits = recallHits(f.cycle, it, check);
+        if (FOR_DOMAIN_REVIEW[it.id]) expect(hits.map((h) => h.id), it.id).toEqual(FOR_DOMAIN_REVIEW[it.id]);
+        else expect(hits.map((h) => h.text), it.id).toEqual([]);
       }
     }
+  });
+
+  it("V14 flare_next (SPEC/31 (az) phase 4, finding 5): its key records are the pushed records its basis cites, so its told class is computed; the smoke-direction wording fails the guard (marked for the domain reviewer)", () => {
+    const flare = item(14, "flare_next");
+    expect(flare.keyAtomIds).toEqual(["atom.demo.19.2", "atom.demo.20.1"]);
+    expect(flare.keyAtomIds).toEqual(flare.basisAtomIds);
+    for (const id of flare.keyAtomIds!) expect(scenario.atoms.find((a) => a.id === id)!.tier, id).toBe("T1_pushed"); // so stream-told when shown
+    // Before the extension the guard saw only spread wording ("laajenee … kaakkoon"), which no record states; the smoke's direction it now sees.
+    const spreadOnly = { states: /(?:uudelleensyttym|länsipuolen (?:uusi )?palo)\w*[^.]*(?:laajen|levi|etene)\w*[^.]*kaakko/i };
+    expect(recallHits(14, flare, spreadOnly)).toEqual([]);
+    expect(recallHits(14, flare, CHECKS["flare_next"]!).map((h) => h.id)).toEqual(["atom.demo.19.3", "atom.demo.20.1"]);
+    expect(key(14, "flare_next")).toBe("spreads_se"); // the key unchanged
   });
 
   it("the repaired guard catches the item it was blind to: 588908b's V14 se_front_r2 (450–650 m from R2 in 20 minutes), stated by both pushed step-20 lines", () => {

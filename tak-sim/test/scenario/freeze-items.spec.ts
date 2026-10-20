@@ -93,7 +93,13 @@ describe("the goal-based bank's structure", () => {
       expect(d.basis.length, d.slug).toBeGreaterThan(20);
     }
     // 2 Oct 2026: an L3 key may rest on a record available at the freeze (the wind forecast, evt.wx.*), checked by the next test for every level.
-    for (const { d } of defs.filter((x) => x.d.level === "L3")) for (const id of d.keyAtomIds) expect(id, d.slug).toMatch(/^evt\.wx\./);
+    // SPEC/31 (az) phase 4, finding 5 (20 Oct 2026): or, for a REPORT-keyed item on records (`basisKind` "record"), on exactly the records
+    // its basis cites (V14 flare_next: the pushed 19.23 and 19.42 lines), so that its told class is computed (stream-told).
+    for (const { d } of defs.filter((x) => x.d.level === "L3")) {
+      const cited = d.basisKind === "record" && d.keyAtomIds.length > 0 && d.keyAtomIds.every((id) => !/^evt\.wx\./.test(id));
+      if (cited) expect(d.keyAtomIds, d.slug).toEqual(d.basisAtomIds);
+      else for (const id of d.keyAtomIds) expect(id, d.slug).toMatch(/^evt\.wx\./);
+    }
   });
 
   it("key atoms exist and, for L1 and L2, had been delivered or recorded by the view's last step", () => {

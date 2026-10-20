@@ -5,8 +5,8 @@
  * `demo-directive.ts`, which no app module imports — so a key whose record pattern no longer
  * matches exactly one record throws here, and every key's basis atom (the directive keys' and the
  * freeze items') must exist in the scenario, failing validation instead of the analysis.
- * SPEC/31 §3.11 (D1): from the hinge, every record's flame band must be one its stated spread rate can
- * give (`fire-physics-checker.ts`, `flameRateFindings`).
+ * SPEC/31 §3.11 (D1): at every step 1–20 (phase B since WP-1, phase A since 20 Oct 2026), every record's flame band must be one
+ * its stated spread rate can give, and a crown run's rate the crown band (`fire-physics-checker.ts`, `flameRateFindings`).
  */
 
 import { sortedKeys } from "../../app/engine/deterministic-object.js";
@@ -26,4 +26,4 @@ const missing = [
 if (missing.length > 0) throw new Error(`Key basis atoms not in the scenario:\n  ${missing.join("\n  ")}`);
 
 const flame = flameRateFindings(scenarioFlameRecords());
-if (flame.length > 0) throw new Error(`Flame bands their stated rates cannot give (SPEC/31 §3.11):\n  ${flame.map((f) => `${f.id}: "${f.band}" at ${f.ratesMpm.join(" / ")} m/min`).join("\n  ")}`);
+if (flame.length > 0) throw new Error(`Flames their stated rates cannot give (SPEC/31 §3.11):\n  ${flame.map((f) => `${f.id}: "${f.band}" at ${f.ratesMpm.join(" / ")} m/min (${f.kind})`).join("\n  ")}`);

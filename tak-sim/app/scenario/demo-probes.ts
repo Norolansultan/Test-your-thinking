@@ -77,7 +77,8 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
  * Answer keys, against the corpus (`content/corpus/interaction-log.jsonl`) at the view's last step:
  * - VP (step W2), W1 Haukilampi: available. VPK: "vettä saa Haukilammelta (W1)" (12:09).
  * - V2 (steps 2–3), R1: not safe to drive, flames at the roadside. DR1 road report at step 3:
- *   "tie R1, palo noin 10 m tiestä — liekit tien reunassa (liekit 0,3–1 m), ajo ei turvallista".
+ *   "tie R1, palo noin 10 m tiestä — liekit tien reunassa (liekit 1–2 m), ajo ei turvallista" (the flame table's band since 20 Oct
+ *   2026, was "0,3–1 m"; the key, "unsafe", rests on "ajo ei turvallista", unchanged).
  * - V4 (steps 5–6), W1 Haukilampi: available. VPK fills there at 14:47 (step 5). (Fix pass 2: KY21 no longer drives
  *   there; the water shuttle EK13 fills its basin at the line.)
  * - V5 (step 7), R1: passable, no fire at the roadside ("open"; 2 Oct 2026, was "with care"). DR2 road
@@ -155,7 +156,8 @@ const INFRA_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   7: [trafficId(10, /EK12 täytti säiliön, R3:n silta \(Kotkanjoki\)/)],
   10: ["atom.demo.13.0"],
   12: [DESIGNED_EVENT_IDS.gridRecord, DESIGNED_EVENT_IDS.heliLineClearance],
-  14: [radioId(16, /^OUT1 saapunut R3:n sillan .*raskas säiliö ei pääse/), radioId(16, /^OUT2 saapunut R3:n sillan .*raskas säiliö ei pääse/)],
+  // Radio ST-07 (20 Oct 2026): the arrivals are said as speech ("OUT1: saavuimme …", were "OUT1 saapunut …"), the same records.
+  14: [radioId(16, /^OUT1: saavuimme R3:n sillan .*raskas säiliö ei pääse/), radioId(16, /^OUT2: saavuimme R3:n sillan .*raskas säiliö ei pääse/)],
 };
 
 /**

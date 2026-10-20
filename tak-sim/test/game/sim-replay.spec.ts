@@ -113,7 +113,7 @@ describe("determinism and replay", () => {
     expect(s.powerLineLive).toBe(false);
     expect(s.units.find((u) => u.id === "VPK")!.status).toBe("out_of_action");
     expect(s.radio.some((m) => m.from === "SÄÄ" && m.textFi.includes("varoitus"))).toBe(true);
-    expect(s.radio.some((m) => m.from === "P3" && m.textFi.includes("110 kV"))).toBe(true);
+    expect(s.radio.some((m) => m.from === "P3" && m.textFi.includes("20 kV"))).toBe(true);
     expect(s.units.find((u) => u.id === "EK13")!.waterL).toBeLessThan(14000);
     expect(a.scenario.objectives[0]).toEqual({ kind: "protect_settlement", settlementId: "kyla" });
   });

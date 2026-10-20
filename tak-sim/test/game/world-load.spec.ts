@@ -82,7 +82,8 @@ describe("decoded world", () => {
 
   it("puts every lake and pond label inside the grid on water cells", () => {
     const lakes = world.labels.filter((l) => l.style === "water" && /(järvi|lampi)$/.test(l.textFi) && cellOf(world, l.at) >= 0);
-    expect(lakes.map((l) => l.textFi)).toEqual(expect.arrayContaining(["Karhujärvi", "Haukilampi", "Mustajärvi"]));
+    // On the rebuilt map (SPEC/33) Mustajärvi lies west of the grid; Särkijärvi and Kivijärvi's label are inside it.
+    expect(lakes.map((l) => l.textFi)).toEqual(expect.arrayContaining(["Karhujärvi", "Haukilampi", "Särkijärvi", "Kivijärvi"]));
     for (const l of lakes) expect([l.textFi, world.fuel[cellOf(world, l.at)]]).toEqual([l.textFi, FUEL.water]);
   });
 
@@ -98,7 +99,7 @@ describe("decoded world", () => {
     for (const p of world.powerLine) expect(inMargin(p)).toBe(true);
   });
 
-  it("has houses, barns and pylons every ~300 m along the 110 kV line", () => {
+  it("has houses, barns and a pole asset every ~300 m along the 20 kV line", () => {
     const kinds = new Map<string, number>();
     for (const a of world.assets) kinds.set(a.kind, (kinds.get(a.kind) ?? 0) + 1);
     expect(kinds.get("house")).toBeGreaterThan(20);

@@ -1,7 +1,7 @@
 /**
  * SPEC/29 §2.3 and revision (ay) rule 1 (`31` P-12): no game scenario has an event at the study's keyed times or
  * places. Every scenario in `GAME_SCENARIOS` is checked against `KEYED_MOMENTS` (study-keyed-moments.ts, the one
- * list): ignitions and placed messages, the 110 kV line's switching, unit recalls, the evening wind, the words of
+ * list): ignitions and placed messages, the 20 kV line's switching, unit recalls, the evening wind, the words of
  * the messages and briefings, and the keyed clock times. Each moment is also shown to catch the timeline it was
  * written against (the replays P-12 found), so the check cannot pass by being blind.
  */
@@ -127,7 +127,7 @@ const REPLAYS: Readonly<Record<string, Partial<GameScenario>>> = {
   },
   phase_b_front: { events: [{ atS: T("17:20"), kind: "ignite", at: { x: 5640, y: 3420 } }] },
   f7_line: {
-    events: [{ atS: T("15:30"), kind: "power_line_dead", message: msg("15:30", "P3: Verkkoyhtiö: 110 kV johto kytketty irti ja maadoitettu klo 15.30.", "P3: Grid operator: the 110 kV line is disconnected and earthed as of 15:30.") }],
+    events: [{ atS: T("15:30"), kind: "power_line_dead", message: msg("15:30", "P3: Verkkoyhtiö: 20 kV johto kytketty irti ja maadoitettu klo 15.30.", "P3: Distribution company: the 20 kV line is disconnected and earthed as of 15:30.") }],
   },
   unit_recall: {
     units: [{ id: "EK11", kind: "engine", arriveAtS: 0 }, { id: "KY21", kind: "engine", arriveAtS: T("13:45") }, { id: "DR3", kind: "drone_vtol", arriveAtS: T("13:20") }],
@@ -158,7 +158,7 @@ describe("each keyed moment catches the replay it was written against", () => {
       ...BASE, startClockMin: 960, endAtS: at(960, "20:00"),
       ignitions: [{ x: PLACES.KUIVAKANGAS.x - 10, y: PLACES.KUIVAKANGAS.y - 10 }, { x: PLACES.IGN.x + 120, y: PLACES.IGN.y - 50 }, { x: PLACES.RAHKASUO.x + 40, y: PLACES.RAHKASUO.y + 20 }],
       weather: [wx(960, "16:00", 160, 5, 9, 25, 38), wx(960, "20:00", 160, 5, 9, 19, 30)],
-      events: [{ atS: 600, kind: "radio", message: radio(600, "P3", "command", "important", "P3: Verkkoyhtiö ei saa 110 kV johtoa jännitteettömäksi tänään.", "P3: The grid operator cannot de-energise the 110 kV line today.") }],
+      events: [{ atS: 600, kind: "radio", message: radio(600, "P3", "command", "important", "P3: Verkkoyhtiö ei saa 20 kV johtoa jännitteettömäksi tänään.", "P3: The distribution company cannot de-energise the 20 kV line today.") }],
     };
     const ids = KEYED_MOMENTS.filter((k) => touches(old, k).length > 0).map((k) => k.id);
     expect(ids).toEqual(expect.arrayContaining(["origin_rekindle", "phase_b_front", "f7_line"]));

@@ -1,6 +1,6 @@
 /**
  * Game mode: water, logistics and crew safety shared by the unit behaviours — where water may be used
- * (the live 110 kV line), where it comes from (tank, natural water, a shuttle), the water run that
+ * (the live 20 kV line), where it comes from (tank, natural water, a shuttle), the water run that
  * interrupts an order and hands it back, and the pull-back when an edge is too hot (LCES).
  */
 
@@ -21,7 +21,7 @@ export const DANGER_M = 60;
 export const SAFE_M = 150;
 export const RETREAT_HOLD_S = 120;
 
-/** Whether water may be used at `p` now (not within 30 m of the live line). */
+/** Whether water may be used at `p` now (not within `POWER_LINE_SAFE_M` of the live line). */
 export function waterAllowedAt(ctx: Ctx, p: XY): boolean {
   return !ctx.powerLineLive || polylineDist(p, ctx.world.powerLine) > POWER_LINE_SAFE_M;
 }

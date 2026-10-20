@@ -3,7 +3,7 @@
  * English string a type error). Game mode keeps its own strings: nothing here is the study's (`app/i18n/ui.ts`).
  */
 
-import type { GamePhase, GameScenario, GameWorld, Objective, RadioMessage, UnitKind, UnitStatus } from "../contracts.js";
+import { POWER_LINE_SAFE_M, type GamePhase, type GameScenario, type GameWorld, type Objective, type RadioMessage, type UnitKind, type UnitStatus } from "../contracts.js";
 import type { Lang } from "../../i18n/lang.js";
 import type { OrderType } from "./orders.js";
 
@@ -180,7 +180,7 @@ const FI: GameText = {
   fuelLegend: "Polttoaineluokat",
   fuel: ["Vesi", "Soratie", "Pelto", "Kangasmänniköt", "Varttunut kuusikko", "Harvennettu kuusikko", "Koivikko / haavikko", "Ojitettu turvemaa", "Johtoaukea", "Rakennettu", "Avosuo", "Metsätie", "Puro"],
   forecastLabel: (m) => `Ennuste +${m} min (malli)`,
-  powerLine: (live) => (live ? "110 kV jännitteinen — ei vettä 30 m sisällä" : "110 kV maadoitettu"),
+  powerLine: (live) => (live ? `20 kV jännitteinen — ei vettä ${POWER_LINE_SAFE_M} m sisällä` : "20 kV maadoitettu"),
   objectiveState: { met: "saavutettu", failed: "epäonnistui", open: "kesken" },
   help: [
     ["Napautus / klikkaus", "Valitse yksikkö (kartalta tai Yksiköt-listasta)"],
@@ -281,7 +281,7 @@ const EN: GameText = {
   fuelLegend: "Fuel classes",
   fuel: ["Water", "Gravel road", "Field", "Pine heath", "Mature spruce", "Thinned spruce", "Birch / aspen", "Drained peat", "Power-line corridor", "Built-up", "Open bog", "Forest road", "Brook"],
   forecastLabel: (m) => `Forecast +${m} min (model)`,
-  powerLine: (live) => (live ? "110 kV live — no water within 30 m" : "110 kV earthed"),
+  powerLine: (live) => (live ? `20 kV live — no water within ${POWER_LINE_SAFE_M} m` : "20 kV earthed"),
   objectiveState: { met: "met", failed: "failed", open: "open" },
   help: [
     ["Tap / click", "Select a unit (on the map or in the Units list)"],

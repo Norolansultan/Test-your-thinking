@@ -92,7 +92,7 @@ export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit, wind
           );
         })}
         <span class="gm-chip" title={t.powerLine(state.powerLineLive)} style={{ borderColor: state.powerLineLive ? "#ffd400" : TAK.panelBorder, color: state.powerLineLive ? "#ffd400" : TAK.textDim }}>
-          ⚡ <span class="gm-hide-narrow">{t.powerLine(state.powerLineLive)}</span><span class="gm-only-narrow">110 kV</span>
+          ⚡ <span class="gm-hide-narrow">{t.powerLine(state.powerLineLive)}</span><span class="gm-only-narrow">20 kV</span>
         </span>
       </div>
     </header>

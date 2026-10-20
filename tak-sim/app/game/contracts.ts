@@ -80,7 +80,10 @@ export interface GameWorld {
   readonly waterPoints: readonly WaterPoint[];
   readonly assets: readonly Asset[];
   readonly settlements: readonly Settlement[];
-  /** The 110 kV line: water must not be used within `POWER_LINE_SAFE_M` of it while it is live. */
+  /**
+   * The 20 kV distribution line on wooden poles (SPEC/33 (bc); was 110 kV), owned by the local distribution
+   * company: water must not be used within `POWER_LINE_SAFE_M` of it while it is live.
+   */
   readonly powerLine: readonly XY[];
   readonly labels: readonly MapLabel[];
   readonly commandPost: XY;
@@ -88,7 +91,13 @@ export interface GameWorld {
   readonly entryNodes: readonly number[];
 }
 
-export const POWER_LINE_SAFE_M = 30;
+/**
+ * No water within this distance of the live 20 kV line, m (was 30 for 110 kV). PROVISIONAL game value: about a
+ * straight jet's clearance from a live medium-voltage conductor (~10 m) plus drift and the 25 m fire cells, so the
+ * cells the line crosses stay dry; a domain reviewer should confirm it against the rescue services' electrical-safety
+ * guidance.
+ */
+export const POWER_LINE_SAFE_M = 15;
 
 // ---------------------------------------------------------------------------
 // Weather (weather/*)
@@ -248,7 +257,7 @@ export interface GameScenario {
   readonly units: readonly ScenarioUnit[];
   readonly events: readonly ScenarioEvent[];
   readonly objectives: readonly Objective[];
-  /** The 110 kV line is live until a `power_line_dead` event. */
+  /** The 20 kV line is live until a `power_line_dead` event (the distribution company de-energises it on request). */
   readonly powerLineLiveAtStart: boolean;
   /**
    * Discovery delay, s (default 0): the fire burns this long before tS 0, from `ignitions`, under the

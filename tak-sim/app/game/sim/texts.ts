@@ -75,7 +75,7 @@ export const T = {
     fi: `MAYDAY MAYDAY MAYDAY, ${id}: miehistössä loukkaantuneita, palo saartanut. Tarvitsemme ensihoidon!`,
     en: `MAYDAY MAYDAY MAYDAY, ${id}: crew injured, the fire has cut us off. We need EMS!`,
   }),
-  powerLineNoWater: (): Text => ({ fi: "voimajohto on jännitteinen, emme käytä vettä johdon lähellä.", en: "the power line is live, we use no water near it." }),
+  powerLineNoWater: (): Text => ({ fi: "20 kV voimajohto on jännitteinen, emme käytä vettä johdon lähellä.", en: "the 20 kV power line is live, we use no water near it." }),
   longShift: (h: number): Text => ({ fi: `miehistö ollut kentällä ${h} tuntia, vaihto tarpeen.`, en: `crew on the line for ${h} hours, relief needed.` }),
 
   hoseReady: (m: number, natural: boolean): Text => ({
@@ -137,8 +137,8 @@ export const T = {
     en: `warning: wind from the ${compassEn(fromDeg)} strengthening to about ${n(ms, "en")} m/s, gusts ${n(gust, "en")} m/s, by ${clock}.`,
   }),
   powerLineDead: (): Text => ({
-    fi: "verkkoyhtiö vahvistaa: 110 kV johto on jännitteetön ja maadoitettu. Vettä saa käyttää johdon lähellä.",
-    en: "the grid operator confirms: the 110 kV line is de-energised and earthed. Water may be used near the line.",
+    fi: "verkkoyhtiön käyttökeskus vahvistaa: pyydetty poiskytkentä on tehty, 20 kV voimajohto on jännitteetön ja maadoitettu. Vettä saa käyttää johdon lähellä.",
+    en: "the distribution company's control centre confirms: the requested switch-off is done, the 20 kV line is de-energised and earthed. Water may be used near the line.",
   }),
   recalled: (ids: readonly string[]): Text => ({
     fi: `alue irrottaa yksiköt ${ids.join(", ")} toiselle palolle. Vapauttakaa ne heti.`,

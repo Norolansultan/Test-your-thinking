@@ -1,9 +1,10 @@
 /**
- * Game mode: order validation (`Game.issue`) — reasons in Finnish and English, the live 110 kV line,
+ * Game mode: order validation (`Game.issue`) — reasons in Finnish and English, the live 20 kV line,
  * and the command log for replay.
  */
 
 import { describe, expect, it } from "vitest";
+import { POWER_LINE_SAFE_M } from "../../app/game/contracts.js";
 import { createGame } from "../../app/game/sim/game.js";
 import { POWER_LINE_REASON } from "../../app/game/sim/validate.js";
 import { fakeDeps, makeWorld, POWER_X, scenario } from "./fakes.js";
@@ -77,18 +78,19 @@ describe("issue: validation", () => {
     expect(g.issue("EK11", { type: "protect", assetOrSettlementId: "h2" }).ok).toBe(true);
   });
 
-  it("refuses water within 30 m of the live 110 kV line, and allows it once the line is dead", () => {
+  it("refuses water within 15 m of the live 20 kV line, and allows it once the line is dead", () => {
+    expect(POWER_LINE_SAFE_M).toBe(15);
     const live = game(true);
-    const r = refused(live.issue("EK11", { type: "attack", target: { x: POWER_X + 20, y: 1000 } }));
+    const r = refused(live.issue("EK11", { type: "attack", target: { x: POWER_X + 12, y: 1000 } }));
     expect(r.fi).toBe(`${POWER_LINE_REASON.fi}.`);
     expect(r.en).toBe(`${POWER_LINE_REASON.en}.`);
-    expect(r.fi).toContain("Voimajohto on jännitteinen — vettä ei saa käyttää 30 m sisällä");
+    expect(r.fi).toContain("20 kV voimajohto on jännitteinen — vettä ei saa käyttää 15 m sisällä");
     refused(live.issue("HELI1", { type: "drop", target: { x: POWER_X - 10, y: 400 } }));
     refused(live.issue("EK11", { type: "hose_line", to: { x: POWER_X + 200, y: 750 } }));
-    expect(live.issue("EK11", { type: "attack", target: { x: POWER_X + 40, y: 1000 } }).ok).toBe(true);
+    expect(live.issue("EK11", { type: "attack", target: { x: POWER_X + 20, y: 1000 } }).ok).toBe(true);
     expect(live.issue("EK11", { type: "move", to: { x: POWER_X, y: 1000 } }).ok).toBe(true);
     const dead = game(false);
-    expect(dead.issue("EK11", { type: "attack", target: { x: POWER_X + 20, y: 1000 } }).ok).toBe(true);
+    expect(dead.issue("EK11", { type: "attack", target: { x: POWER_X + 12, y: 1000 } }).ok).toBe(true);
   });
 
   it("accepts orders for units still en route and logs every accepted command with its time", () => {

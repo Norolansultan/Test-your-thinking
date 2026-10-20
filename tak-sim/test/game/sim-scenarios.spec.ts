@@ -5,12 +5,15 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { GameWorld } from "../../app/game/contracts.js";
+import { POWER_LINE_SAFE_M, type GameWorld } from "../../app/game/contracts.js";
+import { isBurnable } from "../../app/game/fire/fuels.js";
 import { EVENING_WIND, GAME_SCENARIOS, gameScenario, SUMMER_AFTERNOON, TRAINING } from "../../app/game/scenarios/index.js";
 import { at, PLACES } from "../../app/game/scenarios/places.js";
 import { createGame } from "../../app/game/sim/game.js";
 import { findSettlement, resolveScenario } from "../../app/game/sim/resolve.js";
 import { UNIT_SPECS } from "../../app/game/sim/unit-specs.js";
+import { cellOf } from "../../app/game/world/grid.js";
+import { getWorld } from "../../app/game/world/load.js";
 import { fakeDeps, makeWorld } from "./fakes.js";
 
 const MAP_M = 400 * 25; // the real fuel grid: 400 × 400 cells of 25 m
@@ -22,6 +25,21 @@ describe.each(GAME_SCENARIOS.map((s) => [s.id, s] as const))("scenario %s", (_id
     expect(s.startClockMin).toBeGreaterThanOrEqual(0);
     expect(s.startClockMin).toBeLessThan(1440);
     expect(s.endAtS).toBeGreaterThan(0);
+  });
+
+  it("names the 20 kV line and its safe distance in both languages (SPEC/33 (bc)), never the old 110 kV", () => {
+    for (const b of [s.briefingFi, s.briefingEn]) {
+      expect(b).toContain("20 kV");
+      expect(b).toContain(`${POWER_LINE_SAFE_M} m`);
+    }
+    const texts = [s.briefingFi, s.briefingEn, ...s.events.flatMap((e) => (e.message ? [e.message.textFi, e.message.textEn] : []))];
+    for (const t of texts) expect(t).not.toMatch(/110 ?kV|Fingrid|kantaverk|national grid/i);
+  });
+
+  it("lights every fire on burnable fuel of the real map (a strike on a brook or a lake never lights)", () => {
+    const world = getWorld();
+    const fires = [...s.ignitions, ...s.events.flatMap((e) => (e.kind === "ignite" && e.at ? [e.at] : []))];
+    for (const p of fires) expect([p, isBurnable(world.fuel[cellOf(world, p)]!)]).toEqual([p, true]);
   });
 
   it("has weather keys from the start, strictly in time order, covering the game", () => {
@@ -119,7 +137,7 @@ describe("the scenarios", () => {
     const s = SUMMER_AFTERNOON;
     expect(s.startClockMin).toBe(720);
     expect(s.ignitions).toEqual([{ x: 5000, y: 5000 }]);
-    // Burning since about 11:20 (called in at 11:32); EK11 first, VPK and EK12 minutes later (SPEC/18 §8.2 W1–W4).
+    // Burning since about 11:30 (called in at 11:32); EK11 first, VPK and EK12 minutes later (SPEC/18 §8.2 W1–W4).
     expect(s.preBurnS).toBeGreaterThanOrEqual(30 * 60);
     expect(s.preBurnS).toBeLessThanOrEqual(45 * 60);
     const arrive = (id: string) => s.units.find((u) => u.id === id)!.arriveAtS;

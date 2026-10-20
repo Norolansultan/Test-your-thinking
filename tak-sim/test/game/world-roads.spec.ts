@@ -132,8 +132,11 @@ describe("routeOnRoads", () => {
   });
 
   it("does not cross water off-road", () => {
-    // Across Karhujärvi, west shore to east shore, with no roads open: the straight leg is over water.
-    const across = { a: { x: 2900, y: 6950 }, b: { x: 3850, y: 6950 } };
+    // Across Karhujärvi, west shore to east shore, with no roads open: the straight leg is over water. (On the
+    // rebuilt map, SPEC/33, the lake reaches 2650 m east at this northing, so the west end moved from x 2900.)
+    const across = { a: { x: 2550, y: 6950 }, b: { x: 3850, y: 6950 } };
+    expect(world.fuel[cellOf(world, across.a)]).not.toBe(FUEL.water);
+    expect(world.fuel[cellOf(world, across.b)]).not.toBe(FUEL.water);
     expect(world.fuel[cellOf(world, { x: 3366, y: 6950 })]).toBe(FUEL.water);
     expect(routeOnRoads(world, across.a, across.b, {}, { maxOffRoadM: 5000 })).toBeNull();
     // With roads open it goes round.

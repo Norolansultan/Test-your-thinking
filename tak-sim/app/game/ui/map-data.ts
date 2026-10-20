@@ -112,7 +112,7 @@ export function assetPoints(world: GameWorld, status: Readonly<Record<string, As
   })));
 }
 
-/** The 110 kV line. */
+/** The 20 kV line. */
 export function powerLineData(world: GameWorld, live: boolean): FeatureCollection<LineString> {
   if (world.powerLine.length < 2) return fc([]);
   return fc([{ type: "Feature", properties: { live }, geometry: { type: "LineString", coordinates: world.powerLine.map((p) => lngLatOf(world.grid, p)) } }]);

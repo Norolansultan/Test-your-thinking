@@ -1,6 +1,8 @@
 /**
  * Game scenario "Kesäiltapäivä / Summer afternoon" (normal): the harvester fire of SPEC/18 from its first
- * hour — burning for 40 minutes before the game starts (lit ~11:20, called in at 11:32); EK11 is first
+ * hour — burning for half an hour before the game starts (lit ~11:30, called in at 11:32; 40 minutes on the
+ * map before the rebuild, SPEC/33 — the rebuilt map's spruce north-east of the origin runs the fire about a
+ * fifth larger by 16:00, and a 40-minute start left a competent player F in 2 of 5 games); EK11 is first
  * on scene at noon, VPK and EK12 follow minutes later, so the initial attack is a race. The ridge
  * ignition at 14:00 (unreported) and the reinforcements up to HELI1 (SPEC/18 §8.2, revisions (y), (aa))
  * are the study's opening; from mid-afternoon the story is the game's own (SPEC/29 §2.3 and revision
@@ -8,7 +10,7 @@
  * a low passes, and an easterly peaks around 18.20–18.35 that drives anything still burning west at the
  * command post and Mökkiranta. The region takes EK12 and DR2 at 16.15; the later reinforcements come on
  * the game's own times; the ridge fire's old edge on Kuivakangas flares up as the wind backs at 17.35 (a
- * hiker's vague call only). The 110 kV line is live all game (no switching, `29` (ay) rule 1). Nothing
+ * hiker's vague call only). The 20 kV distribution line is live all game (no switching, `29` (ay) rule 1). Nothing
  * here happens at the study's keyed times or places (`test/game/study-keyed-moments.ts`). Balance:
  * `npm run game:balance`.
  */
@@ -27,13 +29,13 @@ export const SUMMER_AFTERNOON: GameScenario = {
     "Perjantai heinäkuun lopussa, neljäs viikko ilman sadetta. Klo 11.32 harvesterin kuljettaja soitti 112:een: hakkuuaukealla palaa, ja savu kääntyy koilliseen.",
     "Olet pelastustoiminnan johtaja. Palo on palanut jo puoli tuntia. EK11 ja lämpökamerakopteri DR1 ovat paikalla, VPK ja EK12 tulevat muutaman minuutin päästä; vahvennuksia tulee iltapäivän mittaan — maastopaloyksikkö, säiliöauto, drooniryhmä, helikopteri.",
     "Tavoitteet: suojaa Mökkiranta, saa palo rajattua klo 20 mennessä, ja tuo jokainen miehistö kotiin. Peli voitetaan vasta, kun mikään ei enää pala eikä kyte.",
-    "Muista: 110 kV voimajohto on jännitteinen — ei vettä 30 m sisällä. Lounaistuuli heikkenee iltapäivällä; matalapaine kulkee alueen eteläpuolitse, ja tuuli kääntyy illalla itään ja voimistuu — silloin kaikki, mikä vielä palaa, juoksee länteen kohti johtopaikkaa ja Mökkirantaa. Pidä silmät koko alueella: uusia paloja voi syttyä. Kuusikkoon ei hyökätä suoraan, jos teho kasvaa.",
+    "Muista: paikallisen verkkoyhtiön 20 kV voimajohto on jännitteinen — ei vettä 15 m sisällä. Lounaistuuli heikkenee iltapäivällä; matalapaine kulkee alueen eteläpuolitse, ja tuuli kääntyy illalla itään ja voimistuu — silloin kaikki, mikä vielä palaa, juoksee länteen kohti johtopaikkaa ja Mökkirantaa. Pidä silmät koko alueella: uusia paloja voi syttyä. Kuusikkoon ei hyökätä suoraan, jos teho kasvaa.",
   ].join("\n\n"),
   briefingEn: [
     "A Friday at the end of July, the fourth week without rain. At 11:32 a harvester operator called 112: the clear-cut is burning and the smoke is turning north-east.",
     "You are the incident commander. The fire has been burning for half an hour. EK11 and the thermal drone DR1 are on scene, the volunteer brigade VPK and EK12 are minutes away; reinforcements arrive through the afternoon — a forest-fire unit, a water tanker, the drone team, a helicopter.",
     "Objectives: protect Mökkiranta (Lakeside Cottages), contain the fire by 20:00, and bring every crew home. The game is won only when nothing burns or smoulders any more.",
-    "Remember: the 110 kV line is live — no water within 30 m of it. The south-westerly eases in the afternoon; a low passes south of the area, and in the evening the wind turns east and strengthens — whatever still burns then runs west at the command post and Lakeside Cottages. Keep eyes on the whole area: new fires can start. Do not attack into the spruce head when it runs hot.",
+    "Remember: the local distribution company's 20 kV line is live — no water within 15 m of it. The south-westerly eases in the afternoon; a low passes south of the area, and in the evening the wind turns east and strengthens — whatever still burns then runs west at the command post and Lakeside Cottages. Keep eyes on the whole area: new fires can start. Do not attack into the spruce head when it runs hot.",
   ].join("\n\n"),
   startClockMin: START,
   endAtS: T("20:00"),
@@ -59,7 +61,7 @@ export const SUMMER_AFTERNOON: GameScenario = {
     wx(START, "19:30", 100, 5, 8, 20, 32),
     wx(START, "20:00", 100, 4, 7, 19, 34),
   ],
-  preBurnS: 40 * 60,
+  preBurnS: 30 * 60,
   units: [
     // SPEC/18 §8.2 W1–W4: EK11 first (launching DR1), VPK minutes behind, EK12 last of the first alarm.
     { id: "EK11", kind: "engine", arriveAtS: 0 },

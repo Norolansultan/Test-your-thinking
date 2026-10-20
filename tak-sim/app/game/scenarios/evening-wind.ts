@@ -2,11 +2,12 @@
  * Game scenario "Iltatuuli / Evening wind" (hard): the game's own evening on the shared terrain (SPEC/29
  * §2.3 and revision (ay), `31` P-12; it was phase B of the study's incident and replayed its keyed moments).
  * A dry thunderstorm crossed the north of the area at about 15:30; at 16:00 three lightning fires burn
- * in the pine north of Korpioja and Karhujärvi, a fourth strike smoulders unseen and flares up at 16:45
+ * in the forest north of Korpioja and Karhujärvi, a fourth strike smoulders unseen and flares up at 16:45
  * (a cabin owner's vague call only). The north-easterly turns east and strengthens to 10 m/s (gusts 15)
  * around 18.00–18.20, driving the fires west and south-west at Mökkiranta's cabins on Karhujärvi's
- * shore. Few units, no road north of Korpioja, the region takes EK12 at 17.05. The 110 kV line is
- * live all game and far from the fires. Nothing here happens at the study's keyed times or places
+ * shore. Few units, no road to any of the fires (each lies a few hundred metres off the nearest forest
+ * road), the region takes EK12 at 17.05. The 20 kV distribution line is live all game and 2 km or more from
+ * the fires. The strikes were re-placed on the rebuilt map (SPEC/33; `places.ts`). Nothing here happens at the study's keyed times or places
  * (`test/game/study-keyed-moments.ts`).
  */
 
@@ -21,16 +22,16 @@ export const EVENING_WIND: GameScenario = {
   titleFi: "Iltatuuli",
   titleEn: "Evening wind",
   briefingFi: [
-    "Klo 16.00. Kuiva ukkosrintama kulki alueen pohjoisosan yli puoli tuntia sitten. Salamat sytyttivät kolme paloa Korpiojan ja Karhujärven pohjoispuolen männiköissä, eikä niille johda tietä. Alueella palaa muitakin metsiä, eikä apua juuri tule.",
+    "Klo 16.00. Kuiva ukkosrintama kulki alueen pohjoisosan yli puoli tuntia sitten. Salamat sytyttivät kolme paloa Korpiojan ja Karhujärven pohjoispuolen metsissä, eikä niille johda tietä. Alueella palaa muitakin metsiä, eikä apua juuri tule.",
     "Sääpalvelu: koillistuuli kääntyy illalla itään ja voimistuu, klo 18 aikaan 9–10 m/s ja puuskat 15 m/s. Kuivaa ilmaa, kosteus laskee 25 %:iin. Silloin palot juoksevat länteen ja lounaaseen kohti Karhujärven rannan mökkejä.",
     "Tavoitteet: Mökkiranta ei saa palaa, paloala pidettävä alle 150 hehtaarin, eikä yhtään miehistöä menetetä.",
-    "Salama voi jäädä kytemään puuhun ja syttyä myöhemmin: pidä silmät koko alueella. 110 kV voimajohto on jännitteinen — ei vettä 30 m sisällä. Rakenna puolustuslinjat teiden ja veden varaan ajoissa, ennen tuulta.",
+    "Salama voi jäädä kytemään puuhun ja syttyä myöhemmin: pidä silmät koko alueella. Paikallisen verkkoyhtiön 20 kV voimajohto on jännitteinen — ei vettä 15 m sisällä. Rakenna puolustuslinjat teiden ja veden varaan ajoissa, ennen tuulta.",
   ].join("\n\n"),
   briefingEn: [
-    "16:00. A dry thunderstorm crossed the north of the area half an hour ago. Lightning lit three fires in the pine north of Korpioja and Karhujärvi, with no road to any of them. Other forests are burning in the region, and little help will come.",
+    "16:00. A dry thunderstorm crossed the north of the area half an hour ago. Lightning lit three fires in the forest north of Korpioja and Karhujärvi, with no road to any of them. Other forests are burning in the region, and little help will come.",
     "Weather service: the north-easterly turns east and strengthens toward the evening, 9–10 m/s around 18:00 with gusts of 15 m/s. Dry air, humidity falling to 25 %. That is when the fires run west and south-west at the cabins on Karhujärvi's shore.",
     "Objectives: Mökkiranta (Lakeside Cottages) must not burn, keep the burned area under 150 ha, and lose no crew.",
-    "A lightning strike can smoulder in a tree and flare up later: keep eyes on the whole area. The 110 kV line is live — no water within 30 m of it. Build your defensive lines on roads and water early, before the wind.",
+    "A lightning strike can smoulder in a tree and flare up later: keep eyes on the whole area. The local distribution company's 20 kV line is live — no water within 15 m of it. Build your defensive lines on roads and water early, before the wind.",
   ].join("\n\n"),
   startClockMin: START,
   endAtS: T("20:00"),

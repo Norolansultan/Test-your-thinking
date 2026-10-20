@@ -27,7 +27,7 @@ export function clock(min: number): string {
 /** The study's point of origin (SPEC/18 (k)). */
 export const ORIGIN: XY = { x: 5000, y: 5000 };
 /** Lahdenkylä's centre on the shared map (`content/game/world.json`, settlement `lahdenkyla`). */
-export const LAHDENKYLA_CENTRE: XY = { x: 7156, y: 2700 };
+export const LAHDENKYLA_CENTRE: XY = { x: 7159, y: 2718 }; // rebuilt map (SPEC/33); was (7156, 2700)
 
 /** Words of the line being switched off or not (F7): "jännitteetön / jännitteettömäksi", "kytketty", "maadoitettu", "de-energised"… */
 export const LINE_SWITCHING = /jännitteett?ö|kytket|kytkentä|poiskytk|maadoit|de-?energi|disconnect|earthed|switched off/i;
@@ -82,7 +82,7 @@ export const KEYED_MOMENTS: readonly KeyedMoment[] = [
   },
   {
     id: "f7_line",
-    study: "F7 (H9; V12's freeze item): the 110 kV line is live for the whole incident; the grid operator's record (step 6, 15:06) says it is still live and de-energising is requested, the planted situation-log record (step 8, 15:46) says 'de-energised, confirmed' (`app/scenario/designed-events.ts`, `F7_TRUTH_INVARIANT`)",
+    study: "F7 (H9; V12's freeze item): the 20 kV line (110 kV before SPEC/33 (bc)) is live for the whole incident; the distribution company's record (step 6, 15:06) says it is still live and de-energising is requested, the planted situation-log record (step 8, 15:46) says 'de-energised, confirmed' (`app/scenario/designed-events.ts`, `F7_TRUTH_INVARIANT`)",
     fromMin: 11 * 60 + 20, toMin: END, // the fire is lit about 11:20 (SPEC/18 §2)
     lineSwitch: true,
     clocks: ["15:06", "15:30", "15:46"],

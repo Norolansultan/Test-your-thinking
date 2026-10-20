@@ -1,8 +1,10 @@
 /**
  * Game scenario "Harjoitus / Training" (easy): a small fire beside the forest road, burning for 40
  * minutes before the game starts (about 2 ha), a light south-westerly and every unit on hand within
- * ten minutes. P3 talks the player through each kind of order; the 110 kV line is de-energised after
- * half an hour so the player meets the rule first. Sized so that a crew sent in contains it in about
+ * ten minutes. P3 talks the player through each kind of order; the 20 kV distribution line (wooden poles,
+ * the local distribution company's, SPEC/33 (bc)) is de-energised on P3's request after half an hour so the
+ * player meets the rule first. The briefing overlaps the study's F7 window (from 11:20) by ten minutes, so it
+ * names no switching (`test/game/study-keyed-moments.ts`); only the 10:30 message does. Sized so that a crew sent in contains it in about
  * 15–30 minutes and the game (out and mopped up) lasts through the tutorial; left alone it grows past
  * the area limit. Balance: `npm run game:balance`.
  */
@@ -23,13 +25,13 @@ export const TRAINING: GameScenario = {
     "Rauhallinen aamupäivä. Metsäautotien eteläpuolella on palanut puolisen tuntia pieni pintapalo, tuuli on heikko lounaistuuli. Kaikki yksiköt ovat käytössäsi heti tai kymmenen minuutin sisällä.",
     "Harjoittele käskyt: suora hyökkäys reunaan, letkulinja tieltä, palokatko maastopaloyksiköllä, säiliöauton vesiajo, droonin tiedustelu ja helikopterin pudotukset. Näet kartalla vain sen, mitä yksiköt ovat nähneet.",
     "Tavoitteet: palo rajattu 90 minuutissa, paloala alle 10 ha, ei loukkaantuneita. Peli voitetaan, kun mikään ei enää pala eikä kyte: sammuta myös kytevä reuna.",
-    "Voimajohto on jännitteinen ensimmäisen puolen tunnin ajan: vettä ei saa käyttää 30 m sisällä.",
+    "Alueen halki kulkeva 20 kV voimajohto puupylväillä kuuluu paikalliselle verkkoyhtiölle. Johto on jännitteinen ensimmäisen puolen tunnin ajan: vettä ei saa käyttää 15 m sisällä.",
   ].join("\n\n"),
   briefingEn: [
     "A quiet morning. A small surface fire has been burning south of the forest road for half an hour, and the wind is a light south-westerly. Every unit is yours now or within ten minutes.",
     "Practise the orders: direct attack on the edge, a hose line from the road, a fire break with the forest-fire unit, the tanker's water shuttle, drone reconnaissance and helicopter drops. The map shows only what your units have seen.",
     "Objectives: contain the fire within 90 minutes, keep it under 10 ha, no casualties. The game is won when nothing burns or smoulders any more: mop up the smouldering edge too.",
-    "The power line is live for the first half hour: no water within 30 m of it.",
+    "The 20 kV power line on wooden poles across the area belongs to the local distribution company. It is live for the first half hour: no water within 15 m of it.",
   ].join("\n\n"),
   startClockMin: START,
   endAtS: T("11:30"),
@@ -87,8 +89,8 @@ export const TRAINING: GameScenario = {
     {
       atS: T("10:30"), kind: "power_line_dead",
       message: radio(T("10:30"), "P3", "command", "important",
-        "P3: Verkkoyhtiö: voimajohto on nyt jännitteetön ja maadoitettu. Vettä saa käyttää johdon lähellä.",
-        "P3: Grid operator: the power line is now de-energised and earthed. Water may be used near it."),
+        "P3: Verkkoyhtiön käyttökeskus: pyytämämme poiskytkentä on tehty, 20 kV voimajohto on nyt jännitteetön ja maadoitettu. Vettä saa käyttää johdon lähellä.",
+        "P3: The distribution company's control centre: the switch-off we requested is done, the 20 kV line is now de-energised and earthed. Water may be used near it."),
     },
   ],
   objectives: [

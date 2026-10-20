@@ -25,8 +25,8 @@ export const PLACES = {
   KOIVUOJA: fromIgn(45, 2.3),
   /** Haukilampi, water point W1. */
   HAUKILAMPI: fromIgn(315, 1.5),
-  /** Karhujärvi with Mökkiranta's cabins on its south-east shore. */
-  MOKKIRANTA: fromIgn(320, 2.5),
+  /** Mökkiranta: among the cabins on Karhujärvi's south-east shore (on the rebuilt map, SPEC/33). */
+  MOKKIRANTA: fromIgn(320, 2.2),
   /** Rahkasuo: ditched peat with the 2024 spoil banks. */
   RAHKASUO: fromIgn(168, 1.25),
   /** The bridge over Kotkanjoki on R3 (W3). */
@@ -35,16 +35,19 @@ export const PLACES = {
   LAHDENKYLA: fromIgn(135, 3.0),
   /** Command point at the R1/R3 junction. */
   CP: fromIgn(292, 1.1),
-  // "Evening wind" (the game's own story, SPEC/29 (ay)): lightning strikes in the roadless pine north of
-  // Korpioja and Karhujärvi, well outside anything the study's fire reaches.
-  /** Pine 0.8 km north of the Korpioja road. */
+  // "Evening wind" (the game's own story, SPEC/29 (ay)): lightning strikes in the forest north of Korpioja and
+  // Karhujärvi, each a few hundred metres off the nearest forest road, well outside anything the study's fire
+  // reaches. On the rebuilt map (SPEC/33) the Koivuoja strike moved 1.3 km north into spruce (at the old place,
+  // by the Koivuoja road in birch, it burned 5 ha left alone) and the late strike 270 m west-north-west (the old
+  // place is the brook, where nothing lights), so that the evening stays hard (`npm run game:balance`).
+  /** Pine 2.1 km east-north-east of Mökkiranta, between Karhujärvi and Koivuoja. */
   STRIKE_KORPIOJA: { x: 5600, y: 7300 },
-  /** Pine 1.8 km north-east of Mökkiranta, beyond Karhujärvi's north-east shore. */
+  /** Pine on drained peat 1.8 km north-north-east of Mökkiranta, beyond Karhujärvi's north-east shore. */
   STRIKE_KARHUJARVI: { x: 4300, y: 8300 },
-  /** Pine north of Koivuoja. */
-  STRIKE_KOIVUOJA: { x: 6900, y: 7000 },
-  /** The strike that smoulders in a tree and flares up later. */
-  STRIKE_LATE: { x: 5000, y: 7900 },
+  /** Spruce 1.1 km north-east of Koivuoja. */
+  STRIKE_KOIVUOJA: { x: 6750, y: 8250 },
+  /** The strike that smoulders in a tree (birch and aspen west of the brook) and flares up later. */
+  STRIKE_LATE: { x: 4750, y: 8000 },
 } as const;
 
 /** Settlement names the scenarios protect; resolved against the world at game creation. */

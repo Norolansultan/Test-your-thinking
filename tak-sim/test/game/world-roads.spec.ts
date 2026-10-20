@@ -63,7 +63,7 @@ describe("road graph", () => {
   });
 
   it("links R2 to the main road in Lahdenkylä (its end stops 47 m short on the map)", () => {
-    const pond = world.waterPoints.find((w) => w.nameFi === "Lampi 1")!; // the farm pond at the village (W2)
+    const pond = world.waterPoints.find((w) => w.nameFi === "Lahdenkylän lampi")!; // the farm pond at the village (W2)
     const r = routeOnRoads(world, world.commandPost, pond.at, ENGINE)!;
     // R1 east, R2 south to the village: ~5.8 km, not the 9 km round by R3 and the maantie.
     expect(r.lengthM).toBeLessThan(6500);

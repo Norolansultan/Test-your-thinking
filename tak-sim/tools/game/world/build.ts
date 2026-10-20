@@ -17,6 +17,7 @@ import type { RoadClass } from "../../../app/game/contracts.js";
 import { encodeBase64, ROAD_CLASSES, WORLD_FORMAT } from "../../../app/game/world/format.js";
 import { parseAsciiGrid, type AsciiGrid } from "../../fire-ca/ascii-grid.js";
 import { dist, r1, type Box, type Pt } from "./geom.js";
+import { ANCHOR_STYLES, checkAnchors, lakeGenitive } from "./names.js";
 import { buildPlaces, clipPowerLine, type Building, type PlaceLabel } from "./places.js";
 import { buildRoadGraph, reachableFrom, type BuiltRoadGraph } from "./road-graph.js";
 import { buildWaterPoints, type WaterBody } from "./water.js";
@@ -27,6 +28,10 @@ export const MARGIN_M = 1500;
 export const LINK_MAX_M = 6000;
 /** The directive protects these two; they must come out as settlements. */
 export const REQUIRED_SETTLEMENTS = ["Lahdenkylä", "Mökkiranta"] as const;
+/** The 20 kV line's wooden poles stand this far apart (SPEC/33 (bc): 60–80 m on a distribution line). */
+export const POLE_SPACING_M = 70;
+/** A building the fuel raster puts in water moves to land this close, else it is dropped. */
+export const BUILDING_TO_LAND_M = 50;
 
 type PxPt = readonly [number, number];
 interface TopoFeatures {
@@ -162,13 +167,42 @@ export function buildWorldJson(root: string): { text: string; stats: WorldBuildS
     ...topo.brooks.map((line): WaterBody => ({ kind: "brook", line: fromPxLine(line) })),
   ];
   const waterLabels = labels.filter((l) => l.style === "water");
-  const water = buildWaterPoints(bodies, waterLabels, { nodes: roads.nodes, edges: roads.edges, reachable }, { box, reachM: 150, riverBankM: 12, minApartM: 300 });
+  const anchors = labels.filter((l) => ANCHOR_STYLES.includes(l.style) || (l.style === "water" && lakeGenitive(l.fi) !== null));
+  checkAnchors(anchors);
+  const water = buildWaterPoints(bodies, waterLabels, { nodes: roads.nodes, edges: roads.edges, reachable }, { box, reachM: 150, riverBankM: 12, minApartM: 300, anchors });
 
   // Assets and settlements.
   const buildings: Building[] = topo.buildings.map((b) => ({ at: fromPx(b.px), kind: b.kind === "house" ? "house" : "other" }));
   const powerLineLocal = fromPxLine(topo.powerLine);
+  // On the grid, a building stands on a cell that is not water: a shore cabin the 25 m raster puts in the lake moves
+  // onto the nearest land cell (just inside its edge), and one with no land within BUILDING_TO_LAND_M is dropped.
+  const WATER = 0;
+  const fuelAt = (p: Pt): number | null => {
+    const col = Math.floor(p.x / grid.cellM);
+    const row = grid.rows - 1 - Math.floor(p.y / grid.cellM);
+    return col < 0 || row < 0 || col >= grid.cols || row >= grid.rows ? null : fuel[row * grid.cols + col]!;
+  };
+  const landOf = (p: Pt): Pt | null => {
+    if (fuelAt(p) !== WATER) return p;
+    let best: Pt | null = null;
+    const reach = Math.ceil(BUILDING_TO_LAND_M / grid.cellM);
+    const c0 = Math.floor(p.x / grid.cellM);
+    const r0 = Math.floor(p.y / grid.cellM); // counted from the south
+    for (let dr = -reach; dr <= reach; dr++) {
+      for (let dc = -reach; dc <= reach; dc++) {
+        const x0 = (c0 + dc) * grid.cellM;
+        const y0 = (r0 + dr) * grid.cellM;
+        const f = fuelAt({ x: x0 + grid.cellM / 2, y: y0 + grid.cellM / 2 });
+        if (f === null || f === WATER) continue;
+        // The cell's nearest point to p, 1 m inside it.
+        const q = { x: Math.min(Math.max(p.x, x0 + 1), x0 + grid.cellM - 1), y: Math.min(Math.max(p.y, y0 + 1), y0 + grid.cellM - 1) };
+        if (dist(p, q) <= BUILDING_TO_LAND_M && (best === null || dist(p, q) < dist(p, best))) best = q;
+      }
+    }
+    return best === null ? null : { x: r1(best.x), y: r1(best.y) };
+  };
   const places = buildPlaces(buildings, powerLineLocal, labels, {
-    box, clusterM: 400, nameM: 800, requiredNameM: 2000, minUnnamed: 3, pylonSpacingM: 300,
+    box, clusterM: 400, nameM: 800, requiredNameM: 2000, poleSpacingM: POLE_SPACING_M, landOf,
     settlementStyles: ["village", "place"], required: REQUIRED_SETTLEMENTS,
   });
   if (places.missingRequired.length > 0) throw new Error(`no settlement for required label(s): ${places.missingRequired.join(", ")}`);

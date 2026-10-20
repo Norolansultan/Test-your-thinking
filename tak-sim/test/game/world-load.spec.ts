@@ -99,17 +99,45 @@ describe("decoded world", () => {
     for (const p of world.powerLine) expect(inMargin(p)).toBe(true);
   });
 
-  it("has houses, barns and a pole asset every ~300 m along the 20 kV line", () => {
+  it("has houses, barns and the 20 kV line's wooden poles every 60–80 m (SPEC/33 (bc))", () => {
     const kinds = new Map<string, number>();
     for (const a of world.assets) kinds.set(a.kind, (kinds.get(a.kind) ?? 0) + 1);
     expect(kinds.get("house")).toBeGreaterThan(20);
     expect(kinds.get("barn")).toBeGreaterThan(5);
-    const pylons = world.assets.filter((a) => a.kind === "power_pylon");
-    expect(pylons.length).toBeGreaterThan(30);
-    for (const p of pylons) expect(p.value).toBe(20);
+    const poles = world.assets.filter((a) => a.kind === "power_pylon");
+    expect(poles.length).toBeGreaterThan(150);
+    for (const p of poles) expect(p.id).toMatch(/^pole-\d{3}$/);
+    for (const p of poles) expect(p.value).toBe(20);
     for (const h of world.assets.filter((a) => a.kind === "house")) expect(h.value).toBe(100);
-    for (let k = 1; k < pylons.length; k++) expect(distance(pylons[k - 1]!.at, pylons[k]!.at)).toBeCloseTo(300, 0);
+    for (let k = 1; k < poles.length; k++) {
+      const d = distance(poles[k - 1]!.at, poles[k]!.at);
+      expect(d).toBeGreaterThanOrEqual(60);
+      expect(d).toBeLessThanOrEqual(80);
+    }
     expect(new Set(world.assets.map((a) => a.id)).size).toBe(world.assets.length);
+  });
+
+  it("stands no building in water: every house and barn on the grid is on a cell that is not a lake", () => {
+    const wet = world.assets.filter((a) => a.kind !== "power_pylon" && cellOf(world, a.at) >= 0 && world.fuel[cellOf(world, a.at)] === FUEL.water);
+    expect(wet.map((a) => a.id)).toEqual([]);
+    // Mökkiranta's shore cabin the 25 m raster put in Karhujärvi (house-024) stands on the shore.
+    const cabin = world.assets.find((a) => a.id === "house-024")!;
+    expect(cabin.settlementId).toBe("mokkiranta");
+    expect(world.fuel[cellOf(world, cabin.at)]).not.toBe(FUEL.water);
+  });
+
+  it("takes every name from the map: no numbered or generic settlement or water names", () => {
+    // Only clusters the map names are settlements (Hiekkala's label lies just beyond the world's labels, so the names
+    // are listed rather than looked up).
+    expect(world.settlements.map((s) => s.nameFi)).toEqual(["Lahdenkylä", "Mökkiranta", "Niemelä", "Koivula", "Hiekkala"]);
+    for (const s of world.settlements) expect(s.nameFi).not.toMatch(/^Asutus\b/);
+    for (const w of world.waterPoints) {
+      expect(w.nameFi).not.toMatch(/^(Järvi|Lampi|Joki|Oja) \d/);
+      expect(w.nameEn).not.toMatch(/^(Lake|Pond|River|Brook) \d/);
+    }
+    // Unnamed water is named after a map label: the village's farm pond (W2), a lake beside Pitkäjärvi.
+    expect(world.waterPoints.find((w) => w.nameFi === "Lahdenkylän lampi")?.nameEn).toBe("Bay Village Pond");
+    expect(world.waterPoints.some((w) => w.nameFi === "Pikku-Pitkäjärvi" && w.nameEn === "Little Long Lake")).toBe(true);
   });
 
   it("has the directive's two settlements, each with its houses", () => {
@@ -138,7 +166,7 @@ describe("decoded world", () => {
       expect(w.nameFi.length).toBeGreaterThan(0);
       expect(w.nameEn.length).toBeGreaterThan(0);
       // Lakes' scoop points inside the grid are on open water.
-      if ((w.kind === "lake" || (w.kind === "pond" && w.nameFi !== "Lampi 1")) && cellOf(world, w.scoop) >= 0) expect(world.fuel[cellOf(world, w.scoop)]).toBe(FUEL.water);
+      if ((w.kind === "lake" || (w.kind === "pond" && w.nameFi !== "Lahdenkylän lampi")) && cellOf(world, w.scoop) >= 0) expect(world.fuel[cellOf(world, w.scoop)]).toBe(FUEL.water);
     }
     expect(world.waterPoints.find((w) => w.nameFi === "Karhujärvi")?.roadNode).not.toBeNull();
     expect(world.waterPoints.some((w) => w.kind === "river" && w.roadNode !== null)).toBe(true);

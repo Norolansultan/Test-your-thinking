@@ -19,7 +19,7 @@
  */
 
 import { batteryTimeline, type BatteryTimeline } from "../../app/scenario/drone-battery.js";
-import { FIXED_ROADS, ROADS } from "../topo-map/roads.js";
+import { FIXED_ROADS, roadById } from "../topo-map/roads.js";
 import { AIR_PLAN, FEATURES, THERMAL_FOOTPRINT_M, type P } from "./deployment.js";
 import { ANCHOR_PLACE, sectorOfPoint } from "./traffic-places.js";
 import { bearing, cap, dirAdj, dirTo, dist, flameWords, flatPlace, fmt1, hm, intensityClass, isBog, L, pl, r10, r50, sec, statedClass, stepStartS } from "./traffic-text.js";
@@ -59,8 +59,9 @@ const NAMED_ROADS: readonly { readonly fi: string; readonly pts: readonly P[] }[
   { fi: "tie R1", pts: densify(FIXED_ROADS[3]!.line) },
   { fi: "tie R2", pts: densify(FIXED_ROADS[5]!.line) },
   { fi: "R3:n silta (Kotkanjoki)", pts: [FEATURES.R3_BRIDGE_W] },
-  // Fix pass 3 (FF2): the Honkaharju forest road (roads.ts road 48, through FR_W–FR_E to R2), the south-east front's road line.
-  { fi: "metsäautotie (Honkaharju)", pts: densify(ROADS[48]!.line) },
+  // Fix pass 3 (FF2): the Honkaharju forest road (through FR_W–FR_E to R2), the south-east front's road line. Found by its stable
+  // id (SPEC/33 §3), not by its index in ROADS, which a rebuilt road network renumbers.
+  { fi: "metsäautotie (Honkaharju)", pts: densify(roadById("honkaharju").line) },
 ];
 /**
  * Named stretches of R1 and R2 (fix pass 2, 7 Oct 2026, FF2): a road report names the stretch it saw, so two

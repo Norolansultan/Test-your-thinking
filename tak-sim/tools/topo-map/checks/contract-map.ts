@@ -10,7 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { BRIDGE_S, COMMAND_POINT, ROADS } from "../roads.js";
+import { BRIDGE_S, COMMAND_POINT, roadIndexById, ROADS } from "../roads.js";
 import { BRIDGE, BROOKS, ESKER_CENTRE, HAMLET_S, LAKES, polar, RIVER, VILLAGE } from "../terrain.js";
 import { FEATURES } from "../../fire-ca/deployment.js";
 import { wgs84ToTm35 } from "../../fire-ca/tm35.js";
@@ -23,11 +23,14 @@ const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 export const TOPO_FEATURES_PATH = "content/site/build/topo-features.json";
 export const SITE_SCENARIO_PATH = "app/scenario/site-scenario.json";
 
-/** Index in ROADS (= topo-features.json `roads`) of each named road; FIXED_ROADS come first (roads.ts). 43, 48 and 87 are
- * generated forest roads the scenario names by the label nearest their middle (crossings.ts) or by index (traffic-drones.ts). */
-export const ROAD_INDEX = {
-  MAANTIE_S: 0, MAANTIE_N: 1, R3_W: 2, R1: 3, R3_E: 4, R2: 5, KARHU_ROAD: 6, PEAT_ROAD: 7, HONKAHARJU_ROAD: 48,
+/** The stable id (roads.ts `Road.id`) of each named road; its index in ROADS (= topo-features.json `roads`) follows from it. The
+ * Honkaharju forest road was found by index (48) until SPEC/33's rebuild renumbered the generated roads. */
+export const ROAD_ID = {
+  MAANTIE_S: "maantie_s", MAANTIE_N: "maantie_n", R3_W: "r3_w", R1: "r1", R3_E: "r3_e", R2: "r2", KARHU_ROAD: "karhu", PEAT_ROAD: "peat", HONKAHARJU_ROAD: "honkaharju",
 } as const;
+export const ROAD_INDEX: Readonly<Record<keyof typeof ROAD_ID, number>> = Object.fromEntries(
+  sortedEntries(ROAD_ID).map(([k, id]) => [k, roadIndexById(id)]),
+) as Record<keyof typeof ROAD_ID, number>;
 
 /** The four sectors (lohkot) as bearing wedges from IGN, as `sectorOfPoint` (traffic-places.ts) and the bundle's polygons tile them. */
 export const SECTOR_WEDGES = {
@@ -62,7 +65,7 @@ export const FEATURE_CATALOGUE: readonly FeatureDef[] = [
   { id: "MAANTIE_N", kind: "road_main", fi: "maantie (pohjoinen)", en: "main road (north)", sources: [RD, TF] },
   { id: "KARHU_ROAD", kind: "road_gravel", fi: "Mökkirannan tie", en: "Lakeside Cottages road", sources: [RD, TF, "tools/fire-ca/crossings.ts"] },
   { id: "PEAT_ROAD", kind: "road_gravel", fi: "turvetie", en: "peat road", match: "turvetie|peat road", sources: [RD, TF, "tools/fire-ca/crossings.ts"] },
-  { id: "HONKAHARJU_ROAD", kind: "road_forest", fi: "metsäautotie (Honkaharju)", en: "forest road (Pine Ridge)", match: "metsäautoti|forest road", sources: [RD, TF, "tools/fire-ca/traffic-drones.ts (ROADS[48])", "tools/fire-ca/crossings.ts"] },
+  { id: "HONKAHARJU_ROAD", kind: "road_forest", fi: "metsäautotie (Honkaharju)", en: "forest road (Pine Ridge)", match: "metsäautoti|forest road", sources: [RD, TF, "tools/fire-ca/traffic-drones.ts (roadById(\"honkaharju\"))", "tools/fire-ca/crossings.ts"] },
   { id: "KOTKANJOKI", kind: "river", fi: "Kotkanjoki", en: "Eagle River", match: "Kotkanjo|Eagle River", sources: [T, TF, PN] },
   { id: "BRIDGE", kind: "bridge", fi: "R3:n silta (Kotkanjoki)", en: "the R3 bridge (Eagle River)", match: "silta|sillan|bridge", sources: [T, RD, DEP, TF] },
   { id: "BRIDGE_S", kind: "bridge", fi: "Hiekkalan tien silta", en: "Sandy Hamlet road bridge", sources: [RD, TF] },

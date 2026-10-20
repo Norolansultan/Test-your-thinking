@@ -17,6 +17,11 @@
  * - `handOverItemRows` (H-T, SPEC/31 §3.7, sagat F05): the same answers as item-level rows (participant, cell, measure own/team, item,
  *   correct, confidence) for the pre-registered mixed logistic model (own vs team × group, item random effects) — the second SPAM
  *   items are "tool-aided probes": accuracy only, no latency-as-SA claim.
+ * - `aiAnswerLength` (SPEC/32 §7, a covariate for confidence): per view, the number and total characters of the AI answers shown —
+ *   Haku's chat and the Thinker, as `shownAnswers` reads them (Haku's four parts joined by newlines, the Thinker's answer text; an Open
+ *   Thinker fallback shows no text and is not counted), keyed by the view the question was asked in — and the review's premise lines
+ *   (`plan_review_shown.premiseLines`, the guide group; fixed template text, counted apart). Every answer logged counts, a replayed
+ *   view's both attempts included: the participant saw them all.
  */
 
 import type { FreezeItemLevel } from "../scenario/types.js";
@@ -26,7 +31,8 @@ import {
   calibrationPairs, freezeItemScores, H2_PRIMARY_WINDOW, replayedViews,
   type CalibrationFilter, type CalibrationSummary, type FreezeContentLike, type FreezeItemScore,
 } from "./freeze-measures.js";
-import type { AiStatedKey, ToldClass } from "./ai-stated-key.js";
+import { shownAnswers, type AiStatedKey, type ToldClass } from "./ai-stated-key.js";
+import type { PlanReviewShownDetail } from "./record-kinds.js";
 
 // ---------------------------------------------------------------------------
 // H2: the per-participant overconfidence gap
@@ -239,4 +245,44 @@ export function handOverItemRows(
     return [{ ...who, measure: "team", view: a.view, itemId: a.probeId, level: opts.teamLevels?.get(a.probeId) ?? null, correct: a.response === key, confidence: confidenceOf(a.probeId) }];
   });
   return [...own, ...team].sort((x, y) => x.view - y.view || (x.measure === y.measure ? 0 : x.measure === "own" ? -1 : 1));
+}
+
+// ---------------------------------------------------------------------------
+// AI answer length (SPEC/32 §7): the amount of AI text shown, per view
+// ---------------------------------------------------------------------------
+
+export interface TextAmount {
+  /** Answers (or, for the review, premise lines) shown. */
+  readonly count: number;
+  /** Their total length in characters (UTF-16 code units, as `String.length`). */
+  readonly chars: number;
+}
+
+export interface AiAnswerLength {
+  readonly view: number;
+  readonly haku: TextAmount;
+  readonly thinker: TextAmount;
+  /** The plan review's premise lines (guide group): fixed template text, kept apart from the model's answers. */
+  readonly reviewPremise: TextAmount;
+}
+
+/** One entry per view with any AI text shown, in view order (a view with none has no entry: zero, not missing). */
+export function aiAnswerLength(records: readonly LogRecord[]): AiAnswerLength[] {
+  const byView = new Map<number, { haku: TextAmount; thinker: TextAmount; reviewPremise: TextAmount }>();
+  const zero: TextAmount = { count: 0, chars: 0 };
+  const entry = (view: number) => {
+    let e = byView.get(view);
+    if (!e) { e = { haku: zero, thinker: zero, reviewPremise: zero }; byView.set(view, e); }
+    return e;
+  };
+  const add = (t: TextAmount, chars: number): TextAmount => ({ count: t.count + 1, chars: t.chars + chars });
+  for (const a of shownAnswers(records)) { const e = entry(a.view); e[a.tool] = add(e[a.tool], a.text.length); }
+  for (const r of records) {
+    if (r.kind !== "plan_review_shown") continue;
+    const d = r.detail as PlanReviewShownDetail;
+    if (d.premiseLines === null) continue;
+    const e = entry(d.cycle as number);
+    for (const line of d.premiseLines) e.reviewPremise = add(e.reviewPremise, line.length);
+  }
+  return [...byView.entries()].sort(([a], [b]) => a - b).map(([view, e]) => ({ view, ...e }));
 }

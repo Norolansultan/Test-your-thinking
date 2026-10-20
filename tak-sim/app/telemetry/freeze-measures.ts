@@ -17,6 +17,7 @@
  *   assumed), with a Brier score and the over/under-confidence gap (H2's per-participant outcome).
  * - `aiStatedKey` (SPEC/30 §5.3, `ai-stated-key.ts`, re-exported here): whether an AI answer before the freeze stated
  *   an L2/L3 item's key; H2, H2t and H-T are folded in `teaming-measures.ts`.
+ * - `lowestConfidenceShare` (SPEC/32 §7): the share of first answers given at confidence 25, overall and over L2/L3.
  */
 export { aiStatedKey, shownAnswers, type AiStatedKey, type AiStatedKeyOptions, type StatingTool } from "./ai-stated-key.js";
 
@@ -180,6 +181,33 @@ export function freezeItemScores(records: readonly LogRecord[], freezes: readonl
     });
   }
   return scores;
+}
+
+// ---------------------------------------------------------------------------
+// The lowest-confidence share (SPEC/32 §7, 20 Oct 2026; exploratory "don't know" index): of the first freeze answers (replayed views
+// dropped, `firstFreezeAnswers`), the share given at the scale's lowest step, 25. `all` reads every first answer, practice view included
+// only when its freeze is in the log; `l2l3` only the answers whose item the content passed lists as L2 or L3 (an item not in the
+// content is left out of it). A share is null with no answer.
+// ---------------------------------------------------------------------------
+
+export const LOWEST_CONFIDENCE = 25;
+
+export interface LowestConfidenceShare {
+  readonly all: { readonly n: number; readonly lowest: number; readonly share: number | null };
+  readonly l2l3: { readonly n: number; readonly lowest: number; readonly share: number | null };
+}
+
+export function lowestConfidenceShare(
+  records: readonly LogRecord[], freezes: readonly FreezeContentLike[], opts: { readonly includeReplayed?: boolean; readonly views?: readonly number[] } = {},
+): LowestConfidenceShare {
+  const index = itemIndex(freezes);
+  const answers = firstFreezeAnswers(records, opts).filter((a) => !opts.views || opts.views.includes(a.view));
+  const share = (xs: readonly FreezeAnswerRecord[]) => {
+    const lowest = xs.filter((a) => a.answer.confidence === LOWEST_CONFIDENCE).length;
+    return { n: xs.length, lowest, share: xs.length === 0 ? null : lowest / xs.length };
+  };
+  const level = (a: FreezeAnswerRecord) => index.get(`${a.view}::${a.answer.itemId}`)?.level;
+  return { all: share(answers), l2l3: share(answers.filter((a) => level(a) === "L2" || level(a) === "L3")) };
 }
 
 // ---------------------------------------------------------------------------

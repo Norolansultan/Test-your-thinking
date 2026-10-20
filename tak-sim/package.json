@@ -37,6 +37,7 @@
     "sessions:export": "tsx tools/deploy/export-sessions.ts",
     "review:export": "tsx tools/review/export.ts",
     "review:panel": "tsx tools/review/panel-packet.ts",
+    "review:uncertainty": "tsx tools/review/thinker-uncertainty-audit.ts",
     "tak:export": "tsx tools/tak/export.ts",
     "tak:replay": "tsx tools/tak/replay.ts",
     "skills:export": "tsx tools/skills/export.ts"

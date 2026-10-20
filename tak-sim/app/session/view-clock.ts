@@ -101,6 +101,18 @@ export class ViewClock {
     if (this.runningSinceMs === null) this.run();
   }
 
+  /**
+   * More cues for the open view (SPEC/32 §3: the cap moved for a revision opened at the plan review). Scheduled at once while
+   * the clock runs, else when it resumes; a cue whose moment has passed fires at once.
+   */
+  add(cues: readonly ViewCue[]): void {
+    const added: PendingCue[] = cues.map((c) => ({ atMs: Math.round(c.atSeconds * 1000), fire: c.fire, handle: null }));
+    this.pending = [...this.pending, ...added].sort((a, b) => a.atMs - b.atMs);
+    if (this.runningSinceMs === null) return;
+    const elapsedMs = this.accumulatedMs + this.realMs() - this.runningSinceMs;
+    for (const cue of added) this.schedule(cue, elapsedMs);
+  }
+
   stop(): void {
     this.clearHandles();
     this.pending = [];
@@ -109,12 +121,14 @@ export class ViewClock {
 
   private run(): void {
     this.runningSinceMs = this.realMs();
-    for (const cue of this.pending) {
-      cue.handle = setTimeout(() => {
-        this.pending = this.pending.filter((c) => c !== cue);
-        cue.fire();
-      }, Math.max(0, cue.atMs - this.accumulatedMs));
-    }
+    for (const cue of this.pending) this.schedule(cue, this.accumulatedMs);
+  }
+
+  private schedule(cue: PendingCue, elapsedMs: number): void {
+    cue.handle = setTimeout(() => {
+      this.pending = this.pending.filter((c) => c !== cue);
+      cue.fire();
+    }, Math.max(0, cue.atMs - elapsedMs));
   }
 
   private clearHandles(): void {

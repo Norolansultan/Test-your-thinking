@@ -21,6 +21,7 @@ import type { QuestionnaireId } from "../telemetry/record-kinds.js";
 import type { AiLiteracyView } from "./ai-literacy.js";
 import type { ConsultPromptView } from "./consult-notice.js";
 import type { PlanConfidenceView } from "./plan-confidence.js";
+import type { PlanReviewView } from "./plan-review.js";
 
 export type CyclePhase = "exploration" | "freeze" | "decision";
 
@@ -38,7 +39,8 @@ export function cyclePhaseOf(step: JudgementStep): CyclePhase {
  * are withdrawn), and `awaiting_view_end` until the view's minimum length is reached (the plan may be
  * revised meanwhile). `freeze` interrupts any of them and returns there. A view also ends at its
  * 150 s cap, wherever the participant is. SPEC/30: after a main view's end, `plan_confidence`; in V10
- * and V14 then the end-of-view `freeze`, which leads on to what follows the view.
+ * and V14 then the end-of-view `freeze`, which leads on to what follows the view. SPEC/32 §3: in phase B, `plan_review` at the
+ * moment the plan would become final (the clock standing still), before the view ends.
  */
 export type JudgementStep =
   | "briefing"
@@ -53,6 +55,8 @@ export type JudgementStep =
   | "probe"
   /** SPEC/30 §5.4: a main view has ended; its plan's confidence is asked (the map stays, the tools are closed). */
   | "plan_confidence"
+  /** SPEC/32 §3: phase B, the plan review at commitment (the map and the message log stay, the tools are closed, the clock stands still). */
+  | "plan_review"
   // The study shell (5 Oct 2026, `SessionOptions.studyShell`): consent and the preflight before the
   // briefing, the pre-session item after them; the post-session questionnaire and the debrief after V14.
   | "consent"
@@ -200,6 +204,8 @@ export interface SessionSnapshot {
   readonly suggestedQuestion: boolean;
   /** SPEC/30 §5.4: the plan-confidence item on screen (step `plan_confidence`, once its record is durable), else null. */
   readonly planConfidence: PlanConfidenceView | null;
+  /** SPEC/32 §3: the plan review on screen (step `plan_review`, once `plan_review_shown` is durable), else null. Carries no key. */
+  readonly planReview: PlanReviewView | null;
 }
 
 export interface PreflightView {

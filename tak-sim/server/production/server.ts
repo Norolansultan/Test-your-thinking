@@ -3,6 +3,7 @@
  *
  *   /api/thinker        Haku's chat (`server/thinker/handler.ts`), when configured
  *   /api/thinker-open   the Open Thinker (same handler module, 8 Oct 2026), when configured
+ *   /api/thinker/premise-review  the plan review's premise lookup (SPEC/32 §3, `premise-review.ts`), when configured
  *   /api/session-log/*  the post-run session-log upload and its checkpoints (`server/session-log/`)
  *   /api/assign         the shared study link's next code (`auto-assign.ts`), only when AUTO_ASSIGN=1;
  *                       otherwise 404
@@ -19,7 +20,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { OPEN_THINKER_MAX_BODY_BYTES, THINKER_ENDPOINT, THINKER_MAX_BODY_BYTES, THINKER_OPEN_ENDPOINT } from "../../app/session/thinker-protocol.js";
+import { OPEN_THINKER_MAX_BODY_BYTES, PREMISE_REVIEW_ENDPOINT, THINKER_ENDPOINT, THINKER_MAX_BODY_BYTES, THINKER_OPEN_ENDPOINT } from "../../app/session/thinker-protocol.js";
 import { BodyTooLargeError, handleSessionLogRequest, isSessionLogPath, readBodyLimited } from "../session-log/http.js";
 import type { SessionLogStore } from "../session-log/store.js";
 import { handleAdminRequest, isAdminPath, type AdminOptions } from "./admin.js";
@@ -34,6 +35,8 @@ export interface AppServerOptions {
   readonly thinker?: ThinkerHandler;
   /** The Open Thinker (`/api/thinker-open`). */
   readonly thinkerOpen?: ThinkerHandler;
+  /** SPEC/32 §3: the plan review's premise lookup (`/api/thinker/premise-review`; the guide cell only, no model call). */
+  readonly premiseReview?: ThinkerHandler;
   readonly sessionLog?: SessionLogStore;
   readonly allowedOrigins?: readonly string[];
   /** The data download; absent (ADMIN_TOKEN unset) = its routes answer 404. */
@@ -85,7 +88,7 @@ export function createAppServer(options: AppServerOptions): Server {
         const cors: Record<string, string> = origin ? { "access-control-allow-origin": origin, vary: "Origin" } : {};
         // A preflight answers 204 only for a route this server serves: the study's preflight check
         // (`preflight-env.ts`) reads a 204 on /api/thinker as "Thinker is there" (final review, 6 Oct 2026).
-        const chat = path === THINKER_ENDPOINT ? options.thinker : path === THINKER_OPEN_ENDPOINT ? options.thinkerOpen : undefined;
+        const chat = path === THINKER_ENDPOINT ? options.thinker : path === THINKER_OPEN_ENDPOINT ? options.thinkerOpen : path === PREMISE_REVIEW_ENDPOINT ? options.premiseReview : undefined;
         const assign = path === ASSIGN_PATH ? options.assign : undefined;
         const routed = chat !== undefined || assign !== undefined || (isSessionLogPath(path) && options.sessionLog !== undefined);
         if (method === "OPTIONS" && !routed) return sendJson(res, 404, { error: "not found" }, cors);

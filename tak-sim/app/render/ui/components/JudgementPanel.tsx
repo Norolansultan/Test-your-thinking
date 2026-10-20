@@ -3,6 +3,7 @@ import { useLang } from "../i18n.js";
 import { draftFromPlan, PlanPanel, planSummary, type PlanDraft } from "./DecisionPanels.js";
 import { Choice, hint, label, Panel, PrimaryButton, SecondaryButton } from "./PanelParts.js";
 import { PlanConfidencePanel } from "./PlanConfidencePanel.js";
+import { PlanReviewPanel } from "./PlanReviewPanel.js";
 
 /**
  * The decision strip's control surface. Follows the view's flow: until the decision panel opens
@@ -53,6 +54,10 @@ export function JudgementPanel({
     case "plan_confidence":
       // SPEC/30 §5.4: the view has ended; its plan's confidence, the map still above. Keyed by the view, so each view's item starts unset.
       return <PlanConfidencePanel key={snapshot.currentCycle} snapshot={snapshot} orchestrator={orchestrator} />;
+
+    case "plan_review":
+      // SPEC/32 §3: phase B, the plan review at commitment (the clock standing still). Keyed by the view, so its state starts afresh.
+      return <PlanReviewPanel key={snapshot.currentCycle} snapshot={snapshot} orchestrator={orchestrator} onPlanDraft={onPlanDraft} />;
 
     case "allocation":
       return <PlanPanel snapshot={snapshot} orchestrator={orchestrator} draft={planDraft} onDraft={onPlanDraft} />;

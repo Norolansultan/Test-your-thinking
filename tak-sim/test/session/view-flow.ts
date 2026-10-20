@@ -30,6 +30,17 @@ export async function runOutView(o: SessionOrchestrator, snap: () => SessionSnap
   }
 }
 
+/**
+ * SPEC/32 §3: the plan review on screen (phase B) is kept — once it shows (the guide group's lookup may take up to its timeout;
+ * the view's clock stands still meanwhile). False when no review is open.
+ */
+export async function keepReview(o: SessionOrchestrator): Promise<boolean> {
+  for (let i = 0; i < 40 && snapshotOf(o).step === "plan_review" && snapshotOf(o).planReview === null; i++) await vi.advanceTimersByTimeAsync(250);
+  if (snapshotOf(o).step !== "plan_review") return false;
+  await o.keepPlan();
+  return true;
+}
+
 /** Answers the SPAM probe on screen at once, whatever its phase (ready, the first option, confidence 50). */
 export async function answerSpamNow(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
   const spam = snap().spam;
@@ -85,13 +96,17 @@ export async function allocateAndConfirm(o: SessionOrchestrator, _snap?: () => S
  * SPEC/30: what follows a main view's end, while `view` is still on screen — its plan's confidence (`value`) and, in V10
  * and V14, the freeze at the view's end (no items, as `runOutView` answers a freeze) — so the next view, the training,
  * the hinge or the end is on screen. V14's after-view probes are left to the caller. A slow sink lags the item a tick.
+ * SPEC/32 §3: in phase B the plan review comes before the view's end; it is kept (`keepPlan`) once on screen (the guide
+ * group's lookup may take up to its timeout first: the view's clock stands still meanwhile).
  */
 export async function finishViewEnd(o: SessionOrchestrator, view: number, value = 50): Promise<void> {
   let rated = false; // only a freeze after the plan's confidence is the view's end-of-view freeze
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 60; i++) {
     const s = snapshotOf(o);
     if (s.currentCycle !== view) return;
-    if (s.step === "plan_confidence" && s.planConfidence) { await o.submitPlanConfidence(value); rated = true; }
+    if (s.step === "plan_review" && s.planReview) await o.keepPlan();
+    else if (s.step === "plan_review") await vi.advanceTimersByTimeAsync(250);
+    else if (s.step === "plan_confidence" && s.planConfidence) { await o.submitPlanConfidence(value); rated = true; }
     else if (s.step === "freeze" && rated) await o.submitFreeze([]);
     else if (s.step === "plan_confidence") await vi.advanceTimersByTimeAsync(0);
     else return;

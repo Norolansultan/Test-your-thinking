@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { repoPath } from "../thinker/config.js";
 import { createThinkerDeps, LOG_DIR } from "../thinker/deps.js";
 import { handleOpenThinkerRequest, handleThinkerRequest } from "../thinker/handler.js";
+import { handlePremiseReviewRequest } from "../thinker/premise-review.js";
 import { SessionLogStore } from "../session-log/store.js";
 import { ALLOCATION_TABLE } from "../../app/session/preview.js";
 import { gameLeaks } from "../../tools/deploy/game-gate.js";
@@ -63,7 +64,10 @@ const server = createAppServer({
   recruitmentGate: config.recruitmentGate,
   ...(assign ? { assign } : {}),
   ...(config.adminToken ? { admin: { token: config.adminToken, dirs: adminDirs, ...(assign ? { assignments: assign.overview.bind(assign) } : {}) } } : {}),
-  ...(deps ? { thinker: (body: unknown) => handleThinkerRequest(deps, body), thinkerOpen: (body: unknown) => handleOpenThinkerRequest(deps, body) } : {}),
+  ...(deps ? {
+    thinker: (body: unknown) => handleThinkerRequest(deps, body), thinkerOpen: (body: unknown) => handleOpenThinkerRequest(deps, body),
+    premiseReview: (body: unknown) => handlePremiseReviewRequest(deps, body), // SPEC/32 §3: the plan review's premise lookup (no model call)
+  } : {}),
 });
 
 server.listen(config.port, config.host, () => {

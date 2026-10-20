@@ -16,6 +16,8 @@
  * SPEC/30 (19 Oct 2026): the consult notification at 60 s of every main view (`consult-notice.ts`), the guide's
  * suggested question from V8, the plan's confidence after each main view's end (`plan-confidence.ts`), V10 and V14's
  * freeze at the view's end (`afterViewEnded`), and a view's second SPAM item (`spam-delivery.ts`).
+ * SPEC/32 §3 (20 Oct 2026): in phase B, the plan review at the moment the plan would become final (`plan-review.ts`; `endView`,
+ * `keepPlan`, `revisePlan`), the view's clock standing still while it is open.
  */
 
 import { toRenderable, type RenderableAtom } from "../boundary/render-boundary.js";
@@ -55,6 +57,8 @@ import { audioManager } from "./audio-manager.js";
 import { aiLiteracyEnded, aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswers } from "./ai-literacy.js";
 import { ConsultNotice, consultToolOf, SUGGESTED_QUESTION, suggestedQuestionOffered } from "./consult-notice.js";
 import { PlanConfidence } from "./plan-confidence.js";
+import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
+import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
@@ -260,6 +264,16 @@ export class SessionOrchestrator {
   private viewEnd: { readonly view: ViewIndex; readonly viewSeconds: number; readonly skipped: boolean } | null = null;
   /** SPEC/30 §5.1: the open freeze is the view's end-of-view freeze (it leads on to what follows the view, not back into it). */
   private endFreeze = false;
+  /**
+   * SPEC/32 §3: the plan review (phase B); what made the plan final (set where the end is called or held, read when the review
+   * opens); a review held by a freeze or a visible probe open at that moment (the end it gives); the view's cap now (moved for a
+   * revision opened at the review) and the generation of its cues (an earlier cap's cues do nothing).
+   */
+  private readonly review: PlanReview;
+  private reviewTrigger: PlanReviewTrigger | null = null;
+  private reviewHeld: PlanReviewEnd | null = null;
+  private capSeconds = VIEW_MAX_SECONDS;
+  private capGeneration = 0;
 
   constructor(
     private readonly scenario: ScenarioContract,
@@ -302,6 +316,7 @@ export class SessionOrchestrator {
     this.visible = new VisibleProbes({ event: (e) => this.event(e), notify: () => this.notify(), optionSeed: this.optionSeed() });
     this.consult = new ConsultNotice({ event: (e) => this.event(e), notify: () => this.notify() }, consultToolOf(cell));
     this.planConfidence = new PlanConfidence({ event: (e) => this.event(e), notify: () => this.notify() });
+    this.review = new PlanReview({ event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(), citedRecord: (atomId, premiseId) => this.citedRecordOf(atomId, premiseId) });
     this.aiLiteracy = new AiLiteracyTest({
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: async () => { this.step = "preflight"; this.notify(); }, // its end record is durable: on to the preflight
@@ -388,8 +403,9 @@ export class SessionOrchestrator {
       hingeDirective: this.step === "hinge_pause" && this.hingeCheckPhase !== "item" ? this.scenario.hinge.intentStatement : null,
       // Revision (ag): a SPAM item holds the decision strip, not the tools (Haku and the Thinker stay usable).
       // SPEC/30 §5.4: after the view's end (the plan-confidence item) the tools are closed too.
-      spam: this.spam.view(), toolsLocked: this.visible.open || this.step === "plan_confidence", decisionHeld: this.spam.itemOpen || this.visible.open,
-      waitingOnSession: this.thinkerPending > 0 || this.step === "freeze" || this.step === "probe" || this.spam.open || this.visible.open,
+      // SPEC/32 §3: the plan review closes the tools too (the map and the message log stay).
+      spam: this.spam.view(), toolsLocked: this.visible.open || this.step === "plan_confidence" || this.step === "plan_review", decisionHeld: this.spam.itemOpen || this.visible.open,
+      waitingOnSession: this.thinkerPending > 0 || this.step === "freeze" || this.step === "probe" || this.spam.open || this.visible.open || (this.step === "plan_review" && !this.review.onScreen),
       visibleProbe: this.visible.view(),
       hingeCheck: this.hingeCheckView(),
       directiveInForce: !this.isPractice() && this.currentCycle > this.scenario.hinge.afterCycle ? this.scenario.hinge.intentStatement : null,
@@ -400,9 +416,10 @@ export class SessionOrchestrator {
       debrief: this.step === "debrief" ? { textId: debriefTextId(this.log.header.cell), cell: this.log.header.cell } : null,
       introVideo: this.step === "briefing" && this.introVideo ? { src: this.introVideo, skippable: this.allowViewSkip } : null,
       // SPEC/30 §4: the notice is out of sight while the tools it opens are (a visible probe) or the screen is blanked.
-      consultPrompt: this.visible.open || this.step === "freeze" ? null : this.consult.view(),
+      consultPrompt: this.visible.open || this.step === "freeze" || this.step === "plan_review" ? null : this.consult.view(),
       suggestedQuestion: !this.isPractice() && suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle),
       planConfidence: this.step === "plan_confidence" ? this.planConfidence.view() : null,
+      planReview: this.step === "plan_review" ? this.review.view() : null,
     };
   }
 
@@ -501,6 +518,7 @@ export class SessionOrchestrator {
     this.spam.reset(); this.boundaryHeld = false; this.endHeld = null;
     this.visible.reset(); this.probeQueue = []; this.postViewOf = null;
     this.consult.reset(this.isPractice() ? null : index as CycleIndex); this.planConfidence.reset(); this.viewEnd = null; this.endFreeze = false;
+    this.review.reset(); this.reviewTrigger = null; this.reviewHeld = null;
 
     const cycleSpec = this.cycleSpec();
     this.timing = viewTimingOf(cycleSpec, this.previewOverride);
@@ -555,9 +573,17 @@ export class SessionOrchestrator {
       ...(consultPromptAtSeconds !== null ? [{ atSeconds: consultPromptAtSeconds, fire: () => void this.consult.due(consultPromptAtSeconds, this.step === "freeze" || this.spam.itemOpen || this.freezeDueSoonAfter(consultPromptAtSeconds)) }] : []),
       ...finalCountdownCues(minViewSeconds, (s) => { this.minSecondsLeft = s; this.notify(); }),
       { atSeconds: minViewSeconds, fire: () => void this.reachMinimum() },
-      ...capCues(this.isPractice() ? PRACTICE_VIEW_MAX_SECONDS : VIEW_MAX_SECONDS, (s) => { this.capSecondsLeft = s; this.notify(); }, () => void this.reachCap()), // freeze time does not count (r.12)
+      ...this.capCuesAt(this.isPractice() ? PRACTICE_VIEW_MAX_SECONDS : VIEW_MAX_SECONDS), // freeze time does not count (r.12)
     ]);
     audioManager.play();
+  }
+
+  /** The cap's cues at `capSeconds` (`capCues`); any earlier cap's cues do nothing from now on (SPEC/32 §3: the cap moved). */
+  private capCuesAt(capSeconds: number): ReturnType<typeof capCues> {
+    this.capSeconds = capSeconds;
+    const generation = ++this.capGeneration;
+    const current = () => generation === this.capGeneration;
+    return capCues(capSeconds, (s) => { if (current()) { this.capSecondsLeft = s; this.notify(); } }, () => { if (current()) void this.reachCap(); });
   }
 
   /** `31` F23: this view's freeze falls due within 15 s after `atSeconds` and has not yet come (a freeze at that same moment came first). */
@@ -687,6 +713,7 @@ export class SessionOrchestrator {
       this.viewClock.resume();
       this.notify();
       await this.consult.flush(this.viewClock.elapsedSeconds()); // SPEC/30 §4: a notice that fell due under the freeze
+      await this.openHeldReview(); // SPEC/32 §3: a review that fell due under the freeze
     });
     await this.flushProbes(); // a probe that fell due during the freeze (`flushProbes`)
   }
@@ -721,9 +748,12 @@ export class SessionOrchestrator {
   /** The view's minimum length: a period confirmed earlier ends the view now. */
   private async reachMinimum(): Promise<void> {
     this.minimumReached = true;
-    // A revision being written ends the view itself once recorded (`recordRevision`).
-    if (this.periodConfirmed && !this.submitting) await this.endView("minimum_length", this.timing.minViewSeconds);
-    else this.notify();
+    // A revision being written ends the view itself once recorded (`recordRevision`). SPEC/32 §3: in phase B a revision open at
+    // the minimum is not dropped — the plan becomes final when it is recorded (the review then, `plan_after_minimum`) or the cap ends the view.
+    if (this.periodConfirmed && !this.submitting && !(this.reviewApplies() && this.revisingAllocation)) {
+      this.reviewTrigger = "minimum_reached";
+      await this.endView("minimum_length", this.timing.minViewSeconds);
+    } else this.notify();
   }
 
   private probeSuffix(): string { return this.isPractice() ? "practice" : `cycle_${this.currentCycle}`; }
@@ -768,6 +798,7 @@ export class SessionOrchestrator {
     this.recordedPlan = copyPlan(plan);
     await this.recordOrders(plan);
     this.periodConfirmed = true;
+    if (this.minimumReached) this.reviewTrigger = "plan_after_minimum"; // SPEC/32 §3: the plan is final now (phase B: the review first)
     if (this.minimumReached && !this.spam.itemOpen) { // a ready prompt still up is forced first (`endView`)
       if (this.spam.readyOpen) this.goTo("awaiting_view_end");
       await this.endView("participant_confirm", this.viewClock.elapsedSeconds());
@@ -799,6 +830,7 @@ export class SessionOrchestrator {
     this.recordedPlan = copyPlan(plan);
     await this.recordOrders(plan);
     this.revisingAllocation = false;
+    if (this.minimumReached) this.reviewTrigger = "plan_after_minimum"; // SPEC/32 §3 (none after a revision opened at the review: `review.done`)
     if (this.minimumReached && !this.spam.itemOpen) { // the minimum passed while the revision was written; a ready prompt is forced first
       if (this.spam.readyOpen) this.goTo("awaiting_view_end");
       await this.endView("minimum_length", this.viewClock.elapsedSeconds());
@@ -819,6 +851,15 @@ export class SessionOrchestrator {
       await this.spam.force(viewSeconds, endedBy);
       return;
     }
+    // SPEC/32 §3: in phase B the plan review comes first (held, as the end is, by the SPAM item above); the cap closes an open one.
+    if (this.review.open) {
+      if (endedBy !== "time_cap") throw new Error(`endView(${endedBy}) while the plan review is open`);
+      await this.review.close("time_cap");
+    } else if ((endedBy === "participant_confirm" || endedBy === "minimum_length") && this.reviewDue()) {
+      await this.openPlanReview(endedBy, viewSeconds);
+      return;
+    }
+    this.reviewTrigger = null;
     this.viewClock.stop(); this.capReached = false;
     const finished = this.currentCycle;
     this.lastViewTimedOutWithoutPlan = endedBy === "time_cap" && !this.allocationCommitted; // shown at the next view's start
@@ -867,6 +908,92 @@ export class SessionOrchestrator {
     } finally { this.submitting = false; }
     if (this.postViewOf !== null) await this.flushProbes(); // after-view probes held for the submission being written
     this.notify();
+  }
+
+  // ---- The plan review at commitment (SPEC/32 §3; `plan-review.ts`) ---------------------------------------------------
+
+  /** Phase B (V8–V14), never the practice view. */
+  private reviewApplies(): boolean { return !this.isPractice() && this.cycleSpec().phase === "B"; }
+
+  /** The plan is about to become final: a phase-B view whose review has not opened yet, a plan recorded and no revision open. */
+  private reviewDue(): boolean {
+    return this.reviewApplies() && !this.review.done && this.allocationCommitted && !this.revisingAllocation;
+  }
+
+  /**
+   * Opens the review where the view would have ended with `endedBy`: the view's clock stops at `viewSeconds` (as a freeze stops
+   * it), the step is `plan_review` at once, and the guide group's premise lookup runs before `plan_review_shown` is written. A
+   * freeze or a visible probe open then holds it until it closes (`reviewHeld`).
+   */
+  private async openPlanReview(endedBy: PlanReviewEnd, viewSeconds: number): Promise<void> {
+    if (this.step === "freeze" || this.step === "probe") { this.reviewHeld = endedBy; this.notify(); return; }
+    const trigger: PlanReviewTrigger = this.reviewTrigger ?? (endedBy === "participant_confirm" || viewSeconds > this.timing.minViewSeconds ? "plan_after_minimum" : "minimum_reached");
+    this.reviewTrigger = null;
+    this.viewClock.pause(viewSeconds);
+    this.resumeStep = null;
+    this.step = "plan_review"; // at once, so nothing else is submitted; shown once `plan_review_shown` is durable (I5)
+    this.notify();
+    const lookup = this.cell === PREMISE_REVIEW_CELL ? () => this.queries.premiseReview() : null; // the Haku group: no request
+    await this.review.present(this.currentCycle as CycleIndex, trigger, endedBy, viewSeconds, lookup);
+  }
+
+  /** A review held by a freeze or a visible probe (`openPlanReview`) opens now that it has closed. */
+  private async openHeldReview(): Promise<void> {
+    const held = this.reviewHeld;
+    if (held === null) return;
+    this.reviewHeld = null;
+    await this.endView(held, this.viewClock.elapsedSeconds());
+  }
+
+  /** "Vahvista kohdennus": the review closes (`keep`) and the view ends as it would have (`participant_confirm` or `minimum_length`). */
+  async keepPlan(): Promise<void> {
+    if (!this.review.onScreen) throw new Error(`keepPlan in step ${this.step} (no plan review on screen)`);
+    return this.guarded("plan_review", "keepPlan", async () => {
+      const endedBy = this.review.end;
+      await this.review.close("keep");
+      await this.endView(endedBy, this.viewClock.elapsedSeconds());
+    });
+  }
+
+  /**
+   * "Muuta kohdennusta": the review closes (`revise`) and the allocation opens again by the revision path
+   * (`allocation_revision_opened`; the plan recorded is the form's prefill), the clock running again. The view ends when the
+   * revision is recorded, with no second review (`review.done`). Fewer than {@link REVIEW_REVISION_MIN_SECONDS} left before the
+   * cap: the cap moves to leave that many (`capExtendedToSeconds`). The cap's cues are set again either way, so a view resumed
+   * into a forced SPAM item (started without cues) has its cap too.
+   */
+  async revisePlan(): Promise<void> {
+    if (!this.review.onScreen) throw new Error(`revisePlan in step ${this.step} (no plan review on screen)`);
+    return this.guarded("plan_review", "revisePlan", async () => {
+      const at = this.viewClock.elapsedSeconds();
+      const cap = Math.max(this.capSeconds, Math.round((at + REVIEW_REVISION_MIN_SECONDS) * 1000) / 1000);
+      const extended = cap > this.capSeconds;
+      await this.review.close("revise", extended ? cap : undefined);
+      await this.event({ kind: "allocation_revision_opened", detail: { cycle: this.currentCycle, atViewSeconds: at } });
+      this.viewClock.add(this.capCuesAt(cap));
+      if (extended) this.capSecondsLeft = null; // the countdown starts again at the new cap
+      this.revisingAllocation = true;
+      this.step = "allocation";
+      this.viewClock.resume();
+      this.notify();
+    });
+  }
+
+  /** A record a premise line cites, opened from the review: `plan_review_record_opened`, then shown in the message log. */
+  openReviewRecord(atomId: string): Promise<void> {
+    if (this.step !== "plan_review") throw new Error(`openReviewRecord in step ${this.step}`);
+    return this.review.openRecord(atomId);
+  }
+
+  /** A cited record as the message log shows it (`deliverPushed`'s row), whether or not it was pushed. */
+  private citedRecordOf(atomId: string, premiseId: string): PlanReviewCitedRecord | null {
+    const atom = this.scenario.atoms.find((a) => a.id === atomId);
+    if (!atom) return null;
+    const renderable = toRenderable(atom);
+    return {
+      id: renderable.id, clockLabel: recordClockLabel(atom), from: renderable.provenance.sourceId, text: recordText(renderable.record),
+      atomId, premiseId, inLog: this.queries.radioLog.some((e) => e.id === atomId),
+    };
   }
 
   /** Real time since the view opened (ms), its tour, freezes and probes included: the working period `drawerOpenFraction` divides by. */
@@ -1070,7 +1197,7 @@ export class SessionOrchestrator {
    * freeze's rule, SPEC/15 r.12): `atViewSeconds` pins it to the probe's own moment when it has one.
    */
   private async flushProbes(): Promise<void> {
-    if (this.visible.open || this.spam.open || this.step === "freeze" || this.submitting || this.probeQueue.length === 0) return;
+    if (this.visible.open || this.spam.open || this.step === "freeze" || this.step === "plan_review" || this.submitting || this.probeQueue.length === 0) return;
     const { probe, atViewSeconds } = this.probeQueue.shift()!;
     const inView = this.postViewOf === null;
     if (inView) {
@@ -1097,6 +1224,7 @@ export class SessionOrchestrator {
     this.resumeStep = null;
     this.viewClock.resume();
     this.notify();
+    await this.openHeldReview(); // SPEC/32 §3: a review that fell due under the probe
   }
 
   private async answerVisible(name: string, body: () => Promise<void>): Promise<void> {
@@ -1397,7 +1525,12 @@ export class SessionOrchestrator {
     this.timing = viewTimingOf(cycleSpec, this.previewOverride);
     this.allocationCommitted = this.periodConfirmed = target.planRecorded;
     this.minimumReached = target.atViewSeconds >= this.timing.minViewSeconds;
-    this.revisingAllocation = false; this.revisionCount = 0; this.recordedPlan = null;
+    this.revisingAllocation = false; this.revisionCount = 0;
+    // SPEC/32 §3: the plan recorded is the review's (phase B), which follows the item's close; its revisions continue the count.
+    const recorded = lastRecordedPlan(this.resumeInfo?.records ?? [], index);
+    this.recordedPlan = recorded.plan; this.revisionCount = recorded.revisions;
+    this.review.reset(); this.reviewTrigger = null; this.reviewHeld = null;
+    this.capSeconds = this.isPractice() ? PRACTICE_VIEW_MAX_SECONDS : VIEW_MAX_SECONDS; this.capGeneration += 1; // no cap cues: the view's time is over
     this.capReached = false; this.boundaryHeld = false; this.minSecondsLeft = this.capSecondsLeft = null;
     this.step = target.planRecorded ? "awaiting_view_end" : "allocation";
     this.currentStep = cycleSpec.startsAtVirtual / STEP_SECONDS + 1;

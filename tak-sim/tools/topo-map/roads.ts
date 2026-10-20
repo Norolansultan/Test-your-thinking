@@ -20,6 +20,7 @@ import { mireAt, MIRE } from "./soil.js";
 import { FARMS, PARCELS, parcelAt } from "./fields.js";
 import { BRIDGE_S, COMMAND_POINT, COTTAGE_ROAD_ENDS, FIXED_ROADS, HONKAHARJU_ROAD, MAANTIE_S, MOKKIRANTA_JUNCTION, type Road, type RoadClass } from "./roads-main.js";
 import { longestMireRun, roadLine, route, squareJunction, straightenCrossings, terrainCost, windowAround } from "./road-grid.js";
+import { bendStraights, nearWet } from "./road-shape.js";
 
 export type { Road, RoadClass };
 export { BRIDGE, BRIDGE_S, COMMAND_POINT, COTTAGE_ROAD_ENDS, FIXED_ROADS, MAANTIE_S, MOKKIRANTA_JUNCTION };
@@ -83,6 +84,23 @@ function buildNetwork() {
   const COST = { gravel: costFor("gravel"), forest: costFor("forest"), track: costFor("track"), path: costFor("path") };
   /** Generated roads keep 25–90 m off other roads (they meet them, they do not run beside them). */
   const effective = (cost: Float32Array, i: number) => (roadId[i]! >= 0 ? 0.25 : cost[i]! + (roadDist[i]! < 90 ? 1.5 : 0));
+  /** A routed line's long straights bent gently (road-shape.ts), kept off lakes, the river, longer mire runs and other roads. */
+  const bendGenerated = (line: readonly P[], cost: Float32Array, salt: number): P[] => {
+    const onMire = (p: P) => mireAt(p.x, p.y) !== 0;
+    const nearRoads = (l: readonly P[]) => resample(l, 20).slice(6).filter((p) => Math.abs(p.x) < HALF_M && Math.abs(p.y) < HALF_M && roadDist[cellOf(p.x, p.y)]! < 45).length;
+    const near0 = nearRoads(line);
+    const mire0 = longestMireRun(line, onMire);
+    const inside = (p: P) => Math.abs(p.x) < HALF_M - 20 && Math.abs(p.y) < HALF_M - 20;
+    const wet = (l: readonly P[]) => resample(l, 10).filter((p) => nearWet(p, (q) => lakeAt(q.x, q.y) !== undefined)).length;
+    const wet0 = wet(line);
+    return bendStraights(line, {
+      cost: (p) => (inside(p) ? Math.min(60, cost[cellOf(p.x, p.y)]!) : 60),
+      causeway: onMire,
+      accept: (l) => l.every(inside) && !resample(l, 5).some((p) => lakeAt(p.x, p.y) !== undefined) && wet(l) <= wet0 && riverCrossings(l).length === 0 &&
+        longestMireRun(l, onMire) <= mire0 + 10 && nearRoads(l) <= near0,
+      salt: 9000 + (salt % 1000),
+    });
+  };
 
   /**
    * Routes a new road from `start` (its far end) back to the network and adds it, junction first. Returns false when no route is
@@ -100,9 +118,11 @@ function buildNetwork() {
     let line = roadLine([...cells].reverse(), j, s, 12);
     line = squareJunction(line, parent.line, 60);
     line = straightenCrossings(line, (p) => mireAt(p.x, p.y) !== 0, (p) => lakeAt(p.x, p.y) !== undefined, 400);
+    line = bendGenerated(line, cost, start);
     const len = line.reduce((t, p, k) => (k ? t + Math.hypot(p.x - line[k - 1]!.x, p.y - line[k - 1]!.y) : 0), 0);
     if (len < minLen || len > maxLen) return false;
-    if (resample(line, 5).some((p) => lakeAt(p.x, p.y) !== undefined)) return false;
+    // Off the water by 12 m (the drawn shore is smoothed from the 10 m grid and may lie a little outside the 20 m lake cells).
+    if (resample(line, 5).slice(1, -1).some((p) => nearWet(p, (q) => lakeAt(q.x, q.y) !== undefined, 12))) return false;
     // Short, straight mire crossings only (SPEC/33 §2.3): no stretch over 420 m on mire, no road over a third on it.
     const mireRun = longestMireRun(line, (p) => mireAt(p.x, p.y) !== 0);
     if (mireRun > 380) return false;
@@ -164,7 +184,7 @@ function buildNetwork() {
       const jy = (hash2(best, salt, 7003) - 0.5) * 120;
       const p = cellP(best);
       const s = cellOf(Math.max(-HALF_M + 30, Math.min(HALF_M - 30, p.x + jx)), Math.max(-HALF_M + 30, Math.min(HALF_M - 30, p.y + jy)));
-      const target = LAKE_ID[s]! >= 0 || MIRE[s] ? best : s;
+      const target = LAKE_ID[s]! >= 0 || MIRE[s] || STREAM_CELL[s]! >= 0 ? best : s;
       if (grow(target, cls, minLen, maxLen, true)) made++;
     }
   };
@@ -208,6 +228,7 @@ function buildNetwork() {
     const b = closestOnPolyline(cellP(cells[cells.length - 1]!).x, cellP(cells[cells.length - 1]!).y, to.line);
     let line = roadLine(cells.slice(1, -1), undefined, undefined, 12);
     line = straightenCrossings(squareJunction([a, ...line, b], from.line, 60), (p) => mireAt(p.x, p.y) !== 0, (p) => lakeAt(p.x, p.y) !== undefined, 400);
+    line = bendGenerated(line, dry, guard);
     const id = roads.length;
     roads.push({ cls: "forest", line });
     addToGrid(line, id);
@@ -228,7 +249,7 @@ function buildNetwork() {
         if (lakeAt(lake.cx + q.x, lake.cy + q.y)?.id === lake.id) { const b = polar(bearing, s + 10); edge = { x: lake.cx + b.x, y: lake.cy + b.y }; break; }
       }
       if (!edge) continue;
-      const back = polar(bearing, 35);
+      const back = polar(bearing, 45);
       const c = { x: edge.x + back.x, y: edge.y + back.y };
       if (Math.hypot(c.x, c.y) < 4500 || Math.abs(c.x) > HALF_M - 50 || Math.abs(c.y) > HALF_M - 50) continue;
       if (mireAt(c.x, c.y) !== 0 || lakeAt(c.x, c.y) || cottages.some((q) => Math.hypot(q.x - c.x, q.y - c.y) < 250)) continue;

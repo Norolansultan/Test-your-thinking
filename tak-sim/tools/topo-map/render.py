@@ -13,12 +13,13 @@ Writes:
                                           the same tiles with the English labels (SPEC/23 §16, "labelsEn")
 
 Data-driven: every layer is optional and drawn only when present. Layers read (new name / today's name):
-  polygons   rock|rocky, field_parcels + fields, mire_open|openBogs, mire_drained|drainedBogs, pineBogs,
-             paludified, peat_production, water, islands, ponds, clearings
-  polylines  ditches, contours (index flag "contours_index"|"index", height "level" when written),
-             river, streams|brooks, roads (cls main|gravel|public|forest|private|track|path, optional "ref"),
-             powerLine (+ powerCorridorPx)
-  points     bridges, buildings, labels, labelsEn; elevationGrid (index-contour heights and their uphill side)
+  polygons   rock|rocky, field_parcels (drawn as blocks) else fields, mireFill (the union) else mire_open|openBogs,
+             mire_drained|drainedBogs, pineBogs and paludified; mireIslands (firm ground drawn back over the mire fill),
+             peat_production, water, islands, ponds, clearings
+  polylines  ditches (+ ditchKinds: main and collector ditches wider), contours (index flag "contours_index"|"index",
+             height "level", "aux" auxiliary contours dashed), river, streams|brooks, roads (cls main|gravel|public|
+             forest|private|track|path, optional "ref"), powerLine (+ powerCorridorPx)
+  points     bridges, culverts, buildings, labels, labelsEn; elevationGrid (uphill side of the index-contour labels)
 `mireLines` (the old difficult-mire hatching) is no longer drawn: §9 mires are a flat fill with their ditches.
 
 The map is drawn once; only the names differ between the languages. Contour labels avoid both languages' names,
@@ -35,6 +36,7 @@ from PIL import Image, ImageDraw
 
 sys.dont_write_bytecode = True  # the helper modules are imported from this folder; keep it free of __pycache__
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import render_areas as areas  # noqa: E402
 import render_labels as lab  # noqa: E402
 import render_style as st  # noqa: E402
 
@@ -115,14 +117,21 @@ def draw_ground(im, draw, fx):
         draw.line(sc(pl), fill=st.CLEARED_FILL, width=px(fx["powerCorridorPx"]))
     for ring in st.layer(fx, "clearings"):
         fill_polygon(im, draw, ring, st.CLEARED_FILL, st.CLEARED_EDGE, px(0.5))
-    for ring in st.layer(fx, "rock", "rocky"):
-        fill_polygon(im, draw, ring, st.ROCK_FILL)
-    for ring in st.layers(fx, "fields", "field_parcels"):
-        fill_polygon(im, draw, ring, st.FIELD_FILL, st.FIELD_EDGE, px(st.W["field_edge"]))
-    mires = (st.layer(fx, "mire_open", "openBogs") + st.layer(fx, "mire_drained", "drainedBogs")
-             + st.layers(fx, "pineBogs", "mire", "paludified"))
+    # one fill for every mire class and the paludified fringe: the union layer when the build wrote it (no seams)
+    mires = st.layer(fx, "mireFill") or (st.layer(fx, "mire_open", "openBogs") + st.layer(fx, "mire_drained", "drainedBogs")
+                                         + st.layers(fx, "pineBogs", "mire", "paludified"))
     for ring in mires:
         fill_polygon(im, draw, ring, st.MIRE_FILL)
+    # firm islands in the mires: the traced mire rings carry no holes, so the islands are drawn back as land
+    for ring in st.layer(fx, "mireIslands"):
+        fill_polygon(im, draw, ring, st.BG)
+    for ring in st.layer(fx, "rock", "rocky"):
+        fill_polygon(im, draw, ring, st.ROCK_FILL)
+    if fx.get("field_parcels"):
+        areas.draw_field_blocks(im, fx["field_parcels"], SS, st.FIELD_FILL, st.FIELD_EDGE, st.W["field_edge"])
+    else:
+        for ring in st.layer(fx, "fields"):
+            fill_polygon(im, draw, ring, st.FIELD_FILL, st.FIELD_EDGE, px(st.W["field_edge"]))
     for ring in st.layer(fx, "peat_production"):
         fill_polygon(im, draw, ring, st.PEAT_FILL)
     for ring in st.layers(fx, "water", "ponds"):
@@ -139,8 +148,8 @@ def obstacles(fx):
     for k, r in enumerate(fx.get("roads") or []):
         h.add_line(st.polyline_pts(r), tag=("r", k))
     for name in ("ditches", "river", "brooks", "streams"):
-        for ln in fx.get(name) or []:
-            h.add_line(st.polyline_pts(ln), tag=None, step=4.0)
+        for k, ln in enumerate(fx.get(name) or []):
+            h.add_line(st.polyline_pts(ln), tag=("w", k), step=4.0)
     h.add_line(fx.get("powerLine") or [], tag=("p", 0))
     boxes = lab.BoxSet()
     for b in fx.get("buildings") or []:
@@ -172,10 +181,14 @@ def plan_line_labels(fx, hash_, taken, elev):
     return contour_labels, road_labels
 
 
-def draw_lines(im, draw, fx, contour_labels):
-    for d in fx.get("ditches") or []:
-        main = isinstance(d, dict) and d.get("cls") in ("main", "collector")
-        line(draw, st.polyline_pts(d), st.STREAM, st.W["ditch_main" if main else "ditch"])
+def draw_lines(im, draw, fx, contour_labels, name_boxes=()):
+    kinds = fx.get("ditchKinds") or []
+    for k, d in enumerate(fx.get("ditches") or []):
+        kind = d.get("cls") if isinstance(d, dict) else (kinds[k] if k < len(kinds) else None)
+        width = st.W["ditch_main" if kind in ("main", "collector") else "ditch"]
+        # ditches are knocked out under the names, so a mire name stays legible over its ditch network
+        for piece in areas.knock_out(st.polyline_pts(d), name_boxes):
+            line(draw, piece, st.STREAM, width)
 
     gaps = {}
     for tag, _, _, _, span in contour_labels:
@@ -184,7 +197,10 @@ def draw_lines(im, draw, fx, contour_labels):
         pts = st.polyline_pts(c)
         idx = st.contour_is_index(c, INDEX_INTERVAL_M)
         for piece in lab.cut_polyline(pts, gaps.get(k)):
-            line(draw, piece, st.CONTOUR_INDEX if idx else st.CONTOUR, st.W["contour_index" if idx else "contour"])
+            if c.get("aux"):  # apukäyrä: the 2.5 m auxiliary contour of flat ground, dashed and thin
+                dashed(draw, piece, st.CONTOUR, st.W["contour_aux"], *st.DASH["contour_aux"])
+            else:
+                line(draw, piece, st.CONTOUR_INDEX if idx else st.CONTOUR, st.W["contour_index" if idx else "contour"])
     fnt = st.font("regular", st.CONTOUR_LABEL_SIZE * SS)
     for _, text, (cx, cy), angle, _ in contour_labels:
         lab.draw_rotated_text(im, text, fnt, (cx * SS, cy * SS), angle, st.CONTOUR_INDEX)
@@ -252,20 +268,20 @@ def road_direction(fx, x, y):
     return best
 
 
-def draw_bridges(draw, fx):
-    """A bridge: two black side lines along the road, with flared ends."""
-    for bx, by in fx.get("bridges") or []:
+def draw_bridges(draw, fx, key="bridges", half=8, flare=2, gap=2, width_key="bridge"):
+    """A bridge: two black side lines along the road, with flared ends. Culverts (key="culverts") get the same
+    sign, short and close to the road, where a brook or main ditch passes under it."""
+    for bx, by in fx.get(key) or []:
         nearest = road_direction(fx, bx, by)
         ux, uy = nearest[1] if nearest and nearest[0] < 12 else (1.0, 0.0)
         nx, ny = -uy, ux
-        off = st.W.get(nearest[2] if nearest else "main", 2.5) / 2 + 2
-        half = 8
+        off = st.W.get(nearest[2] if nearest else "main", 2.5) / 2 + gap
         for side in (-1, 1):
             ox, oy = bx + nx * off * side, by + ny * off * side
             p0, p1 = (ox - ux * half, oy - uy * half), (ox + ux * half, oy + uy * half)
-            flare0 = (p0[0] - ux * 2 + nx * 2 * side, p0[1] - uy * 2 + ny * 2 * side)
-            flare1 = (p1[0] + ux * 2 + nx * 2 * side, p1[1] + uy * 2 + ny * 2 * side)
-            draw.line(sc([flare0, p0, p1, flare1]), fill=st.ROAD_BLACK, width=px(st.W["bridge"]))
+            flare0 = (p0[0] - ux * flare + nx * flare * side, p0[1] - uy * flare + ny * flare * side)
+            flare1 = (p1[0] + ux * flare + nx * flare * side, p1[1] + uy * flare + ny * flare * side)
+            draw.line(sc([flare0, p0, p1, flare1]), fill=st.ROAD_BLACK, width=px(st.W[width_key]))
 
 
 def draw_buildings(draw, fx):
@@ -293,14 +309,16 @@ def main():
         for *_, box in placed[lang]:
             taken.add(box)
     contour_labels, road_labels = plan_line_labels(fx, hash_, taken, elev)
+    name_boxes = [box for lang in placed for lb, _, _, box in placed[lang] if lb["style"] != "height"]
 
     im = Image.new("RGB", (size * SS, size * SS), st.BG)
     draw = ImageDraw.Draw(im)
     draw_ground(im, draw, fx)
-    draw_lines(im, draw, fx, contour_labels)
+    draw_lines(im, draw, fx, contour_labels, name_boxes)
     draw_roads(draw, fx)
     draw_power_line(draw, fx)
     draw_bridges(draw, fx)
+    draw_bridges(draw, fx, "culverts", half=2.5, flare=1.2, gap=1.2, width_key="culvert")
     draw_buildings(draw, fx)
     ref_font = st.font("regular", st.ROAD_REF_SIZE * SS)
     for _, text, (cx, cy), angle, _ in road_labels:

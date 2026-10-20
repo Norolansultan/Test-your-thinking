@@ -51,13 +51,13 @@ HALO = (255, 255, 255)
 # Line widths and symbol sizes, final px (render.py multiplies by its supersample factor)
 # ---------------------------------------------------------------------------
 W = {
-    "contour": 1.5, "contour_index": 2.5, "ditch": 1.0, "ditch_main": 1.5, "brook": 1.5,
+    "contour": 1.5, "contour_index": 2.5, "contour_aux": 1.1, "ditch": 1.0, "ditch_main": 1.6, "brook": 1.5,
     "river_bank": 5.0, "river_water": 3.0, "shore": 1.0, "field_edge": 1.0,
     "main": 3.5, "gravel": 2.5, "public": 2.5, "forest": 2.0, "private": 2.0,
-    "track": 1.5, "path": 1.0, "power": 1.0, "bridge": 1.5,
+    "track": 1.5, "path": 1.0, "power": 1.0, "bridge": 1.5, "culvert": 1.0,
 }
-# Dashes (on, off) in final px: ajopolku (track) and polku (path), as in the screenshots.
-DASH = {"track": (9, 4), "path": (5, 3)}
+# Dashes (on, off) in final px: ajopolku (track) and polku (path), as in the screenshots; the apukäyrä (auxiliary contour).
+DASH = {"track": (9, 4), "path": (5, 3), "contour_aux": (7, 4)}
 ROAD_COLOUR = {"main": ROAD_BLACK, "gravel": ROAD_BLACK, "public": ROAD_BLACK,
                "forest": ROAD_BLACK, "private": ROAD_BLACK, "track": ROAD_BLACK, "path": ROAD_BLACK}
 # Public roads are cased (black casing at the class width, a light core at about half of it), so no road is red.

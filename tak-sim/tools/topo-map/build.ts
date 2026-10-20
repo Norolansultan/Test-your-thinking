@@ -10,7 +10,9 @@
  *   app/scenario/site-meta.json             map extent and WGS84 corners for the UI
  *
  * New layers since SPEC/33: `rock` (outcrop polygons; `rocky` is the same for the old renderer), `field_parcels` (rectangles),
- * `ditches` with `ditchKinds` (mire / collector / main / forest / field), `culverts`, auxiliary contours (`aux: true`).
+ * `ditches` with `ditchKinds` (mire / collector / main / forest / field), `culverts`, auxiliary contours (`aux: true`); each
+ * contour carries its `level` (m). Gate R: `mireFill` (every mire class and the paludified fringe as one traced union, the fill the
+ * map draws), area outlines smoothed off the raster (carto.ts), contours traced with flat-ground brook trenches closed over.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -19,7 +21,7 @@ import { traceMaskMetres, type GridFrame } from "../fire-ca/geometry.js";
 import { tm35ToWgs84 } from "../fire-ca/tm35.js";
 import { FUEL_CLASSES } from "../fire-ca/template-site.js";
 import {
-  BROOKS, distToPolyline, elevation, HALF_M, IGN_TM35, inWater, isPaludified, isWetMire, lakeAt, landCover, LC_DRAINED_BOG, LC_FIELD,
+  BROOKS, distToPolyline, elevation, HALF_M, IGN_TM35, inWater, isWetMire, PALUDIFIED, lakeAt, landCover, LC_DRAINED_BOG, LC_FIELD,
   LC_FOREST, LC_OPEN_BOG, LC_PINE_BOG, LC_WATER, POWER_LINE, RIVER, riverDist, ROCK, runsOutsideLakes, sampleGrid, segmentHit, standAt,
   SLOPE, type P,
 } from "./terrain.js";
@@ -29,6 +31,7 @@ import { DITCHES } from "./ditches.js";
 import { FEATURES } from "../fire-ca/deployment.js";
 import { BARE_ENDS_NEAR_IGN, BUILDINGS, englishLabel, namedLabels, NO_NEW_BUILDINGS_M, ROAD_END_STATS, VALLEY_FLOOR_M } from "./places.js";
 import { keepFlatAux, traceContours } from "./contours.js";
+import { contourSurface, smoothRing, stampLines } from "./carto.js";
 
 const GRID_M = 10;
 const N = (2 * HALF_M) / GRID_M; // 2000
@@ -83,7 +86,7 @@ for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
   const y = cellY(r);
   if (lc[i] === LC_FOREST) {
     if (sampleGrid(ROCK, x, y) > 0.5) rock[i] = 1;
-    else if (isPaludified(x, y)) paludified[i] = 1;
+    else if (sampleGrid(PALUDIFIED, x, y) > 0.5) paludified[i] = 1; // bilinear: the 20 m grid's steps cut diagonally
   } else if ((lc[i] === LC_OPEN_BOG || lc[i] === LC_PINE_BOG) && isWetMire(x, y)) wetMire[i] = 1;
 }
 
@@ -121,17 +124,20 @@ const flatPx = (px: [number, number]) => {
   const y = HALF_M - px[1] * MAP_M_PER_PX;
   return sampleGrid(SLOPE, x, y) < 0.018;
 };
-const contours = keepFlatAux(traceContours(elev, water, N, cellX, cellY, toPx, levels, (l) => l % 5 !== 0), flatPx);
+// Traced on the DEM with the brooks' trenches closed over in flat ground (carto.ts): a brook in a mire draws no canal.
+const streamDist = stampLines([RIVER, ...BROOKS.map((b) => b.line)], N, GRID_M, -HALF_M, 70);
+const contourElev = contourSurface(elev, water, N, GRID_M, streamDist);
+const contours = keepFlatAux(traceContours(contourElev, water, N, cellX, cellY, toPx, levels, (l) => l % 5 !== 0), flatPx);
 
 console.log("land-cover polygons …");
 const frame10: GridFrame = { origin: { lat: 0, lon: 0 }, cols: N, rows: N, cellSizeM: GRID_M };
-const polysFromMask = (mask: Uint8Array, minAreaCells: number) =>
-  traceMaskMetres(frame10, mask, 0.6, minAreaCells).map((ring) => ring.map((p) => toPx(p.x - HALF_M, p.y - HALF_M)));
+const polysFromMask = (mask: Uint8Array, minAreaCells: number, tolCells = 0.9) =>
+  traceMaskMetres(frame10, mask, tolCells, minAreaCells).map((ring) => smoothRing(ring.map((p) => toPx(p.x - HALF_M, p.y - HALF_M))));
 const polys = (cls: number, minAreaCells: number) => polysFromMask(maskEq(cls), minAreaCells);
 // Lake polygons only: the river is drawn from its centreline.
 const lakeMask = new Uint8Array(N * N);
 for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (lc[r * N + c] === LC_WATER && lakeAt(cellX(c), cellY(r))) lakeMask[r * N + c] = 1;
-const waterPolys = polysFromMask(lakeMask, 30);
+const waterPolys = polysFromMask(lakeMask, 30, 1.2);
 // Islands: land enclosed by a lake (the traced rings carry no holes, so islands are drawn back on top).
 const islandMask = new Uint8Array(N * N);
 {
@@ -155,7 +161,7 @@ const islandMask = new Uint8Array(N * N);
     if (!edge) for (const i of members) islandMask[i] = 1;
   }
 }
-const islandPolys = polysFromMask(islandMask, 4);
+const islandPolys = polysFromMask(islandMask, 4, 1.2);
 /** Land enclosed by `mask` (components of its complement that do not reach the sheet edge). */
 function enclosedBy(mask: Uint8Array): Uint8Array {
   const out = new Uint8Array(N * N);
@@ -178,9 +184,11 @@ function enclosedBy(mask: Uint8Array): Uint8Array {
   }
   return out;
 }
-// Firm islands in the mires (the traced mire rings carry no holes; these are drawn back on top as forest).
+// The mire fill as drawn (every mire class and the paludified fringe share one colour, §9): traced once as a union, so no seam or
+// notch shows where two classes meet; and the firm islands in it (the traced rings carry no holes; drawn back on top as land).
 const mireMask = new Uint8Array(N * N);
-for (let i = 0; i < N * N; i++) mireMask[i] = lc[i] === LC_OPEN_BOG || lc[i] === LC_PINE_BOG || lc[i] === LC_DRAINED_BOG ? 1 : 0;
+for (let i = 0; i < N * N; i++) mireMask[i] = lc[i] === LC_OPEN_BOG || lc[i] === LC_PINE_BOG || lc[i] === LC_DRAINED_BOG || paludified[i] ? 1 : 0;
+const mireFillPolys = polysFromMask(mireMask, 30);
 const mireIslandPolys = polysFromMask(enclosedBy(mireMask), 4);
 const fieldPolys = polys(LC_FIELD, 20);
 const openBogPolys = polys(LC_OPEN_BOG, 30);
@@ -189,7 +197,9 @@ const drainedBogPolys = polys(LC_DRAINED_BOG, 30);
 const rockPolys = polysFromMask(rock, 25);
 const paludifiedPolys = polysFromMask(paludified, 60);
 
-// Spot heights: the highest point of each 400 m block, the 45 highest at least 1.3 km apart.
+// Spot heights: the highest point of each 400 m block, the 45 highest at least 1.3 km apart; never on or beside (30 m) a road, the
+// power line, a stream or a ditch, so neither the dot nor its figure sits on a line.
+const lineDist = stampLines([...ROADS.map((r) => r.line), POWER_LINE, RIVER, ...BROOKS.map((b) => b.line), ...DITCHES.map((d) => d.line)], N, GRID_M, -HALF_M, 30);
 const heights: { x: number; y: number; h: number }[] = [];
 {
   const block = 40;
@@ -199,7 +209,7 @@ const heights: { x: number; y: number; h: number }[] = [];
     let at = -1;
     for (let r = br; r < Math.min(N, br + block); r++) for (let c = bc; c < Math.min(N, bc + block); c++) {
       const i = r * N + c;
-      if (!water[i] && elev[i]! > best) { best = elev[i]!; at = i; }
+      if (!water[i] && lineDist[i]! > 30 && elev[i]! > best) { best = elev[i]!; at = i; }
     }
     if (at >= 0) cand.push({ c: at % N, r: Math.floor(at / N), h: best });
   }
@@ -269,6 +279,7 @@ const features = {
   openBogs: openBogPolys,
   pineBogs: pineBogPolys,
   drainedBogs: drainedBogPolys,
+  mireFill: mireFillPolys,
   mireIslands: mireIslandPolys,
   rock: rockPolys,
   rocky: rockPolys,
@@ -276,7 +287,7 @@ const features = {
   mireLines,
   ditches: ditchesOut,
   ditchKinds: DITCHES.map((d) => d.kind),
-  contours: contours.map((c) => ({ index: c.index, ...(c.aux ? { aux: true } : {}), pts: c.pts })),
+  contours: contours.map((c) => ({ level: c.level, index: c.index, ...(c.aux ? { aux: true } : {}), pts: c.pts })),
   river: runsOutsideLakes(RIVER).map(lineToPx),
   brooks: BROOKS.flatMap((b) => runsOutsideLakes(b.line).map(lineToPx)),
   roads: ROADS.map((r) => ({ cls: r.cls, ...(r.id ? { id: r.id } : {}), pts: lineToPx(r.line) })),

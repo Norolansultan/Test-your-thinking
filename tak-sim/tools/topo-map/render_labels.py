@@ -142,9 +142,23 @@ def line_cost(hash_, box):
     return cost
 
 
+def height_line_cost(hash_, box):
+    """A spot height's figure must not sit on a line: roads, the power line, streams and ditches weigh 10 a point
+    (a figure over one is dropped), contours a little (a figure between two contours is preferred)."""
+    if hash_ is None:
+        return 0.0
+    cost = 0.0
+    for x, y, t in hash_.near(*box):
+        if box[0] <= x <= box[2] and box[1] <= y <= box[3]:
+            kind = t[0][0] if t and t[0] else None
+            cost += 0.2 if kind == "c" else 10.0
+    return cost
+
+
 def place_point_labels(labels, obstacles, hash_=None):
     """Each label's position: its designed point if free, else the first free candidate, else the least
-    crowded one (other labels and houses weigh most, then roads). Nothing is dropped.
+    crowded one (other labels and houses weigh most, then roads). No name is dropped; a spot height whose
+    figure would cover a road, ditch, stream or another label wherever it is put is left out, dot and all.
     Returns [(label, (x, y), anchor, box)] in drawing order."""
     order = sorted(range(len(labels)), key=lambda i: (st.LABEL_PRIORITY.get(labels[i]["style"], 4), i))
     taken = BoxSet()
@@ -156,18 +170,27 @@ def place_point_labels(labels, obstacles, hash_=None):
         face, size, _ = st.LABEL_STYLE.get(lb["style"], st.LABEL_STYLE["place"])
         fnt = st.font(face, size)
         x, y = lb["px"]
-        cands = HEIGHT_CANDIDATES if lb["style"] == "height" else NAME_CANDIDATES
+        is_height = lb["style"] == "height"
+        cands = HEIGHT_CANDIDATES if is_height else NAME_CANDIDATES
         best = None
         for anchor, dx, dy in cands:
-            if lb["style"] != "height":
+            if not is_height:
                 dx, dy = dx * size, dy * size
             px, py = x + dx, y + dy
-            box = text_box(lb["text"], fnt, px, py, anchor)
-            score = 100 * taken.hits(box) + line_cost(hash_, box)
+            box = text_box(lb["text"], fnt, px, py, anchor, pad=1.5 if is_height else 3.0)
+            score = 100 * taken.hits(box) + (height_line_cost(hash_, box) if is_height else line_cost(hash_, box))
             if best is None or score < best[0] - 0.5:
                 best = (score, (px, py), anchor, box)
             if score < 0.5:
                 break
+        if is_height:
+            dot = (x - 2.5, y - 2.5, x + 2.5, y + 2.5)
+            if best[0] >= 10 or taken.hits(dot):
+                continue
+            taken.add(best[3])
+            taken.add(dot)
+            out.append((lb, best[1], best[2], best[3]))
+            continue
         if best[0] >= 0.5 and lb["style"] != "height":
             # No listed candidate is clear: search a grid of nearby points (quarter-line steps, out to two and a
             # half lines), nearest first, and take the clearest; distance from the designed point costs a little.

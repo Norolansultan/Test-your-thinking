@@ -57,15 +57,16 @@ describe("the table per step and segment", () => {
     const b = rows.filter((r) => r.step >= PHASE_B_FIRST_STEP).map((r) => [r.step, r.headRosMpm, r.head.fi, r.flank.fi, r.rear.fi]);
     expect(b).toEqual([
       [11, 0, "liekit alle 0,3 m", "liekit alle 0,3 m", "liekit alle 0,3 m"],
-      [12, 4.5, "liekit 2–3 m", "liekit 1–2 m", "liekit 1–2 m"],
-      [13, 7.9, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [14, 4.5, "liekit 2–3 m", "liekit 1–2 m", "liekit 1–2 m"],
-      [15, 5.3, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
+      // SPEC/33 stage 7 (20 Oct 2026): the CA re-run on the rebuilt map (was 4.5 / 7.9 / 4.5 / 5.3 / 7.1 / 10.1 / 9.8 / 10.6 / 8 at steps 12–20).
+      [12, 6.3, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [13, 7.6, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [14, 4, "liekit 2–3 m", "liekit 1–2 m", "liekit 0,3–1 m"],
+      [15, 4.5, "liekit 2–3 m", "liekit 1–2 m", "liekit 1–2 m"],
       [16, 7.1, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [17, 10.1, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [17, 11.5, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
       [18, 9.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [19, 10.6, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [20, 8, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [19, 9.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [20, 8.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
     ]);
     for (const r of rows.filter((x) => !x.crown && x.headM !== null && x.headM > 0)) {
       expect(r.flankM).toBeCloseTo(r.headM! * 0.65, 1);
@@ -78,12 +79,13 @@ describe("the table per step and segment", () => {
     expect(a).toEqual([
       [1, 7.1, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
       [2, 7.1, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [3, 10.6, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
+      // SPEC/33 stage 7 (20 Oct 2026): the CA re-run on the rebuilt map (was 10.6 / 7.1 / 14.1 / 38 / 5.3 / 9.8 at steps 3–8).
+      [3, 10.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
       [4, 7.1, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
       [5, 14.1, "liekit puiden latvojen yli", "liekit 3–4 m", "liekit 1–2 m"],
-      [6, 38, "liekit puiden latvojen yli", "liekit yli 5 m", "liekit 2–3 m"],
-      [7, 5.3, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
-      [8, 9.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [6, 38.1, "liekit puiden latvojen yli", "liekit yli 5 m", "liekit 2–3 m"],
+      [7, 8.8, "liekit 4–5 m", "liekit 2–3 m", "liekit 1–2 m"],
+      [8, 5.6, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
       [9, 5.3, "liekit 3–4 m", "liekit 2–3 m", "liekit 1–2 m"],
       [10, 3.5, "liekit 2–3 m", "liekit 1–2 m", "liekit 0,3–1 m"],
     ]);
@@ -118,9 +120,10 @@ describe("the records that follow it", () => {
   it("phase A follows the table: DR1's head records, the crown run's head record (step 6, recorded at 15.25) and the head's sides under direct attack", () => {
     const traffic = (id: string) => SITE_SCENARIO.traffic.find((e) => e.id === id)!.content;
     const radio = (step: number, re: RegExp) => SITE_SCENARIO.radio.find((r) => r.cycle === step && re.test(r.text))!.text;
-    expect(traffic("evt.c04.011")).toMatch(/10,6 m\/min\. Intensiteettiluokka 4\/5, liekit 4–5 m\./); // was 3/5, 1–2 m
-    expect(traffic("evt.c07.011")).toMatch(/51,3 m\/min \(sisältää pistepalojen hypyt\)\. Intensiteettiluokka 5\/5, liekit puiden latvojen yli\./); // was 4/5, 2–4 m
-    expect(traffic("evt.c07.010")).toContain("yhtenäinen reuna noin 30 m/min), liekit puiden latvojen yli, maks.");
+    // SPEC/33 stage 7 (20 Oct 2026, the CA on the rebuilt map): 10,8 and 49,0 m/min (were 10,6 and 51,3); the 15.25 thermal record is evt.c07.009 (was .010).
+    expect(traffic("evt.c04.011")).toMatch(/10,8 m\/min\. Intensiteettiluokka 4\/5, liekit 4–5 m\./); // was 3/5, 1–2 m
+    expect(traffic("evt.c07.011")).toMatch(/49,0 m\/min \(sisältää pistepalojen hypyt\)\. Intensiteettiluokka 5\/5, liekit puiden latvojen yli\./); // was 4/5, 2–4 m
+    expect(traffic("evt.c07.009")).toContain("yhtenäinen reuna noin 30 m/min), liekit puiden latvojen yli, maks.");
     expect(radio(1, /^EK11: kärjen molemmat laidat suorassa sammutuksessa/)).toContain(`EK12 oikea laita, ${rows[0]!.flank.fi}.`);
     expect(radio(2, /^EK11: hyökkäämme kärjen vasenta laitaa suoraan/)).toContain(`letkulla, ${rows[1]!.flank.fi}.`);
     // The trigger point is a precursor again: the sides pass three metres only as the head crowns (step 5), not from 13.20 on.

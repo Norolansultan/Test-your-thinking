@@ -1,0 +1,155 @@
+{
+  "envelope_version": "0.1.0",
+  "summary": {
+    "LIKELY_ERROR": 0,
+    "REVIEW": 5,
+    "INFO": 1
+  },
+  "cycles": [
+    {
+      "cycle": 0,
+      "time": "12:00",
+      "flags": []
+    },
+    {
+      "cycle": 1,
+      "time": "13:20",
+      "flags": []
+    },
+    {
+      "cycle": 2,
+      "time": "13:40",
+      "flags": []
+    },
+    {
+      "cycle": 3,
+      "time": "14:00",
+      "flags": [
+        {
+          "level": "REVIEW",
+          "rule": "fl_envelope",
+          "message": "surface head flame length 4.44 m outside Kalajoki range 0.5-4.4",
+          "source": "KAL 4.4, 4.6 (surface incl. high-intensity surface; 9-11 m/min only in slash/cleared lines)"
+        }
+      ]
+    },
+    {
+      "cycle": 4,
+      "time": "14:20",
+      "flags": []
+    },
+    {
+      "cycle": 5,
+      "time": "14:40",
+      "flags": [
+        {
+          "level": "REVIEW",
+          "rule": "ros_envelope",
+          "message": "active_crown head ROS 14.1 m/min outside Kalajoki range 15-30",
+          "source": "KAL 4.4 (typical 15-30), 4.6 (observed 15-20, FL 7 head / 5 flank)"
+        },
+        {
+          "level": "INFO",
+          "rule": "missing_spotting",
+          "message": "crowning cycle has no spotting distance; Kalajoki showed spots at every crowning phase",
+          "source": "KAL 4.4, 4.6"
+        }
+      ]
+    },
+    {
+      "cycle": 6,
+      "time": "15:00",
+      "flags": [
+        {
+          "level": "REVIEW",
+          "rule": "ros_envelope",
+          "message": "active_crown head ROS 38.1 m/min outside Kalajoki range 15-30",
+          "source": "KAL 4.4 (typical 15-30), 4.6 (observed 15-20, FL 7 head / 5 flank)"
+        }
+      ]
+    },
+    {
+      "cycle": 7,
+      "time": "15:20",
+      "flags": []
+    },
+    {
+      "cycle": 8,
+      "time": "15:40",
+      "flags": []
+    },
+    {
+      "cycle": 9,
+      "time": "16:00",
+      "flags": []
+    },
+    {
+      "cycle": 10,
+      "time": "16:20",
+      "flags": []
+    },
+    {
+      "cycle": 11,
+      "time": "16:40",
+      "flags": []
+    },
+    {
+      "cycle": 12,
+      "time": "17:00",
+      "flags": []
+    },
+    {
+      "cycle": 13,
+      "time": "17:20",
+      "flags": []
+    },
+    {
+      "cycle": 14,
+      "time": "17:40",
+      "flags": []
+    },
+    {
+      "cycle": 15,
+      "time": "18:00",
+      "flags": []
+    },
+    {
+      "cycle": 16,
+      "time": "18:20",
+      "flags": []
+    },
+    {
+      "cycle": 17,
+      "time": "18:40",
+      "flags": [
+        {
+          "level": "REVIEW",
+          "rule": "ros_envelope",
+          "message": "surface head ROS 11.5 m/min outside Kalajoki range 0.5-11",
+          "source": "KAL 4.4, 4.6 (surface incl. high-intensity surface; 9-11 m/min only in slash/cleared lines)"
+        },
+        {
+          "level": "REVIEW",
+          "rule": "fl_envelope",
+          "message": "surface head flame length 4.57 m outside Kalajoki range 0.5-4.4",
+          "source": "KAL 4.4, 4.6 (surface incl. high-intensity surface; 9-11 m/min only in slash/cleared lines)"
+        }
+      ]
+    },
+    {
+      "cycle": 18,
+      "time": "19:00",
+      "flags": []
+    },
+    {
+      "cycle": 19,
+      "time": "19:20",
+      "flags": []
+    },
+    {
+      "cycle": 20,
+      "time": "19:40",
+      "flags": []
+    }
+  ]
+}

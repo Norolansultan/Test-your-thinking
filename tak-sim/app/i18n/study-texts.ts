@@ -205,9 +205,16 @@ const FI: StudyText = {
       "fatigue.end": { prompt: "Kuinka väsynyt olet juuri nyt?", low: "1 — en lainkaan", high: "7 — erittäin" },
       "picture.quality": { prompt: "Kuinka täydellinen ja oikea tilannekuvasi oli istunnon aikana?", low: "1 — hyvin puutteellinen", high: "7 — täydellinen" },
       "picture.trust": { prompt: "Kuinka paljon luotit yksiköiden ilmoituksiin ja tallentuneisiin tietoihin?", low: "1 — en lainkaan", high: "7 — täysin" },
-      "tools.trust": { prompt: "Kuinka paljon luotit tietoon, jonka sait Haku-työkalulla (haku ja Haun chat)?", low: "1 — en lainkaan", high: "7 — täysin" },
+      // SPEC/32 §5: S-TIAS (McGrath et al. 2025). DRAFT Finnish: translation and back-translation, native check.
+      "stias.tools.1": { prompt: "Olen luottavainen Haku-työkalun suhteen.", low: "1 — en lainkaan", high: "7 — erittäin" },
+      "stias.tools.2": { prompt: "Haku-työkalu on luotettava.", low: "1 — ei lainkaan", high: "7 — erittäin" },
+      "stias.tools.3": { prompt: "Voin luottaa Haku-työkaluun.", low: "1 — en lainkaan", high: "7 — erittäin" },
       "attention.check": { prompt: "Jotta näemme, että luet kysymykset huolellisesti, valitse tähän väittämään vastaukseksi \"Eri mieltä\" (2).", low: "1 — täysin eri mieltä", high: "7 — täysin samaa mieltä" },
-      "thinker.trust": { prompt: "Kuinka paljon luotit Thinkerin vastauksiin?", low: "1 — en lainkaan", high: "7 — täysin" },
+      "stias.thinker.1": { prompt: "Olen luottavainen Thinkerin suhteen.", low: "1 — en lainkaan", high: "7 — erittäin" },
+      "stias.thinker.2": { prompt: "Thinker on luotettava.", low: "1 — ei lainkaan", high: "7 — erittäin" },
+      "stias.thinker.3": { prompt: "Voin luottaa Thinkeriin.", low: "1 — en lainkaan", high: "7 — erittäin" },
+      // SPEC/32 §6. DRAFT.
+      "freeze.intrusiveness": { prompt: "Kuinka paljon harjoituksen pysäyttäneet kysymykset häiritsivät työskentelyäsi?", low: "1 — eivät lainkaan", high: "7 — erittäin paljon" },
       "last.possibilities": { prompt: "Viimeisimmässä kohdennuksessasi: kuinka monta eri vaihtoehtoa palon kehittymiselle harkitsit?", options: { "1": "1", "2": "2", "3": "3", "4": "4", "5plus": "5 tai enemmän" } },
       "last.basis": {
         prompt: "Mihin perustit viimeisimmän kohdennuksesi? Valitse kaikki, jotka pitävät paikkansa.",
@@ -342,9 +349,16 @@ const EN: StudyText = {
       "fatigue.end": { prompt: "How tired do you feel right now?", low: "1 — not at all", high: "7 — extremely" },
       "picture.quality": { prompt: "How complete and accurate was your picture of the situation during the session?", low: "1 — very incomplete", high: "7 — complete" },
       "picture.trust": { prompt: "How far did you trust the units' reports and the recorded information?", low: "1 — not at all", high: "7 — fully" },
-      "tools.trust": { prompt: "How far did you trust the information you got from the Search tool: its search and its chat?", low: "1 — not at all", high: "7 — fully" },
+      // SPEC/32 §5: S-TIAS (McGrath et al. 2025), items 1–3 as published, the system named.
+      "stias.tools.1": { prompt: "I am confident in the Search tool.", low: "1 — not at all", high: "7 — extremely" },
+      "stias.tools.2": { prompt: "The Search tool is reliable.", low: "1 — not at all", high: "7 — extremely" },
+      "stias.tools.3": { prompt: "I can trust the Search tool.", low: "1 — not at all", high: "7 — extremely" },
       "attention.check": { prompt: "To show you are reading carefully, choose \"Disagree\" (2) for this statement.", low: "1 — strongly disagree", high: "7 — strongly agree" },
-      "thinker.trust": { prompt: "How far did you trust Thinker's answers?", low: "1 — not at all", high: "7 — fully" },
+      "stias.thinker.1": { prompt: "I am confident in Thinker.", low: "1 — not at all", high: "7 — extremely" },
+      "stias.thinker.2": { prompt: "Thinker is reliable.", low: "1 — not at all", high: "7 — extremely" },
+      "stias.thinker.3": { prompt: "I can trust Thinker.", low: "1 — not at all", high: "7 — extremely" },
+      // SPEC/32 §6. DRAFT.
+      "freeze.intrusiveness": { prompt: "How much did the questions that stopped the exercise disrupt your work?", low: "1 — not at all", high: "7 — very much" },
       "last.possibilities": { prompt: "In your last allocation: how many different possibilities for the fire's development did you consider?", options: { "1": "1", "2": "2", "3": "3", "4": "4", "5plus": "5 or more" } },
       "last.basis": {
         prompt: "What did you base your last allocation on? Choose all that apply.",

@@ -123,6 +123,17 @@ export const SOURCE_ITEMS: readonly QuestionnaireItem[] = SOURCE_MEMORY_FACTS.ma
 }));
 
 /**
+ * SPEC/32 §5 (20 Oct 2026): the Short Trust in Automation Scale (S-TIAS; McGrath et al. 2025, Front. Artif. Intell. 8:1582880):
+ * "I am confident in …", "… is reliable", "I can trust …", 1 = not at all … 7 = extremely, averaged (`trust-measures.ts`). Asked of
+ * Haku (`tools`, every cell) and of the Thinker (`thinker`, the Thinker cells). Item ids `stias.<tool>.<1–3>`.
+ */
+export const STIAS_TOOLS = ["tools", "thinker"] as const;
+export const stiasItemId = (tool: (typeof STIAS_TOOLS)[number], n: 1 | 2 | 3): string => `stias.${tool}.${n}`;
+function stiasItems(tool: (typeof STIAS_TOOLS)[number], cells?: readonly Cell[]): QuestionnaireItem[] {
+  return ([1, 2, 3] as const).map((n) => scale7(stiasItemId(tool, n), "session", cells));
+}
+
+/**
  * `31` §3.10 (19 Oct 2026): the post-session items that guard the sample and their pre-registered rules (`09` (ay), INT). Applied in the
  * analysis (WP-3), never in the session. `exclude`: the participant leaves the primary analyses and enters a sensitivity analysis that
  * keeps them; `sensitivity`: a sensitivity analysis without them; `exploratory`: no rule.
@@ -145,9 +156,12 @@ export const POST_ITEMS: readonly QuestionnaireItem[] = [
   scale7("fatigue.end", "session"),
   scale7("picture.quality", "session"),
   scale7("picture.trust", "session"),
-  scale7("tools.trust", "session"),
+  // SPEC/32 §5 (20 Oct 2026): the S-TIAS (McGrath et al. 2025) replaces the single `tools.trust` and `thinker.trust` items. DRAFT fi.
+  ...stiasItems("tools"),
   scale7(ATTENTION_CHECK_ID, "session"),
-  scale7("thinker.trust", "session", THINKER_CELLS),
+  ...stiasItems("thinker", THINKER_CELLS),
+  // SPEC/32 §6: how much the freezes disrupted the work (pilot 2 reads it beside the cued recall). DRAFT.
+  scale7("freeze.intrusiveness", "session"),
   { id: "last.possibilities", section: "session", kind: "choice", options: ["1", "2", "3", "4", "5plus"] },
   { id: "last.basis", section: "session", kind: "multi", options: BASIS_OPTIONS, fixedLast: ["other"] },
   { id: "last.basis.main", section: "session", kind: "pick_from", from: "last.basis" },

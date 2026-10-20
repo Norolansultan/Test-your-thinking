@@ -239,7 +239,8 @@ describe("the questionnaires and the debrief", () => {
     const { snap } = await toEnd("radio");
     const ids = snap().questionnaire!.items.map((i) => i.id);
     expect(ids).not.toContain("ai.directive_relation");
-    expect(ids).not.toContain("thinker.trust");
+    expect(ids).not.toContain("stias.thinker.1"); // SPEC/32 §5
+    expect(ids).toContain("stias.tools.1");
     expect(ids).toContain("retention.hinge");
   }, 60_000);
 });
@@ -247,7 +248,7 @@ describe("the questionnaires and the debrief", () => {
 describe("questionnaire items (app/session/questionnaire.ts)", () => {
   it("covers SPEC/09 §2, §6.1 and SPEC/27 §4.1", () => {
     const ids = POST_ITEMS.map((i) => i.id);
-    for (const id of ["retention.hinge", "ai.directive_relation", "tlx.mental", "tlx.frustration", "fatigue.end", "picture.quality", "tools.trust", "attention.check",
+    for (const id of ["retention.hinge", "ai.directive_relation", "tlx.mental", "tlx.frustration", "fatigue.end", "picture.quality", "stias.tools.1", "stias.tools.2", "stias.tools.3", "freeze.intrusiveness", "attention.check",
       "last.possibilities", "last.basis", "disagreement.recall", "disagreement.action", "felt.wrong", "prior.knowledge",
       "role.rank", "years.service", "incidents.commanded", "sim.exposure", "region.familiarity"]) expect(ids).toContain(id);
     expect(ids).not.toContain("accuracy.perceived"); // revision (x), 6 Oct 2026: no containment judgement to rate

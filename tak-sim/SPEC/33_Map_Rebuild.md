@@ -110,3 +110,19 @@ Only MIT, BSD, ISC, Apache-2.0 or CC0 code is ported or depended on; GPL/AGPL wo
 Not used: richdem, pysheds, fastscapelib, Cell2Fire, ForeFire, cffdrs, WISE and FireSTARR (as code), ELMFIRE, pyretechnics, FreeTAKServer, ATAK-CIV, OpenFireMap rules (GPL, AGPL, CC BY-SA, non-commercial or unverified licences); fluvial-erosion terrain generators (non-glacial look).
 
 **For the domain reviewer:** IGN's nominal position (≈ 60.84 N, 27.35 E) lies near the First Salpausselkä around Kouvola–Luumäki. The site is fictional, but a local officer would expect that ridge; either keep the extent free of a Salpausselkä-sized ridge and say the site is fictional, or move the nominal CRS anchor north of it (no change to local geometry).
+
+## 9. Style and pattern reference: the researcher's Karttapaikka examples (20 Oct 2026)
+
+Four maastokartta screenshots (`docs/audits/2026-10-20-map/reference/`, © Maanmittauslaitos, CC BY 4.0) are the target look and the landscape grammar; examples only, no place is copied.
+
+**Palette (sampled from the screenshots; render to these):** forest and other land white `#f8f8f8`; fields `#fcd878` (darker edge `#f8d078`); mire and paludified ground fill `#c0e8e8`; contours brown `#b48454`, index contours darker `#9c6c3c` with height labels (60, 80, 90 …); rock outcrops lavender-grey `#d0c8d0`; main and regional roads red `#c00000` with road numbers in magenta; smaller roads black, tracks black dashed, paths thin black; streams and ditches blue (thin), rivers wider blue; lakes cyan with a blue shore line; peat production olive `#cccc3c`; houses small black squares; sand and gravel areas pale yellow with black stipple; protected areas a green outline with hatch.
+
+**Landscape grammar seen in the examples:**
+- The terrain has a grain: ridges, knoll fields and valleys elongated in one direction (here N–S to NNW–SSE); rivers and fields follow the valley floors.
+- Fields are irregular-rectilinear blocks strung along valley bottoms and roads, never isolated blobs; farm houses sit at field edges and along roads.
+- Rocky knoll terrain: many small closed contours, lavender outcrops on knoll tops, dense 5 m contours on steep sides.
+- Mires are light-cyan areas in hollows and flats with lobed outlines; most are drained: dense blue ditch networks (parallel sets in blocks of different orientation, joined by collector ditches into a brook). Forest ditching also runs across paludified forest outside mapped mires.
+- Streams meander on flat ground and are straight where ditched; small brooks start at mire and ditch outlets.
+- Roads: a few red public roads curving with the terrain; black private and forest roads branching off at near-right angles and ending in the forest; dashed tracks; roads skirt mires and cross them briefly; no closed geometric shapes.
+- A power line is a long straight thin line crossing everything.
+- Names: villages bold, farms and houses regular, terrain and mires italic (…mäki, …kalliot, …suo, …räme, …neva), lakes and rivers in blue italic.

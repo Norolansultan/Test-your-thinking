@@ -128,3 +128,5 @@ Four maastokartta screenshots (`docs/audits/2026-10-20-map/reference/`, © Maanm
 - Names: villages bold, farms and houses regular, terrain and mires italic (…mäki, …kalliot, …suo, …räme, …neva), lakes and rivers in blue italic.
 
 **(ba) 20 Oct 2026 — no red roads.** The maastokartta draws public roads red, but SPEC/12 (revision of 24 Sep) reserves red and orange for the live fire, and the fire edge `#D62828` is nearly the MML road red `#c00000`. Roads are firebreaks the freeze items ask about, so a road must never read as a fire edge: public roads are drawn cased (black casing, light `#fff4d6` core), as on older Finnish base maps; the legend follows. Everything else keeps the §9 palette.
+
+**(bb) 20 Oct 2026 — the main road's mire crossing.** The main road (maantie) may cross a mire on an embankment up to 650 m long (other roads 450 m), as Finnish main roads do on built embankments; a detour around the mire would add an unnatural bend and change the travel times the radio texts rely on. Decided on the researcher's instruction "decide what is best".

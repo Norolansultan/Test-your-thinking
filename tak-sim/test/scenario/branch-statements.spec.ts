@@ -40,7 +40,8 @@ describe("branch statements: truth from the CA run", () => {
   });
 
   it("the CA facts behind the key statements (as documented)", () => {
-    expect(viewDevelopment(4).newFronts).toBe(1); // the spotting ahead of the crown run
+    expect(viewDevelopment(4).newFronts).toBe(0); // SPEC/33 stage 9: the crown run's spots merge with the head by 15:20 on the rebuilt map (was 1)
+    expect(viewDevelopment(4).advanceM.NE).toBeGreaterThan(690); // the crown run, the true statement (NE over 600 m)
     expect(viewDevelopment(9).newFronts).toBe(1); // the rekindle: the omission, outside the menu
     expect(viewDevelopment(8).growthHa).toBe(0);
     expect(viewDevelopment(12).advanceM.SE).toBeGreaterThan(288); // revision (aj): ~340 m, the SE statement's threshold 250 m (was > 345 for 300 m)

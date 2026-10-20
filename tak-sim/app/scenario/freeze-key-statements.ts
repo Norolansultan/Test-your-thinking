@@ -132,9 +132,10 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["Alder Creek[^.]{0,80}(?:across it|far side|other side|jump)", "(?:sparks?|spot fires?|embers?)[^.]{0,60}(?:across|over)[^.]{0,20}(?:the )?(?:brook|creek|Alder Creek)"],
   },
   // ---- V5 ----
+  // SPEC/33 stage 9 (20 Oct 2026): re-authored with the item (the one crossing, Korpioja, unattended; the Kuusimäki road crossing is gone).
   "freeze.5.lines_breached": {
-    fi: ["(?:tie|metsäautotie)[^.]{0,30}(?:ja|eikä)[^.]{0,20}(?:oja|Korpioja)[^.]{0,40}(?:eivät|ei) (?:enää )?(?:rajaa|pidä|pysäytä)", "(?:eivät|ei) (?:enää )?(?:rajaa|pidä|pysäytä)[^.]{0,60}(?:tie|oja)", "linjojen (?:yli|taakse)[^.]{0,40}uusi\\w* palo"],
-    en: ["(?:road|forest road)[^.]{0,30}(?:and|nor)[^.]{0,20}(?:brook|creek|Alder Creek)[^.]{0,60}(?:no longer|not|doesn't|don't) (?:contain|hold|stop)", "neither the road nor the brook", "(?:no longer|not any more) (?:contain|hold)\\w*[^.]{0,60}(?:road|brook|creek)"],
+    fi: ["Korpioja\\w*[^.]{0,40}(?:takana|yli|toisella puolella)[^.]{0,60}(?:kukaan ei|ei kukaan|ilman sammuttaj|ei ole ketään)", "(?:kukaan ei|ei kukaan|ilman sammuttaj)[^.]{0,60}Korpioja", "Korpioja\\w*[^.]{0,40}ei (?:enää )?(?:rajaa|pidä|pysäytä)"],
+    en: ["(?:beyond|across|over|other side of) Alder Creek[^.]{0,80}(?:no one|nobody|unattended|no crew)", "(?:no one|nobody|no crew)[^.]{0,60}Alder Creek", "Alder Creek[^.]{0,40}(?:no longer|does not|doesn't) (?:contain|hold|stop)"],
   },
   "freeze.5.hose_short": {
     fi: ["letku\\w*[^.]{0,40}(?:liian vähän|loppu\\w*|ei riitä|vähissä)", "(?:liian vähän|ei riitä)[^.]{0,30}letku", "lisää letkua", "letkua varalla alle"],
@@ -149,10 +150,11 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["north edge[^.]{0,60}(?:active|pick|spread|advanc|flare)", "(?:activ\\w*|pick\\w* up)[^.]{0,60}north edge", anchored("the north edge")],
   },
   "freeze.5.area_hour": { band: "ha" },
-  // `31` F16: the English "cross … again" is tied to the road.
+  // `31` F16: the English "cross … again" was tied to the road. SPEC/33 stage 9 (20 Oct 2026): re-authored with the item (embers across
+  // Koivuoja, the brook that stopped the surface fire).
   "freeze.5.road_jump": {
-    fi: ["toise\\w* kohda\\w*[^.]{0,60}(?:\\byli|ylit)", "(?:\\byli|ylit\\w*)[^.]{0,60}toise\\w* kohda", "metsäautotie\\w*[^.]{0,80}(?:uudestaan|toise\\w* kohda)"],
-    en: ["(?:another|a second|second) (?:point|place|spot|crossing)", "(?:road|track)[^.]{0,60}cross\\w*[^.]{0,40}(?:again|elsewhere)"],
+    fi: ["Koivuoja\\w*[^.]{0,80}(?:kipin|heit)\\w*[^.]{0,40}(?:\\byli|ylit)", "(?:kipin|heit)\\w*[^.]{0,40}(?:\\byli|ylit)\\w*[^.]{0,40}Koivuoja", "kipinät lentävät ojan yli"],
+    en: ["embers?[^.]{0,40}(?:across|over|cross)\\w*[^.]{0,40}(?:Birch Creek|brook)", "Birch Creek[^.]{0,80}embers?[^.]{0,40}(?:across|over|cross)", "(?:spot fires?|new fire)[^.]{0,40}(?:beyond|across|other side of) Birch Creek"],
   },
   // ---- V7 ----
   // `31` F16: tied to the element (the edges calming, the fire not over), not a bare "not under control".
@@ -191,7 +193,7 @@ const SPECS: Readonly<Record<string, Spec>> = {
   "freeze.10.front_r2_80": { band: "m", context: R2_CTX },
   // ---- V12 ----
   "freeze.12.f7": {
-    fi: ["(?:johto|voimajohto|110 kV)[^.]{0,60}(?:on jännitteinen|on jännitteellä|ei ole (?:kytketty pois|jännitteetön))", "\\bjännitteinen"],
+    fi: ["(?:johto|linja|sähkölinja|voimajohto|20 kV)[^.]{0,60}(?:on jännitteinen|on jännitteellä|ei ole (?:kytketty pois|jännitteetön))", "\\bjännitteinen"],
     en: ["\\bline is (?:still )?live", "(?:line|power line)[^.]{0,40}(?:still )?(?<!de-)energi[sz]ed", "(?:line|power line)[^.]{0,40}not (?:been )?(?:switched off|de-energi[sz]ed)"],
   },
   "freeze.12.front_toward": {
@@ -275,12 +277,12 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.4.crown_drops": { fi: ["latvapalo", "pintapalo", "Koivuoj"], en: ["crown", "surface fire", "Birch Creek"] },
   "freeze.4.korpioja_spot": { fi: ["Korpioj"], en: ["Alder Creek"] },
   "freeze.4.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
-  "freeze.5.lines_breached": { fi: ["metsäautotie", "Korpioj", "ylity"], en: ["forest road", "Alder Creek", "cross"] },
+  "freeze.5.lines_breached": { fi: ["Korpioj", "ylity"], en: ["Alder Creek", "cross"] },
   "freeze.5.hose_short": { fi: ["EK11", "letku"], en: ["EK11", "hose"] },
   "freeze.5.ek14_shelter": { fi: ["EK14"], en: ["EK14"] },
   "freeze.5.wind_shift": { fi: ["pohjoisreuna", "reuna"], en: ["north edge", "edge"] },
   "freeze.5.area_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
-  "freeze.5.road_jump": { fi: ["metsäautotie", "Kuusimä"], en: ["forest road", "Spruce Hill"] },
+  "freeze.5.road_jump": { fi: ["Koivuoj"], en: ["Birch Creek"] }, // SPEC/33 stage 9: was the Kuusimäki forest road
   "freeze.7.lull_meaning": { fi: ["tuul", "reun"], en: ["wind", "edge"] },
   "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna"], en: ["EK14", "north edge"] },
   "freeze.7.rekindle_sector": { fi: ["uudelleen", "syty", "kyt", "lohko"], en: ["flar", "rekindl", "smoulder", "sector"] },
@@ -291,7 +293,7 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.10.cabins_distance": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
   "freeze.10.area_total_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
   "freeze.10.front_r2_80": { fi: ["\\bR2\\b", "huoltotie"], en: ["\\bR2\\b", "service road"] },
-  "freeze.12.f7": { fi: ["110 kV", "voimajoh", "johdo?n?\\b"], en: ["110 kV", "power line"] },
+  "freeze.12.f7": { fi: ["20 kV", "sähkölinj", "voimajoh", "johdo?n?\\b"], en: ["20 kV", "power line"] }, // SPEC/33 (bc): a 20 kV line (was 110 kV)
   "freeze.12.front_toward": { fi: ["kaakkoisrintam", "asutu", "Lahdenkyl"], en: ["south-?east(?:ern)? front", "settlement", "Bay Village"] },
   "freeze.12.village_distance": { fi: ["Lahdenkyl"], en: ["Bay Village", "village"] },
   "freeze.12.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },

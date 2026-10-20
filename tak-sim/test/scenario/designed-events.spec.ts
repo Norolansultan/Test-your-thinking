@@ -74,7 +74,7 @@ describe("fault F7: the planted false record (SPEC/02 revision (o) §5)", () => 
     expect(planted.cycle).toBe(8);
     expect(viewOfStep(8)!.id).toBe("V6");
     expect(planted.provenance.sourceId).toBe(COMMAND_POST_SOURCE);
-    expect(planted.record).toMatchObject({ kind: "situation_log", authorUnitId: COMMAND_POST_SOURCE, text: "110 kV linja jännitteetön, vahvistettu." });
+    expect(planted.record).toMatchObject({ kind: "situation_log", authorUnitId: COMMAND_POST_SOURCE, text: "20 kV linja jännitteetön, vahvistettu." }); // SPEC/33 (bc): was 110 kV
     expect(planted.provenance.observedAt).toBeGreaterThanOrEqual(stepStart(8));
     expect(planted.provenance.observedAt).toBeLessThan(stepStart(8) + 1200);
     expect(planted.tier).toBe("T2_system");
@@ -102,7 +102,7 @@ describe("fault F7: the planted false record (SPEC/02 revision (o) §5)", () => 
     const heli = atom(DESIGNED_EVENT_IDS.heliLineClearance);
     expect(heli.cycle).toBeGreaterThan(8);
     expect(heli.tier).toBe("T2_system");
-    expect(textOf(heli)).toMatch(/110 kV/);
+    expect(textOf(heli)).toMatch(/20 kV/); // SPEC/33 (bc): was 110 kV
     expect(reachableThroughHaku(heli)).toBe(true);
   });
 });
@@ -229,7 +229,7 @@ describe("the rekindle arc (SPEC/26 §5)", () => {
 });
 
 describe("F7 freeze items (SPEC/08 revision (o), SPEC/26 §4)", () => {
-  const f7ItemOf = (view: number) => scenario.freezes.find((f) => f.cycle === view)!.items.filter((it) => /110 kV/.test(it.promptFi));
+  const f7ItemOf = (view: number) => scenario.freezes.find((f) => f.cycle === view)!.items.filter((it) => /20 kV/.test(it.promptFi)); // SPEC/33 (bc): was 110 kV
 
   it("F7 is asked once (researcher decision 1 Oct 2026): V12 carries the one item, live correct, de-energised a distinct wrong option", () => {
     expect([...F7_FREEZE_VIEWS]).toEqual([12]);

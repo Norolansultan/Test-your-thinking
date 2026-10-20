@@ -81,9 +81,13 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(key(5, "ek14_shelter")).toBe("shelter");
   });
 
-  it("V5 road_jump: the first forest-road crossing is on record at step 7, the second comes at step 8 (KY21's stretch)", () => {
-    expect(radio(7).some((t) => /^Kipinät lensivät metsäautotien \(Kuusimäki\) yli, uusi palo/.test(t))).toBe(true);
-    expect(radio(8).some((t) => /^Kipinät lensivät metsäautotien \(Kuusimäki\) yli toisessa kohdassa.*KY21 yritti pitää linjan, mutta palo pääsi yli/.test(t))).toBe(true);
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): no forest road crosses the crown run's path at Kuusimäki any more; the item asks
+  // whether Koivuoja, which stopped the surface fire at 15.00–15.20, stops it next: embers cross it at 15.20–15.40 (step 8).
+  it("V5 road_jump: Koivuoja stops the surface fire on record at step 7, and embers cross it at step 8 (EK11's stretch)", () => {
+    expect(radio(7).some((t) => /^Palo pysähtyi Koivuojan kohdalle klo 15\.00–15\.20/.test(t))).toBe(true);
+    expect(radio(7).some((t) => /^Kipinät lensivät Korpiojan yli, uusi palo/.test(t))).toBe(true);
+    expect(radio(8).some((t) => /^Kipinät lensivät Koivuojan yli, uusi palo toisella puolella\. EK11 joutui vetäytymään/.test(t))).toBe(true);
+    expect([...radio(7), ...radio(8)].some((t) => /Kuusimäki\)/.test(t))).toBe(false);
     expect(key(5, "road_jump")).toBe("again");
     expect(item(5, "road_jump").promptFi).toMatch(/seuraavan 40 minuutin aikana/);
   });
@@ -112,7 +116,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     for (const [view, slugs] of Object.entries(NEW)) for (const slug of slugs) {
       const it = item(Number(view), slug);
       const words = [it.promptFi, ...it.options.map((o) => o.labelFi)].join(" ");
-      expect(words, it.id).not.toMatch(/kaakkoisrintam|Lahdenkyl|Rahkasuo|Honkaharju|syttymäkoh|uudelleen|kyte|leimah|110 kV|voimajoh|helikop|HELI/i);
+      expect(words, it.id).not.toMatch(/kaakkoisrintam|Lahdenkyl|Rahkasuo|Honkaharju|syttymäkoh|uudelleen|kyte|leimah|(?:110|20) kV|voimajoh|sähkölinj|helikop|HELI/i);
     }
   });
 });

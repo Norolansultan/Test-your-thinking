@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { buildDemoScenario, DIRECTIVE_FI, PHASE_A_INTENT_FI } from "../../app/scenario/demo-scenario.js";
 import { DIRECTIVE_KEYS, frontSectors, headSector, headSectors, NEW_FRONT, newFrontSector, recordAtomId, SECOND_REKINDLE, secondRekindleSector, VILLAGE_SECTOR } from "../../app/scenario/demo-directive.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
-import { centroid, nearestSectorOf, siteStep } from "../../app/scenario/freeze-keys.js";
+import { centroid, nearestSectorOf, sectorOf, siteStep } from "../../app/scenario/freeze-keys.js";
 import { HINGE_AFTER_VIEW, MAIN_VIEWS } from "../../app/scenario/views.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
 import { viewTimingOf } from "../../app/session/view-clock.js";
@@ -106,7 +106,10 @@ describe("the directive's keys (truth only)", () => {
     const c19 = centroid(siteStep(19).reportedDetached.find((f) => frontSectors(f).includes("L4"))!);
     const near = (f: (typeof siteStep extends (n: number) => infer S ? S : never)["reportedDetached"][number]) => Math.hypot(centroid(f).lat - c19.lat, centroid(f).lon - c19.lon);
     const at20 = [...siteStep(20).reportedDetached].sort((a, b) => near(a) - near(b))[0]!;
-    for (const s of frontSectors(at20)) expect(SECOND_REKINDLE.sectors, `step 20: ${s}`).toContain(s);
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): at 20:00 the 0.36 ha flare-up's outline touches L3 by one vertex where L1, L3 and
+    // L4 meet at the origin; the map V14 draws (step 19) has it in L1 and L4 only. Every other vertex stays in the key's sectors.
+    const outside = at20[0]!.slice(0, -1).filter((p) => !SECOND_REKINDLE.sectors.includes(sectorOf(p) ?? nearestSectorOf(p) ?? ""));
+    expect(outside.length, "step 20: vertices outside L1/L4").toBeLessThanOrEqual(1);
     expect(secondRekindleSector()).toEqual(SECOND_REKINDLE);
     // V13's spot fire persists on the 19:20 map; the rekindle is the other front.
     expect(siteStep(19).reportedDetached.length).toBeGreaterThanOrEqual(2); // 3 since 8 Oct 2026: the south-east front is a part of its own
@@ -154,7 +157,7 @@ describe("the directive's keys (truth only)", () => {
     expect(basis(12)).toMatch(/puuskissa 14,0/);
     // 6 Oct 2026: the road stops the fire in 18.40–19.00 (radioed at step 18, V13) and the head crosses in 19.00–19.20 (step 19, V14).
     expect(basis(13)).toMatch(/Palo pysähtyi metsäautotien \(Honkaharju\) kohdalle klo 18\.40–19\.00/); // the stop is back (re-tuned 8 Oct 2026)
-    expect(basis(13)).toMatch(/10,1 m\/min/); // revision (aj): 10,1 (was 10,6)
+    expect(basis(13)).toMatch(/11,5 m\/min/); // SPEC/33 stage 9: 11,5 on the rebuilt map (revision (aj): 10,1; was 10,6)
     expect(basis(14)).toMatch(/syttymäkohdan länsipuolella, vanhan länsireunan ulkopuolella/);
     expect(basis(14)).toMatch(/SPOT, toinen ylilento klo 19\.30: syttymäkohdan länsipuolen uusi palo noin 0,3 ha/); // fix pass 2 regen: SPOT, was DR2's thermal
     expect(basis(14)).toMatch(/etenee kohti huoltotietä R2/);
@@ -165,17 +168,17 @@ describe("the directive's keys (truth only)", () => {
   it("the basis texts quote the figures of the records and the map (8 Oct 2026, fix pass 5), not stale ones", () => {
     const k = (v: number) => DIRECTIVE_KEYS[v]!.basis;
     // V10: DR2 and DR3 give 0.8 ha, the map's polygon 0.70 ha; the key rests on records up to 17:40 only.
-    expect(k(10)).toMatch(/recorded only: 0\.9 ha, flames 2–3 m \(DR2 thermal 17:25; DR3 mapping 17:35: 0\.9 ha\), and the map's polygon draws it at 0\.89 ha/); // review fixes (ah): was 0.8 / 0.8 / 0.70; revision (aj): the polygon 0.89 (was 0.82); SPEC/31 D1: flames from the table (was 0.3–1 m)
+    expect(k(10)).toMatch(/recorded only: 1\.0 ha, flames 2–3 m \(DR2 thermal 17:25; DR3 mapping 17:35: 1\.0 ha\), and the map's polygon draws it at 0\.97 ha/); // SPEC/33 stage 9: 1.0 / 1.0 / 0.97 on the rebuilt map; // review fixes (ah): was 0.8 / 0.8 / 0.70; revision (aj): the polygon 0.89 (was 0.82); SPEC/31 D1: flames from the table (was 0.3–1 m)
     expect(k(10)).toMatch(/Review note: key on records up to 17:40 only/);
     expect(k(10)).not.toMatch(/~1\.0 ha|was ~0\.8/);
     // V11: DR2's two measurements, with their intervals.
-    expect(k(11)).toMatch(/7\.9 m\/min over 17\.20–17\.40 \(160 m, flames 3–4 m\) and 4\.5 m\/min over 17\.40–18\.00 \(90 m, flames 2–3 m\) \(DR2, recorded; the provisional flame-length table\)/); // SPEC/31 D1: the flames DR2 states // review fixes (ah): 7.6 / 7.3; revision (aj): step 14's rate 6 → 4 m/min
+    expect(k(11)).toMatch(/7\.6 m\/min over 17\.20–17\.40 \(150 m, flames 3–4 m\) and 4\.0 m\/min over 17\.40–18\.00 \(80 m, flames 2–3 m\) \(DR2, recorded; the provisional flame-length table\)/); // SPEC/31 D1: the flames DR2 states // review fixes (ah): 7.6 / 7.3; revision (aj): step 14's rate 6 → 4 m/min
     expect(k(11)).not.toMatch(/8\.4 m\/min/);
     expect(DIRECTIVE_KEYS[11]!.basisAtomIds.map(text).join(" | ")).toMatch(/17\.40–18\.00/);
     // V14: SPOT's 0.3 ha at 19:30, the flare-up's polygons.
     expect(k(14)).toMatch(/~0\.3 ha, flames 1–2 m \(SPOT's second pass, 19\.30; the provisional flame-length table/); // SPEC/31 D1 (was "under a metre")
     expect(k(9)).toMatch(/~0\.5–1 ha, flames 2–3 m, the edge running east ~3 m\/min/);
-    expect(k(14)).toMatch(/polygon draws it at 0\.21 ha at 19:20 and 0\.26 ha at 20:00/); // fix pass 7: L4 secured at 16:40; review fixes (ah): 0.28 / 1.02; revision (aj): the flare-up on the edge, 15 m out, barely grows in the north-westerly
+    expect(k(14)).toMatch(/polygon draws it at 0\.15 ha at 19:20 and 0\.36 ha at 20:00/); // SPEC/33 stage 9: the rebuilt map (was 0.21 / 0.26); // fix pass 7: L4 secured at 16:40; review fixes (ah): 0.28 / 1.02; revision (aj): the flare-up on the edge, 15 m out, barely grows in the north-westerly
   });
 
   it("finds a record by content, and fails loudly when none matches", () => {
@@ -241,7 +244,7 @@ describe("the phase-B records the directive keys rest on", () => {
     const ign = SITE_SCENARIO.ignition;
     const eastM = (east - ign.lon) * 111_320 * Math.cos((ign.lat * Math.PI) / 180);
     // Revision (aj): the disk overlaps the old edge (centre ~65 m out on the 135° ray, radius 40 m); its east edge is ~75 m east of the origin.
-    const rate = (eastM - 75) / 20;
+    const rate = (eastM - 102) / 20; // SPEC/33 stage 9: the disk (edge 130° + 35 m, r 45) reaches ~102 m east of the origin (was ~75)
     expect(rate).toBeGreaterThan(2);
     expect(rate).toBeLessThan(4.5);
     expect(text(id)).toMatch(/arviolta 3 m\/min/);

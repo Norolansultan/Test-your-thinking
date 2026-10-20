@@ -115,7 +115,7 @@
       "needs": 52,
       "metric": "mean per-question recall@8 (share of needs met) and MRR@8, at each view's start gate",
       "selectionRule": "highest recall@k, then highest MRR@k, then the earlier (simpler) candidate; candidates declared before the run",
-      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 110 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
+      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 20 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
       "results": [
         {
           "name": "baseline",
@@ -197,7 +197,7 @@
       "needs": 52,
       "metric": "mean per-question recall@8 (share of needs met) and MRR@8, at each view's start gate",
       "selectionRule": "highest recall@k, then highest MRR@k, then the earlier (simpler) candidate; candidates declared before the run",
-      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 110 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
+      "plantedItemsExcluded": "the designed events (rekindle objection, bog smoulder, F7 / 20 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
       "results": [
         {
           "name": "baseline",
@@ -278,24 +278,24 @@
   },
   "index": {
     "file": "content/thinker/index.json",
-    "sha256": "caad3ca6ca6dc78cacf8f6c152aeebed915535c1beb78fcc78b7ffe651724eb9",
+    "sha256": "ee3db369b5018b95d0cf960b3d1b92774f9ab9f22b1067588e751e1eb3a63f34",
     "atomCount": 1002,
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
-    "carriedVectors": 259,
-    "carriedFromIndexSha256": "d21bc54b58822c187afaa442e9fab8405fd6caab518bae61ed80034a5e0355a3",
+    "carriedVectors": 531,
+    "carriedFromIndexSha256": "ee3db369b5018b95d0cf960b3d1b92774f9ab9f22b1067588e751e1eb3a63f34",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "indexEn": {
     "file": "content/thinker/index.en.json",
-    "sha256": "b0ea93ae6d29fb6e37b874742ad877ca5f5cbca74db4c1b2e5dc1095402fb84e",
+    "sha256": "523b4854d4e7f9df609cceda179aa8d97144d19706ae7f66376cd8d084ecffbb",
     "atomCount": 1002,
     "language": "en",
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
     "authoredQueries": "content/thinker/authored-queries.en.json",
-    "carriedVectors": 326,
-    "carriedFromIndexSha256": "c066fe930201b06c699a67db6f5010a7ceebe70ab4e05acf56f121376ff30a6e",
+    "carriedVectors": 599,
+    "carriedFromIndexSha256": "523b4854d4e7f9df609cceda179aa8d97144d19706ae7f66376cd8d084ecffbb",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "directivePremises": {

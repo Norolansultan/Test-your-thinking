@@ -54,7 +54,7 @@ describe("questionnaire texts", () => {
 
   it("asks nothing that names a designed event before the debrief", () => {
     const all = JSON.stringify(STUDY_TEXT.en.questionnaire) + JSON.stringify(STUDY_TEXT.fi.questionnaire);
-    expect(all).not.toMatch(/110|power line|voimajohto|planted|istutet|rekindl|flare|smoulder|kyte/i);
+    expect(all).not.toMatch(/110|20 kV|power line|voimajohto|sähkölinj|planted|istutet|rekindl|flare|smoulder|kyte/i);
   });
 });
 
@@ -68,13 +68,13 @@ describe("the debrief (SPEC/09 §5.1, revisions (o), (p), (t), (u))", () => {
   it("explains F7, the rekindle and the directive in every cell and both languages; the withdrawal route is a placeholder; ends with the no-discussion request", () => {
     for (const cell of CELLS) {
       const en = STUDY_TEXT.en.debrief.paragraphs(cell).join(" ");
-      expect(en).toMatch(/110 kV power line/);
+      expect(en).toMatch(/20 kV power line/); // SPEC/33 (bc): was 110 kV
       expect(en).toMatch(/flared up/);
       expect(en).toMatch(/directive did not fit all of them/);
       expect(en).toMatch(/PLACEHOLDER/);
       expect(STUDY_TEXT.en.debrief.paragraphs(cell).at(-1)).toMatch(/do not describe the session/);
       const fi = STUDY_TEXT.fi.debrief.paragraphs(cell).join(" ");
-      expect(fi).toMatch(/110 kV voimajohto/);
+      expect(fi).toMatch(/20 kV:n sähkölinja/); // SPEC/33 (bc): was "110 kV voimajohto"
       expect(fi).toMatch(/syttyi myöhemmin uudelleen/);
       expect(fi).toMatch(/linjaus ei sopinut niihin kaikkiin/);
       expect(STUDY_TEXT.fi.debrief.paragraphs(cell).length).toBe(STUDY_TEXT.en.debrief.paragraphs(cell).length);

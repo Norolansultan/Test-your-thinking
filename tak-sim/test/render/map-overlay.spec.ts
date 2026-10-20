@@ -1,5 +1,5 @@
 /**
- * SPEC/12 revision (al): the live map's reference overlay (grid, sectors, roads, bridge, water points, 110 kV, command
+ * SPEC/12 revision (al): the live map's reference overlay (grid, sectors, roads, bridge, water points, 20 kV (was 110 kV), command
  * post, the region's other fires) and what must hold for it: live map only (never on the memory-check map), static
  * (reads nothing from the view), no label near the old fire's north edge or V13's US2, both languages without
  * Finnish names in English, the grid on whole ETRS-TM35FIN kilometres, the region's fires never on the opening frame.
@@ -51,7 +51,7 @@ describe("the reference overlay (revision (al))", () => {
     }
   });
 
-  it("labels R1, R2, R3, the bridge, 110 kV, the command post and the four sector codes, in both languages, small; never the water points (revision (am))", () => {
+  it("labels R1, R2, R3, the bridge, 20 kV (SPEC/33 (bc): was 110 kV), the command post and the four sector codes, in both languages, small; never the water points (revision (am))", () => {
     const fi = overlayLabels("fi"), en = overlayLabels("en");
     expect(fi.map((l) => l.key)).toEqual(en.map((l) => l.key));
     const keys = fi.map((l) => l.key);
@@ -72,8 +72,8 @@ describe("the reference overlay (revision (al))", () => {
     expect(fi.find((l) => l.key === "cp")!.html).toContain(">JP<");
     expect(en.find((l) => l.key === "cp")!.html).toContain(">CP<");
     for (const l of en) expect(finnishNamesIn(l.html.replace(/<[^>]+>/g, " ")), l.key).toEqual([]);
-    // "110 kV" only: never the line's state.
-    expect(fi.find((l) => l.key === "power")!.html.replace(/<[^>]+>/g, "")).toBe("110 kV");
+    // "20 kV" only: never the line's state.
+    expect(fi.find((l) => l.key === "power")!.html.replace(/<[^>]+>/g, "")).toBe("20 kV");
   });
 
   it("the command post's flag sits up and left of its point, clear of the R1 label and of a unit staged on the point (revision (am))", () => {
@@ -104,7 +104,9 @@ describe("the reference overlay (revision (al))", () => {
     expect(metres(OVERLAY.bridge.at, f.R3_BRIDGE_W!)).toBeGreaterThan(300); // the deck, between the approach and the east end
     expect(metres(OVERLAY.bridge.at, f.R3_BRIDGE_E!)).toBeLessThan(150);
     const r1 = OVERLAY.roads.find((r) => r.id === "R1")!.at;
-    expect(Math.abs(r1.lat - f.CP!.lat) * 111_320).toBeLessThan(30); // R1 runs east from the command post along ~400 m north
+    // R1 runs east from the command post along ~400 m north; on the rebuilt map (SPEC/33) it bends ~50 m north of the command post's
+    // latitude where the script snaps the label onto it (`scripts/build-map-overlay.ts`, regenerated 20 Oct 2026; was within 30 m).
+    expect(Math.abs(r1.lat - f.CP!.lat) * 111_320).toBeLessThan(80);
   });
 
   it("sector codes sit 2.6 km from the ignition, each inside its own sector's outline direction", () => {

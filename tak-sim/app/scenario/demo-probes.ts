@@ -53,7 +53,9 @@ export const F7_FALSE_OPTION_ID = "de_energised";
 const F7_ITEM: Omit<FreezeItem, "id"> = {
   level: "L2",
   kind: "choice",
-  promptFi: "Mitä 110 kV voimajohdon tila merkitsee sammutustyölle johdon lähellä?",
+  // SPEC/33 (bc), 20 Oct 2026: a 20 kV distribution line (was "110 kV voimajohdon … johdon lähellä"); the options and the key are
+  // unchanged — a live 20 kV line keeps its (shorter) safety distances and no water is directed at its conductors.
+  promptFi: "Mitä 20 kV:n sähkölinjan tila merkitsee sammutustyölle linjan lähellä?",
   options: [
     { id: F7_FALSE_OPTION_ID, labelFi: "Johto on kytketty pois, johdon alla voi työskennellä ja pudottaa vettä normaalisti", correct: false },
     { id: "live", labelFi: "Johto on jännitteinen, turvaetäisyydet ovat voimassa eikä vettä suunnata johtimiin", correct: true },
@@ -65,7 +67,7 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
 /**
  * The infrastructure slot (researcher decision 1 Oct 2026: never ask about something only when it
  * matters). Every main freeze carries one item on a piece of infrastructure, from a FIXED schedule,
- * identical for every participant: road R1, a water point, road R2 for water shuttles, the 110 kV
+ * identical for every participant: road R1, a water point, road R2 for water shuttles, the 20 kV
  * line (F7, V12 only) and the R3 bridge. Revised 2 Oct 2026: W1 is asked once (it was asked twice
  * with the same answer), and every key rests on a direct report, none on inference. Not a strict 4-cycle: a cycle would ask about the line twice, and
  * the bridge's limit is first reported at step 16 (V12), so before then its answer is not knowable
@@ -81,9 +83,10 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
  *   2026, was "0,3–1 m"; the key, "unsafe", rests on "ajo ei turvallista", unchanged).
  * - V4 (steps 5–6), W1 Haukilampi: available. VPK fills there at 14:47 (step 5). (Fix pass 2: KY21 no longer drives
  *   there; the water shuttle EK13 fills its basin at the line.)
- * - V5 (step 7), R1: passable, no fire at the roadside ("open"; 2 Oct 2026, was "with care"). DR2 road
- *   report at step 7: "tie R1, palanut alue tien reunassa — ei liekkejä, ajettavissa" — R1's answer
- *   changes between V2 and V5, so the second R1 item is not a repeat of a fixed fact.
+ * - V5 (step 7), R1: passable with care, low fire at the roadside ("with_care"; SPEC/33 stage 9, 20 Oct 2026, the rebuilt map; it
+ *   was "open" from 2 Oct 2026). DR2 road report at step 7: "tie R1 Kuivakankaan eteläpuolella, palo noin 10 m tiestä — matalaa
+ *   paloa tien reunassa (liekit alle 0,3 m), ajettavissa varoen" — R1's answer changes between V2 ("unsafe") and V5, so the second
+ *   R1 item is not a repeat of a fixed fact.
  * - V7 (step 10), W3 by R3:n silta (Kotkanjoki), on its west bank (revision (al)): available. EK12 fills there at 16:27 (step 10).
  * - V10 (step 13), R2: drivable, the fire not near it. Pushed at step 13: "Huoltotie R2 vielä
  *   ajettavissa, palo noin kilometrin päässä tiestä"; the rekindled front nears R2 only at steps 19–20.
@@ -102,7 +105,9 @@ export const INFRA_SCHEDULE: Readonly<Record<number, InfraSlot>> = {
   0: { topic: "water", point: "W1", correct: "available" }, // the practice view: the format is practised too
   2: { topic: "r1", correct: "unsafe" },
   4: { topic: "water", point: "W1", correct: "available" },
-  5: { topic: "r1", correct: "open" }, // 2 Oct 2026: after the faster crown run DR2 reports R1's verge burned, no flames, passable (was "with_care")
+  // 2 Oct 2026: after the faster crown run DR2 reported R1's verge burned, no flames, passable (was "with_care"); SPEC/33 stage 9
+  // (20 Oct 2026, the rebuilt map): DR2's 15.27 report is low fire at the verge, passable with care again ("with_care", was "open").
+  5: { topic: "r1", correct: "with_care" },
   7: { topic: "water", point: "W3", correct: "available" },
   10: { topic: "r2", correct: "open" }, // 2 Oct 2026: the rekindled front is ~1 km from R2 at step 13 (was "threatened")
   12: { topic: "f7", correct: "live" },
@@ -151,7 +156,9 @@ const INFRA_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   // Found by content (3 Oct 2026): generated ids shift whenever the traffic is regenerated.
   2: [trafficId(3, /DR1 tiehavainto: tie R1.*ajo ei turvallista/), trafficId(2, /DR1 tiehavainto: tie R1.*ajo ei turvallista/)],
   4: [trafficId(5, /VPK täytti säiliön, Haukilampi/)],
-  5: [trafficId(7, /DR2 tiehavainto: tie R1.*ei liekkejä, ajettavissa/)],
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): DR2's 15.27 report now reads "matalaa paloa tien reunassa (liekit alle 0,3 m),
+  // ajettavissa varoen" (was "palanut alue tien reunassa — ei liekkejä, ajettavissa"): the key moves from "open" to "with_care".
+  5: [trafficId(7, /DR2 tiehavainto: tie R1.*matalaa paloa tien reunassa.*ajettavissa varoen/)],
   // Fix pass 2 (7 Oct 2026): EK11 no longer drives to W3 (the shuttle fills its basin); EK12's scripted refill stays.
   7: [trafficId(10, /EK12 täytti säiliön, R3:n silta \(Kotkanjoki\)/)],
   10: ["atom.demo.13.0"],
@@ -255,7 +262,7 @@ export function mapItemsLast(items: readonly FreezeItem[]): FreezeItem[] {
  * 4. SAGAT freezes run in other views (V2, V4, V5, V7, V10, V12, V14), never in a SPAM view; a SPAM
  *    item must not rehearse a later freeze item's answer (it would inflate that freeze's L1/L2 score).
  * 5. Designed events must not be cued: the rekindle (V7 objection, V8 echo, V9 flare-up at the origin's
- *    south edge; H10 anticipation in V7–V8), F7 (the 110 kV line; HELI1's line clearance at step 9 is its
+ *    south edge; H10 anticipation in V7–V8), F7 (the 20 kV line; HELI1's line clearance at step 9 is its
  *    truth record; H9 read at V12), the V13 contradiction, `t4.water_state` (load-bearing at V3), and any
  *    record a directive key (`demo-directive.ts`) rests on.
  * 6. Latency across the three cells: with the tools locked and the display identical (same map, same
@@ -296,7 +303,7 @@ export function mapItemsLast(items: readonly FreezeItem[]): FreezeItem[] {
  * then confidence on the one scale. Keys verified by content against what is in the message log at
  * the item's moment (25 s in; every first-step message is delivered when the view opens):
  * - V3 (step 4, 14:20): the burnt area by the latest perimeter survey. DR3's pushed 14.35 survey,
- *   "palanut ala noin 17,8 ha" (V3); one lure is DR3's previous pushed figure, 12,9 ha (V2), so the item
+ *   "palanut ala noin 24,3 ha" (V3; 17,8 before SPEC/33); one lure is DR3's 13.55 figure, 13,8 ha, so the item
  *   separates the current picture from a stale one. A quantity, shown in ascending order (`scale`), the
  *   key in the place the seeded draw gives it (b). No freeze asks area.
  * - V6 (step 8, 15:40): EK11's line at Koivuoja. Pushed radio (step 8): "Kipinät lensivät Koivuojan yli,
@@ -337,9 +344,11 @@ export interface SpamItem {
 export const SPAM_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
   3: {
     prompt: "Kuinka suuri palanut ala on viimeisimmän kehäkartoituksen mukaan?",
-    // `31` F25: the stale lure is DR3's 13.55 survey (~10 ha), no longer the 14.15 one (12.9 ha), which with the key gave V3.b its basis.
-    key: "Noin 18 ha", distractors: ["Noin 10 ha", "Noin 25 ha", "Noin 35 ha"],
-    scale: ["Noin 10 ha", "Noin 18 ha", "Noin 25 ha", "Noin 35 ha"],
+    // `31` F25: the stale lure is DR3's 13.55 survey (~14 ha), not the 14.15 one (18.3 ha), which with the key gives V3.b its basis.
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the 14.35 survey states 24,3 ha (was 17,8), the 13.55 one 13,8 ha (was ~10); the
+    // scale keeps the key second and its steps ~10 ha apart (was 10/18/25/35).
+    key: "Noin 24 ha", distractors: ["Noin 14 ha", "Noin 35 ha", "Noin 45 ha"],
+    scale: ["Noin 14 ha", "Noin 24 ha", "Noin 35 ha", "Noin 45 ha"],
     saLevel: 1, contentKind: "situation",
   },
   6: {
@@ -409,15 +418,15 @@ export const SPAM_ITEMS: Readonly<Record<number, SpamItem>> = arrangeSpamOptions
  * (team understanding), shown after the first item under the same "ready". Keys rest on records reachable
  * with Haku or the Thinker (`SPAM_SECOND_KEY_ATOMS`). DRAFT content, domain review (SPEC/30 §8).
  * - V3 (L2, step 4, 14:20): how the growth changed between the last two perimeter surveys — DR3's 14.15
- *   survey (recorded, step 3: 2,6 ha uutta) against its pushed 14.35 survey (4,8 ha uutta): nearly twice as
+ *   survey (recorded, step 3: 4,4 ha uutta) against its pushed 14.35 survey (6,0 ha uutta): about a third more (SPEC/33; was 2,6 → 4,8, nearly twice) as
  *   much new area. Comprehension of two records, one reached only with the tools; the first item asks the
  *   latest area (one record). No freeze asks a growth trend; V4's growth_next asks the next 20 minutes' growth.
  * - V6 (L2, step 8, 15:40; `31` F04, F18, 19 Oct 2026, re-authored: the L3 "R1 in an hour" keyed on records not reachable at 25 s
  *   and its reachable records supported the lure as much): how road R1 south of Kuivakangas changed between DR2's two latest road
- *   reports — 15.28 "burnt area at the roadside, no flames, passable" (step 7, recorded) and 15.47 "low fire at the roadside, passable
- *   with care" (step 8, recorded; every step-8 record is reachable from V6's start): the fire is back at the verge. Comprehension of two
- *   records, both reached only with the tools (retrieval-dependent, `RETRIEVAL_DEPENDENT_PROBE_IDS`); the stale change (the flames went
- *   out, true at 15.28) is the lure. No later freeze asks R1.
+ *   reports — 15.27 (step 7, recorded) and 15.47 (step 8, recorded; every step-8 record is reachable from V6's start), both "low fire
+ *   at the roadside, passable with care" since SPEC/33 stage 9 (the 15.28 report said "no flames, passable" before): no change.
+ *   Comprehension of two records, both reached only with the tools (retrieval-dependent, `RETRIEVAL_DEPENDENT_PROBE_IDS`); the stale
+ *   change (the flames out, true at 15.07) and the V2-time "not safe" are the lures. No later freeze asks R1.
  * Neither names a designed event, the south-east, the origin or a tool; neither rests on a directive key record
  * or a later freeze's key (`test/scenario/spam-second.spec.ts`). The probe id is `<first probe id>.b` (session code).
  */
@@ -425,14 +434,18 @@ export const SPAM_SECOND_VIEWS: readonly number[] = [3, 6];
 export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
   3: {
     prompt: "Miten palon kasvu on muuttunut kahden viimeisimmän kehäkartoituksen välillä?",
-    key: "Kiihtynyt, uutta alaa lähes kaksi kertaa enemmän",
-    distractors: ["Pysynyt ennallaan, uutta alaa yhtä paljon", "Hidastunut, uutta alaa noin puolet vähemmän", "Pysähtynyt, uutta alaa ei tullut lainkaan"],
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the surveys now give 4,4 then 6,0 ha new (were 2,6 then 4,8: "nearly twice").
+    key: "Kiihtynyt, uutta alaa noin kolmanneksen enemmän",
+    distractors: ["Pysynyt ennallaan, uutta alaa yhtä paljon", "Hidastunut, uutta alaa noin kolmanneksen vähemmän", "Pysähtynyt, uutta alaa ei tullut lainkaan"],
     saLevel: 2, contentKind: "situation",
   },
   6: {
     prompt: "Miten tien R1 tila Kuivakankaan eteläpuolella on muuttunut viimeisimmissä tiehavainnoissa?",
-    key: "Paloa on taas tien reunassa, ajettavissa vain varoen",
-    distractors: ["Ei muutosta, tie on yhä ajettavissa ilman paloa", "Liekit ovat sammuneet, tie on taas ajettavissa", "Tie on nyt poikki, palo on katkaissut sen"],
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): DR2's two latest road reports (15.27, 15.47) now both read "palo noin 10 m tiestä
+    // — matalaa paloa tien reunassa, ajettavissa varoen" (the 15.27 one said "palanut alue tien reunassa — ei liekkejä, ajettavissa"
+    // before): no change. The stale lures are the 15.07 report (no flames, passable) and the V2-time "ajo ei turvallista".
+    key: "Ei muutosta, matalaa paloa tien reunassa, ajettavissa varoen",
+    distractors: ["Liekit ovat sammuneet, tie on taas ajettavissa", "Liekit ovat voimistuneet, ajo ei ole turvallista", "Tie on nyt poikki, palo on katkaissut sen"],
     saLevel: 2, contentKind: "situation",
   },
 };
@@ -465,10 +478,10 @@ export function spamRecordId(step: number, re: RegExp): string {
  */
 export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
   3: [
-    spamRecordId(3, /^DR3 kehäkartoitus valmis klo 14\.15: palanut ala noin 12,9 ha; .*2,6 ha uutta/),
-    spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha; .*4,8 ha uutta/),
+    spamRecordId(3, /^DR3 kehäkartoitus valmis klo 14\.15: palanut ala noin 18,3 ha; .*4,4 ha uutta/),
+    spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 24,3 ha; .*6,0 ha uutta/),
   ],
-  6: [spamRecordId(7, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, palanut alue tien reunassa — ei liekkejä, ajettavissa/), spamRecordId(8, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, .*ajettavissa varoen/)],
+  6: [spamRecordId(7, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, palo noin 10 m tiestä — matalaa paloa tien reunassa .*ajettavissa varoen/), spamRecordId(8, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, .*ajettavissa varoen/)],
 };
 
 /**
@@ -485,7 +498,7 @@ export const RETRIEVAL_DEPENDENT_PROBE_IDS: readonly string[] = ["probe.s.cycle_
 export const VERIFICATION_ITEM_IDS: readonly string[] = ["freeze.12.f7", "freeze.7.rekindle_sector", "probe.u.cycle_14"];
 
 export const SPAM_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
-  3: [spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 17,8 ha/)],
+  3: [spamRecordId(4, /^DR3 kehäkartoitus valmis klo 14\.35: palanut ala noin 24,3 ha/)],
   // Safety re-check (ah): EK11's crew is in the black at 15:40, so the crossing radio says it had to pull back (not to the road: the
   // lure "withdrawn to the road, the line abandoned" stays false; it takes the line up again at 16:00).
   6: [spamRecordId(8, /^Kipinät lensivät Koivuojan yli, uusi palo toisella puolella\. EK11 joutui vetäytymään/)],
@@ -569,8 +582,8 @@ export const U_OPEN_AT_SECONDS = VIEW_MIN_SECONDS - FREEZE_LATEST_BEFORE_END_S;
  * inconsistent. The key is the authored contradiction (V13: SPOT's "Pohjoisreuna leimahtanut uudelleen, havaittu uutta
  * savua uran itäpuolella" against EK14's "Oma linjamme pitää, ei muutosta", the contract's premise and
  * counter atoms). The distractors are pairs of real pushed reports that are NOT inconsistent: two rates
- * of the same SE front an hour apart (EK16 ~10 m/min at the forest road, step 17; DR2 10,1 m/min at 19.05, step 18; was 10,6 before revision (aj)); a road that stopped the fire
- * and was crossed later (the stop from KY21 at step 18, which held that stretch until 19:00 (revision (ak)), the crossing from EK16 at step 19); the burnt area at two times (DR3 17,8 ha at 14:35,
+ * of the same SE front an hour apart (EK16 ~10 m/min at the forest road, step 17; DR2 11,5 m/min at 19.05, step 18; 10,1 before SPEC/33, 10,6 before revision (aj)); a road that stopped the fire
+ * and was crossed later (the stop from KY21 at step 18, which held that stretch until 19:00 (revision (ak)), the crossing from EK16 at step 19); the burnt area at two times (DR3 24,3 ha at 14:35, SPOT ~160 ha after 18:40 since SPEC/33; were 17,8 and
  * SPOT ~140 ha after 18:40). No option names the omission or the rekindle. "None" is always last; the
  * other three are placed by a seeded build-time arrangement on its own stream (the key is not always
  * "a"). Each cited text is checked against the corpus (`test/scenario/visible-probes.spec.ts`).
@@ -580,9 +593,9 @@ export const CONTRADICTION_BACKUP_AUTHORED = {
   prompt: "Mitkä seuraavista raporttipareista, jos mitkään, olivat ristiriidassa keskenään?",
   key: "SPOT: pohjoisreuna leimahtanut uudelleen, uutta savua — EK14: oma linjamme pitää, ei muutosta",
   distractors: [
-    "EK16: kärki etenee kaakkoon noin 10 m/min — DR2: kaakkoisrintama etenee noin 10,1 m/min", // revision (aj): 10,1 (was 10,6)
+    "EK16: kärki etenee kaakkoon noin 10 m/min — DR2: kaakkoisrintama etenee noin 11,5 m/min", // SPEC/33 stage 9: 11,5 on the rebuilt map (revision (aj): 10,1; was 10,6)
     "KY21: palo pysähtyi Honkaharjun metsäautotielle (klo 19.03) — EK16: kärki ylitti saman tien puuskissa (klo 19.22)", // revision (ak): KY21 held the road through the stop and reports it
-    "DR3: palanut ala noin 17,8 ha (klo 14.35) — SPOT: palanut ala noin 140 ha (klo 18.40 jälkeen)",
+    "DR3: palanut ala noin 24,3 ha (klo 14.35) — SPOT: palanut ala noin 160 ha (klo 18.40 jälkeen)", // SPEC/33 stage 9: 24,3 and 160 ha (were 17,8 and 140)
   ],
   none: "Mitkään raportit eivät olleet ristiriidassa",
 } as const;

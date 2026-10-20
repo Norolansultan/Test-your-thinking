@@ -172,7 +172,7 @@ export function openThinkerTextFor(cell: Cell, lang: "fi" | "en"): string {
 /**
  * Revision (al), 10 Oct 2026 (wording by the map agent `map-tiles`): a neutral description of the four
  * sectors by their terrain, one line each — the wedges from the point of origin (L1 280–20°, L2 20–100°,
- * L3 100–220°, L4 220–280°, 5 km). It names no 110 kV line, no water point and nothing of the fire's
+ * L3 100–220°, L4 220–280°, 5 km). It names no power line (20 kV since SPEC/33 (bc)), no water point and nothing of the fire's
  * history. Both groups, the practice tour's `sectors` step. DRAFT, for native and domain review.
  */
 export const SECTORS_FI: readonly string[] = [

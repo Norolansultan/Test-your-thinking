@@ -1183,7 +1183,7 @@ export const LOAD_BEARING_T4_IDS = ["t4.ember_warning", "t4.private_doubt", "t4.
  */
 export const DESIGNED_EVENT_IDS = {
   gridRecord: "f7.grid_record", // step 6, the grid operator: line live, de-energising requested
-  planted: "f7.planted_record", // step 8, the command-post operator: "110 kV linja jännitteetön, vahvistettu." FALSE
+  planted: "f7.planted_record", // step 8, the command-post operator: "20 kV linja jännitteetön, vahvistettu." FALSE (110 kV before SPEC/33 (bc))
   heliLineClearance: "f7.heli_line_clearance", // step 9, HELI1 keeps clear of the line
   inHand: ["rekindle.in_hand.ky21", "rekindle.in_hand.vpk", "rekindle.in_hand.log"], // step 10, L3 "in hand"
   objection: "rekindle.objection", // step 10, VPK on TOIMINTA-2

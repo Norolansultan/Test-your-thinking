@@ -56,7 +56,7 @@ function evalRecord(lang: RetrievalLang, mode: string, questions: number, needs:
     needs,
     metric: `mean per-question recall@${topK} (share of needs met) and MRR@${topK}, at each view's start gate`,
     selectionRule: "highest recall@k, then highest MRR@k, then the earlier (simpler) candidate; candidates declared before the run",
-    plantedItemsExcluded: "the designed events (rekindle objection, bog smoulder, F7 / 110 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
+    plantedItemsExcluded: "the designed events (rekindle objection, bog smoulder, F7 / 20 kV line, step-18 contradiction) were not used in tuning; tools/thinker/probe-planted.ts reports them after the freeze",
     results: scores.map((s) => ({ name: s.name, recallAtK: s.recallAtK, mrrAtK: s.mrrAtK })),
     selected,
     declared,

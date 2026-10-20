@@ -14,9 +14,9 @@ import type { RenderableCycle } from "../../../boundary/render-boundary.js";
  */
 export const LEGEND_MAP_TEXT = {
   fi: { unit: "Oma yksikkö (osoita: tunnus ja tehtävä)", crew: "Miehistö jalkaisin – ajoneuvo", hose: "Letkulinja", stack: "Useita yksiköitä (osoita: avautuu)", air: "Ilma-alus (osoita: reitti ja kuvausalue)",
-    sector: "Lohkoraja L1–L4", road: "Tie R1–R3", power: "Voimalinja 110 kV", region: "Muu palo alueella", show: "Näytä selite", hide: "Piilota selite" },
+    sector: "Lohkoraja L1–L4", road: "Tie R1–R3", power: "Sähkölinja 20 kV", region: "Muu palo alueella", show: "Näytä selite", hide: "Piilota selite" },
   en: { unit: "Own unit (point: call sign and task)", crew: "Crew on foot – vehicle", hose: "Hose line", stack: "Several units (point to open)", air: "Aircraft (point: track and footprint)",
-    sector: "Sector boundary L1–L4", road: "Road R1–R3", power: "Power line 110 kV", region: "Other fire in the region", show: "Show legend", hide: "Hide legend" },
+    sector: "Sector boundary L1–L4", road: "Road R1–R3", power: "Power line 20 kV", region: "Other fire in the region", show: "Show legend", hide: "Hide legend" },
 } as const;
 
 /** Every legend row, in its fixed order (revision (am)): the fire's symbols, then own forces, then the reference overlay. */

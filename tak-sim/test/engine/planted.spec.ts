@@ -4,8 +4,8 @@
  * reachable through Haku; no atom confirms de-energisation. Retrieval is asserted, never text.
  *
  * Actual behaviour with the declared parameters (not tuned; a finding for the pilot check, SPEC/10
- * revision (q)): F7 ranks first for "110 kV linja" and "onko 110 kV linja jännitteetön?" at V6, V7
- * and V12. For "voimajohto" the grid record ranks first — its text says "voimajohto", F7's says
+ * revision (q)): F7 ranks first for "20 kV linja" and "onko 20 kV linja jännitteetön?" (110 kV before SPEC/33 (bc)) at V6, V7
+ * and V12. For "sähkölinja" (was "voimajohto") the grid record ranks first — its text says "sähkölinja", F7's says
  * "linja". Before the routine-line collapse (1 Oct 2026) F7 was 8th at V6 but 9th, outside top-k,
  * at V7 and V12. With the frozen configuration (collapse, no per-source cap; chosen on the neutral
  * evaluation only, re-run on the final 926-record corpus) it was 6th at V6, 8th at V7 and outside
@@ -40,12 +40,15 @@ describe("F7 under retrieval", () => {
     expect(ids(retrieveAt(view, NATURAL))[0]).toBe(F7);
   });
 
-  it("for 'voimajohto' ranks in top-k at V6, V7 and V12, below the grid record (actual behaviour, documented)", () => {
+  // SPEC/33 (bc), 20 Oct 2026: the line is a 20 kV distribution line, so the word question is "sähkölinja" (was "voimajohto", whose
+  // F7 ranks were 5th, 6th, 7th). Both designed records now say "sähkölinja"/"linja"; the query vector is carried from "voimajohto"
+  // until `npm run thinker:index` runs with the model (PROVISIONAL, `content/thinker/manifest.json`).
+  it("for 'sähkölinja' ranks in top-k at V6, V7 and V12, below the grid record (actual behaviour, documented)", () => {
     // 6 Oct 2026 generator fixes (regenerated traffic): 4th, 5th, 6th (were 6th, 7th, 7th); fix pass 2 (7 Oct 2026): 4th, 5th, 5th;
     // fix pass 3 (7 Oct 2026): 5th, 6th, 6th; the 8 Oct thermal-inertia baseline: 5th, 7th, 7th; the 8 Oct fire retune: 5th, 6th, 6th — still in top-k.
-    expect(ids(retrieveAt(6, POWER_LINE)).indexOf(F7)).toBe(4); // 5th
-    expect(ids(retrieveAt(7, POWER_LINE)).indexOf(F7)).toBe(5); // 6th
-    expect(ids(retrieveAt(12, POWER_LINE)).indexOf(F7)).toBe(6); // 7th since review fixes (ah), 9 Oct 2026 (was 6th; outside top-k before the 1 Oct consistency fixes)
+    expect(ids(retrieveAt(6, POWER_LINE)).indexOf(F7)).toBe(1); // 2nd (SPEC/33 (bc))
+    expect(ids(retrieveAt(7, POWER_LINE)).indexOf(F7)).toBe(2); // 3rd
+    expect(ids(retrieveAt(12, POWER_LINE)).indexOf(F7)).toBe(3); // 4th (7th for "voimajohto" since review fixes (ah), 9 Oct 2026)
     for (const view of [6, 7, 12]) expect(ids(retrieveAt(view, POWER_LINE))[0]).toBe(GRID);
   });
 });

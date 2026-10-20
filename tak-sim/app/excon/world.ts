@@ -254,10 +254,10 @@ export function designedEvents(scenario: ScenarioContract): ExconEvent[] {
     truth: "Phase A ends; the directive is shown on the pause screen with the manipulation check.",
     source: null, textFi: null, textEn: null, reach: "pause screen",
   });
-  const f7 = `the 110 kV line is ${String(F7_TRUTH_INVARIANT.expected).toUpperCase()} for the whole incident (invariant ${F7_TRUTH_INVARIANT.name})`;
-  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.gridRecord, "f7", "F7 set-up: grid operator — line still live, de-energising requested", `TRUE record (load-bearing): ${f7}; it contradicts the planted record two steps later.`));
-  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.planted, "f7", "F7 planted FALSE record: \"110 kV line de-energised, confirmed\"", `FALSE: ${f7}. Never corrected; holding "de-energised" is scored wrong (H9).`));
-  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.heliLineClearance, "f7", "HELI1 keeps clear of the 110 kV line", "Later traffic still treats the line as a hazard (not a correction)."));
+  const f7 = `the 20 kV line is ${String(F7_TRUTH_INVARIANT.expected).toUpperCase()} for the whole incident (invariant ${F7_TRUTH_INVARIANT.name})`;
+  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.gridRecord, "f7", "F7 set-up: distribution company — line still live, de-energising requested", `TRUE record (load-bearing): ${f7}; it contradicts the planted record two steps later.`));
+  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.planted, "f7", "F7 planted FALSE record: \"20 kV line de-energised, confirmed\"", `FALSE: ${f7}. Never corrected; holding "de-energised" is scored wrong (H9).`));
+  out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.heliLineClearance, "f7", "HELI1 keeps clear of the 20 kV line", "Later traffic still treats the line as a hazard (not a correction)."));
   for (const id of DESIGNED_EVENT_IDS.inHand) out.push(atomEvent(scenario, id, "rekindle", "Rekindle arc: L3 (origin's south edge) reported in hand", "Apparent success as the wind eases; the edge is not checked with a thermal camera."));
   out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.objection, "rekindle", "Rekindle arc: VPK objects on TOIMINTA-2 (load-bearing)", "The warning is right: stumps and slash keep smouldering and flare up at step 12 when the wind turns west (V9)."));
   out.push(atomEvent(scenario, DESIGNED_EVENT_IDS.overruled, "rekindle", "Rekindle arc: the L3 sector leader overrules VPK", "KY21 and VPK leave the origin's south edge for the north flank."));

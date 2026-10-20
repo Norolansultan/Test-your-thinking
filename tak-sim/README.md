@@ -71,7 +71,7 @@ demonstrations — **never for participants**.
   aircraft, sensor footprints), derived through the render boundary (`applyRenderEvent` → `toRenderableCycle` /
   `toRenderableEnvelope`) and drawn with the participant's own fire layers. The two maps pan and zoom together.
 - **Timeline:** VP (W2) + V1–V14 and their steps, coloured by the true flag, with the designed events (F7 false
-  110 kV record, the rekindle arc, the omission at V9, the contradiction at V13, the directive at V8, the hinge);
+  20 kV line record (110 kV before SPEC/33 (bc)), the rekindle arc, the omission at V9, the contradiction at V13, the directive at V8, the hinge);
   play / pause, 1× / 10× / 60× virtual time, step and view jumps (Space, ←/→, Shift+←/→, 1/2/3). Interpolation is
   deterministic: a position always shows the same picture, anchored at every step start to the reported positions.
 - **Side panel:** the view's truth card (flag, CA reason, breach area and depth, branch truth), and tabs for the

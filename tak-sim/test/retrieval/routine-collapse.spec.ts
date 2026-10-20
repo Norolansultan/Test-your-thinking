@@ -135,7 +135,7 @@ describe("no retrieval code names a designed event", () => {
   const dir = new URL("../../app/retrieval/", import.meta.url);
   const sources = readdirSync(dir).filter((f) => f.endsWith(".ts")).map((f) => [f, readFileSync(new URL(f, dir), "utf8")] as const);
   const ids = Object.values(DESIGNED_EVENT_IDS).flat();
-  const forbidden = [...ids, GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE, "DESIGNED_EVENT_IDS", "designed-events", "jännitteetön", "Rahkasuo", "kyteä", "110 kV"];
+  const forbidden = [...ids, GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE, "DESIGNED_EVENT_IDS", "designed-events", "jännitteetön", "Rahkasuo", "kyteä", "110 kV", "20 kV"]; // SPEC/33 (bc): the line is 20 kV
 
   it.each(forbidden)("no file in app/retrieval mentions %s", (needle) => {
     expect(sources.length).toBeGreaterThan(0);

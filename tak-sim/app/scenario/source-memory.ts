@@ -66,10 +66,11 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
   {
     // `31` F17: pushed to everyone (DR1's 14.25 thermal image), so misattribution of an AI's statement cannot be told from reading it: a control.
     id: "head_rate_1420", view: 3, expected: "pushed",
-    statementFi: "Klo 14.00–14.20 palon kärki eteni koilliseen noin 10,6 metriä minuutissa.",
-    statementEn: "Between 14.00 and 14.20 the head of the fire spread north-east at about 10.6 metres a minute.",
-    atomIds: [recordAt(4, /^DR1 lämpökuva, kärki klo 14\.25: reuna etenee koilliseen noin 10,6 m\/min/), recordAt(4, /^DR1 mittaus: kärjen etenemä 210 m klo 14\.00–14\.20/)],
-    keyStatements: { fi: ["10[,.]6\\s*(?:m\\/min|metri\\S* minuuti)"], en:["10\\.6\\s*(?:m\\/min|m per min|met(?:re|er)s? (?:a|per) minute)"] },
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): 10,8 m/min and 220 m (were 10,6 and 210 m), as DR1's records now state.
+    statementFi: "Klo 14.00–14.20 palon kärki eteni koilliseen noin 10,8 metriä minuutissa.",
+    statementEn: "Between 14.00 and 14.20 the head of the fire spread north-east at about 10.8 metres a minute.",
+    atomIds: [recordAt(4, /^DR1 lämpökuva, kärki klo 14\.25: reuna etenee koilliseen noin 10,8 m\/min/), recordAt(4, /^DR1 mittaus: kärjen etenemä 220 m klo 14\.00–14\.20/)],
+    keyStatements: { fi: ["10[,.]8\\s*(?:m\\/min|metri\\S* minuuti)"], en:["10\\.8\\s*(?:m\\/min|m per min|met(?:re|er)s? (?:a|per) minute)"] },
   },
   {
     // `31` F17: replaces the forecast's south-east turn (V5's ek14_shelter named it, F07). Recorded only: DR3's smoke-column logs (T2).
@@ -91,13 +92,15 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
     keyStatements: { fi: ["(?<![\\d/])5\\s*\\/\\s*5(?![\\d/])"], en: ["(?<![\\d/])5\\s*\\/\\s*5(?![\\d/])"] },
   },
   {
-    id: "pp3_600", view: 5, expected: "record_only",
-    statementFi: "Pistepalo PP3 vahvistettiin noin 600 metriä kärjen edessä.",
-    statementEn: "Spot fire SF3 was confirmed about 600 metres ahead of the head.",
-    atomIds: [recordAt(7, /^DR1: pistepalo PP3 vahvistettu lämpökuvasta, noin 600 m kärjen edessä/)],
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the crown run throws two spot fires, not three; DR1 confirms the farther one, PP2,
+    // ~560 m ahead of the head at 15.32 (was "pp3_600": PP3 ~600 m ahead at 15.33).
+    id: "pp2_560", view: 5, expected: "record_only",
+    statementFi: "Pistepalo PP2 vahvistettiin noin 560 metriä kärjen edessä.",
+    statementEn: "Spot fire SF2 was confirmed about 560 metres ahead of the head.",
+    atomIds: [recordAt(7, /^DR1: pistepalo PP2 vahvistettu lämpökuvasta, noin 560 m kärjen edessä/)],
     keyStatements: {
-      fi: [`PP3${S(80)}600\\s*${M_FI}`, `600\\s*${M_FI}\\w*${S(80)}PP3`],
-      en: [`(?:SF3|PP3)${S(80)}600\\s*${M_EN}`, `600\\s*${M_EN}\\w*${S(80)}(?:SF3|PP3)`],
+      fi: [`PP2${S(80)}560\\s*${M_FI}`, `560\\s*${M_FI}\\w*${S(80)}PP2`],
+      en: [`(?:SF2|PP2)${S(80)}560\\s*${M_EN}`, `560\\s*${M_EN}\\w*${S(80)}(?:SF2|PP2)`],
     },
   },
   {

@@ -61,7 +61,7 @@ describe("determinism (I1 for retrieval)", () => {
 
 describe("code tokens (SPEC/14 revision (q): EK11, L3, TOIMINTA-2)", () => {
   it("keeps codes whole, drops a case ending after a colon, and prefix-stems words", () => {
-    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 110 kV voimajohdon")).toEqual(["toiminta-2", "ky21", "l1", "110", "kv", "voima"]);
+    expect(tokenise("TOIMINTA-2: KY21:n L1:lle, 20 kV sähkölinjan")).toEqual(["toiminta-2", "ky21", "l1", "20", "kv", "sähkö"]); // SPEC/33 (bc): the line is 20 kV
   });
 
   it("finds EK11's records for 'EK11' and L3's records for 'L3' (per-source cap lifted)", () => {

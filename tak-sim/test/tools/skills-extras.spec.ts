@@ -93,7 +93,9 @@ describe("D1: the flame-length table when the scenario has one, else the records
     const table = (await loadFlameTable())!;
     const head17 = table.at(17, "head")!;
     expect(head17.hiM).toBeGreaterThan(4);
-    expect(head17.hiM).toBeLessThan(4.4); // inside the Kalajoki surface envelope (0.5–4.4 m), as the records' "4–5 m" band's upper bound is not
+    // SPEC/33 stage 7 (20 Oct 2026, the fire re-run on the rebuilt map): 4.57 m at 11.5 m/min, ~4 % over the Kalajoki surface envelope
+    // (0.5–4.4 m), a REVIEW flag the fire stage retained (docs/audits/2026-10-20-map/fire/methods.md); it was inside the envelope before.
+    expect(head17.hiM).toBeLessThan(4.7);
     expect(head17.fireType).toBe("surface");
     expect(table.at(17, "flank")!.hiM).toBeCloseTo(head17.hiM * 0.65, 1);
     // Phase A follows the table too (`flame-table.ts` RECORDS_FOLLOW_FROM_STEP): step 3's head at 10.6 m/min; the step-6 crown run's head

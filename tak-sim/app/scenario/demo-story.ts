@@ -42,15 +42,18 @@ export const CYCLE_STORY: Readonly<Record<CycleIndex, { readonly title: string; 
   // commander (was "Johtovastuu otettu", "command assumed", which said EK11 held command).
   // Radio CO-03 (SPEC/31): DR1 says the edge is already ~30 m across R1 at the head at 13:20, so EK11's 13:41 crossing along the edge
   // (radio 2.1) reads as a second point, not as news of the first (DRAFT Finnish, native check).
-  1: { title: "Komennon siirto", bubbles: [{ authorUnitId: "EK11", text: "Johtovastuu siirretty teille. Kärki koilliseen. EK14 ja KY21 tulossa." }, { authorUnitId: "DR1", text: "Kuva päivitetty. Reuna on ylittänyt tien R1 kärjen kohdalla, noin 30 m tien pohjoispuolella." }] },
+  1: { title: "Komennon siirto", bubbles: [{ authorUnitId: "EK11", text: "Johtovastuu siirretty teille. Kärki koilliseen. EK14 ja KY21 tulossa." }, { authorUnitId: "DR1", text: "Kuva päivitetty. Reuna on ylittänyt tien R1 kärjen kohdalla, noin 50 m tien pohjoispuolella." }] },
   // Review 6 Oct 2026 (D2 b): the fuel ahead of the head is on record before the V2 freeze (first bubble: pushed at 60 s,
   // the freeze is at 105 s). Against the fuel truth: the head at 13:40 is ~400 m from mature spruce to the north-east
   // (the step-6 crown run burns through it). EK14's line moves to the second bubble (pushed at 120 s).
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): along the head's line (50°) the continuous Kuusimäki stand begins ~550 m ahead of
+  // the 13:40 head, so "noin 500 m" (was 400 m); DR1's 13:20 edge is ~45 m north of R1 at the head ("noin 50 m", was 30 m); the esker
+  // ignition is ~100 m ahead of the head (scenario-18.ts step 3, "noin 100 m", was 150 m).
   2: { title: "Linjan rakentaminen", bubbles: [
-    { authorUnitId: "DR1", text: "Kärjen edessä koilliseen, noin 400 m päässä, alkaa tiheä kuusikko (Kuusimäki). Kärki etenee sitä kohti." },
+    { authorUnitId: "DR1", text: "Kärjen edessä koilliseen, noin 500 m päässä, alkaa tiheä kuusikko (Kuusimäki). Kärki etenee sitä kohti." },
     { authorUnitId: "EK14", text: "Aloitamme linjan pohjoisreunalle. Perääntymistie tarkistettu." },
   ] },
-  3: { title: "Toinen syttymä", bubbles: [{ authorUnitId: "EK11", text: "Uusi savu Kuivakankaan harjulla, noin 150 m kärjestä. Syytä ei tiedossa." }, { authorUnitId: "SPOT", text: "Havaittu pieni liekki harjun laella." }] },
+  3: { title: "Toinen syttymä", bubbles: [{ authorUnitId: "EK11", text: "Uusi savu Kuivakankaan harjulla, noin 100 m kärjestä. Syytä ei tiedossa." }, { authorUnitId: "SPOT", text: "Havaittu pieni liekki harjun laella." }] },
   4: { title: "Liittymä", bubbles: [{ authorUnitId: "EK12", text: "Palot yhdistyneet. Vesipiste W1 valittu, matka pitkä." }] },
   5: { title: "Kuusikkoon", bubbles: [{ authorUnitId: "EK12", text: "Kärki Kuusimäen kuusikon reunalla. Tiheä alikasvos, näkyvyys huono." }] },
   // Radio TE-08 (SPEC/31): an image is "saturoitunut", not "kylläinen" (chemistry). 6.0 is a V4 key record: unchanged (WP-6).

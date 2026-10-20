@@ -60,8 +60,8 @@ export const FEATURES = {
   // directive names. Crews stand there with their vehicle (`at:` anchors), never on the fire's edge.
   FR_W: { x: 259, y: -382 }, // forest road south of the rekindled front
   FR_MID: { x: 720, y: -490 }, // forest road north of Rahkasuo
-  // Revision (al), 10 Oct 2026 (map review panel): 150 m west along the road (was (950, -561), 8 m from the 110 kV line, inside its
-  // 36 m corridor); now ~127 m from the line, ~95 m east of FR_MID.
+  // Revision (al), 10 Oct 2026 (map review panel): 150 m west along the road (was (950, -561), 8 m from the power line, then 110 kV,
+  // inside its 36 m corridor); now ~127 m from the line (a 20 kV line with a ~10 m corridor since SPEC/33 (bc)), ~95 m east of FR_MID.
   FR_E: { x: 810, y: -510 }, // forest road ahead of the south-east front
   R2_FR: { x: 1525, y: -842 }, // R2 / forest-road junction
   R2_MID: { x: 1515, y: -1120 }, // R2 between the junction and Lahdenkylä
@@ -229,7 +229,12 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
       m(1, "edge:L3", "arrive"),
       m(4, "edge:L4", "reassign", "jälkisammutus syttymäkohdassa", "mop_up"),
       // Fix pass 3 (N1): VPK is itself a tanker, and the shuttle is busy on the south edge's other line (KY21's).
-      m(5, "at:POND_W1", "water", "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla"),
+      // SPEC/33 stage 8 (20 Oct 2026, the rebuilt road graph): VPK's truck stands on the Honkaharju forest road south of the origin, and
+      // the drive to Haukilampi (W1) and back is ~12.4 km on the new roads (it was ~5 km straight-line × 1.4), so the crew is away about
+      // half an hour, not twenty minutes (the standard sentence's figure); said in full, the rest of the sentence unchanged.
+      said(m(5, "at:POND_W1", "water", "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla"),
+        "VPK: lähdemme täyttämään vettä, Haukilammelle, vesipiste W1; vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni KY21:n linjalla. Poissa linjalta noin 30 min, palaamme noin 15.10.",
+        "VPK: we are refilling water, Haukilampi, water point W1; the water was running out; the tanker drove itself, EK13 was busy at KY21's line. Away from the line for about 30 min, back at about 15.10."),
       m(6, "edge:L4", "return", undefined, "mop_up"),
       // SPEC/26 §5: on the origin's south edge before the lull, so it is there to object when moved off it.
       m(9, "edge:L3", "reassign", "syttymäkohdan eteläreunan jälkisammutus"),
@@ -349,11 +354,11 @@ export const EXTRA_RADIO: readonly { readonly cycle: number; readonly from: stri
   // the burned edge, 6 Oct 2026; was 18:40–19:00).
   // Revision (ak) (both reviewers, HIGH): the road crew ahead of the head states its trigger point and a safety zone that is not downwind —
   // the R2 junction clearing 600 m east along the road; the head crosses the road 600 m WEST of EK16 at 19:00–19:20 (crossings.ts), so the
-  // [revision (al): EK16 moved 150 m west off the 110 kV corridor (FR_E); the head now crosses ~450 m west of FR_E (~520 m from EK16's
+  // [revision (al): EK16 moved 150 m west off the power-line corridor (FR_E); the head now crosses ~450 m west of FR_E (~520 m from EK16's
   // crew), still west, so the escape route east is never cut; the landing is ~720 m east along the road and drawn on the map (a
   // 60 × 40 m log landing in the junction's south-east corner, tiles only); measured in SPEC/18 al.3]
   // route east is never cut, and the edge is ~170 m off at 19:20 when EK16 withdraws (the trigger). The flames are the provisional
-  // table's at 10 m/min (SPEC/31 §3.11, `flame-table.ts`; were 1–2 m): DR2's 19:05 thermal at 10.1 m/min states the same band, and
+  // table's at 10 m/min (SPEC/31 §3.11, `flame-table.ts`; were 1–2 m): DR2's 19:05 thermal at 11.5 m/min (10.1 before SPEC/33) states the same band, and
   // the two stay a non-contradictory pair (`demo-probes.ts`, which quotes their rates only).
   { cycle: 17, from: "EK16", text: `Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon arviolta 10 m/min, ${EK16_HEAD_FLAMES.fi}. Pidämme tien. Laukaisupiste: kun kärki on noin 200 m tiestä tai ensimmäinen pistepalo syttyy tien eteläpuolelle, siirrymme R2:lle. Perääntymistie tietä pitkin itään R2:n risteyksen puutavaran varastoalueelle (turva-alue), autot käännettyinä, tähystäjä nimetty.`,
     textEn: `The head is approaching the forest road from the north-west, spreading south-east at roughly 10 m/min, ${EK16_HEAD_FLAMES.en}. We are holding the road. Trigger point: when the head is about 200 m from the road or the first spot fire starts south of the road, we move to R2. Escape route east along the road to the log landing at the R2 junction (safety zone), vehicles turned round, lookout posted.` },
@@ -412,18 +417,36 @@ export const EXTRA_RADIO: readonly { readonly cycle: number; readonly from: stri
   // from between the head and the spot, with its escape into the black (the 14:0x line explains steps 3–4 in `crew-safety.ts`).
   // Worded without "pistepalo"/"syttymä": a lexical match on those took a V5 retrieval slot from DR1's PP2 confirmation
   // (`test/server/thinker-review-ah.spec.ts` C2) and moved the V7 objection's documented ranks.
-  { cycle: 3, atOffsetS: 300, from: "EK11", recorded: true, text: "EK11: uusi palo harjulla noin 150 m kärjen edessä. Hyökkäämme siihen pohjoissivustalta, emme mene kärjen ja uuden palon väliin. Perääntymistie palaneelle alueelle, tähystäjä nimetty.",
-    textEn: "EK11: a new fire on the esker about 150 m ahead of the head. We attack it from the north flank, we do not go between the head and the new fire. Escape route into the burned area, lookout posted." },
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the ignition is ~100 m ahead of the head (scenario-18.ts step 3, was 140 m) and
+  // EK11's crew stands on the head's right (south-east) flank, ~130 m south of it, so it attacks from the south flank (was "noin 150 m",
+  // "pohjoissivustalta"). DRAFT Finnish for the native check.
+  { cycle: 3, atOffsetS: 300, from: "EK11", recorded: true, text: "EK11: uusi palo harjulla noin 100 m kärjen edessä. Hyökkäämme siihen eteläsivustalta, emme mene kärjen ja uuden palon väliin. Perääntymistie palaneelle alueelle, tähystäjä nimetty.",
+    textEn: "EK11: a new fire on the esker about 100 m ahead of the head. We attack it from the south flank, we do not go between the head and the new fire. Escape route into the burned area, lookout posted." },
   { cycle: 5, atOffsetS: 400, from: "EK14", text: "EK14: työskentelemme pohjoisreunalla aivan reunassa moottoriruiskulla. Perääntymistie palaneelle alueelle, maastoauto takanamme, tähystäjä nimetty.",
     textEn: "EK14: we are working right at the north edge with the portable pump. Escape route into the burned area, the terrain vehicle behind us, lookout posted." },
   { cycle: 7, atOffsetS: 650, from: "EK11", text: "EK11: pistepalo PP1 takanamme, autolle menevän reitin vieressä. Vedämme miehet pois linjalta palaneen alueen kautta autolle. Vahvuus tarkistettu, kaikki tallessa.",
     textEn: "EK11: spot fire PP1 is behind us, beside the way to our truck. We are pulling the crew off the line through the burned area to the truck. Headcount done, all accounted for." },
   { cycle: 8, atOffsetS: 150, from: "EK11", text: "EK11: palo ylitti ojan vierestämme. Miehet siirtyivät palaneelle alueelle turvaan, perääntymistie palaneen kautta autolle. Vahvuus tarkistettu, kaikki tallessa.",
     textEn: "EK11: the fire crossed the brook beside us. The crew moved into the burned area to safety, escape route through the burned area to the truck. Headcount done, all accounted for." },
+  // SPEC/33 stage 8 (20 Oct 2026, the rebuilt map; `tools/validate/crew-safety.ts`): crews the re-run fire now comes near or runs at say
+  // how they stay safe. Recorded (T2), like the other LCES lines, so the views' pushed budget is unchanged; no place name and no
+  // "pistepalo"/"syttymä" (a lexical match on those moves the frozen retrieval ranks). DRAFT Finnish for the native check.
+  // 15:00–15:20: KY21 on the south flank, 3 m from the crown run's burning edge.
+  { cycle: 6, atOffsetS: 420, from: "KY21", recorded: true, text: "KY21: eteläsivustalla latvapalo menee meistä koilliseen ohi. Työskentelemme palaneen reunasta, perääntymistie palaneelle alueelle, tähystäjä seuraa kärkeä. Kaikki tallessa.",
+    textEn: "KY21: on the south flank the crown fire is running past us to the north-east. We are working from the burned edge; escape route into the burned area, the lookout is watching the head. All accounted for." },
+  // 15:40–16:00: the wind backs to the south-south-east and the edge VPK mops up starts to move over its stretch.
+  { cycle: 8, atOffsetS: 420, from: "VPK", recorded: true, text: "VPK: tuulen kääntyessä reuna lähti kohdallamme liikkeelle. Siirryimme palaneelle alueelle, perääntymistie palaneen kautta autolle. Vahvuus tarkistettu, kaikki tallessa.",
+    textEn: "VOL1: as the wind turned, the edge on our stretch started to move. We moved into the burned area; escape route through the burned area to the truck. Headcount done, all accounted for." },
+  // 16:40–17:00: KY21 and VPK on the north edge, downwind in the southerly; KY21, the sector leader, says it for both crews.
+  { cycle: 11, atOffsetS: 420, from: "KY21", recorded: true, text: "KY21: pohjoisreunalla me ja VPK olemme reunassa kiinni, etelätuuli painaa reunaa meitä kohti. Työskentelemme palaneen reunasta, perääntymistie palaneelle alueelle, tähystäjä nimetty, kaikki tallessa.",
+    textEn: "KY21: on the north edge we and VOL1 are on the edge; the southerly is pushing it towards us. We are working from the burned edge; escape route into the burned area, lookout posted, all accounted for." },
   // Radio CO-01 (SPEC/31): the line names the north edge and the Karhujärvi side, so it cannot be taken for V14's deciding flare-up on
   // the origin's west edge (SPOT 19.23), nor that for this holdover.
-  { cycle: 19, atOffsetS: 60, from: "KY23", text: "KY23, pohjoisreuna, Karhujärven puoli: savua ja pientä liekkiä noin 120 m pohjoiseen, uran itäpuolella, autolle menevän reitin vieressä. Perääntymistie autolle länsikautta, kaikki tallessa.",
-    textEn: "KY23, north edge, Karhujärvi side: smoke and a small flame about 120 m to the north, east of the track, beside the way to our truck. Escape route to the truck round the west side, all accounted for." },
+  // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the holdover the fire stage re-placed (scenario-18.ts step 18, 26.3°/1170 m) lies
+  // ~545 m north-east of KY23's crew, ~260 m from EK14's, and nowhere near KY23's way to its truck (was "noin 120 m pohjoiseen …
+  // autolle menevän reitin vieressä"); at that range KY23 sees smoke, not flames. DRAFT Finnish for the native check.
+  { cycle: 19, atOffsetS: 60, from: "KY23", text: "KY23, pohjoisreuna, Karhujärven puoli: savua koillisessa noin puolen kilometrin päässä, uran itäpuolella EK14:n linjan suunnalla. Meidän kohdallamme ei paloa, kaikki tallessa.",
+    textEn: "KY23, north edge, Karhujärvi side: smoke to the north-east, about half a kilometre away, east of the track towards EK14's line. No fire where we are, all accounted for." },
   // Revision (aj): the crew pulled back to its vehicle at 15:40, before the turned flank reached its old line (not out ahead of it after 16:00).
   { cycle: 10, atOffsetS: 30, from: "EK14", text: "EK14: yhteys palasi. Odotimme maastoautolla tiellä R1 palaneella alueella, kunnes kääntynyt reuna oli ohittanut entisen linjamme klo 16 jälkeen. Siirrymme nyt palaneen kautta uudelle linjalle Karhujärven puolelle. Kaikki tallessa, maastoauto mukana.",
     textEn: "EK14: back in radio contact. We waited at the terrain vehicle on road R1 in the burned area until the turned edge had passed our old line after 16.00. We are moving through the burned area to the new line on the Karhujärvi side now. All accounted for, the terrain vehicle with us." },

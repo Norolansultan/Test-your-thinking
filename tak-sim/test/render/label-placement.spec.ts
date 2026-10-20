@@ -94,8 +94,10 @@ describe("earlier-perimeter times sit on their own lines, in time order (revisio
         const a = r.anchors[p.anchor]!;
         return [{ time: (r as { text?: string }).text!, v: a.x * Math.sin(t) - a.y * Math.cos(t) }];
       });
-      expect(along.length, `${w}×${h}`).toBeGreaterThanOrEqual(2);
-      expect(along.map((x) => x.time)).toContain("16:20 · 16:40");
+      // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the re-run fire barely moved from 16:00 to 16:40 (148 → 153 ha), so all three
+      // earlier perimeters share one label ("16:00 · 16:20 · 16:40"; were two, 16:00 on its own line).
+      expect(along.length, `${w}×${h}`).toBeGreaterThanOrEqual(1);
+      expect(along.some((x) => x.time.includes("16:20 · 16:40")), `${w}×${h}`).toBe(true);
       const byTime = [...along].sort((a, b) => (a.time < b.time ? -1 : 1));
       const byDistance = [...along].sort((a, b) => a.v - b.v);
       expect(byDistance.map((x) => x.time), `${w}×${h}`).toEqual(byTime.map((x) => x.time));

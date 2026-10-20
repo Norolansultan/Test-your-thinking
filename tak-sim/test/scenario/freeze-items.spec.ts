@@ -209,8 +209,9 @@ describe("the infrastructure slot", () => {
   it("answer keys hold against the corpus at the view's last step", () => {
     // R1: a direct drone road report at V2's last step (unsafe) and at V5's (2 Oct 2026: the verge burned, no flames, passable — "open"); fix pass 2: reports name the stretch (FF2).
     expect(corpus.some((e) => e.cycle === lastStep(2) && /tiehavainto: tie R1[^,]*, .*ajo ei turvallista/.test(e.content))).toBe(true);
-    expect(corpus.some((e) => e.cycle === lastStep(5) && /tiehavainto: tie R1[^,]*, .*ei liekkejä, ajettavissa/.test(e.content))).toBe(true);
-    expect(corpus.some((e) => e.cycle === lastStep(5) && /tiehavainto: tie R1[^,]*, .*(matalaa paloa|ajo ei turvallista)/.test(e.content))).toBe(false);
+    // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): DR2's 15.27 report is low fire at the verge, passable with care ("with_care", was "open").
+    expect(corpus.some((e) => e.cycle === lastStep(5) && /tiehavainto: tie R1[^,]*, .*matalaa paloa tien reunassa.*ajettavissa varoen/.test(e.content))).toBe(true);
+    expect(corpus.some((e) => e.cycle === lastStep(5) && /tiehavainto: tie R1[^,]*, .*(ei liekkejä|ajo ei turvallista)/.test(e.content))).toBe(false);
     // W1 at V4 (and the practice view), W3 by V7.
     expect(corpus.some((e) => e.cycle >= 5 && e.cycle <= 6 && /täytti säiliön, Haukilampi/.test(e.content))).toBe(true);
     expect(corpus.some((e) => e.cycle === -3 && /vettä saa Haukilammelta \(W1\)/.test(e.content))).toBe(true);
@@ -255,10 +256,10 @@ describe("nothing is named before it is knowable", () => {
     }
   });
 
-  it("no item names drones or the 110 kV line outside F7", () => {
+  it("no item names drones or the power line (20 kV since SPEC/33 (bc)) outside F7", () => {
     for (const f of [...mains, scenario.practice.freeze]) for (const it of f.items) {
       for (const t of texts(it)) expect(t).not.toMatch(/drooni/i);
-      if (!it.id.endsWith(".f7")) expect(texts(it).join(" "), it.id).not.toMatch(/110 kV|voimajoh/);
+      if (!it.id.endsWith(".f7")) expect(texts(it).join(" "), it.id).not.toMatch(/(?:110|20) kV|voimajoh|sähkölinj/);
     }
   });
 });

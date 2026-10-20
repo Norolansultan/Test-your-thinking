@@ -324,8 +324,9 @@ const BURNOUT_PROPOSE_M = 700;
 const BURNOUT_LIGHT_M = 400;
 const BURNOUT_MAX_GUST_MS = 12;
 /**
- * Revision (al), 10 Oct 2026 (map review panel): no officer burns out beside a 110 kV line whose status he has not
- * confirmed. A road crew within this distance of the line proposes its burnout on the stretch of road AWAY from the
+ * Revision (al), 10 Oct 2026 (map review panel): no officer burns out beside a power line whose status he has not
+ * confirmed (SPEC/33 (bc): a 20 kV distribution line on wooden poles since 20 Oct 2026 — the poles burn and a live conductor may
+ * fall, so the 300 m stays). A road crew within this distance of the line proposes its burnout on the stretch of road AWAY from the
  * line ("asemastamme länteen"), without a word about the line: the line's status is F7's planted record, asked at
  * V12, and nothing before the V12 freeze may speak of it.
  */

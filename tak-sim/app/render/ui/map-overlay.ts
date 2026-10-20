@@ -6,7 +6,7 @@
  * - the sectors L1–L4 from VP on: neutral grey dashed outlines and their codes only (`site-scenario.json` `sectors`),
  *   the codes small (9 px);
  * - road labels R1, R2, R3 and the R3 bridge ("R3:n silta (Kotkanjoki)" / "R3 bridge (Eagle River)"), which the radio
- *   names, small (9 px); "110 kV" along the power line (never its state), small;
+ *   names, small (9 px); "20 kV" along the power line (never its state), small (SPEC/33 (bc): was "110 kV");
  * - the command post (an own-forces flag, "JP" / "CP"), drawn up and to the left of its point so that neither the R1
  *   label east of it nor a unit staged on the point covers it (revision (am));
  * - the region's two other fires (`regionFires`, when the export has them): small incident markers with name and
@@ -130,7 +130,7 @@ export function addOverlayLabels(map: MapLibreMap, lang: "fi" | "en", levels: ()
   return () => {
     const { areaZoom, paloZoom } = levels();
     const wide = regionFiresVisible(map.getZoom(), areaZoom, paloZoom);
-    // "110 kV" along the line: its angle on screen (rotation is off, so it only needs the projection).
+    // "20 kV" along the line: its angle on screen (rotation is off, so it only needs the projection).
     const a = map.project([OVERLAY.powerLine.at.lon, OVERLAY.powerLine.at.lat]), t = map.project([OVERLAY.powerLine.towards.lon, OVERLAY.powerLine.towards.lat]);
     const deg = (Math.atan2(t.y - a.y, t.x - a.x) * 180) / Math.PI;
     for (const { label, marker } of markers) {

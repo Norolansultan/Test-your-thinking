@@ -17,7 +17,8 @@ export interface MapRoi {
 }
 
 /** V13's planted holdover US2 on the old fire's north edge, ±150 m (`18` ah.2; the planted contradiction). */
-const US2: RoiBox = { south: 60.856772, north: 60.859468, west: 27.356693, east: 27.362227 };
+// SPEC/33 stage 9 (20 Oct 2026): re-centred on US2 of the fire re-run on the rebuilt map (was 60.856772–60.859468, 27.356693–27.362227).
+const US2: RoiBox = { south: 60.856903, north: 60.859617, west: 27.356404, east: 27.361938 };
 /** The origin's south edge (~25 m south of the ignition), where the rekindle starts (V9: not yet on the map; V10: US1), ±150–400 m. */
 const ORIGIN_SOUTH: RoiBox = { south: 60.8455, north: 60.8495, west: 27.3455, east: 27.3545 };
 
@@ -27,10 +28,11 @@ export const MAP_ROIS: readonly MapRoi[] = [
   {
     id: "head",
     boxes: {
-      // The head segments' bounding box (`perimeter_current` with `is_head`) at each view, +100 m.
-      4: { south: 60.854312, north: 60.857718, west: 27.361096, east: 27.368034 },
-      5: { south: 60.860542, north: 60.864408, west: 27.373256, east: 27.381464 },
-      6: { south: 60.862622, north: 60.865088, west: 27.375216, east: 27.382854 },
+      // The head segments' bounding box (`perimeter_current` with `is_head`) at each view, +100 m. SPEC/33 stage 9 (20 Oct 2026): recomputed
+      // from the fire re-run on the rebuilt map (the V5 and V6 heads moved north-east).
+      4: { south: 60.854899, north: 60.857747, west: 27.360643, east: 27.368153 },
+      5: { south: 60.860022, north: 60.865348, west: 27.372641, east: 27.382383 },
+      6: { south: 60.866329, north: 60.869407, west: 27.383611, east: 27.390401 },
     },
     note: "the running head, V4–V6 (the crown run and the backed wind)",
   },

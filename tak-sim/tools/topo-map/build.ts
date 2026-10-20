@@ -256,8 +256,9 @@ const labelsEn = namedLabels().map((l) => ({ text: englishLabel(l.text), px: toP
 for (const h of heights) labelsEn.push({ text: h.h.toFixed(1), px: toPx(h.x, h.y), style: "height" as const });
 
 // Revision (al), 10 Oct 2026 (map review panel): tiles only, not in the fire grids — the farm pond at W2 (Lahdenkylän lampi), the
-// log landing at the R2 / Honkaharju forest-road junction (EK16's safety zone), and the 110 kV line's 36 m cleared corridor.
-const CORRIDOR_M = 36;
+// log landing at the R2 / Honkaharju forest-road junction (EK16's safety zone), and the power line's cleared corridor.
+// SPEC/33 (bc), 20 Oct 2026: a 20 kV distribution line (was 110 kV): a ~10 m cleared corridor on wooden poles (was 36 m).
+export const CORRIDOR_M = 10;
 const W2_POND = { cx: FEATURES.POND_W2.x, cy: FEATURES.POND_W2.y + 40, rx: 38, ry: 32 };
 const w2PondRing = Array.from({ length: 28 }, (_, k) => {
   const t = (2 * Math.PI * k) / 28;
@@ -372,7 +373,7 @@ for (let r = 0; r < CN; r++) for (let c = 0; c < CN; c++) {
   else if (cover === LC_FIELD) t = "field";
   else if (cover === LC_OPEN_BOG) t = "open_bog";
   else if (cover === LC_DRAINED_BOG || cover === LC_PINE_BOG) t = "drained_peat";
-  else if (distToPolyline(x, y, POWER_LINE) < 18) t = "cleared_corridor";
+  else if (distToPolyline(x, y, POWER_LINE) < CORRIDOR_M / 2) t = "cleared_corridor";
   else { const s = standAt(x, y); t = s.truth; m = s.machine; }
   truth[i] = fuelIndex(t);
   machine[i] = fuelIndex(m ?? t);

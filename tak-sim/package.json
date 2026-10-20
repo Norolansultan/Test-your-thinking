@@ -21,6 +21,8 @@
     "map:build": "tsx tools/topo-map/build.ts",
     "map:render": "python tools/topo-map/render.py",
     "map": "npm run map:build && npm run map:render",
+    "map:contract:extract": "tsx tools/topo-map/checks/contract-extract.ts",
+    "map:check": "tsx tools/topo-map/checks/contract.ts",
     "game:world": "tsx tools/game/build-world.ts",
     "game:balance": "tsx tools/game/balance.ts",
     "corpus:export": "tsx tools/corpus/export.ts",

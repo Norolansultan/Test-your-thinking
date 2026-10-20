@@ -276,7 +276,9 @@ export function aiAnswerLength(records: readonly LogRecord[]): AiAnswerLength[] 
     return e;
   };
   const add = (t: TextAmount, chars: number): TextAmount => ({ count: t.count + 1, chars: t.chars + chars });
-  for (const a of shownAnswers(records)) { const e = entry(a.view); e[a.tool] = add(e[a.tool], a.text.length); }
+  // `shownAnswers` also yields the review's premise lines as Thinker text (the told split); here they are counted apart, below.
+  const reviewSeqs = new Set(records.filter((r) => r.kind === "plan_review_shown").map((r) => r.seq as number));
+  for (const a of shownAnswers(records)) { if (reviewSeqs.has(a.seq)) continue; const e = entry(a.view); e[a.tool] = add(e[a.tool], a.text.length); }
   for (const r of records) {
     if (r.kind !== "plan_review_shown") continue;
     const d = r.detail as PlanReviewShownDetail;

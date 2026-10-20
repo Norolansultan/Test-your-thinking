@@ -1026,3 +1026,11 @@ Built on the researcher's instruction of 20 Oct 2026 ("create a plan and fix the
 4. **Pilot-2 cued recall** (`32` §6): the consent addendum (screen recording, replay), ethics approval, the coding scheme and two coders.
 5. **After data collection** (`29` (ba)): release game mode and the replay against the expert reference only then.
 6. **Design Basis v3** (the researcher's Claude Doc): a v4 tab aligned with `30` and `32` was added beside it; adopt v4 or keep editing v3.
+
+### 7.32 After the map rebuild (20 Oct 2026, `33`; open for the panel, the domain reviewer and the native speaker)
+
+1. **Panel:** V10 (area and R2 bands moved), V12 F7 (20 kV, the distribution company), V14 `se_front_r2` (new basis records); directive basis figures changed in V8, V10, V11, V13, V14 (posture coding unchanged). The packet is regenerated (`npm run review:panel`).
+2. **Domain reviewer:** the DRAFT 20 kV safety distances (persons 2 m; spray 5 m, jet 10 m; fallen conductor 20 m; the game's 15 m no-water distance), the re-authored V5 items, the firefighter-eye realism checklist of `33` §5 R on the new map, and the Salpausselkä question of `33` §8.
+3. **Native speaker:** every Finnish string listed in `docs/audits/2026-10-20-map/content/changes.md`.
+4. **Thinker index:** still PROVISIONAL; run `npm run thinker:index` and `npm run thinker:eval -- --write` where the embedding model is reachable, before pilot 2.
+

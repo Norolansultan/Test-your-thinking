@@ -3,6 +3,7 @@
 **Version 0.1 · 23 September 2026 · Status: adopted in principle (real terrain, searched site); the site itself is not yet chosen.** Replaces the ad-hoc placement in the preview build. Governs `18` §2 (ignition point) and `18` §5 (geography), which carry amendment markers. The fire itself is generated on the chosen site by the cellular automaton in `24`.
 
 > **Changelog**
+> - **20 Oct 2026 (ba)** — `33`: the generated site is rebuilt (glacial terrain, Priority-Flood hydrology, lobed drained mires, field parcels, routed roads, MML Karttapaikka style, cased roads, a 20 kV line). §11–§17 describe the previous generator. See the revision at the end.
 > - **9 Oct 2026 (ae)** — §16: the English basemap (the same map, its labels from `app/i18n/place-names.ts`, `18` ae.1); English sessions load it.
 > - **0.2 · 23 Sep 2026** — decisions: real place names as on the basemap (§7); three fixed zoom levels, the widest for other groups in later scenarios (§8); the Salpa Line is dropped (§4); **spread capacity is the main site criterion** (§3 H6, §5).
 > - 0.1 · 23 Sep 2026 — created. Decision: a real site, found by a search against written criteria, not a fictional terrain.
@@ -322,3 +323,6 @@ English sessions load the same basemap with English labels: `npm run map:build` 
 - **§11, the generated terrain** gains three tile-only features — the W2 farm pond, the 110 kV line's 36 m cleared corridor (with a heavier line and pylon ticks), the log landing at the R2 junction — and lighter mire hatching (`12` revision (al)). `render.py` draws them from `topo-features.json` (`ponds`, `clearings`, `powerCorridorPx`); they are not in `landCover()` or the fire grids, and `npm run map:build` rewrites `content/site/*.asc` with the same content. The origin's clear-cut is not drawn (researcher decision).
 - **Open (after the pilot):** F3's radio dead zone at `R1_BLACK_MID` sits on open road at ~89 m, the valley at 73–75 m (`18` al.6).
 
+## Revision 20 Oct 2026 (ba) — the site rebuilt (`33`)
+
+The generator of §11–§15 is replaced by `33` §4 (stages 1–6) under the geometry contract of `33` §3: every named feature keeps its relations to IGN and to the scenario (0 violations, `npm run map:check`). The basemap follows the researcher's Karttapaikka examples (`33` §9) except that public roads are cased, not red (`33` (ba)). The power line is a 20 kV distribution line with a 10 m corridor (`33` (bc)); the main road crosses one mire on an embankment ≤ 650 m (`33` (bb)). Evidence: `docs/audits/2026-10-20-map/`.

@@ -90,3 +90,23 @@ Order: contract → terrain (cartographer in parallel on style) → fire → tac
 ## 7. Completion
 
 `npm run ci` green; `npm run build:web`; screenshots of both basemaps at three zooms in `docs/audits/2026-10-20-map/`; `23`, `18` and `24` carry revision notes; the panel packet regenerated if any key moved (`npm run review:panel`); `11` lists what needs a person (the domain reviewer's realism sign-off, any re-keyed item for the panel).
+
+## 8. Open-source adoptions (research of 20 Oct 2026; licences verified from each repo's LICENSE, `docs/audits/2026-10-20-map-oss-licences.txt`)
+
+Only MIT, BSD, ISC, Apache-2.0 or CC0 code is ported or depended on; GPL/AGPL work is read as papers only. Ported code keeps its notice (Apache-2.0 also a NOTICE entry).
+
+| Stage | Adopt | How |
+|---|---|---|
+| 1 Terrain | Own NW–SE drumlin and esker ridge functions; distance-field ridges after redblobgames/mapgen4 (Apache-2.0) | idea / port |
+| 2 Hydrology | Priority-Flood (Barnes et al. 2014, from the paper); `mourner/flatqueue` (ISC); mapgen4 `assignDownslope`/`assignFlow`; Azgaar Fantasy-Map-Generator (MIT) lake-outlet search (`lakes.ts`) and depression resolution | write / depend / port |
+| 3 Mires | Topographic wetness index and height above nearest drainage after makepath/xarray-spatial (MIT) `twi_d8`, `hand_d8`: mire where TWI high, HAND < ≈ 1.5 m, slope < 2 %; own ditch grids; `mapbox/polylabel` (ISC), `simplify-js` (BSD-2) | port / depend |
+| 4 Land cover | Oriented-box field parcelling after stavguo/obb-parcelling (MIT); fuel classes after the Pelastusopisto MAST report and the CFFDRS FBP fuel types (reference) | port / reference |
+| 5 Roads | Azgaar `routes-generator.ts` cost function with road reuse and the Urquhart skeleton; `anvaka/ngraph.path` (MIT) A* on a slope, mire and water cost grid | port / depend |
+| 7 Fire | xiazeyu/PyTorchFire (MIT), the same Alexandridis model made differentiable, offline to calibrate parameters to the authored perimeters; xarray-spatial `fire.py` to cross-check the flame table | tool / port |
+| 8 Logistics | OSM water-point attribute model (`emergency=suction_point`, `fire_water_pond`, `water_tank`) as facts | schema |
+| 10 Render | MML maastokartta raster documentation (reference) for colours and symbols; openstreetmap-carto symbols (CC0); `d3-contour`, `delaunator` (ISC) | reference / depend |
+| Checks | xarray-spatial and WhiteboxTools (MIT) as independent hydrology checks in `hydro_check` (pinned versions), so the check does not merely confirm our own algorithm | tool |
+
+Not used: richdem, pysheds, fastscapelib, Cell2Fire, ForeFire, cffdrs, WISE and FireSTARR (as code), ELMFIRE, pyretechnics, FreeTAKServer, ATAK-CIV, OpenFireMap rules (GPL, AGPL, CC BY-SA, non-commercial or unverified licences); fluvial-erosion terrain generators (non-glacial look).
+
+**For the domain reviewer:** IGN's nominal position (≈ 60.84 N, 27.35 E) lies near the First Salpausselkä around Kouvola–Luumäki. The site is fictional, but a local officer would expect that ridge; either keep the extent free of a Salpausselkä-sized ridge and say the site is fictional, or move the nominal CRS anchor north of it (no change to local geometry).

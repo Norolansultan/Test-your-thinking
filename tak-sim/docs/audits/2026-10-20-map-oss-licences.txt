@@ -1,0 +1,11 @@
+Verified from raw.githubusercontent.com LICENSE files, 2026-10-20:
+MIT: jblindsay/whitebox-tools, landlab/landlab, dandrino/terrain-erosion-3-ways, Azgaar/Fantasy-Map-Generator, Deltares/pyflwdir, makepath/xarray-spatial, xiazeyu/PyTorchFire, elbecerrasoto/gym-cellular-automata, anvaka/ngraph.path, spatialillusions/milsymbol, Sahana/eden, Turfjs/turf, stavguo/obb-parcelling, talarsen/wildfire-commander, nlsfi/hakunapi, mourner/rbush
+Apache-2.0: redblobgames/mapgen4, redblobgames/mapgen2, mitrefireline/simfire
+ISC: mapbox/delaunator, d3/d3-contour, mapbox/martini, mapbox/polylabel, mourner/flatqueue, mapbox/geojson-vt ; BSD-2: mourner/simplify-js
+CC0: gravitystorm/openstreetmap-carto ; US public domain: firelab/windninja
+MIT OR EUPL-1.1: oskariorg/oskari-frontend
+GPL-3: r-barnes/richdem, mdbartos/pysheds, fastscape-lem/fastscapelib, cell2fire/Cell2Fire, fire2a/C2F-W, forefireAPI/firefront, MBredlau/ForFiS, TopoToolbox/*, rphlo/karttapullautin, OpenOrienteering/mapper
+GPL-2: cffdrs/cffdrs_r, cffdrs/cffdrs_py, geoserver
+AGPL-3: WISE-Developers/WISE_Application, CWFMF/FireSTARR, HSLdevcom/hsl-map-style, ushahidi/platform (AGPL text)
+AGPL+Commons Clause: lautenberger/elmfire ; custom noncommercial: pyregence/pyretechnics ; EPL-2.0: FreeTAKServer
+No LICENSE file found: r-barnes/Barnes2013-Depressions, firelab/behave, mzhen77/neural-ca-wildfire, CWFMF/cffdrs-ng

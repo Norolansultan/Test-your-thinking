@@ -97,11 +97,17 @@ const EVENTS: Readonly<Record<string, CycleForcing["events"]>> = {
   // with it within the cycle (SPEC/24 §8 decision 2); a spot that stays detached reads categorical.
   W3: [{ kind: "ignite", anchor: "head", bearingDeg: 30, distanceM: 70, radiusM: 15, note: "spot fire 30 m across R1" }],
   W4: [{ kind: "extinguish", anchor: "ignition", bearingDeg: 20, distanceM: 440, radiusM: 60, note: "VPK knocks the R1 spot down" }],
-  "3": [{ kind: "ignite", anchor: "head", bearingDeg: 45, distanceM: 140, radiusM: 20, note: "second ignition on RIDGE, 140 m ahead (ember or lightning)" }],
+  // SPEC/33 stage 7 (20 Oct 2026, the rebuilt map): 100 m ahead, radius 25 (was 140 m, radius 20). On the new ground the 140 m spot
+  // grew into the spruce patches on the esker's flank and the live head measured 13.3 m/min, over the flame table's crown limit
+  // (12 m/min) at 14:00, an hour before the authored crown run; at 100 m it measures 10.8 m/min (10.6 on the old map, same flame band).
+  "3": [{ kind: "ignite", anchor: "head", bearingDeg: 40, distanceM: 100, radiusM: 25, note: "second ignition on RIDGE, 100 m ahead (ember or lightning)" }],
   // SPEC/24 §12: the gusting head (10 m/s) jumps R1 north of the head where the machine's mean wind
   // (6 m/s) cannot; EK14, working that stretch of R1, wets the north verge and holds it. Cycle 4
   // stays "holds" because a crew acted, and the radio says so.
-  "4": [{ kind: "remove_fuel", anchor: "ignition", bearingDeg: 57, distanceM: 880, radiusM: 90, note: "EK14 wets the north verge of R1 and holds the slop-over", radioFrom: "EK14", radioFi: "Palo yritti ylittää tien R1 kärjen kohdalla puuskissa. Kastelimme tien pohjoisreunan, ylitys pysäytetty. Linja pitää." }],
+  // SPEC/33 stage 7: 63°, 880 m (was 57°): on the rebuilt map R1 runs ~20–70 m further north east of the head (its new line), so the
+  // wetted verge moves east with it; the fire's south-east flank is then ~590 m from the R1/R2 junction at 15:00 (V2 junction_hour,
+  // contract 450–650 m; 671 m with the old disk).
+  "4": [{ kind: "remove_fuel", anchor: "ignition", bearingDeg: 63, distanceM: 880, radiusM: 90, note: "EK14 wets the north verge of R1 and holds the slop-over", radioFrom: "EK14", radioFi: "Palo yritti ylittää tien R1 kärjen kohdalla puuskissa. Kastelimme tien pohjoisreunan, ylitys pysäytetty. Linja pitää." }],
   "6": [
     // §7's 200–400 m crown-run spotting (2 Oct 2026 audit: 300 and 400 m, was 200 and 250, which the run overran inside the step).
     { kind: "ignite", anchor: "head", bearingDeg: 38, distanceM: 300, radiusM: 20, note: "crown-run spotting 200–400 m ahead" },
@@ -109,7 +115,9 @@ const EVENTS: Readonly<Record<string, CycleForcing["events"]>> = {
   ],
   // The spots the crown run threw ahead show on the 15:20 map (PP1, PP2) in the pine past the brook, so the run does not simply stop at Koivuoja.
   "7": [
-    { kind: "ignite", timing: "before_report", anchor: "head", bearingDeg: 40, distanceM: 250, radiusM: 20, note: "crown-run spot fire past the brook (PP1)" },
+    // SPEC/33 stage 7: PP1 35°, 200 m (was 40°, 250 m): on the rebuilt map Koivuoja bends south-east past the head, and the 250 m spot
+    // fell beyond the Koivuoja forest road; at 200 m it lands just over the brook, as the 15:40 radio says (embers over Koivuoja).
+    { kind: "ignite", timing: "before_report", anchor: "head", bearingDeg: 35, distanceM: 200, radiusM: 20, note: "crown-run spot fire past the brook (PP1)" },
     { kind: "ignite", timing: "before_report", anchor: "head", bearingDeg: 52, distanceM: 330, radiusM: 20, note: "crown-run spot fire past the brook (PP2)" },
   ],
   // Review fixes (ah), 9 Oct 2026: with the backing now at 15:40 the head no longer runs north-east over Koivuoja into the
@@ -118,7 +126,10 @@ const EVENTS: Readonly<Record<string, CycleForcing["events"]>> = {
   // the brook into them in this step, as the 15:40 radio says ("Kipinät lensivät Koivuojan yli … palo pääsi yli").
   "8": [
     { kind: "ignite", anchor: "ignition", bearingDeg: 44.4, distanceM: 2466, radiusM: 65, note: "the head crosses Koivuoja into the crown-run spot fires" },
-    { kind: "ignite", anchor: "ignition", bearingDeg: 42.7, distanceM: 2840, radiusM: 45, note: "and joins the furthest of them" },
+    // SPEC/33 stage 7: on the rebuilt map the farther crown-run spot (PP2) lies east of the Koivuoja forest road; the old 42.7°/2840 m
+    // disk lit the road's west side and left PP2 a separate 3 ha fire all evening. At 42.4°/2789 m, radius 60, the flank fire
+    // crosses the forest road into it within the step (the radio's creep over the road at 15:40–16:00).
+    { kind: "ignite", anchor: "ignition", bearingDeg: 42.4, distanceM: 2789, radiusM: 60, note: "and joins the furthest of them across the forest road" },
   ],
   // SPEC/18 §7 cycle 10 (revised 2 Oct 2026: no shower): the wind eases and backs, the north-flank
   // head runs back over its own burnt ground, and crews report L2 in hand and L1 nearly (L1 secured at 16:40); L4 (origin and rear)
@@ -146,7 +157,12 @@ const EVENTS: Readonly<Record<string, CycleForcing["events"]>> = {
   // sharing the old edge. Its centre is ~65 m from the ignition point (was 80 m past the edge, ~120 m out, with a
   // two-cell gap on every map from 17:20 to 20:00). The first unburned ring outside the old edge is the held line
   // (L2's, secured at 16:20, reaching one cell into L3): the rekindle surfaces through it (`model.ts` ignite).
-  "12": [{ kind: "ignite", anchor: "edge", bearingDeg: 135, distanceM: 30, radiusM: 40, rekindle: true, note: "the omission: smouldering at the origin's south edge flares up as the wind turns" }],
+  // SPEC/33 stage 7 (20 Oct 2026, the rebuilt map): 130°, 35 m past the edge, radius 45 (was 135°, 30 m, 40). The Honkaharju forest
+  // road now runs ~330 m south of the origin; from the old disk the front reached it at 18:20–18:40 and crossed it in the 18:40 gusts,
+  // a step early, with no stop first. From this disk (still on L3's edge, 130°) the front is ~110 m from the road at 18:00, the road
+  // stops it at 18:40–19:00 over ~600 m and the head crosses it in the gusts at 19:00–19:20, as V12–V14 are designed (sweep of
+  // bearings 130–160°, 5–45 m past the edge, radius 25–45 m, seed 20080101: this was the one disk that gave that sequence).
+  "12": [{ kind: "ignite", anchor: "edge", bearingDeg: 130, distanceM: 35, radiusM: 45, rekindle: true, note: "the omission: smouldering at the origin's south edge flares up as the wind turns" }],
   // 2 Oct 2026 audit P5: was 1350 m @30°, which the 15:40–16:00 widening had already burned (a no-op); now ~180 m
   // north of EK14's crew on the L1B edge (217, 986), ~160 m outside the fire's north edge, on unburned ground.
   // 3 Oct 2026 review: 12° put it on EK15's crew-to-truck line; 8° keeps it ~90 m west of that line.
@@ -161,7 +177,9 @@ const EVENTS: Readonly<Record<string, CycleForcing["events"]>> = {
   // item of SPEC/18 §7.1). The edge there faces north; by bearing it lies in L2's wedge (20–100°). In the north-westerly
   // it backs and creeps along the edge, never runs at the crews. The "edge" anchor is not used: the 27° ray runs on into
   // the fire's north-east bulge, so its outermost burned cell is not this edge.
-  "18": [{ kind: "ignite", timing: "before_report", anchor: "ignition", bearingDeg: 27, distanceM: 1155, radiusM: 25, rekindle: true, note: "the contradiction: a holdover on the old north edge flares up east of EK14's line (SPOT reports it)" }],
+  // SPEC/33 stage 7 (20 Oct 2026, the rebuilt map): 26.3°, 1170 m (was 27°, 1155 m). On the new ground the north edge there lies
+  // ~15 m further out, and the old disk caught a single cell; this one lights two cells of the held line on the north-facing edge.
+  "18": [{ kind: "ignite", timing: "before_report", anchor: "ignition", bearingDeg: 26.3, distanceM: 1170, radiusM: 25, rekindle: true, note: "the contradiction: a holdover on the old north edge flares up east of EK14's line (SPOT reports it)" }],
   // The second rekindle (phase-B rebuild round 2, researcher decision 5 Oct 2026; SPEC/27 §7.4 candidate
   // (ii)): a late misfit view for the directive. Stumps and slash smouldering past the origin's old west
   // edge flare up in the evening north-westerly, in sector L4, where no crew works. Anchored to the burned

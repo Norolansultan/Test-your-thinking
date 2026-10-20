@@ -94,6 +94,10 @@ const SCENARIOS: readonly Scenario[] = [
   { id: "check-.8-1.0", label: "premise check, exp .8 (notification), δ 1.0", pExp: 0.8, delta: 1.0, gamma: 0 },
   { id: "check-.8-1.5", label: "premise check, exp .8 (notification), δ 1.5", pExp: 0.8, delta: 1.5, gamma: 0 },
   { id: "amplifier", label: "compliance push γ 0.7, no check effect", pExp: 0.8, delta: 0, gamma: 0.7 },
+  // SPEC/32 §3 (20 Oct 2026): the premise line at the plan review reaches every guide participant (exposure 1). Appended, so the
+  // rows above keep their seeds and reproduce `30` (az) exactly.
+  { id: "review-1.0", label: "premise line at the plan review, exp 1.0, δ 1.0", pExp: 1.0, delta: 1.0, gamma: 0 },
+  { id: "review-1.5", label: "premise line at the plan review, exp 1.0, δ 1.5", pExp: 1.0, delta: 1.5, gamma: 0 },
 ];
 
 /** [Haku, guide]: SPEC/30 §2 (100 = 50 : 50), 20 % attrition, and the 11 Oct reference size. */
@@ -207,6 +211,16 @@ function glmIntP(d: Dataset, views: readonly number[] = [0, 1, 2, 3, 4, 5], outc
   return clusteredLogitP(X, rows.map(outcome), rows.map((o) => o.pid), d.participants, 2);
 }
 
+/**
+ * GLM-c (H15c, SPEC/32 §4): the criterion of the signal-detection pair — aligned ~ 1 + S + view dummies + phase-A share over all keyed
+ * views (the view dummies carry fit). Target: S. A compliance push moves it; a check that only sharpens discrimination moves it little.
+ */
+function glmMainP(d: Dataset, views: readonly number[] = [0, 1, 2, 3, 4, 5], outcome: (o: Obs) => number = (o) => o.alignedAct): number | null {
+  const rows = d.obs.filter((o) => views.includes(o.view));
+  const X = rows.map((o) => [1, o.s, ...dummies(o, views), o.baseA - 0.5]);
+  return clusteredLogitP(X, rows.map(outcome), rows.map((o) => o.pid), d.participants, 1);
+}
+
 /** The power columns, in table order: [label, p-value of one replicate]. */
 const ESTIMATORS: readonly (readonly [string, (d: Dataset) => number | null])[] = [
   ["H13 act (V9, V10, V14)", (d) => glmCP(d, (o) => o.cAct)],
@@ -218,6 +232,7 @@ const ESTIMATORS: readonly (readonly [string, (d: Dataset) => number | null])[] 
   ["H15 label (sensitivity)", (d) => glmIntP(d, undefined, (o) => o.aligned)],
   ["H15, V11 mixed", (d) => glmIntP(d, [0, 1, 2, 4, 5])],
   ["H15, V14 mixed", (d) => glmIntP(d, [0, 1, 3, 4, 5])],
+  ["H15c criterion (act)", (d) => glmMainP(d)],
 ];
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **20 Oct 2026 (ba)** — §7.31: the researcher items of `32` (critical reading of 20 Oct 2026). See §7.31.
 > - **19 Oct 2026 (az)** — §7.30 (az): phase 3 of the skills review integrated; two additions to the list (an RC on the act coding's boundary sectors; the real Thinker re-index); the resume point for phase 4. See §7.30 (az).
 > - **19 Oct 2026 (ay)** — §7.30 (ay): the before-pilot list after the skills review (`31` §6) supersedes items 1–10; the researcher's confirmations (RC), the panel packet, the Pelastusopisto VERIFY list and the FMI/Prometheus items added.
 > - **19 Oct 2026 (ax)** — §7.30: the before-pilot checklist of `30` §8 (repository visibility, panel keys, premise table, new items, Finnish wording, model pin, ethics, strata) and the open items of the teaming design.
@@ -1014,3 +1015,14 @@ Phase 3 (`31` §7, WP-1 to WP-5) is merged and reconciled (`31` (az)); `npm run 
 - **Before pilot 2 (researcher, on a machine that reaches the embedding model):** `npm run thinker:index` (both languages) and `npm run thinker:eval -- --write`; the index in the repository is PROVISIONAL (`31` (az)).
 
 **Resume point (session paused at about 75 % of the five-hour usage window: phase 4 would cross the researcher's 80 % rule; the window resets at 20:30 UTC).** Next is phase 4: a critical review of the integrated diff (`b884cf4..85a3c95`, by a reviewer model separate from the implementer) and the scenario-pipeline status report against Gates A–D (`wildfire-scenario-pipeline`), then the final summary with the people list. Phase 4 starts only when both usage windows are under 80 %. WP-6 waits for the Pelastusopisto answers.
+
+### 7.31 After the critical reading (20 Oct 2026, `32`; open for the researcher, the native speaker and the ethics board)
+
+Built on the researcher's instruction of 20 Oct 2026 ("create a plan and fix them"); each stays DRAFT until confirmed:
+
+1. **The plan review at commitment** (`32` §3): its wording (fi/en, native check) and the 45 s revision window; check both in pilot 1.
+2. **The primary-switch rule** (`32` §4, `09` (ba)): H13 primary unless pilot 2's Haku fit-view departure rate is ≥ 15 %. Confirm the rule and the threshold before the lock (RC).
+3. **The S-TIAS in Finnish** (`08` (ba)): translation and back-translation, native check; the ethics notice for the changed questionnaire.
+4. **Pilot-2 cued recall** (`32` §6): the consent addendum (screen recording, replay), ethics approval, the coding scheme and two coders.
+5. **After data collection** (`29` (ba)): release game mode and the replay against the expert reference only then.
+6. **Design Basis v3** (the researcher's Claude Doc): a v4 tab aligned with `30` and `32` was added beside it; adopt v4 or keep editing v3.

@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **20 Oct 2026 (ba)** — format **0.12.0** (`32` §3): `plan_review_shown`, `plan_review_record_opened`, `plan_review_closed`. See the revision at the end.
 > - **19 Oct 2026 (ay)** — format **0.11.0** (`31` §3.6): `ai_chat_answer_received` gains `digestAtomIds` (the guide's digest; empty for Haku) and `recentAtomIds` (both tools), so exposure can count what reached the model without a search; the new post-session item ids; `consult_prompt_shown.atViewSeconds` may be later than 60 when the notice yields to a freeze. See the revision at the end.
 > - **19 Oct 2026 (ax)** — format **0.10.0** (`30`): `consult_prompt_shown` / `_opened` / `_dismissed`, `plan_confidence_presented` / `_submitted`; `ai_chat_query_submitted.viaChip`; `query_focus` / `query_first_keystroke` / `query_edit` gain `field` and `cycle`, `pointer_track` gains `cycle` and `viewportPx`; the first emitters of `pointer_track`, the query kinds, `decision_option_hovered`, `probe_option_hovered`, `probe_answer_changed` and `frame_stats`. See the revision at the end.
 > - **13 Oct 2026 (av)** — the TAK shell (`28` §5): header field `uiShell` (`"tak" | "classic"`; a resumed log without it resumes as classic) and seven map-use kinds `tak_pane_opened`, `tak_pane_closed`, `tak_contact_selected`, `tak_overlay_toggled`, `tak_rb_measured`, `tak_chat_room_viewed`, `tak_video_viewed`. See the revision at the end.
@@ -636,3 +637,10 @@ Format version **0.10.0** (`TELEMETRY_FORMAT_VERSION`); the kinds are additive, 
 - **Post-session items** (item ids in `questionnaire_submitted`, `08` (ay)): source-memory lures `sm.lure.1`, `sm.lure.2`; `believability`; `recognition.fire` with a free-text-free follow-up `recognition.what` (fixed options: a fire, a department, a unit's call sign, none); `prior.demo_or_game`; `reliability.tool`, `reliability.map` (25/50/75/100).
 - **`consult_prompt_shown.atViewSeconds`** may exceed 60 when the notice was deferred past a freeze due within 15 s (`15` (ay)); no new kind.
 - **Analysis-only additions** (`app/telemetry/`, never at runtime): `attended` / `cellByAct` in `codePosture`, the error-class fold, `statedLure`, the three-way told class, the hits-vs-false-alarms score of V13's area item, per-half scores of crossed keys.
+
+## Revision 20 Oct 2026 (ba) — format 0.12.0 (`32` §3)
+
+- `plan_review_shown { cycle, atViewSeconds, trigger, premiseLines, premiseStatuses, tableSha256, premiseError? }` — once per phase-B view when the plan would become final; the view's clock stands still until it closes. `premiseLines` and `premiseStatuses` only in the guide group (the premise-evidence table's, from `POST /api/thinker/premise-review`; never model text).
+- `plan_review_record_opened { cycle, atomId }` — the guide group opened a record the review cites.
+- `plan_review_closed { cycle, choice: keep | revise | time_cap, dwellMs, capExtendedToSeconds? }` — with `revise` the allocation reopens (`allocation_revision_opened`, `allocation_revised`) and the view ends at the revision with no second review; the cap moves to leave `REVIEW_REVISION_MIN_SECONDS` (45 s) if fewer remain.
+- The review's lines count as AI-stated text in `aiStatedKey` and in exposure.

@@ -819,7 +819,11 @@ export type TelemetryEvent =
   | { readonly kind: "consult_prompt_opened"; readonly detail: ConsultPromptDetail }
   | { readonly kind: "consult_prompt_dismissed"; readonly detail: ConsultPromptDismissedDetail }
   | { readonly kind: "plan_confidence_presented"; readonly detail: PlanConfidencePresentedDetail }
-  | { readonly kind: "plan_confidence_submitted"; readonly detail: PlanConfidenceSubmittedDetail };
+  | { readonly kind: "plan_confidence_submitted"; readonly detail: PlanConfidenceSubmittedDetail }
+  // SPEC/32 §3 (20 Oct 2026): the plan review at commitment, phase B (V8–V14), both groups
+  | { readonly kind: "plan_review_shown"; readonly detail: PlanReviewShownDetail }
+  | { readonly kind: "plan_review_record_opened"; readonly detail: PlanReviewRecordOpenedDetail }
+  | { readonly kind: "plan_review_closed"; readonly detail: PlanReviewClosedDetail };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -853,6 +857,53 @@ export interface PlanConfidenceSubmittedDetail {
   /** 25, 50, 75 or 100 (the study's confidence scale). */
   readonly value: number;
 }
+
+// ---------------------------------------------------------------------------
+// SPEC/32 §3 (20 Oct 2026): the plan review at commitment
+// ---------------------------------------------------------------------------
+
+/** One directive premise's status as the review showed it (the premise-evidence table's, never the model's). */
+export interface PlanReviewPremiseStatus {
+  readonly premiseId: string;
+  readonly status: "contradicted" | "not_contradicted";
+  /** The deciding records' atom ids (empty when not contradicted). */
+  readonly atomIds: readonly string[];
+}
+/**
+ * The review opened in a phase-B view at the moment the plan would become final: the minimum length reached with a plan
+ * recorded (`minimum_reached`), or a plan recorded after the minimum (`plan_after_minimum`). Once per view; the view's clock
+ * stands still while it is open. Both groups see the plan; the guide group also sees the premise lines (fixed template, the
+ * session language), looked up on the server from the premise-evidence table at the view's records clock.
+ */
+export interface PlanReviewShownDetail {
+  readonly cycle: CycleIndex;
+  readonly atViewSeconds: number;
+  readonly trigger: "minimum_reached" | "plan_after_minimum";
+  /** Guide group: the lines shown; null in the Haku group, or when the lookup failed (then `premiseError`). */
+  readonly premiseLines: readonly string[] | null;
+  readonly premiseStatuses: readonly PlanReviewPremiseStatus[] | null;
+  /** Guide group: the premise-evidence table's sha256, as the server reported it. */
+  readonly tableSha256: string | null;
+  readonly premiseError?: string;
+}
+/** Guide group: the participant opened a record the review's premise line cites. */
+export interface PlanReviewRecordOpenedDetail {
+  readonly cycle: CycleIndex;
+  readonly atomId: string;
+}
+/**
+ * The review closed: the plan kept (the view ends), a revision opened (the allocation opens again; the view ends when the
+ * revision is recorded, with no second review), or the cap reached while it was open. `capExtendedToSeconds`: with
+ * `revise`, the view's cap when fewer than {@link REVIEW_REVISION_MIN_SECONDS} were left.
+ */
+export interface PlanReviewClosedDetail {
+  readonly cycle: CycleIndex;
+  readonly choice: "keep" | "revise" | "time_cap";
+  readonly dwellMs: number;
+  readonly capExtendedToSeconds?: number;
+}
+/** SPEC/32 §3: a revision opened from the review has at least this many seconds of view time before the cap. */
+export const REVIEW_REVISION_MIN_SECONDS = 45;
 
 export type RecordKind = TelemetryEvent["kind"];
 
@@ -966,7 +1017,11 @@ export type RecordKind = TelemetryEvent["kind"];
  * empty for Haku) and `recentAtomIds` (both tools): what reached the model without a search, so exposure is computed from the browser
  * log alone. Both optional: older logs, an older proxy and the local fallback have neither, and still parse. No new kind.
  */
-export const TELEMETRY_FORMAT_VERSION = "0.11.0";
+/*
+ * 0.12.0 (SPEC/32 §3, 20 Oct 2026): `plan_review_shown`, `plan_review_record_opened` and `plan_review_closed` are added (the
+ * plan review at commitment in phase B, both groups).
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.12.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -995,4 +1050,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "freeze_map_pick", "map_labels_placed", "window_size_warning",
   "tak_pane_opened", "tak_pane_closed", "tak_contact_selected", "tak_overlay_toggled", "tak_rb_measured", "tak_chat_room_viewed", "tak_video_viewed",
   "consult_prompt_shown", "consult_prompt_opened", "consult_prompt_dismissed", "plan_confidence_presented", "plan_confidence_submitted",
+  "plan_review_shown", "plan_review_record_opened", "plan_review_closed",
 ];

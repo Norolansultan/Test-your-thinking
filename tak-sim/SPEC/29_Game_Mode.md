@@ -4,6 +4,7 @@
 **Scope:** a separate mode in which the fire is simulated live, the player commands the units, and orders change the outcome. It reuses the study's terrain and TAK screen conventions. It is **not** the research instrument and changes nothing in it.
 
 > **Changelog**
+> - **21 Oct 2026 (bb)** — game mode gains a training course, fixed decision tasks and an always-available instructions panel: `34` governs them. Free play (§4) unchanged.
 > - **20 Oct 2026 (ba)** — `32` §8 item 5: game mode and the post-session replay are offered to participants only after data collection closes. See the revision at the end.
 > - **19 Oct 2026 (az)** — WP-5 built: the game's timelines moved off the study's keyed moments, `RECRUITMENT_GATE` in the build and the server, balance re-run (unchanged grades). §4's scenario line is superseded. See the revision at the end.
 > - **19 Oct 2026 (ay)** — `31` P-12: §2.3 sharpened — the game's scenarios must not replay the study's keyed events ("Summer afternoon" replayed the 17:00 origin rekindle, the 15:30 de-energising that pre-answers F7 and the 17:40 recall; "Evening wind" the refusing households and the 19:00 north-westerly at Lahdenkylä); the demonstration and game are gated during recruitment; a post-session prior-use item with an exclusion rule. See the revision at the end.

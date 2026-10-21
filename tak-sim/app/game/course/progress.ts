@@ -4,10 +4,8 @@
  * the page works without a storage: progress then lasts the visit (`memoryStorage`). Nothing here goes to the study's
  * stores, its telemetry or a server.
  *
- * OPEN: SPEC/34 §2 keeps progress in the browser's own storage, but the game-isolation test
- * (`test/game-ui/isolation.spec.ts`, SPEC/29 §2) bars every browser storage API from the game's sources. Until the
- * test's owner allows this one store, the game keeps progress in memory (`defaultStorage`); a browser storage can be
- * passed in through the same interface once it is allowed.
+ * The one browser store the game may use (`test/game-ui/isolation.spec.ts` allows this file only, and only the
+ * `localStorage` key under `PROGRESS_KEY_PREFIX`): the study's IndexedDB store and its session keys are never touched.
  */
 
 import { PROGRESS_KEY_PREFIX, type TaskResult } from "../tasks/contracts.js";
@@ -45,8 +43,14 @@ export function memoryStorage(): ProgressStorage {
 
 const VISIT = memoryStorage();
 
-/** The storage the game uses: the visit's memory (see the header's OPEN note). */
+/** The browser's `localStorage` when it can be reached, else the visit's memory (private windows, blocked storage). */
 export function defaultStorage(): ProgressStorage | null {
+  try {
+    const ls = globalThis.localStorage;
+    if (ls) return ls;
+  } catch {
+    // blocked: fall through to the visit's memory
+  }
   return VISIT;
 }
 

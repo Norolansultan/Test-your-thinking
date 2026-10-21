@@ -121,5 +121,5 @@ export interface CourseModule {
   readonly checks: readonly CheckQuestion[];
 }
 
-/** The `localStorage` key prefix for game-mode progress (SPEC/34 §2). */
+/** The browser-storage key prefix for game-mode progress (SPEC/34 §2). */
 export const PROGRESS_KEY_PREFIX = "tak-game.";

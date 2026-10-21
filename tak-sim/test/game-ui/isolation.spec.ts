@@ -107,11 +107,16 @@ describe("game mode isolation — imports (SPEC/29 §2)", () => {
     const SHARED = new Set(["app/session/asset-url.ts", "app/engine/deterministic-object.ts"]);
     const study = [...closure].map(rel).filter((f) => !SHARED.has(f) && /^app\/(telemetry|boundary|engine|session)\//.test(f));
     expect(study).toEqual([]);
+    // SPEC/34 §2: the one game-only store, the player's progress under its own key prefix (never the study's keys).
+    const PROGRESS = "app/game/course/progress.ts";
     for (const f of closure) {
       if (!CODE_EXT.has(extname(f)) || !insideGame(f)) continue;
       const src = readFileSync(f, "utf8");
-      expect(/indexedDB|localStorage|sessionStorage|fetch\s*\(|sendBeacon/.test(src), rel(f)).toBe(false);
+      const banned = rel(f) === PROGRESS ? /indexedDB|sessionStorage|fetch\s*\(|sendBeacon/ : /indexedDB|localStorage|sessionStorage|fetch\s*\(|sendBeacon/;
+      expect(banned.test(src), rel(f)).toBe(false);
     }
+    const progress = readFileSync(join(ROOT, PROGRESS), "utf8");
+    expect(/\.getItem\((?!PROGRESS_KEY\b)|\.setItem\((?!PROGRESS_KEY\b)|removeItem|\.clear\(/.test(progress)).toBe(false);
   });
 });
 

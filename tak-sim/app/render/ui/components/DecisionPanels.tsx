@@ -20,6 +20,7 @@ import { useLang } from "../i18n.js";
 import { unitCallSign } from "../../../i18n/place-names.js";
 import { Choice, hint, label, Panel, PrimaryButton } from "./PanelParts.js";
 import { useHoverDwell } from "./hover-dwell.js";
+import { Glossed } from "../explain/Glossed.js";
 
 const row = { display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" } as const;
 /** The plan's rows: the label in a narrow left column, the choices on one line beside it. */
@@ -130,45 +131,45 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
   return (
     <Panel compact>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-        <span style={{ fontSize: 12.5, opacity: 0.85 }}>{t.allocationHint}</span>
+        <span style={{ fontSize: 12.5, opacity: 0.85 }}><Glossed text={t.allocationHint} surface="plan" /></span>
         <span style={{ fontSize: 11, fontFamily: "monospace", opacity: 0.55, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{onSceneLine(t, snapshot.allocation, lang)}</span>
         <PrimaryButton disabled={!complete} onClick={submit}>{t.confirmAllocation}</PrimaryButton>
       </div>
       {snapshot.revisingAllocation && <p style={{ ...hint, fontSize: 12, margin: "0 0 4px" }}>{t.revisionHint}</p>}
 
       <div style={grid}>
-        <div style={rowLabel}>{t.mainEffortLabel}</div>
+        <div style={rowLabel}><Glossed text={t.mainEffortLabel} surface="plan" /></div>
         <div style={row}>
-          {sectors.map((s) => <Choice compact key={s.id} hover={hover("main_effort", s.id)} selected={mainEffort === s.id} onClick={() => set({ mainEffort: s.id, ...(secondarySector === s.id ? { secondarySector: undefined } : {}) })}>{tr(s.labelFi)}</Choice>)}
+          {sectors.map((s) => <Choice compact key={s.id} hover={hover("main_effort", s.id)} selected={mainEffort === s.id} onClick={() => set({ mainEffort: s.id, ...(secondarySector === s.id ? { secondarySector: undefined } : {}) })}><Glossed text={tr(s.labelFi)} surface="plan" /></Choice>)}
         </div>
 
-        <div style={rowLabel}>{t.postureLabel}</div>
+        <div style={rowLabel}><Glossed text={t.postureLabel} surface="plan" /></div>
         <div style={row}>
-          {MAIN_EFFORT_POSTURES.map((p) => <Choice compact key={p} hover={hover("posture", p)} selected={posture === p} onClick={() => set({ posture: p })}>{t.postures[p]}</Choice>)}
+          {MAIN_EFFORT_POSTURES.map((p) => <Choice compact key={p} hover={hover("posture", p)} selected={posture === p} onClick={() => set({ posture: p })}><Glossed text={t.postures[p]} surface="plan" /></Choice>)}
         </div>
 
-        <div style={rowLabel}>{t.secondaryLabel}</div>
+        <div style={rowLabel}><Glossed text={t.secondaryLabel} surface="plan" /></div>
         <div style={row}>
-          <Choice compact hover={hover("secondary", "none")} selected={secondarySector === null} onClick={() => set({ secondarySector: null })}>{t.noSecondary}</Choice>
-          {sectors.filter((s) => s.id !== mainEffort).map((s) => <Choice compact key={s.id} hover={hover("secondary", s.id)} selected={secondarySector === s.id} onClick={() => set({ secondarySector: s.id })}>{tr(s.labelFi)}</Choice>)}
+          <Choice compact hover={hover("secondary", "none")} selected={secondarySector === null} onClick={() => set({ secondarySector: null })}><Glossed text={t.noSecondary} surface="plan" /></Choice>
+          {sectors.filter((s) => s.id !== mainEffort).map((s) => <Choice compact key={s.id} hover={hover("secondary", s.id)} selected={secondarySector === s.id} onClick={() => set({ secondarySector: s.id })}><Glossed text={tr(s.labelFi)} surface="plan" /></Choice>)}
           {typeof secondarySector === "string" && (
             <>
               <span style={sep}>→</span>
-              {SECONDARY_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("secondary_task", id)} selected={secondaryTask === id} onClick={() => set({ secondaryTask: id })}>{t.secondaryTasks[id]}</Choice>)}
+              {SECONDARY_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("secondary_task", id)} selected={secondaryTask === id} onClick={() => set({ secondaryTask: id })}><Glossed text={t.secondaryTasks[id]} surface="plan" /></Choice>)}
             </>
           )}
         </div>
 
         {hasDrones && (
           <>
-            <div style={rowLabel}>{t.dronesLabel}</div>
+            <div style={rowLabel}><Glossed text={t.dronesLabel} surface="plan" /></div>
             <div style={row}>
-              <Choice compact hover={hover("drones", "carry_on")} selected={droneSector === null} onClick={() => set({ droneSector: null })}>{t.dronesCarryOn}</Choice>
-              {sectors.map((s) => <Choice compact key={s.id} hover={hover("drones", s.id)} selected={droneSector === s.id} onClick={() => set({ droneSector: s.id })}>{tr(s.labelFi)}</Choice>)}
+              <Choice compact hover={hover("drones", "carry_on")} selected={droneSector === null} onClick={() => set({ droneSector: null })}><Glossed text={t.dronesCarryOn} surface="plan" /></Choice>
+              {sectors.map((s) => <Choice compact key={s.id} hover={hover("drones", s.id)} selected={droneSector === s.id} onClick={() => set({ droneSector: s.id })}><Glossed text={tr(s.labelFi)} surface="plan" /></Choice>)}
               {typeof droneSector === "string" && (
                 <>
                   <span style={sep}>→</span>
-                  {PLAN_DRONE_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("drone_task", id)} selected={droneTask === id} onClick={() => set({ droneTask: id })}>{t.droneTasks[id]}</Choice>)}
+                  {PLAN_DRONE_TASK_IDS.map((id) => <Choice compact key={id} hover={hover("drone_task", id)} selected={droneTask === id} onClick={() => set({ droneTask: id })}><Glossed text={t.droneTasks[id]} surface="plan" /></Choice>)}
                 </>
               )}
             </div>
@@ -177,16 +178,16 @@ export function PlanPanel({ snapshot, orchestrator, draft, onDraft }: {
 
         {offerDeparture && (
           <>
-            <div style={rowLabel}>{t.departureLabel}</div>
+            <div style={rowLabel}><Glossed text={t.departureLabel} surface="plan" /></div>
             <div style={row}>
               <input type="checkbox" checked={departureNoted} aria-label={t.departureLabel} onChange={(e) => set({ departureNoted: e.currentTarget.checked })} />
             </div>
             {departureNoted && (
               <>
-                <div style={rowLabel}>{t.departureReasonLabel}</div>
+                <div style={rowLabel}><Glossed text={t.departureReasonLabel} surface="plan" /></div>
                 <div style={row} role="radiogroup" aria-label={t.departureReasonLabel}>
                   {DEPARTURE_REASONS.map((r) => (
-                    <Choice compact key={r} hover={hover("departure_reason", r)} selected={departureReason === r} onClick={() => set({ departureReason: departureReason === r ? null : r })}>{t.departureReasons[r]}</Choice>
+                    <Choice compact key={r} hover={hover("departure_reason", r)} selected={departureReason === r} onClick={() => set({ departureReason: departureReason === r ? null : r })}><Glossed text={t.departureReasons[r]} surface="plan" /></Choice>
                   ))}
                 </div>
               </>

@@ -2,6 +2,7 @@ import type { SessionOrchestrator, SpamView } from "../../../session/orchestrato
 import { useLang } from "../i18n.js";
 import { ConfidencePicker, hint, label } from "./PanelParts.js";
 import { useHoverDwell } from "./hover-dwell.js";
+import { Glossed } from "../explain/Glossed.js";
 
 /**
  * The SPAM probe (SPEC/15 §5; round 2, 4 Oct 2026, `spam-delivery.ts`; revision (ag), 9 Oct 2026). ONLINE:
@@ -79,7 +80,7 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
     <div data-testid={spam.forced ? "spam-forced" : "spam-item"} style={{ padding: "12px 16px", borderTop: `3px solid ${AMBER}`, background: "#262a30", flexShrink: 0 }}>
       {spam.forced && <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: AMBER }}>{t.spam.forcedTitle}</p>}
       <div style={label}>{t.spam.title}{spam.itemCount > 1 && <span data-testid="spam-item-of"> · {t.spam.itemOf(spam.itemIndex, spam.itemCount)}</span>}</div>
-      <p style={{ margin: "2px 0 8px", fontSize: 14 }}>{tr(spam.promptFi)}</p>
+      <p style={{ margin: "2px 0 8px", fontSize: 14 }}><Glossed text={tr(spam.promptFi)} surface="spam" /></p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
         {spam.options.map((o) => (
           <button
@@ -94,7 +95,7 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
               border: `1px solid ${spam.chosen === o.id ? "#8a9097" : "#3a3f44"}`, background: spam.chosen === o.id ? "#3a3f44" : "#20242a",
             }}
           >
-            {tr(o.fi)}
+            <Glossed text={tr(o.fi)} surface="spam" />
           </button>
         ))}
       </div>

@@ -9,6 +9,7 @@ import type { TakPaneId } from "../../../telemetry/record-kinds.js";
 import { useLang } from "../i18n.js";
 import { SEARCH_PANES, toolbarButtonName } from "./shell.js";
 import { TAK } from "./theme.js";
+import { HelpCard } from "../explain/HelpCard.js";
 
 const icon = (body: JSX.Element) => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{body}</svg>
@@ -78,6 +79,8 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
           </button>
         );
       })}
+      {/* SPEC/35 §3: the help card at the toolbar's foot, public sessions only (renders nothing for experts). */}
+      <HelpCard variant="toolbar" />
     </nav>
   );
 }

@@ -10,6 +10,7 @@ import { symbolSvg } from "./tak-symbols.js";
 import type { TakContact } from "./shell.js";
 import { paneScroll } from "./TakSidePane.js";
 import { TAK } from "./theme.js";
+import { Glossed } from "../explain/Glossed.js";
 
 export function ContactsPane({ contacts, onSelect, selected }: {
   readonly contacts: readonly TakContact[];
@@ -54,9 +55,9 @@ function ContactRow({ c, active, onSelect }: { readonly c: TakContact; readonly 
       <span style={{ gridRow: "1 / span 3", width: 34, height: 30, display: "block", justifySelf: "center" }} dangerouslySetInnerHTML={{ __html: symbolSvg(c.sidc, 24) }} />
       <span style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
         <strong style={{ fontFamily: TAK.mono, fontSize: 13.5 }}>{c.callsign}</strong>
-        {c.type && <span style={{ fontSize: 11.5, color: TAK.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.type}</span>}
+        {c.type && <span style={{ fontSize: 11.5, color: TAK.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><Glossed text={c.type} surface="other" /></span>}
       </span>
-      {c.task && <span style={{ fontSize: 12 }}>{c.task}</span>}
+      {c.task && <span style={{ fontSize: 12 }}><Glossed text={c.task} surface="other" /></span>}
       {facts.length > 0 && <span style={{ fontSize: 11.5, color: TAK.textDim, fontFamily: TAK.mono }}>{facts.join(" · ")}</span>}
     </button>
   );

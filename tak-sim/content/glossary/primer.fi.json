@@ -1,0 +1,139 @@
+{
+  "lang": "fi",
+  "status": "DRAFT — native check and domain check pending (SPEC/35 §8 item 2). Generic: no scenario place, no hint about the situation (§1).",
+  "ui": {
+    "title": "Perehdytys",
+    "pageOf": "Sivu {n} / {total}",
+    "back": "Edellinen",
+    "next": "Seuraava",
+    "done": "Valmis – siirry harjoitukseen",
+    "check": "Tarkistuskysymys",
+    "right": "Oikein.",
+    "wrong": "Ei aivan.",
+    "tryAgain": "Vastaa uudelleen",
+    "answerFirst": "Vastaa kysymykseen ennen kuin jatkat."
+  },
+  "pages": [
+    {
+      "id": "commander",
+      "illustration": "commander",
+      "title": "Sinä johdat",
+      "body": [
+        "Toimit maastopalon pelastustoiminnan johtajana. Et sammuta itse, vaan seuraat tilannetta johtopaikalta: kartta, yksiköiden ilmoitukset ja droonien havainnot.",
+        "Jokaisessa jaksossa teet suunnitelman (kohdennuksen): valitset miehistöjen painopisteen eli lohkon, johon suurin osa voimista keskitetään, sen toimintatavan, mahdollisen toisen lohkon tehtävineen ja droonien tehtävän.",
+        "Pisteitä ei lasketa. Tärkeintä on, että rakennat tilannekuvan ja päätät sen perusteella."
+      ],
+      "question": {
+        "id": "primer.q.commander",
+        "stem": "Mikä on pelastustoiminnan johtajan päätehtävä?",
+        "options": ["Sammuttaa paloa letkulla miehistön mukana", "Koota tilannekuva ja päättää, mihin yksiköt keskittyvät", "Lennättää drooneja"],
+        "correct": 1,
+        "explanation": "Johtaja ei itse sammuta eikä lennätä drooneja. Hän kokoaa tiedot kartasta ja ilmoituksista ja tekee suunnitelman, jonka mukaan yksiköt toimivat."
+      }
+    },
+    {
+      "id": "units",
+      "illustration": "units",
+      "title": "Yksiköt ja kutsutunnukset",
+      "body": [
+        "Jokaisella yksiköllä on kutsutunnus, jolla se ilmoittaa itsestään. Tunnuksen kirjaimet kertovat, mistä yksikkö on: EK oman pelastuslaitoksen yksikkö, KY naapuripelastuslaitoksen ja OUT alueen ulkopuolelta. Numero erottaa yksiköt toisistaan.",
+        "Pelastusyksikkö on paloauto miehistöineen; merkintä 1+4 tarkoittaa johtajaa ja neljää palomiestä. Säiliöauto kuljettaa paljon vettä. Maastopaloyksikössä on maastoajoneuvo sekä letkuja, moottoriruiskuja ja altaita. VPK on vapaaehtoinen palokunta.",
+        "Droonit (DR) kuvaavat paloa ylhäältä, myös lämpökameralla. Sammutushelikopteri pudottaa vettä kauhalla.",
+        "Kaikki tunnukset ja yksikkötyypit löydät istunnon aikana Sanasto ja ohjeet -kortista."
+      ],
+      "question": {
+        "id": "primer.q.units",
+        "stem": "Mikä näistä tunnuksista on drooni?",
+        "options": ["EK31", "DR5", "KY40"],
+        "correct": 1,
+        "explanation": "DR-alkuiset tunnukset ovat drooneja. EK- ja KY-alkuiset tunnukset ovat pelastuslaitosten yksiköitä."
+      }
+    },
+    {
+      "id": "fire_shape",
+      "illustration": "fire_shape",
+      "title": "Palon muoto ja mikä sitä ohjaa",
+      "body": [
+        "Maastopalo leviää yleensä pitkänomaiseksi tuulen suuntaan. Nopeimmin etenevä osa on kärki. Sen sivuilla ovat sivustat, ja takana, tuulen yläpuolella, on kanta eli takaosa.",
+        "Paloa kiihdyttävät tuuli ja etenkin puuskat, ylämäki ja kuiva maasto. Kuiva karike ja sammal syttyvät helposti. Jos palo nousee puiden latvoihin (latvapalo), se on nopea ja kuuma.",
+        "Kuiva turve, esimerkiksi ojitetulla suolla, voi kytea maan alla pitkään ja syttyä uudelleen. Tuuli voi kantaa kipinöitä palon eteen, jolloin syntyy pistepaloja."
+      ],
+      "question": {
+        "id": "primer.q.fire_shape",
+        "stem": "Tuuli puhaltaa lännestä itään. Mihin suuntaan palon kärki yleensä etenee?",
+        "options": ["Itään", "Länteen", "Pohjoiseen"],
+        "correct": 0,
+        "explanation": "Kärki etenee yleensä tuulen mukana. Lännestä puhaltava tuuli työntää paloa itään, ja kanta jää palon länsipäähän."
+      }
+    },
+    {
+      "id": "anchor_flank",
+      "illustration": "anchor_flank",
+      "title": "Ankkurointi ja sivustat",
+      "body": [
+        "Sammutuslinja aloitetaan yleensä kohdasta, jossa palo ei pääse sen ympäri: tieltä, vesistöstä tai jo palaneelta alueelta. Tätä kutsutaan ankkuroinniksi.",
+        "Tavallinen tapa on edetä ankkurista palon sivustoja pitkin kohti kärkeä. Kärjessä liekit ovat yleensä korkeimmat ja palo etenee nopeimmin.",
+        "Suunnitelman toimintatavat ovat: suora hyökkäys (vesi tai käsityökalut suoraan palavaan reunaan), puolustuslinja (palo pysäytetään valmiiseen esteeseen, kuten tiehen tai vesistöön) ja asutuksen suojaus (rakennusten ja ihmisten suojaaminen)."
+      ],
+      "question": {
+        "id": "primer.q.anchor_flank",
+        "stem": "Mitä ankkurointi tarkoittaa?",
+        "options": ["Sammutuslinja aloitetaan kohdasta, jossa palo ei pääse sen ympäri", "Kaikki yksiköt pysäköidään samaan paikkaan", "Palon kärki pysäytetään aina ensimmäisenä"],
+        "correct": 0,
+        "explanation": "Ankkuri on linjan turvallinen alkupää, esimerkiksi tie, vesistö tai palanut alue. Siitä linjaa jatketaan, eikä palo pääse linjan alkupään ympäri."
+      }
+    },
+    {
+      "id": "water",
+      "illustration": "water",
+      "title": "Vesi",
+      "body": [
+        "Sammutus kuluttaa paljon vettä. Pelastusyksikön omassa säiliössä on yleensä muutama kuutiometri vettä, ja se riittää letkulinjalla vain rajallisen ajan. Yksiköt ilmoittavat, montako prosenttia säiliöstä on jäljellä.",
+        "Lisävettä otetaan vesipisteistä (järvi, joki, lampi) moottoriruiskulla tai tuodaan säiliöautolla. Säiliöauto ajaa vesipisteen ja käyttöpaikan väliä: tätä kutsutaan vesiajoksi tai vedensiirroksi.",
+        "Säiliöauto tyhjentää vetensä usein maastoon pystytettyyn altaaseen, josta pumppu ottaa veden letkulinjaan. Yksi kierros (täyttö, ajo, tyhjennys ja paluu) vie aikaa."
+      ],
+      "question": {
+        "id": "primer.q.water",
+        "stem": "Säiliöauto ajaa edestakaisin vesipisteen ja sammutuspaikan välillä. Mitä tätä kutsutaan?",
+        "options": ["Jälkisammutukseksi", "Vesiajoksi (vedensiirroksi)", "Letkulinjaksi"],
+        "correct": 1,
+        "explanation": "Vesiajo eli vedensiirto on veden kuljettamista säiliöautolla vesipisteeltä käyttöpaikalle ja takaisin. Letkulinja johtaa veden pumpulta sammutuskohteeseen, ja jälkisammutus on kytevien kohtien sammuttamista palon jälkeen."
+      }
+    },
+    {
+      "id": "safety",
+      "illustration": "safety",
+      "title": "Turvallisuus",
+      "body": [
+        "Miehistön turvallisuus menee kaiken edelle. Muistisääntö LACES: tähystys (Lookouts), tilannetietoisuus (Awareness), yhteydet (Communications), perääntymistiet (Escape routes) ja turva-alueet (Safety zones).",
+        "Perääntymistie on ennalta sovittu reitti turvaan. Turva-alue on paikka, jossa palo ei uhkaa, esimerkiksi palanut alue tai pelto. Tähystäjä seuraa paloa ja varoittaa.",
+        "Jännitteinen sähkölinja on vaarallinen: vettä ei suunnata johtimiin, eikä linjan lähellä (15 metrin sisällä) sammuteta vedellä ennen kuin linja on kytketty pois (jännitteetön)."
+      ],
+      "question": {
+        "id": "primer.q.safety",
+        "stem": "Mikä on perääntymistie?",
+        "options": ["Reitti, jota pitkin vesiajo kulkee", "Ennalta sovittu reitti, jota pitkin miehistö pääsee nopeasti turvaan", "Tie, jolle palo pysäytetään"],
+        "correct": 1,
+        "explanation": "Perääntymistie on miehistön turvareitti: se sovitaan etukäteen, jotta miehistö pääsee nopeasti turvaan, jos palo uhkaa."
+      }
+    },
+    {
+      "id": "screen",
+      "illustration": "screen",
+      "title": "Ruutu",
+      "body": [
+        "Keskellä on kartta: palo, yksiköt ja lohkot. Kartan selite vasemmassa alakulmassa kertoo, mitä merkit tarkoittavat.",
+        "Oikealla ovat viestiloki, johon yksiköiden ilmoitukset tulevat, ja hakutyökalut. Alhaalla teet suunnitelman.",
+        "Välillä tilanne pysäytetään ja kuva piilotetaan. Vastaa silloin kysymyksiin muistisi varassa ja kerro, kuinka varma olet (asteikko 25–100).",
+        "Pisteviivalla alleviivatun sanan merkityksen näet osoittamalla tai napauttamalla sitä. Sanasto ja ohjeet -kortista löydät kaikki sanat, yksiköt ja karttamerkit."
+      ],
+      "question": {
+        "id": "primer.q.screen",
+        "stem": "Mistä näet yksiköiden ilmoitukset?",
+        "options": ["Viestilokista", "Kartan selitteestä", "Suunnitelmasta"],
+        "correct": 0,
+        "explanation": "Yksiköiden ilmoitukset tulevat oikealla olevaan viestilokiin. Selite kertoo karttamerkkien merkityksen, ja suunnitelma on sinun päätöksesi."
+      }
+    }
+  ]
+}

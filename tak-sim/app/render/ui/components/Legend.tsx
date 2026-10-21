@@ -5,6 +5,8 @@ import { OWN_FORMATION_HUE as OWN } from "../unit-markers.js";
 import { SECTOR_LINE } from "../map-overlay.js";
 import { useLang } from "../i18n.js";
 import { TOUR_STEP_EVENT } from "../tour.js";
+import type { GlossarySurface } from "../audience-context.js";
+import { Glossed } from "../explain/Glossed.js";
 import type { RenderableCycle } from "../../../boundary/render-boundary.js";
 
 /**
@@ -68,11 +70,15 @@ export function legendPresence(
  * envelope's isochrone minutes, so a merged view's bands read 0–20 · 20–40 min and a single view's 0–10 · 10–20 min (SPEC/26 §2),
  * and the rows drawn on the map now (`legendPresence`, revision (am)). Every sample is drawn with the same theme values
  * as the map, so the legend cannot drift from what it explains.
+ *
+ * SPEC/35 §3: the row names carry the glossary's marks in a public session (`Glossed`, `surface`). `embedded`: the help
+ * card's copy (every row, in the card's flow, always open, no toggle); the map's legend is unchanged.
  */
-export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols }: {
+export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols, embedded = false, surface = "other" }: {
   readonly isoMinutes: readonly number[]; readonly drawn: ReadonlySet<LegendRow>; readonly onToggle?: (open: boolean) => void;
   /** The TAK shell (SPEC/28 §5): the legend sits above the coordinate readout, and its unit rows show the map's 2525 symbols (SVG markup). */
   readonly bottom?: number; readonly symbols?: { readonly unit: string; readonly air: string } | undefined;
+  readonly embedded?: boolean; readonly surface?: GlossarySurface;
 }) {
   const { tr, lang } = useLang();
   // Collapsible (revision (al)). Revision (am): collapsed at the start for everyone — open, it covered ~40 % of a
@@ -142,6 +148,17 @@ export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols }: {
     ["region", sample(<path d="M13 1 17.5 5.5 13 10 8.5 5.5Z" fill="#8e1b12" />), M.region],
   ];
   const toggle = () => { const next = !open; setOpen(next); onToggle?.(next); };
+  const rowList = rows.filter(([k]) => drawn.has(k)).map(([k, s, label]) => (
+    <div key={k} data-row={k} style={{ display: "flex", alignItems: "center", gap: 4, margin: 0 }}>{s}<span><Glossed text={label} surface={surface} /></span></div>
+  ));
+  if (embedded) {
+    return (
+      <div data-testid="legend-embedded" style={{ background: "#f4f1eceb", color: "#1c1b19", border: "1px solid #c9c3ba", borderRadius: 5, padding: "6px 8px", fontSize: L.fontPx + 2, lineHeight: 1.3 }}>
+        <div style={{ fontWeight: 700, margin: "0 0 4px" }}>{L.title}</div>
+        {rowList}
+      </div>
+    );
+  }
   // One compact column with only the rows drawn now; it scrolls rather than covering a short map.
   return (
     <div data-tour="legend" data-open={shown ? "1" : "0"} style={{ position: "absolute", zIndex: 20, left: 8, bottom, maxHeight: `calc(100% - ${64 + bottom}px)`, overflowY: shown ? "auto" : "hidden", background: "#f4f1eceb", color: "#1c1b19", border: "1px solid #c9c3ba", borderRadius: 5, padding: "3px 6px", fontSize: L.fontPx, lineHeight: 1.15 }}>
@@ -149,9 +166,7 @@ export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols }: {
         style={{ display: "block", border: "none", background: "none", padding: 0, margin: shown ? "0 0 2px" : 0, font: "inherit", fontWeight: 700, color: "inherit", cursor: "pointer" }}>
         {shown ? "▾" : "▸"} {L.title}
       </button>
-      {shown && rows.filter(([k]) => drawn.has(k)).map(([k, s, label]) => (
-        <div key={k} data-row={k} style={{ display: "flex", alignItems: "center", gap: 4, margin: 0 }}>{s}<span>{label}</span></div>
-      ))}
+      {shown && rowList}
     </div>
   );
 }

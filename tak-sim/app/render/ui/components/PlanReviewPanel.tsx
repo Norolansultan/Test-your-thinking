@@ -15,6 +15,7 @@ import { useLang } from "../i18n.js";
 import { draftFromPlan, planSummary, type PlanDraft } from "./DecisionPanels.js";
 import { hint, label, Panel, PrimaryButton, SecondaryButton } from "./PanelParts.js";
 import { MessageLogRow } from "./RightPanel.js";
+import { Glossed, GlossSurfaceContext } from "../explain/Glossed.js";
 
 export function PlanReviewPanel({ snapshot, orchestrator, onPlanDraft }: {
   readonly snapshot: SessionSnapshot;
@@ -44,13 +45,13 @@ export function PlanReviewPanel({ snapshot, orchestrator, onPlanDraft }: {
         <p style={{ ...hint, margin: 0 }}>{r.note}</p>
         {snapshot.recordedPlan && (
           <p data-testid="plan-review-plan" style={{ ...hint, opacity: 1, margin: 0 }}>
-            {r.planLabel} {planSummary(snapshot.recordedPlan, snapshot.allocation.sectors, snapshot.allocation.droneTeams.length > 0, t, tr)}
+            {r.planLabel} <Glossed text={planSummary(snapshot.recordedPlan, snapshot.allocation.sectors, snapshot.allocation.droneTeams.length > 0, t, tr)} surface="review" />
           </p>
         )}
         {review.premiseLines !== null && (
           <div data-testid="plan-review-premises" style={{ padding: "8px 10px", borderLeft: "3px solid #8ab4f8", background: "#1b1e22", display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={label}>{r.premisesLabel}</div>
-            {review.premiseLines.map((line, i) => <p key={i} style={{ margin: 0, fontSize: 13, lineHeight: 1.45 }}>{line}</p>)}
+            {review.premiseLines.map((line, i) => <p key={i} style={{ margin: 0, fontSize: 13, lineHeight: 1.45 }}><Glossed text={line} surface="review" /></p>)}
             {review.citedRecords.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 12, opacity: 0.75 }}>{r.citedLabel}</span>
@@ -65,7 +66,7 @@ export function PlanReviewPanel({ snapshot, orchestrator, onPlanDraft }: {
             )}
             {opened && (
               <div data-testid="plan-review-opened-record" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <MessageLogRow entry={opened} />
+                <GlossSurfaceContext.Provider value="record"><MessageLogRow entry={opened} /></GlossSurfaceContext.Provider>
                 {!opened.inLog && <span style={{ fontSize: 11.5, opacity: 0.7 }}>{r.notInLog}</span>}
               </div>
             )}

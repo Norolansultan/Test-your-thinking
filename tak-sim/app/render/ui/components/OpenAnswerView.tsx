@@ -9,6 +9,7 @@ import {
   OPEN_ANSWER_HEADINGS, OPEN_PREMISE_STATUS_TEXT, OPEN_VERDICT_TEXT, type OpenStructuredView,
 } from "../../../session/open-answer.js";
 import { displayAnswerText } from "../../../session/chat-display.js";
+import { Glossed } from "../explain/Glossed.js";
 
 const heading = { fontSize: 10.5, fontWeight: 700, opacity: 0.6, textTransform: "uppercase" as const, letterSpacing: 0.3, marginTop: 2 };
 const row = { display: "flex", flexDirection: "column" as const, gap: 1, paddingLeft: 8, borderLeft: "2px solid #3a3f44" };
@@ -26,29 +27,29 @@ export function OpenAnswerView({ answer, lang }: { readonly answer: OpenStructur
   return (
     <div data-testid="thinker-structured" data-kind={answer.kind} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {answer.facts.map((f, i) => (
-        <div key={`f${i}`}>{displayAnswerText(f.text)}<Cite tags={f.tags} tagTimes={answer.tagTimes} /></div>
+        <div key={`f${i}`}><Glossed text={displayAnswerText(f.text)} surface="guide" /><Cite tags={f.tags} tagTimes={answer.tagTimes} /></div>
       ))}
       {/* SPEC/30 §3: the premise check's fixed-template lines (the table's statuses, never model text) replace the premise rows. */}
       {answer.premiseCheck?.lines.map((line, i) => (
-        <div key={`pc${i}`} data-testid="thinker-premise-line" style={row}><span>{line}</span></div>
+        <div key={`pc${i}`} data-testid="thinker-premise-line" style={row}><span><Glossed text={line} surface="guide" /></span></div>
       ))}
       {!answer.premiseCheck && answer.premises.length > 0 && <div style={heading}>{label(h.premises)}</div>}
       {!answer.premiseCheck && answer.premises.map((p, i) => (
         <div key={`p${i}`} style={row}>
-          <span>{displayAnswerText(p.premise)} <em style={{ opacity: 0.75 }}>({OPEN_PREMISE_STATUS_TEXT[lang][p.status]})</em><Cite tags={p.tags} tagTimes={answer.tagTimes} /></span>
+          <span><Glossed text={displayAnswerText(p.premise)} surface="guide" /> <em style={{ opacity: 0.75 }}>({OPEN_PREMISE_STATUS_TEXT[lang][p.status]})</em><Cite tags={p.tags} tagTimes={answer.tagTimes} /></span>
         </div>
       ))}
       {answer.options.length > 0 && <div style={heading}>{label(h.options)}</div>}
       {answer.options.map((o, i) => (
         <div key={`o${i}`} data-testid="thinker-option" style={row}>
-          <span><strong>{i + 1}. {displayAnswerText(o.option)}</strong><Cite tags={o.tags} tagTimes={answer.tagTimes} /></span>
-          <span>{displayAnswerText(o.tradeoffs)}</span>
+          <span><strong>{i + 1}. <Glossed text={displayAnswerText(o.option)} surface="guide" /></strong><Cite tags={o.tags} tagTimes={answer.tagTimes} /></span>
+          <span><Glossed text={displayAnswerText(o.tradeoffs)} surface="guide" /></span>
           {o.verdict && <span style={{ opacity: 0.8, fontStyle: "italic" }}>{OPEN_VERDICT_TEXT[lang][o.verdict]}</span>}
         </div>
       ))}
-      {answer.inference && <div><span style={{ opacity: 0.7, fontStyle: "italic" }}>{h.inference}</span> {displayAnswerText(answer.inference)}</div>}
+      {answer.inference && <div><span style={{ opacity: 0.7, fontStyle: "italic" }}>{h.inference}</span> <Glossed text={displayAnswerText(answer.inference)} surface="guide" /></div>}
       {answer.questionsForYou.length > 0 && <div style={heading}>{label(h.questions)}</div>}
-      {answer.questionsForYou.map((q, i) => <div key={`q${i}`} style={row}>{displayAnswerText(q)}</div>)}
+      {answer.questionsForYou.map((q, i) => <div key={`q${i}`} style={row}><Glossed text={displayAnswerText(q)} surface="guide" /></div>)}
     </div>
   );
 }

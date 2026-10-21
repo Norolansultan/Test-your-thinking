@@ -1,0 +1,139 @@
+{
+  "lang": "en",
+  "status": "DRAFT — domain check pending (SPEC/35 §8 item 2). Generic: no scenario place, no hint about the situation (§1).",
+  "ui": {
+    "title": "Introduction",
+    "pageOf": "Page {n} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done – go to the practice",
+    "check": "Check question",
+    "right": "Correct.",
+    "wrong": "Not quite.",
+    "tryAgain": "Answer again",
+    "answerFirst": "Answer the question before going on."
+  },
+  "pages": [
+    {
+      "id": "commander",
+      "illustration": "commander",
+      "title": "You are in command",
+      "body": [
+        "You act as the incident commander at a wildfire. You do not fight the fire yourself; you follow the situation from the command post: the map, the units' reports and the drones' observations.",
+        "In each period you make a plan (an allocation): you choose the crews' main effort, i.e. the sector where most of the resources go, its posture, possibly a second sector with its task, and the drones' task.",
+        "No points are counted. What matters is that you build a picture of the situation and decide on it."
+      ],
+      "question": {
+        "id": "primer.q.commander",
+        "stem": "What is the incident commander's main task?",
+        "options": ["Fighting the fire with a hose alongside the crew", "Building a picture of the situation and deciding where the units concentrate", "Flying the drones"],
+        "correct": 1,
+        "explanation": "The commander neither fights the fire nor flies the drones. They gather information from the map and the reports and make the plan the units work by."
+      }
+    },
+    {
+      "id": "units",
+      "illustration": "units",
+      "title": "Units and call signs",
+      "body": [
+        "Every unit has a call sign it reports with. The letters tell where the unit is from: EK a unit of the own rescue department, KY of the neighbouring rescue department and OUT from outside the region. The number tells the units apart.",
+        "A rescue unit is a fire engine with its crew; 1+4 means a leader and four firefighters. A tanker carries a lot of water. A forest-fire unit has an off-road vehicle with hoses, portable pumps and basins. VOL is a volunteer fire brigade.",
+        "Drones (DR) film the fire from above, also with a thermal camera. A firefighting helicopter drops water from a bucket.",
+        "During the session, every call sign and unit type is on the Glossary & help card."
+      ],
+      "question": {
+        "id": "primer.q.units",
+        "stem": "Which of these call signs is a drone?",
+        "options": ["EK31", "DR5", "KY40"],
+        "correct": 1,
+        "explanation": "Call signs starting with DR are drones. Call signs starting with EK and KY are rescue department units."
+      }
+    },
+    {
+      "id": "fire_shape",
+      "illustration": "fire_shape",
+      "title": "The shape of a fire and what drives it",
+      "body": [
+        "A wildfire usually spreads into a long shape in the direction of the wind. The fastest-moving part is the head. Along its sides are the flanks, and at the back, on the upwind side, is the heel.",
+        "Wind, especially gusts, uphill slopes and dry ground speed a fire up. Dry litter and moss catch fire easily. If the fire rises into the tree crowns (a crown fire), it is fast and hot.",
+        "Dry peat, for example in a drained bog, can smoulder underground for a long time and flare up again. The wind can carry embers ahead of the fire, starting spot fires."
+      ],
+      "question": {
+        "id": "primer.q.fire_shape",
+        "stem": "The wind blows from west to east. In which direction does the head of a fire usually move?",
+        "options": ["East", "West", "North"],
+        "correct": 0,
+        "explanation": "The head usually moves with the wind. A wind from the west pushes the fire east, and the heel stays at the fire's western end."
+      }
+    },
+    {
+      "id": "anchor_flank",
+      "illustration": "anchor_flank",
+      "title": "Anchoring and the flanks",
+      "body": [
+        "A firefighting line is usually started where the fire cannot get round it: from a road, water or burnt ground. This is called anchoring.",
+        "A common way is to work from the anchor along the fire's flanks towards the head. At the head, flames are usually highest and the fire moves fastest.",
+        "The plan's postures are: direct attack (water or hand tools straight on the burning edge), a defensive line (the fire is stopped at a ready barrier such as a road or water) and protecting settlements (protecting buildings and people)."
+      ],
+      "question": {
+        "id": "primer.q.anchor_flank",
+        "stem": "What does anchoring mean?",
+        "options": ["Starting a line where the fire cannot get round it", "Parking all units in one place", "Always stopping the head of the fire first"],
+        "correct": 0,
+        "explanation": "The anchor is the safe start of a line, e.g. a road, water or burnt ground. The line goes on from there, and the fire cannot get round its start."
+      }
+    },
+    {
+      "id": "water",
+      "illustration": "water",
+      "title": "Water",
+      "body": [
+        "Firefighting uses a lot of water. A rescue unit's own tank usually holds a few cubic metres, which lasts only a limited time on a hose line. Units report how many per cent of their tank is left.",
+        "More water is taken from water points (a lake, river or pond) with a portable pump, or brought by a tanker. A tanker drives between the water point and where the water is used: this is called a water shuttle or water run.",
+        "A tanker often empties its water into a basin set up in the field, from which a pump feeds the hose line. One round (filling, driving, emptying and returning) takes time."
+      ],
+      "question": {
+        "id": "primer.q.water",
+        "stem": "A tanker drives back and forth between a water point and the firefighting site. What is this called?",
+        "options": ["Mop-up", "A water shuttle (water run)", "A hose line"],
+        "correct": 1,
+        "explanation": "A water shuttle is carrying water with a tanker from a water point to where it is used and back. A hose line carries water from a pump to the fire, and mop-up is putting out smouldering spots after the fire."
+      }
+    },
+    {
+      "id": "safety",
+      "illustration": "safety",
+      "title": "Safety",
+      "body": [
+        "The crews' safety comes first. The memory aid LACES: Lookouts, Awareness, Communications, Escape routes and Safety zones.",
+        "An escape route is a route to safety agreed in advance. A safety zone is a place the fire does not threaten, e.g. burnt ground or a field. A lookout watches the fire and warns the crew.",
+        "A live power line is dangerous: no water is directed at the conductors, and no water is used near the line (within 15 metres) until the line has been switched off (de-energised)."
+      ],
+      "question": {
+        "id": "primer.q.safety",
+        "stem": "What is an escape route?",
+        "options": ["The route a water shuttle takes", "A route agreed in advance by which a crew can quickly reach safety", "A road at which the fire is stopped"],
+        "correct": 1,
+        "explanation": "An escape route is the crew's safe way out: it is agreed in advance so that the crew can quickly reach safety if the fire threatens."
+      }
+    },
+    {
+      "id": "screen",
+      "illustration": "screen",
+      "title": "The screen",
+      "body": [
+        "In the middle is the map: the fire, the units and the sectors. The map legend at the bottom left tells what the symbols mean.",
+        "On the right are the message log, where the units' reports arrive, and the search tools. At the bottom you make your plan.",
+        "From time to time the situation is paused and the picture hidden. Answer the questions from memory then, and say how sure you are (scale 25–100).",
+        "To see what a word with a dotted underline means, point at it or tap it. The Glossary & help card has every word, unit and map symbol."
+      ],
+      "question": {
+        "id": "primer.q.screen",
+        "stem": "Where do you see the units' reports?",
+        "options": ["In the message log", "In the map legend", "In the plan"],
+        "correct": 0,
+        "explanation": "The units' reports arrive in the message log on the right. The legend explains the map's symbols, and the plan is your decision."
+      }
+    }
+  ]
+}

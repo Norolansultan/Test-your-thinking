@@ -13,7 +13,7 @@ export interface CourseText {
     readonly courseTitle: string; readonly courseNote: string; readonly recommended: string;
     readonly modulesPassed: (n: number, of: number) => string; readonly start: string; readonly resume: string;
     readonly tasksTitle: string; readonly tasksNote: string; readonly tasksComing: string; readonly open: string;
-    readonly done: string; readonly notDone: string; readonly best: (g: TaskResult["grade"]) => string;
+    readonly done: string; readonly tried: string; readonly notDone: string; readonly best: (g: TaskResult["grade"]) => string;
     readonly freeTitle: string; readonly freeNote: string;
   };
   readonly topic: Readonly<Record<CourseTopic, string>>;
@@ -52,7 +52,7 @@ const FI: CourseText = {
     recommended: "Suositeltu ensin", modulesPassed: (n, of) => `${n} / ${of} moduulia suoritettu`, start: "Aloita", resume: "Jatka",
     tasksTitle: "Tehtävät", tasksNote: "Kiinteitä tilanteita, yksi tehtävä kussakin, kaikille samat. Suunnittele, toteuta ja vertaa ratkaisuasi asiantuntijan ratkaisuun.",
     tasksComing: "Tehtävät ovat tulossa. Aloita sillä välin perehdytyksestä tai vapaasta pelistä.", open: "Avaa",
-    done: "Tehty", notDone: "Tekemättä", best: (g) => `Paras: ${g}`,
+    done: "Läpäisty", tried: "Yritetty", notDone: "Tekemättä", best: (g) => `Paras: ${g}`,
     freeTitle: "Vapaa peli", freeNote: "Kokonaiset tilanteet omaan tahtiin.",
   },
   topic: TOPIC_FI,
@@ -83,7 +83,7 @@ const EN: CourseText = {
     recommended: "Recommended first", modulesPassed: (n, of) => `${n} of ${of} modules passed`, start: "Start", resume: "Continue",
     tasksTitle: "Decision tasks", tasksNote: "Fixed situations, one task each, the same for everyone. Plan, commit, and compare your outcome with the expert's.",
     tasksComing: "The decision tasks are coming. Meanwhile start with the training course or free play.", open: "Open",
-    done: "Done", notDone: "Not done", best: (g) => `Best: ${g}`,
+    done: "Passed", tried: "Tried", notDone: "Not done", best: (g) => `Best: ${g}`,
     freeTitle: "Free play", freeNote: "Whole scenarios at your own pace.",
   },
   topic: TOPIC_EN,

@@ -10,7 +10,7 @@ import { useState } from "preact/hooks";
 import type { GameScenario } from "../contracts.js";
 import type { Lang } from "../../i18n/lang.js";
 import { COURSE_MODULES } from "../course/index.js";
-import { bestGrade, modulePassed, type GameProgress } from "../course/progress.js";
+import { bestGrade, modulePassed, taskPassed, type GameProgress } from "../course/progress.js";
 import type { DecisionTask } from "../tasks/contracts.js";
 import { COURSE_TEXT } from "./course/course-text.js";
 import { InstructionsOverlay } from "./course/Instructions.js";
@@ -81,7 +81,7 @@ export function ScenarioSelect({ lang, scenarios, tasks, progress, onChoose, onC
                       background: TAK.panelRaised, border: `1px solid ${TAK.panelBorder}`, borderTop: `3px solid ${best ? GM.ok : TAK.accent}` }}>
                     <span style={{ fontSize: 11.5, color: TAK.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{c.topic[task.topic]}</span>
                     <b style={{ fontSize: 15.5 }}>{inLang(lang, task.titleFi, task.titleEn)}</b>
-                    <span style={{ fontSize: 12.5, color: best ? GM.ok : TAK.textDim }}>{best ? `${c.tracks.done} · ${c.tracks.best(best)}` : c.tracks.notDone}</span>
+                    <span style={{ fontSize: 12.5, color: best ? GM.ok : TAK.textDim }}>{best ? `${taskPassed(progress, task.id) ? c.tracks.done : c.tracks.tried} · ${c.tracks.best(best)}` : c.tracks.notDone}</span>
                   </button>
                 );
               })}

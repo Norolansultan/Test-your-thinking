@@ -138,7 +138,9 @@ export function traceOf(run: TaskRun, world: GameWorld): TaskTrace {
   return { samples: run.samples, waterNearLiveLine: run.waterNearLiveLine, everObserved: seen, grid: world.grid };
 }
 
-/** Judges a finished run: each criterion, all met, and the game's points and grade. */
+const capAtC = (g: TaskResult["grade"]): TaskResult["grade"] => (g === "S" || g === "A" || g === "B" ? "C" : g);
+
+/** Judges a finished run: each criterion, all met, and the game's points and grade (capped at C unless all are met). */
 export function judgeRun(run: TaskRun, world: GameWorld): { readonly result: TaskResult; readonly trace: TaskTrace } {
   const final = run.game.state;
   const trace = traceOf(run, world);
@@ -150,7 +152,8 @@ export function judgeRun(run: TaskRun, world: GameWorld): { readonly result: Tas
       criteria,
       allMet: criteria.every((c) => c.met),
       points: final.score.points,
-      grade: final.score.grade,
+      // An unmet criterion caps the grade at C, as an unmet objective does in free play (SPEC/29 §4).
+      grade: criteria.every((c) => c.met) ? final.score.grade : capAtC(final.score.grade),
       commands: run.game.commands.slice(run.setupCount),
     },
   };

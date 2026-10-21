@@ -16,7 +16,8 @@ export interface GameProgress {
   /** Module ids, in the order they were passed. */
   readonly modulesPassed: readonly string[];
   /** Decision tasks (and course exercises) done, with the best grade so far. */
-  readonly tasks: readonly { readonly id: string; readonly best: Grade }[];
+  /** `passed`: every criterion met in at least one run. */
+  readonly tasks: readonly { readonly id: string; readonly best: Grade; readonly passed?: boolean }[];
 }
 
 /** The one storage key. */
@@ -72,7 +73,9 @@ export function parseProgress(raw: string | null): GameProgress {
   if (Array.isArray(o.tasks)) {
     for (const t of o.tasks as unknown[]) {
       const r = t as { id?: unknown; best?: unknown } | null;
-      if (r && isString(r.id) && isString(r.best) && GRADES.includes(r.best as Grade)) tasks.push({ id: r.id, best: r.best as Grade });
+      if (r && isString(r.id) && isString(r.best) && GRADES.includes(r.best as Grade)) {
+        tasks.push({ id: r.id, best: r.best as Grade, ...((r as { passed?: unknown }).passed === true ? { passed: true } : {}) });
+      }
     }
   }
   return { modulesPassed: [...new Set(modulesPassed)], tasks };
@@ -115,9 +118,15 @@ export function better(a: Grade, b: Grade): Grade {
   return GRADES.indexOf(a) <= GRADES.indexOf(b) ? a : b;
 }
 
-export function withTaskResult(p: GameProgress, id: string, grade: Grade): GameProgress {
-  const prev = bestGrade(p, id);
-  const best = prev === null ? grade : better(prev, grade);
-  if (prev === best) return p;
-  return { ...p, tasks: [...p.tasks.filter((t) => t.id !== id), { id, best }] };
+export function withTaskResult(p: GameProgress, id: string, grade: Grade, passed = false): GameProgress {
+  const prevRow = p.tasks.find((t) => t.id === id);
+  const best = prevRow === undefined ? grade : better(prevRow.best, grade);
+  const everPassed = passed || prevRow?.passed === true;
+  if (prevRow !== undefined && prevRow.best === best && (prevRow.passed === true) === everPassed) return p;
+  return { ...p, tasks: [...p.tasks.filter((t) => t.id !== id), { id, best, ...(everPassed ? { passed: true } : {}) }] };
+}
+
+/** Whether task `id` has been passed (every criterion met) at least once. */
+export function taskPassed(p: GameProgress, id: string): boolean {
+  return p.tasks.find((t) => t.id === id)?.passed === true;
 }

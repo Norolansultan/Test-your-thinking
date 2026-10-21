@@ -37,6 +37,8 @@ type Screen =
 
 /** Seeds: the first game of a scenario uses 1, each replay the next (deterministic, no clock). */
 let runCounter = 0;
+/** The open exercise has shown its result: "Back" then goes on to the module's check questions. */
+let exerciseDone = false;
 
 export function GameApp({ lang, onExit }: { readonly lang: Lang; readonly onExit: () => void }) {
   const [screen, setScreen] = useState<Screen>({ kind: "select" });
@@ -60,7 +62,7 @@ export function GameApp({ lang, onExit }: { readonly lang: Lang; readonly onExit
     runCounter++;
     setScreen({ kind: "course", open: module ? { module, startAt, run: runCounter } : null });
   };
-  const recordTask = (result: TaskResult) => update(withTaskResult(progress, result.taskId, result.grade));
+  const recordTask = (result: TaskResult) => update(withTaskResult(progress, result.taskId, result.grade, result.allMet));
   return (
     // The marker keeps the recruitment gate able to find this chunk in a build (marker.ts).
     <div class="gm-root" lang={lang} data-testid="game-root" data-build={GAME_CHUNK_MARKER}>
@@ -85,18 +87,18 @@ export function GameApp({ lang, onExit }: { readonly lang: Lang; readonly onExit
       {screen.kind === "course" && (
         <CourseScreen lang={lang} world={gameWorld()} progress={progress} open={screen.open}
           onOpen={(m) => openModule(m)}
-          onExercise={(module, task) => { runCounter++; setScreen({ kind: "exercise", module, task, run: runCounter }); }}
+          onExercise={(module, task) => { runCounter++; exerciseDone = false; setScreen({ kind: "exercise", module, task, run: runCounter }); }}
           onModulePassed={(m) => update(withModulePassed(progress, m.id))}
           onBack={() => setScreen({ kind: "select" })} />
       )}
       {screen.kind === "exercise" && (
         <TaskScreen key={screen.run} lang={lang} task={screen.task}
-          onDone={(result) => { recordTask(result); openModule(screen.module, { kind: "checks" }); }}
-          onBack={() => openModule(screen.module, { kind: "exercise" })} />
+          onDone={(result) => { exerciseDone = true; recordTask(result); }}
+          onBack={() => openModule(screen.module, { kind: exerciseDone ? "checks" : "exercise" })} />
       )}
       {screen.kind === "task" && (
         <TaskScreen key={screen.run} lang={lang} task={screen.task}
-          onDone={(result) => { recordTask(result); setScreen({ kind: "select" }); }}
+          onDone={recordTask}
           onBack={() => setScreen({ kind: "select" })} />
       )}
     </div>

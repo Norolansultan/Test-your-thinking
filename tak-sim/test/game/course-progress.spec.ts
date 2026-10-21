@@ -7,7 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bestGrade, EMPTY_PROGRESS, loadProgress, memoryStorage, modulePassed, parseProgress, PROGRESS_KEY, saveProgress,
-  withModulePassed, withTaskResult, type ProgressStorage,
+  taskPassed, withModulePassed, withTaskResult, type ProgressStorage,
 } from "../../app/game/course/progress.js";
 import { PROGRESS_KEY_PREFIX } from "../../app/game/tasks/contracts.js";
 
@@ -36,6 +36,18 @@ describe("the progress store", () => {
     expect(modulePassed(back, "fire")).toBe(false);
     expect(bestGrade(back, "course-map")).toBe("A");
     expect(bestGrade(back, "nope")).toBeNull();
+  });
+
+  it("marks a task passed once every criterion was met in some run, and keeps it", () => {
+    const store = memoryStorage();
+    let p = withTaskResult(EMPTY_PROGRESS, "task-water", "C", false);
+    expect(taskPassed(p, "task-water")).toBe(false);
+    p = withTaskResult(p, "task-water", "B", true);
+    p = withTaskResult(p, "task-water", "D", false); // a failed later run keeps the pass
+    expect(saveProgress(p, store)).toBe(true);
+    const back = loadProgress(store);
+    expect(taskPassed(back, "task-water")).toBe(true);
+    expect(bestGrade(back, "task-water")).toBe("B");
   });
 
   it("survives a storage that throws on every read and write", () => {

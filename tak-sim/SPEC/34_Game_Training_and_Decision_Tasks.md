@@ -4,6 +4,7 @@
 **Scope:** three additions to game mode, asked for by the researcher on 21 Oct 2026 ("make it more like the other simulation [XVR]; a longer introduction that teaches the most critical things to check, explained before the simulation runs; instructions available all the time; everybody has the same simulation and solves a static task in each scenario … execute this in the game mode").
 
 > **Changelog**
+> - **21 Oct 2026 (integration)** — built: course (7 modules, exercises at 07:00–11:00), 7 decision tasks, the instructions pane with the task's prompt and criteria, progress in the browser under `tak-game.` (the isolation test allows that one file and key). The result stays on screen until the player leaves; an unmet criterion caps the grade at C. Open: no "request de-energising" order in the game (scripted); recon grades D (no water used); thin area margins in three tasks; doctrine figures and Finnish texts for review.
 > - **21 Oct 2026** — created. Every Finnish text is DRAFT for the native-speaker check; every doctrine statement is DRAFT for the domain reviewer.
 
 ---
@@ -47,7 +48,7 @@ A decision task is a fixed situation and one task. Everyone gets the same one:
 - **Fixed:** scenario, pre-burn, weather and seed are constants of the task; a replay never changes the seed (unlike free play).
 - **Planning phase:** the game opens paused at the task's moment. The player reads the task and the picture and gives orders; the clock cannot run. "Toteuta / Commit" ends planning.
 - **Run:** the game runs from the commit to the task's horizon at high speed with no further orders (`allowLaterOrders: false`, the default). A task may allow later orders when its point is reacting to an event.
-- **Result:** each criterion met or not, with the reason; the reference plan (expert commands, replayed on the same seed) shown beside the player's outcome, with its explanation and the teaching points. Points and a grade as in free play, so players can compare; never pooled with study data.
+- **Result:** each criterion met or not, with the reason; the reference plan (expert commands, replayed on the same seed) shown beside the player's outcome, with its explanation and the teaching points. Points and a grade as in free play, so players can compare, except that an unmet criterion caps the grade at C (as an unmet objective does in free play); never pooled with study data. The start page marks a task "Läpäisty / Passed" once every criterion has been met in some run, else "Yritetty / Tried", with the best grade.
 
 Tasks (topic → task), 6–8 in all, each on a part of the map and at a time that touches no study keyed moment (`29` (ay); the separation test covers tasks):
 

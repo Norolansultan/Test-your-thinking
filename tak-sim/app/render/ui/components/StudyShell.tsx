@@ -2,15 +2,21 @@
  * The study shell's screens (work package I, 5 Oct 2026; `SessionOptions.studyShell`): consent, the
  * AI literacy questionnaire (SNAIL, revision (ac), 9 Oct 2026), the preflight and its refusal, the questionnaires, the debrief. Full-screen pages like the briefing
  * (`IntroScreen`). The texts are in `app/i18n/study-texts.ts`, all DRAFT; the consent text is a
- * placeholder for the ethics board and says so on screen.
+ * placeholder for the ethics board and says so on screen. SPEC/35 (21 Oct 2026): a public session's consent, questionnaire
+ * items and debrief come from `app/i18n/public-texts.ts`, and its primer and commander profile are shown here too.
  */
 
 import { useEffect, useState } from "preact/hooks";
 import type { SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
 import { itemShown, type QuestionnaireItem, type QuestionnaireValue } from "../../../session/questionnaire.js";
 import { STUDY_TEXT } from "../../../i18n/study-texts.js";
+import { studyTextFor } from "../../../i18n/public-texts.js";
+import type { Lang } from "../../../i18n/lang.js";
+import type { LogRecord } from "../../../telemetry/log.js";
 import { gatherPreflightEnv } from "../preflight-env.js";
 import { useLang } from "../i18n.js";
+import { PrimerScreen } from "./PrimerScreen.js";
+import { ProfileScreen } from "./ProfileScreen.js";
 
 const page = { display: "flex", height: "100%", overflowY: "auto", justifyContent: "center", padding: "32px 24px", boxSizing: "border-box" } as const;
 const column = { maxWidth: 720, width: "100%", display: "flex", flexDirection: "column", gap: 14 } as const;
@@ -29,16 +35,43 @@ export function StudyShell({ snapshot, orchestrator }: { readonly snapshot: Sess
     case "preflight_refused": return <PreflightScreen snapshot={snapshot} orchestrator={orchestrator} />;
     case "questionnaire": return <QuestionnaireScreen snapshot={snapshot} orchestrator={orchestrator} />;
     case "debrief": return <DebriefScreen snapshot={snapshot} orchestrator={orchestrator} />;
+    case "primer": return <PrimerStep orchestrator={orchestrator} />;
+    case "profile": return <ProfileStep orchestrator={orchestrator} />;
     default: return null;
   }
 }
 
-/** The steps the shell draws (full screen). */
-export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief"]);
+/** The steps the shell draws (full screen); SPEC/35: a public session's primer and commander profile too. */
+export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief", "primer", "profile"]);
+
+/** The shell's texts for this session (SPEC/35: the public consent, questionnaire items and debrief in a public session). */
+function textOf(lang: Lang, orchestrator: SessionOrchestrator) {
+  return studyTextFor(lang, { audience: orchestrator.audience, scope: orchestrator.scope });
+}
+
+/** SPEC/35 §3 item 1: the primer (work package P2's screen); its pages and checks are logged as they happen. */
+function PrimerStep({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {
+  const { lang } = useLang();
+  return (
+    <PrimerScreen lang={lang}
+      onPage={(pageId, dwellMs) => void orchestrator.primerPage(pageId, dwellMs).catch(() => undefined)}
+      onCheck={(questionId, chosen, correct, attempt) => void orchestrator.primerCheck(questionId, chosen, correct, attempt).catch(() => undefined)}
+      onDone={() => void orchestrator.finishPrimer().catch(() => undefined)} />
+  );
+}
+
+/** SPEC/35 §4: the commander profile (work package P3's screen), read from the session's records so far (`profile_shown` is durable). */
+function ProfileStep({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {
+  const { lang } = useLang();
+  const [records, setRecords] = useState<readonly LogRecord[] | null>(null);
+  useEffect(() => { void orchestrator.logRecords().then(setRecords); }, []);
+  if (!records) return null;
+  return <ProfileScreen lang={lang} records={records} onDone={() => void orchestrator.finishProfile().catch(() => undefined)} />;
+}
 
 function ConsentScreen({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {
   const { lang } = useLang();
-  const c = STUDY_TEXT[lang].consent;
+  const c = textOf(lang, orchestrator).consent;
   const [agreed, setAgreed] = useState(false);
   const [attested, setAttested] = useState(false);
   return (
@@ -126,7 +159,7 @@ function PreflightScreen({ snapshot, orchestrator }: { readonly snapshot: Sessio
 
 function QuestionnaireScreen({ snapshot, orchestrator }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
   const { lang, tr } = useLang();
-  const q = STUDY_TEXT[lang].questionnaire;
+  const q = textOf(lang, orchestrator).questionnaire;
   const view = snapshot.questionnaire!;
   const [answers, setAnswers] = useState<Record<string, QuestionnaireValue>>({});
   const set = (id: string, v: QuestionnaireValue) => setAnswers((a) => {
@@ -325,7 +358,7 @@ function AiLiteracyScreen({ snapshot, orchestrator }: { readonly snapshot: Sessi
 
 function DebriefScreen({ snapshot, orchestrator }: { readonly snapshot: SessionSnapshot; readonly orchestrator: SessionOrchestrator }) {
   const { lang } = useLang();
-  const d = STUDY_TEXT[lang].debrief;
+  const d = textOf(lang, orchestrator).debrief;
   return (
     <div style={page}>
       <div style={column} data-testid="debrief">

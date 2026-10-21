@@ -185,15 +185,56 @@ export const POST_ITEMS: readonly QuestionnaireItem[] = [
   scale7("terms.familiarity", "background"),
 ];
 
-/** Every item of every questionnaire (for the texts' coverage and the review packet). */
+/** Every item of every questionnaire (for the texts' coverage and the review packet); the public items are `PUBLIC_BACKGROUND_ITEMS`. */
 export const ALL_QUESTIONNAIRE_ITEMS: readonly QuestionnaireItem[] = [...PRE_ITEMS, ...POST_ITEMS];
+
+/**
+ * SPEC/35 §5 (21 Oct 2026): a public session's background section. The firefighter items (`EXPERT_BACKGROUND_IDS`) are replaced,
+ * where `role.rank` stands, by six items for the general population; every other item is the same. The texts are in
+ * `app/i18n/public-texts.ts` (DRAFT; the items are researcher items, SPEC/35 §8).
+ */
+export const EXPERT_BACKGROUND_IDS: readonly string[] = ["role.rank", "years.service", "incidents.commanded", "service.country"];
+const FREQUENCY = ["never", "rarely", "monthly", "weekly", "daily"] as const;
+export const PUBLIC_BACKGROUND_ITEMS: readonly QuestionnaireItem[] = [
+  { id: "public.age_band", section: "background", kind: "choice", options: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"] },
+  { id: "public.education", section: "background", kind: "choice", options: ["basic", "secondary", "bachelor", "master", "doctorate"] },
+  { id: "public.management", section: "background", kind: "choice", options: ["none", "team_lead", "manager", "executive"] },
+  // A first-responder (rescue, emergency care, police) or military background.
+  { id: "public.responder", section: "background", kind: "choice", options: ["none", "some", "professional"] },
+  { id: "public.gaming", section: "background", kind: "choice", options: FREQUENCY },
+  { id: "public.ai_use", section: "background", kind: "choice", options: FREQUENCY },
+];
+
+/**
+ * SPEC/35 §2: a phase-A session ends at the hinge, before the directive is given, so the items about the directive are not asked
+ * and `last.basis` does not offer it, whichever the audience.
+ */
+export const DIRECTIVE_ITEM_IDS: readonly string[] = [RETENTION_ITEM_ID, "ai.directive_relation", "directive.fit"];
+
+/** Who the session is for and how much of it runs (`SessionOptions.audience`, `scope`). */
+export interface QuestionnaireSetting {
+  readonly audience: "expert" | "public";
+  readonly scope: "full" | "phaseA";
+}
+export const EXPERT_FULL: QuestionnaireSetting = { audience: "expert", scope: "full" };
+
+function forSetting(items: readonly QuestionnaireItem[], setting: QuestionnaireSetting): readonly QuestionnaireItem[] {
+  let out = items;
+  if (setting.scope === "phaseA") {
+    out = out.filter((i) => !DIRECTIVE_ITEM_IDS.includes(i.id))
+      .map((i) => (i.id === "last.basis" && i.kind === "multi" ? { ...i, options: i.options.filter((o) => o.id !== "directive") } : i));
+  }
+  if (setting.audience === "public") out = out.flatMap((i) => (i.id === "role.rank" ? PUBLIC_BACKGROUND_ITEMS : EXPERT_BACKGROUND_IDS.includes(i.id) ? [] : [i]));
+  return out;
+}
 
 /**
  * A questionnaire's items for a cell, in the order shown; multi items' options filtered for the cell
  * and, given the participant's `seed`, in the participant's order (without it, the authored order).
+ * `setting` (SPEC/35): the public background items, and no directive items in a phase-A session.
  */
-export function questionnaireItems(id: QuestionnaireId, cell: Cell, seed?: OptionOrderSeed): readonly QuestionnaireItem[] {
-  return resolveItems((id === "pre" ? PRE_ITEMS : POST_ITEMS).filter((it) => !it.cells || it.cells.includes(cell)), cell, seed);
+export function questionnaireItems(id: QuestionnaireId, cell: Cell, seed?: OptionOrderSeed, setting: QuestionnaireSetting = EXPERT_FULL): readonly QuestionnaireItem[] {
+  return resolveItems(forSetting(id === "pre" ? PRE_ITEMS : POST_ITEMS, setting).filter((it) => !it.cells || it.cells.includes(cell)), cell, seed);
 }
 
 function resolveItems(items: readonly QuestionnaireItem[], cell: Cell, seed: OptionOrderSeed | undefined): QuestionnaireItem[] {

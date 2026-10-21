@@ -155,8 +155,13 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "questionnaire_submitted", detail: { questionnaireId: "post", answers: [{ itemId: "retention.hinge", value: "c" }], dwellMs: 300_000 } },
   { kind: "debrief_shown", detail: { textId: "debrief.reasoning_intent" } },
   { kind: "debrief_closed", detail: { textId: "debrief.reasoning_intent", dwellMs: 90_000 } },
-  { kind: "glossary_opened", detail: { cycle: 2 } },
   { kind: "glossary_closed", detail: { cycle: 2, dwellMs: 4_000 } },
+  // SPEC/35 (0.13.0): the public-audience version (`glossary_opened` in its public shape; the R2 shape `{ cycle }` is no longer emitted)
+  { kind: "glossary_opened", detail: { termId: "fire.head", surface: "message_log", view: 3 } },
+  { kind: "primer_page", detail: { pageId: "p1.role", dwellMs: 41_000 } },
+  { kind: "primer_check", detail: { questionId: "q1.role", chosen: 2, correct: false, attempt: 1 } },
+  { kind: "help_card_opened", detail: { section: "roster" } },
+  { kind: "profile_shown", detail: {} },
   // The AI literacy test (9 Oct 2026, revision (ac))
   { kind: "ai_literacy_started", detail: { instrumentId: "SNAIL", version: "snail-31.2023.v1", itemIds: ["snail.V01", "snail.V02"], timeLimitMs: 300_000, itemsPerPage: 4, firstPage: 0, remainingMs: 300_000, resumed: false, keptItemIds: [], itemsPending: false } },
   { kind: "ai_literacy_answered", detail: { itemId: "snail.V01", sourceItemId: "V01", position: 1, page: 0, response: 5, timeOnItemMs: 6_000 } },

@@ -74,6 +74,17 @@ export interface LogHeader {
    */
   readonly uiShell?: "tak" | "classic";
   /**
+   * SPEC/35 §2 (21 Oct 2026, 0.13.0): who the session is for — `expert` (fire-rescue professionals, the study as designed) or
+   * `public` (participants from the general population: the explanation layer, the public questionnaire, the commander profile;
+   * `?yleiso`). Absent in logs before 0.13.0: `expert`.
+   */
+  readonly audience?: "expert" | "public";
+  /**
+   * SPEC/35 §2: how much of the scenario the session runs — `full` (VP, V1–V14) or `phaseA` (VP, V1–V7: the session ends at the
+   * hinge and goes on to the questionnaire; `?laajuus=a`). Absent in logs before 0.13.0: `full`.
+   */
+  readonly scope?: "full" | "phaseA";
+  /**
    * Where `cell` came from (SPEC/27 §2.2, 5 Oct 2026; `app/session/preview.ts` `SessionAssignment`):
    * `table` — the allocation table by participant code (`participantCode` is the table's code;
    * `tableSha256` is the table's `rowsSha256`; `block` its block in the language stratum), the only

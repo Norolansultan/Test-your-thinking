@@ -36,6 +36,7 @@ import type {
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
+import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail } from "./record-kinds-public.js";
 
 // ---------------------------------------------------------------------------
 // §2.1 Session and lifecycle
@@ -131,7 +132,7 @@ export interface SessionResumedDetail {
    * open; the session resumed into that item (not a replay: `cycleReplayed` names the view, which is
    * not run again, and the analysis does not count it as replayed).
    */
-  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced";
+  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile";
 }
 export type PhaseEnteredDetail = { readonly phase: "practice" | "tutorial" | "phase_a" | "hinge" | "phase_b" };
 
@@ -205,6 +206,8 @@ export type {
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
+// SPEC/35 (0.13.0): the public-audience version's records, `record-kinds-public.ts`.
+export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail } from "./record-kinds-public.js";
 
 // ---------------------------------------------------------------------------
 // §2.6 Probe and decision interaction
@@ -610,10 +613,12 @@ export interface DebriefClosedDetail {
   readonly textId: string;
   readonly dwellMs: number;
 }
-/** The English glossary (R2) opened from the message log, and closed. Not emitted since revision (ae) (the glossary is gone); kept so older logs still type. */
-export interface GlossaryOpenedDetail {
-  readonly cycle: CycleIndex | PracticeViewIndex;
-}
+/**
+ * A glossary term's definition shown. Two shapes: SPEC/35 §3 item 2 (0.13.0, public sessions only) — the term, the text surface it
+ * was opened on and the view (0 = VP; null outside the views: the primer, a full-screen page); and the English glossary of R2,
+ * opened from the message log, not emitted since revision (ae) (the glossary is gone), kept so older logs still type.
+ */
+export type GlossaryOpenedDetail = PublicGlossaryOpenedDetail | { readonly cycle: CycleIndex | PracticeViewIndex };
 export interface GlossaryClosedDetail {
   readonly cycle: CycleIndex | PracticeViewIndex;
   readonly dwellMs: number;
@@ -823,7 +828,12 @@ export type TelemetryEvent =
   // SPEC/32 §3 (20 Oct 2026): the plan review at commitment, phase B (V8–V14), both groups
   | { readonly kind: "plan_review_shown"; readonly detail: PlanReviewShownDetail }
   | { readonly kind: "plan_review_record_opened"; readonly detail: PlanReviewRecordOpenedDetail }
-  | { readonly kind: "plan_review_closed"; readonly detail: PlanReviewClosedDetail };
+  | { readonly kind: "plan_review_closed"; readonly detail: PlanReviewClosedDetail }
+  // SPEC/35 (21 Oct 2026): the public-audience version (`glossary_opened` above carries its new shape)
+  | { readonly kind: "primer_page"; readonly detail: PrimerPageDetail }
+  | { readonly kind: "primer_check"; readonly detail: PrimerCheckDetail }
+  | { readonly kind: "help_card_opened"; readonly detail: HelpCardOpenedDetail }
+  | { readonly kind: "profile_shown"; readonly detail: Record<string, never> };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1021,7 +1031,14 @@ export type RecordKind = TelemetryEvent["kind"];
  * 0.12.0 (SPEC/32 §3, 20 Oct 2026): `plan_review_shown`, `plan_review_record_opened` and `plan_review_closed` are added (the
  * plan review at commitment in phase B, both groups).
  */
-export const TELEMETRY_FORMAT_VERSION = "0.12.0";
+/*
+ * 0.13.0 (SPEC/35, 21 Oct 2026): the public-audience version. The header carries `audience` (`expert` | `public`) and `scope`
+ * (`full` | `phaseA`), absent in older logs (= expert, full); `primer_page`, `primer_check`, `help_card_opened` and `profile_shown` are
+ * added; `glossary_opened` gains its public shape (`termId`, `surface`, `view`); `briefing_advanced` may carry `screenId`
+ * "briefing.primer" (the primer left); `session_resumed.resumedAt` may be `primer` or `profile`. All of them only in public sessions:
+ * an expert session writes the records of 0.12.0 (with `scope: "phaseA"` it ends after V7 and its questionnaire skips the directive).
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.13.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1051,4 +1068,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "tak_pane_opened", "tak_pane_closed", "tak_contact_selected", "tak_overlay_toggled", "tak_rb_measured", "tak_chat_room_viewed", "tak_video_viewed",
   "consult_prompt_shown", "consult_prompt_opened", "consult_prompt_dismissed", "plan_confidence_presented", "plan_confidence_submitted",
   "plan_review_shown", "plan_review_record_opened", "plan_review_closed",
+  "primer_page", "primer_check", "help_card_opened", "profile_shown",
 ];

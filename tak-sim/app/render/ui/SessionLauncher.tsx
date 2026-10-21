@@ -23,6 +23,7 @@ import { browserEnvironment, sessionAnnotations, wallNowMs } from "../../session
 import { STUDY_PARAM, type PreviewOverride, type SessionAssignment } from "../../session/preview.js";
 import type { Cell, ScenarioContract } from "../../scenario/types.js";
 import type { UiShell } from "../../session/header.js";
+import type { Audience, SessionScope } from "../../session/public-session.js";
 import type { Lang } from "../../i18n/lang.js";
 import { InMemoryLogSink, type LogRecord } from "../../telemetry/log.js";
 import { openSessionSink, registeringSink, SessionRegistry, type SessionEntry, type SessionStatus } from "../../telemetry/session-registry.js";
@@ -55,6 +56,8 @@ type LaunchProps = {
   readonly sessionId?: string | undefined;
   /** The screen layout (SPEC/28 §5; `?klassinen` gives the classic one); annotated into the header as `uiShell`. */
   readonly uiShell: UiShell;
+  /** SPEC/35 §2: the public-audience version (`?yleiso`) and the session's scope (`?laajuus=a`); logged in the header. */
+  readonly audience?: Audience | undefined; readonly scope?: SessionScope | undefined;
 };
 
 function Centered({ children }: { readonly children: ComponentChildren }) {

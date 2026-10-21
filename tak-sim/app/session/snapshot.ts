@@ -66,7 +66,11 @@ export type JudgementStep =
   | "preflight"
   | "preflight_refused"
   | "questionnaire"
-  | "debrief";
+  | "debrief"
+  /** SPEC/35 §3 item 1 (public sessions): the primer, after the pre-session item and before the intro video and VP (`public-session.ts`). */
+  | "primer"
+  /** SPEC/35 §4 (public sessions): the commander profile, after the post-session questionnaire and before the debrief. */
+  | "profile";
 
 /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11). */
 export type TourId = "practice" | "tools";

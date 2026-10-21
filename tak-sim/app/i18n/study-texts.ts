@@ -418,7 +418,18 @@ const EN: StudyText = {
 
 export const STUDY_TEXT: Readonly<Record<Lang, StudyText>> = { fi: FI, en: EN };
 
-/** The debrief text's id for a cell (logged in `debrief_shown`). */
-export function debriefTextId(cell: Cell): string {
-  return `debrief.${cell}`;
+/** SPEC/35 §5: the public consent text (`public-texts.ts`), one for every cell. Change it whenever the text changes. */
+export const PUBLIC_CONSENT_TEXT_ID = "consent.public.placeholder.v0";
+
+/** Which consent text a session shows (logged in `consent_decided`). */
+export function consentTextId(audience: "expert" | "public" = "expert"): string {
+  return audience === "public" ? PUBLIC_CONSENT_TEXT_ID : CONSENT_TEXT_ID;
+}
+
+/**
+ * The debrief text's id for a cell (logged in `debrief_shown`). SPEC/35: a public session's debrief is the same in every cell and
+ * differs by its scope (`public-texts.ts`): `debrief.public.full` or `debrief.public.phaseA`.
+ */
+export function debriefTextId(cell: Cell, setting: { readonly audience: "expert" | "public"; readonly scope: "full" | "phaseA" } = { audience: "expert", scope: "full" }): string {
+  return setting.audience === "public" ? `debrief.public.${setting.scope}` : `debrief.${cell}`;
 }

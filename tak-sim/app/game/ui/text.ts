@@ -102,7 +102,7 @@ const settlementName = (world: GameWorld, id: string, lang: Lang): string => {
 const FI: GameText = {
   modeTitle: "Pelitila — komentajan peli",
   back: "Takaisin",
-  selectTitle: "Valitse tilanne",
+  selectTitle: "Mistä aloitetaan?",
   selectNote: "Pelitila on erillinen peli tutkimuksen maastossa. Se ei ole osa tutkimusta, eikä siitä tallenneta mitään.",
   difficulty: { easy: "Helppo", normal: "Normaali", hard: "Vaikea" },
   startsAt: "Alkaa",
@@ -133,8 +133,8 @@ const FI: GameText = {
   },
   ready: "Peli on pysäytetty",
   readyHint: "Valitse yksikkö ja anna käsky. Käynnistä aika ⏵-painikkeella tai välilyönnillä.",
-  toolbar: { units: "Yksiköt", radio: "Radio", objectives: "Tavoite", layers: "Tasot", help: "Ohje" },
-  paneTitle: { units: "Yksiköt", radio: "Radio / GeoChat", objectives: "Tavoitteet", layers: "Karttatasot", help: "Ohjaus" },
+  toolbar: { units: "Yksiköt", radio: "Radio", objectives: "Tavoite", layers: "Tasot", help: "Ohjeet" },
+  paneTitle: { units: "Yksiköt", radio: "Radio / GeoChat", objectives: "Tavoitteet", layers: "Karttatasot", help: "Ohjeet" },
   closePane: "Sulje",
   kind: {
     engine: "Pelastusyksikkö", tanker: "Säiliöauto", forest_unit: "Maastopaloyksikkö", volunteer: "VPK", ugv: "Letkunvetorobotti",
@@ -203,7 +203,7 @@ const FI: GameText = {
 const EN: GameText = {
   modeTitle: "Game mode — commander's game",
   back: "Back",
-  selectTitle: "Choose a scenario",
+  selectTitle: "Where do you start?",
   selectNote: "Game mode is a separate game on the study's terrain. It is not part of the study and nothing from it is recorded.",
   difficulty: { easy: "Easy", normal: "Normal", hard: "Hard" },
   startsAt: "Starts",
@@ -235,7 +235,7 @@ const EN: GameText = {
   ready: "The game is paused",
   readyHint: "Select a unit and give an order. Start the clock with ⏵ or Space.",
   toolbar: { units: "Units", radio: "Radio", objectives: "Goals", layers: "Layers", help: "Help" },
-  paneTitle: { units: "Units", radio: "Radio / GeoChat", objectives: "Objectives", layers: "Map layers", help: "Controls" },
+  paneTitle: { units: "Units", radio: "Radio / GeoChat", objectives: "Objectives", layers: "Map layers", help: "Instructions" },
   closePane: "Close",
   kind: {
     engine: "Rescue engine", tanker: "Water tanker", forest_unit: "Forest-fire unit", volunteer: "Volunteer brigade", ugv: "Hose-laying robot",

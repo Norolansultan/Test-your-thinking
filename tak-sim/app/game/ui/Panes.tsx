@@ -1,7 +1,7 @@
 /**
  * Game mode: the right-hand TAK toolbar and its side pane (the study's TAK shell styling, `render/ui/tak/TakToolbar`
  * and `TakSidePane`, re-drawn here in the game's own language strings): Units, Radio / GeoChat, Objectives, Layers and
- * Help.
+ * Instructions (SPEC/34 §5, `course/Instructions.tsx`).
  */
 
 import type { ComponentChildren, JSX } from "preact";
@@ -14,6 +14,8 @@ import { statusColor, unitSymbolSvg } from "./markers.js";
 import { statusLabel } from "./OrderBar.js";
 import { isAir } from "./orders.js";
 import { unitListOrder } from "./scenario-info.js";
+import type { DecisionTask } from "../tasks/contracts.js";
+import { InstructionsBody } from "./course/Instructions.js";
 import { GM, TAK } from "./styles.js";
 import { clockAt, GAME_TEXT, inLang, type LayerId, type PaneId } from "./text.js";
 
@@ -233,16 +235,11 @@ export function LayersPane({ lang, layers, onToggle }: { readonly lang: Lang; re
   );
 }
 
-export function HelpPane({ lang }: { readonly lang: Lang }) {
-  const t = GAME_TEXT[lang];
+/** The instructions pane (SPEC/34 §5): this task (when `task` is given), the checklist, orders and keys, map symbols. */
+export function HelpPane({ lang, task }: { readonly lang: Lang; readonly task?: DecisionTask | undefined }) {
   return (
     <div style={scroll} data-testid="game-help">
-      {t.help.map(([k, what]) => (
-        <div key={k} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 8px", background: TAK.row, borderRadius: TAK.radius, fontSize: 13 }}>
-          <span style={{ fontFamily: TAK.mono, fontWeight: 700, color: TAK.accent, minWidth: 120 }}>{k}</span>
-          <span style={{ lineHeight: 1.35 }}>{what}</span>
-        </div>
-      ))}
+      <InstructionsBody lang={lang} task={task} />
     </div>
   );
 }

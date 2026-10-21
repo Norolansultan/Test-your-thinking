@@ -108,7 +108,7 @@ export function TaskScreen({ lang, task, onDone, onBack }: TaskScreenProps) {
       <GameScreen key={`${attempt}-${phase === "result" ? "result" : "play"}`} lang={lang} scenario={task.scenario} seed={task.seed} game={shown}
         clockLocked ordersLocked={phase === "result" || (phase === "run" && task.allowLaterOrders !== true)}
         onFrame={onFrame} aside={aside ?? undefined} onQuit={onBack} onFinish={() => undefined}
-        initialLayers={phase === "result" ? { truth: true } : {}} />
+        initialLayers={phase === "result" ? { truth: true } : {}} task={task} />
     </div>
   );
 }

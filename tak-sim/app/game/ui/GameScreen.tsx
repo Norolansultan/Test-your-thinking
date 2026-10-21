@@ -13,6 +13,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Game, GameScenario, GameState, Order, RadioMessage } from "../contracts.js";
 import type { Lang } from "../../i18n/lang.js";
+import type { DecisionTask } from "../tasks/contracts.js";
 import { fireStillBurning, issueToSelection, nextSelection, type IssueOutcome } from "./controls.js";
 import type { GameResult } from "./Debrief.js";
 import { computeForecast, forecastDue } from "./forecast-view.js";
@@ -61,9 +62,11 @@ export interface GameScreenTaskProps {
   readonly onQuit?: () => void;
   /** Layers switched on or off from the start. */
   readonly initialLayers?: Partial<Readonly<Record<LayerId, boolean>>>;
+  /** The decision task or exercise being played: the instructions pane shows its prompt and criteria (SPEC/34 §5). */
+  readonly task?: DecisionTask;
 }
 
-export function GameScreen({ lang, scenario, seed, onFinish, game: givenGame, clockLocked = false, ordersLocked = false, onFrame, aside, onQuit, initialLayers }: {
+export function GameScreen({ lang, scenario, seed, onFinish, game: givenGame, clockLocked = false, ordersLocked = false, onFrame, aside, onQuit, initialLayers, task }: {
   readonly lang: Lang; readonly scenario: GameScenario; readonly seed: number;
   readonly onFinish: (r: GameResult) => void;
 } & GameScreenTaskProps) {
@@ -377,7 +380,7 @@ export function GameScreen({ lang, scenario, seed, onFinish, game: givenGame, cl
               {pane === "radio" && <RadioPane lang={lang} radio={st.radio} startClockMin={game.scenario.startClockMin} onLocate={(m) => { if (m.at) ctl.current?.flyTo(m.at); }} />}
               {pane === "objectives" && <ObjectivesPane lang={lang} scenario={game.scenario} world={world} state={st} />}
               {pane === "layers" && <LayersPane lang={lang} layers={layers} onToggle={(id) => setLayers((cur) => ({ ...cur, [id]: !cur[id] }))} />}
-              {pane === "help" && <HelpPane lang={lang} />}
+              {pane === "help" && <HelpPane lang={lang} task={task} />}
             </SidePane>
           </div>
         )}

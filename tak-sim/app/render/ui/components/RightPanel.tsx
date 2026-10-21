@@ -9,6 +9,8 @@ import { useLang } from "../i18n.js";
 import { HakuPanel } from "./Drawers.js";
 import { OpenAnswerView } from "./OpenAnswerView.js";
 import { ConsultNotice } from "./ConsultNotice.js";
+import { Glossed } from "../explain/Glossed.js";
+import { HelpCard } from "../explain/HelpCard.js";
 import { useQueryTelemetry } from "../useQueryTelemetry.js";
 import type { QueryField } from "../../../telemetry/record-kinds-interaction.js";
 
@@ -199,13 +201,13 @@ export function HakuChat({ snapshot, orchestrator, fill = false }: { readonly sn
               {/* Review M2: the card names the tool in the session language ("Search" in English). M3: tags shown without their T-number. */}
               <div style={{ gridColumn: "1 / -1", fontWeight: 700, fontSize: 11 }}>{t.haku}</div>
               <div style={{ fontWeight: 600, opacity: 0.6, fontSize: 10.5 }}>{t.answer}</div>
-              <div>{displayAnswerText(turn.answer.answerFi)}</div>
+              <div><Glossed text={displayAnswerText(turn.answer.answerFi)} surface="search" /></div>
               <div style={{ fontWeight: 600, opacity: 0.6, fontSize: 10.5 }}>{t.basis}</div>
-              <div style={{ opacity: 0.85 }}>{displayAnswerText(turn.answer.basisFi)}</div>
+              <div style={{ opacity: 0.85 }}><Glossed text={displayAnswerText(turn.answer.basisFi)} surface="search" /></div>
               <div style={{ fontWeight: 600, opacity: 0.6, fontSize: 10.5 }}>{t.certainty}</div>
-              <div style={{ opacity: 0.85 }}>{displayAnswerText(turn.answer.certaintyFi)}</div>
+              <div style={{ opacity: 0.85 }}><Glossed text={displayAnswerText(turn.answer.certaintyFi)} surface="search" /></div>
               <div style={{ fontWeight: 600, opacity: 0.6, fontSize: 10.5 }}>{t.wouldChange}</div>
-              <div style={{ opacity: 0.85 }}>{displayAnswerText(turn.answer.wouldChangeIfFi)}</div>
+              <div style={{ opacity: 0.85 }}><Glossed text={displayAnswerText(turn.answer.wouldChangeIfFi)} surface="search" /></div>
             </div>
           </div>
         ))}
@@ -237,7 +239,7 @@ export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly 
                 ? <div data-testid="thinker-unavailable" role="status" style={{ opacity: 0.85, fontStyle: "italic" }}>{t.thinkerUnavailable}</div>
                 : turn.structured
                   ? <OpenAnswerView answer={turn.structured} lang={lang} />
-                  : <div style={{ whiteSpace: "pre-wrap" }}>{displayAnswerText(turn.answer)}</div>}
+                  : <div style={{ whiteSpace: "pre-wrap" }}><Glossed text={displayAnswerText(turn.answer)} surface="guide" /></div>}
             </div>
           </div>
         ))}
@@ -270,6 +272,8 @@ function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly
       <div style={{ ...panelHeader, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{t.messageLog} ({snapshot.radioLog.length})</span>
       </div>
+      {/* SPEC/35 §3: the help card's row under the log's header (outside its dimmed style), public sessions only — nothing for experts. */}
+      <HelpCard />
       <div style={scrollArea}>
         {snapshot.radioLog.length === 0 && <div style={{ opacity: 0.4, fontSize: 12.5 }}>{t.noMessages}</div>}
         {snapshot.radioLog.map((entry, i) => <MessageLogRow key={i} entry={entry} />)}
@@ -282,7 +286,8 @@ function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly
  * One message of the log: its time, its source and its text, in the session language. Shared with the TAK shell's GeoChat
  * pane (SPEC/28 §5), so a message reads the same in both shells — its wording, time and source are never changed.
  * `wrapSource`: the TAK shell's narrower pane breaks a long source name inside its column; the classic log leaves it as it
- * always was (review 13 Oct 2026: the classic layout must not change).
+ * always was (review 13 Oct 2026: the classic layout must not change). SPEC/35 §3: the text carries the glossary's marks in
+ * a public session ("message_log", or the surface a `GlossSurfaceContext` names: the plan review's opened record).
  */
 export function MessageLogRow({ entry, wrapSource = false }: { readonly entry: RadioLogEntry; readonly wrapSource?: boolean }) {
   const { rec, src, lang } = useLang();
@@ -295,7 +300,7 @@ export function MessageLogRow({ entry, wrapSource = false }: { readonly entry: R
     <div ref={ref} data-testid={highlighted ? "log-row-opened" : undefined} style={{ display: "grid", gridTemplateColumns: `40px ${lang === "en" ? 104 : 56}px 1fr`, gap: 8, fontSize: 12.5, lineHeight: 1.4, borderBottom: "1px solid #262b31", paddingBottom: 6, ...(highlighted ? { outline: "2px solid #8ab4f8", outlineOffset: 2, borderRadius: 4 } : {}) }}>
       <div style={{ opacity: 0.5, fontFamily: "monospace" }}>{entry.clockLabel}</div>
       <div style={{ fontWeight: 600, fontFamily: "monospace", ...(wrapSource ? { overflowWrap: "anywhere" as const } : {}) }}>{src(entry.from)}</div>
-      <div>{rec(entry.id, entry.text)}</div>
+      <div><Glossed text={rec(entry.id, entry.text)} surface="message_log" /></div>
     </div>
   );
 }

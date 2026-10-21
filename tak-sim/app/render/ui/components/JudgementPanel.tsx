@@ -4,6 +4,7 @@ import { draftFromPlan, PlanPanel, planSummary, type PlanDraft } from "./Decisio
 import { Choice, hint, label, Panel, PrimaryButton, SecondaryButton } from "./PanelParts.js";
 import { PlanConfidencePanel } from "./PlanConfidencePanel.js";
 import { PlanReviewPanel } from "./PlanReviewPanel.js";
+import { Glossed } from "../explain/Glossed.js";
 
 /**
  * The decision strip's control surface. Follows the view's flow: until the decision panel opens
@@ -68,7 +69,7 @@ export function JudgementPanel({
           <p style={hint}>{t.periodConfirmedWait}</p>
           {snapshot.recordedPlan && (
             <p data-testid="plan-recorded" style={{ ...hint, opacity: 1 }}>
-              {t.planRecorded} {planSummary(snapshot.recordedPlan, snapshot.allocation.sectors, snapshot.allocation.droneTeams.length > 0, t, tr)}
+              {t.planRecorded} <Glossed text={planSummary(snapshot.recordedPlan, snapshot.allocation.sectors, snapshot.allocation.droneTeams.length > 0, t, tr)} surface="plan" />
             </p>
           )}
           {/* The revision opens on the plan recorded, not an empty form (6 Oct 2026). */}
@@ -88,7 +89,7 @@ export function JudgementPanel({
           {snapshot.hingeDirective !== null && (
             <div data-testid="hinge-directive" style={{ margin: "8px 0 12px", padding: "8px 10px", borderLeft: "3px solid #8ab4f8" }}>
               <div style={label}>{t.hingeDirectiveFrom}</div>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45 }}>{tr(snapshot.hingeDirective)}</p>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45 }}><Glossed text={tr(snapshot.hingeDirective)} surface="plan" /></p>
             </div>
           )}
           {check?.phase === "directive" && (
@@ -96,11 +97,11 @@ export function JudgementPanel({
           )}
           {check && check.phase !== "directive" && (
             <div data-testid="hinge-check" style={{ margin: "8px 0 12px" }}>
-              <p style={{ margin: "0 0 8px", fontSize: 14 }}>{tr(check.promptFi)}</p>
+              <p style={{ margin: "0 0 8px", fontSize: 14 }}><Glossed text={tr(check.promptFi)} surface="plan" /></p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {check.options.map((o) => (
                   <Choice key={o.id} selected={check.chosen === o.id} onClick={() => check.phase === "item" && void orchestrator.answerHingeCheck(o.id).catch(() => undefined)}>
-                    {tr(o.labelFi)}
+                    <Glossed text={tr(o.labelFi)} surface="plan" />
                   </Choice>
                 ))}
               </div>

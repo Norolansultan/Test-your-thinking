@@ -4,6 +4,7 @@ import type { SessionOrchestrator, VisibleProbeView } from "../../../session/orc
 import { useLang } from "../i18n.js";
 import { Choice, ConfidencePicker, hint, label, PrimaryButton } from "./PanelParts.js";
 import { areaAnswer, ProbeAnswerTracker } from "../probe-telemetry.js";
+import { Glossed } from "../explain/Glossed.js";
 
 /** An option's hover (`probe_option_hovered`) without changing its layout: the wrapper has no box of its own. */
 function Hover({ onEnter, children }: { readonly onEnter: (pointerType: string) => void; readonly children: ComponentChildren }) {
@@ -58,7 +59,7 @@ export function VisibleProbeCard({ probe, orchestrator }: {
   return (
     <div data-testid={`visible-probe-${probe.type}`} role="dialog" aria-label={v.title[probe.type]} style={{ padding: "12px 16px", borderTop: "2px solid #8ab4f8", background: "#20242a", flexShrink: 0 }}>
       <div style={label}>{v.title[probe.type]}</div>
-      <p style={{ margin: "2px 0 8px", fontSize: 14 }}>{tr(probe.promptFi)}</p>
+      <p style={{ margin: "2px 0 8px", fontSize: 14 }}><Glossed text={tr(probe.promptFi)} surface="other" /></p>
 
       {probe.kind === "area" && (
         <>
@@ -68,9 +69,9 @@ export function VisibleProbeCard({ probe, orchestrator }: {
           </div>
           {unsure === true && probe.followUpFi && (
             <>
-              <p style={{ margin: "2px 0 6px", fontSize: 14 }}>{tr(probe.followUpFi)}</p>
+              <p style={{ margin: "2px 0 6px", fontSize: 14 }}><Glossed text={tr(probe.followUpFi)} surface="other" /></p>
               <div role="group" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={areas.includes(o.id)} onClick={() => toggleArea(o.id)}>{tr(o.fi)}</Choice></Hover>)}
+                {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={areas.includes(o.id)} onClick={() => toggleArea(o.id)}><Glossed text={tr(o.fi)} surface="other" /></Choice></Hover>)}
               </div>
             </>
           )}
@@ -81,7 +82,7 @@ export function VisibleProbeCard({ probe, orchestrator }: {
       {probe.kind === "choice" && (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-            {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={choice === o.id} onClick={() => changed(o.id, () => setChoice(o.id))}>{tr(o.fi)}</Choice></Hover>)}
+            {probe.options.map((o) => <Hover key={o.id} onEnter={hovered(o.id)}><Choice selected={choice === o.id} onClick={() => changed(o.id, () => setChoice(o.id))}><Glossed text={tr(o.fi)} surface="other" /></Choice></Hover>)}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {probe.collectsConfidence && <ConfidencePicker value={confidence} onChange={setConfidence} />}

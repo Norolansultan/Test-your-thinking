@@ -7,6 +7,7 @@ import { FreezeMap } from "./FreezeMap.js";
 import { CONFIDENCE_SCALE as CONFIDENCE_STEPS } from "../../../session/confidence.js";
 import { useLang } from "../i18n.js";
 import { ProbeAnswerTracker } from "../probe-telemetry.js";
+import { Glossed } from "../explain/Glossed.js";
 
 /**
  * The SAGAT-style freeze (Type R) — SPEC/15 revision (r): it interrupts at its
@@ -104,7 +105,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
             <div style={mapItem ? { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 6 } : {}}>
               <div>
                 <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 6 }}>{current + 1}/{freeze.items.length}{showLevels ? ` · ${item.level}` : ""}</div>
-                <div style={{ fontSize: 14, marginBottom: mapItem ? 0 : 10 }}>{tr(item.promptFi)}</div>
+                <div style={{ fontSize: 14, marginBottom: mapItem ? 0 : 10 }}><Glossed text={tr(item.promptFi)} surface="freeze" /></div>
               </div>
               {mapItem && confidenceRow(item.id)}
             </div>
@@ -127,7 +128,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
                     checked={drafts[item.id]?.optionId === opt.id}
                     onChange={() => answers.current!.changed(item.id, opt.id, () => update(item.id, { optionId: opt.id }))}
                   />
-                  {tr(opt.labelFi)}
+                  <Glossed text={tr(opt.labelFi)} surface="freeze" />
                 </label>
               ))}
             </div>

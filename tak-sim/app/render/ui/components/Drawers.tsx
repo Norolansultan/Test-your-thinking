@@ -11,6 +11,7 @@ import {
 import type { NavCategoryId } from "../../../scenario/types.js";
 import { useLang } from "../i18n.js";
 import { useQueryTelemetry } from "../useQueryTelemetry.js";
+import { Glossed } from "../explain/Glossed.js";
 
 /** Observation time as a scenario clock label; the scenario starts at 13:20 (SPEC/18 §2). */
 function clockAt(observedAtSeconds: number, start = "13:20"): string {
@@ -29,7 +30,7 @@ function ResultList({ results }: { readonly results: readonly RenderableAtom[] }
           <div style={{ opacity: 0.6, marginBottom: 2, fontFamily: "monospace" }}>
             {src(atom.provenance.sourceId)} · {t.clock} {clockAt(atom.provenance.observedAt)} · {atom.record.kind}
           </div>
-          <div>{rec(atom.id, "text" in atom.record ? atom.record.text : "content" in atom.record && atom.record.content ? atom.record.content : atom.id)}</div>
+          <div><Glossed text={rec(atom.id, "text" in atom.record ? atom.record.text : "content" in atom.record && atom.record.content ? atom.record.content : atom.id)} surface="search" /></div>
         </div>
       ))}
     </div>

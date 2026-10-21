@@ -24,11 +24,13 @@ export function WindArrow({ fromDeg, size = 26 }: { readonly fromDeg: number; re
 
 const sep = <span aria-hidden="true" class="gm-hide-narrow" style={{ width: 1, alignSelf: "stretch", background: TAK.panelBorder, margin: "2px 2px" }} />;
 
-export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit, windAlert = false }: {
+export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit, windAlert = false, speedLocked = false }: {
   readonly lang: Lang; readonly scenario: GameScenario; readonly world: GameWorld; readonly state: GameState;
   readonly speed: Speed; readonly onSpeed: (s: Speed) => void; readonly onQuit: () => void;
   /** The wind has just changed: its reading flashes. */
   readonly windAlert?: boolean;
+  /** The clock is not the player's (a decision task, SPEC/34 §4): the speed buttons are disabled. */
+  readonly speedLocked?: boolean;
 }) {
   const t = GAME_TEXT[lang];
   const w = state.weather;
@@ -53,9 +55,9 @@ export function Hud({ lang, scenario, world, state, speed, onSpeed, onQuit, wind
           {SPEEDS.map((sp) => {
             const on = sp === speed;
             return (
-              <button key={sp} type="button" data-testid={`game-speed-${sp}`} aria-pressed={on} onClick={() => onSpeed(sp)}
+              <button key={sp} type="button" data-testid={`game-speed-${sp}`} aria-pressed={on} onClick={() => onSpeed(sp)} disabled={speedLocked}
                 title={sp === 0 ? `${t.hud.pause} (Space)` : `${sp}× (${SPEEDS.indexOf(sp)})`}
-                style={{ minWidth: sp === 0 ? 38 : 40, height: 32, border: "none", borderRadius: 3, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: TAK.mono,
+                style={{ minWidth: sp === 0 ? 38 : 40, height: 32, border: "none", borderRadius: 3, cursor: speedLocked ? "not-allowed" : "pointer", opacity: speedLocked ? 0.45 : 1, fontWeight: 700, fontSize: 13, fontFamily: TAK.mono,
                   background: on ? (sp === 0 ? GM.fire : TAK.accentDim) : "transparent", color: on ? "#fff" : TAK.text }}>
                 {sp === 0 ? "⏸" : `${sp}×`}
               </button>

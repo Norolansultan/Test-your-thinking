@@ -47,6 +47,18 @@ export type WeatherAtFn = (keys: readonly WeatherKey[], tS: number) => Weather;
 /** `weather/weather.ts` describeWeatherFi / describeWeatherEn: one line for the weather service's radio report. */
 export type DescribeWeatherFn = (weather: Weather) => string;
 
+/**
+ * One water application a unit makes (attack, hose line, mop-up, protection, drop), whether the live line let it go on
+ * (`applied` false: refused within `POWER_LINE_SAFE_M` of the live line). An observer only: it changes nothing.
+ */
+export interface WaterEvent {
+  readonly tS: number;
+  readonly unitId: string;
+  readonly at: XY;
+  readonly litres: number;
+  readonly applied: boolean;
+}
+
 /** Everything the game loop needs from outside `sim/`. */
 export interface GameDeps {
   readonly route: RouteFn;
@@ -59,4 +71,6 @@ export interface GameDeps {
   readonly weatherAt: WeatherAtFn;
   readonly describeWeatherFi: DescribeWeatherFn;
   readonly describeWeatherEn: DescribeWeatherFn;
+  /** Optional observer of every water application (the decision tasks' trace, SPEC/34 §4; free play sets none). */
+  readonly onWater?: (e: WaterEvent) => void;
 }

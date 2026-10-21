@@ -5,7 +5,7 @@
  * predicates, so a task plays on any `GameWorld`.
  */
 
-import type { GameCommand, GameScenario, GameState, XY } from "../contracts.js";
+import type { GameCommand, GameGrid, GameScenario, GameState, XY } from "../contracts.js";
 
 /** The elements of command the course teaches; tasks and modules are tagged with one (SPEC/34 §3). */
 export type CourseTopic = "map" | "fire" | "recon" | "orders" | "water" | "safety" | "protect" | "mopup";
@@ -30,6 +30,8 @@ export interface TaskTrace {
   readonly waterNearLiveLine: readonly { readonly tS: number; readonly unitId: string }[];
   /** Cells observed by the player's units at least once (fog of war), by cell index. */
   readonly everObserved: ReadonlySet<number>;
+  /** The grid the cell indices refer to (for criteria that judge places), when the runner knows it. Added by the tasks work package. */
+  readonly grid?: GameGrid;
 }
 
 /** A criterion of a task: met or not, judged on the final state and the trace, with a reason the player reads. */
@@ -55,6 +57,12 @@ export interface DecisionTask {
   readonly seed: number;
   /** Game seconds from tS 0 to the planning moment (default 0: plan at the start). The game runs paused to it before planning. */
   readonly planAtS?: number;
+  /**
+   * Orders that are part of the situation (e.g. the first units driving in): the runner issues them at their `atS`
+   * before the planning moment (all before `planAtS`). They are not the player's and are not in `TaskResult.commands`.
+   * Added by the tasks work package.
+   */
+  readonly setup?: readonly GameCommand[];
   /** Game seconds the run lasts after the commit. */
   readonly horizonS: number;
   /** False (default): orders only in the planning phase — a static task. True: the player may also order during the run. */

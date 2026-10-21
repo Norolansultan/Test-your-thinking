@@ -29,7 +29,9 @@ export function waterAllowedAt(ctx: Ctx, p: XY): boolean {
 /** Puts water on the fire unless the live line forbids it; tells the crew's radio once if it does. */
 export function wet(ctx: Ctx, u: UnitRt, centre: XY, radiusM: number, litres: number): boolean {
   if (litres <= 0) return false;
-  if (!waterAllowedAt(ctx, centre)) {
+  const allowed = waterAllowedAt(ctx, centre);
+  ctx.deps.onWater?.({ tS: ctx.tS, unitId: u.id, at: centre, litres, applied: allowed });
+  if (!allowed) {
     say(ctx, unitSay(u, { text: T.powerLineNoWater(), priority: "important", key: "power_line" }));
     return false;
   }

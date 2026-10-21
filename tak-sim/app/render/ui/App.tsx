@@ -5,6 +5,7 @@ import { knownSessionStatus, ResumeGate, SessionLauncher } from "./SessionLaunch
 import type { Cell } from "../../scenario/types.js";
 import { assignedByCode, conditionOfCell, sessionOverrideFromUrl, startChoiceFromUrl, STUDY_PARAM, type StartChoice } from "../../session/preview.js";
 import { browserAssignDeps, obtainAssignment, storedCode } from "../../session/auto-assign.js";
+import { sessionSettingFromUrl } from "../../session/public-session.js";
 import { browserEnvironment, newSessionId } from "../../session/annotations.js";
 import { AUTO_ASSIGN_TEXT, LINK_INACTIVE_BOTH } from "../../i18n/auto-assign-texts.js";
 import { DEFAULT_LANG, isLang, LANGUAGES, type Lang } from "../../i18n/lang.js";
@@ -93,7 +94,10 @@ function StartPage() {
   const serverLink = urlChoice.kind === "server_assign";
   // A code this browser already holds for the shared link is used again (never a second draw).
   const held = serverLink ? storedCode(localStore()) : null;
-  const choice: StartChoice = issued?.choice ?? (held ? assignedByCode(held.code, "server") ?? urlChoice : urlChoice);
+  // SPEC/35 §2: `?yleiso` (the public-audience version) and `?laajuus=a` (phase A only); an unknown scope is refused.
+  const setting = sessionSettingFromUrl(search);
+  const choice: StartChoice = "invalid" in setting ? { kind: "invalid", message: setting.invalid }
+    : issued?.choice ?? (held ? assignedByCode(held.code, "server") ?? urlChoice : urlChoice);
   // A table code fixes the session language (the stratum); otherwise the participant chooses it.
   const fixedLang = choice.kind === "assigned" ? choice.language : null;
   const lang: Lang = fixedLang ?? chosenLang;
@@ -173,7 +177,7 @@ function StartPage() {
       showProbeLevels={!study} allowTourSkip={!study}
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
       studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} minWindowGuard={study} sessionId={issued?.sessionId}
-      uiShell={uiShellFromSearch(search)}
+      uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)}
     />
   );
 }

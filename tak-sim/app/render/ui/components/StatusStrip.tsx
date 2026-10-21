@@ -3,6 +3,8 @@ import { MAIN_VIEW_COUNT } from "../../../scenario/views.js";
 import { useLang } from "../i18n.js";
 import { unitCallSign } from "../../../i18n/place-names.js";
 import type { Lang } from "../../../i18n/lang.js";
+import { chapterLabel } from "../../../i18n/public-texts.js";
+import { useAudience } from "../audience-context.js";
 
 /**
  * What a screen reader announces of the countdown (6 Oct 2026): not every second, but each time it crosses
@@ -32,6 +34,8 @@ export function StatusStrip({ snapshot, onSkip }: { readonly snapshot: SessionSn
   const { t, lang } = useLang();
   const demo = snapshot.skipAllowed;
   const viewLabel = snapshot.practice ? t.practiceLabel : t.viewLabel(snapshot.currentCycle, MAIN_VIEW_COUNT);
+  // SPEC/35 §4: a public session's chapter title (the time of day only; the same in every cell), none in the practice view.
+  const chapter = useAudience().audience === "public" ? chapterLabel(lang, snapshot.currentCycle) : null;
   const units = statusStripUnits(snapshot, lang);
   // No countdown once the period has ended: a forced situation question holds the view's end with its clock
   // paused, and the frozen "1 s" read as a second timer beside the question (review 9 Oct 2026).
@@ -61,6 +65,7 @@ export function StatusStrip({ snapshot, onSkip }: { readonly snapshot: SessionSn
       <span>
         {snapshot.practice || !demo ? viewLabel : `${viewLabel} (${t.step} ${snapshot.phase})`}
       </span>
+      {chapter && <span data-testid="chapter-title" style={{ opacity: 0.8 }}>{chapter}</span>}
       <span style={{ opacity: 0.6 }}>·</span>
       <span style={{ opacity: 0.8 }}>{t.phase[snapshot.cyclePhase]}</span>
       <span style={{ opacity: 0.6 }}>·</span>

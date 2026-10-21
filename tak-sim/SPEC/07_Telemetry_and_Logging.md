@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **21 Oct 2026 (bb)** — format **0.13.0** (`35`, the public-audience version): header fields `audience` and `scope`; `primer_page`, `primer_check`, `help_card_opened`, `profile_shown`; `glossary_opened` in a new shape. Expert sessions write the records of 0.12.0. See the revision at the end.
 > - **20 Oct 2026 (ba)** — format **0.12.0** (`32` §3): `plan_review_shown`, `plan_review_record_opened`, `plan_review_closed`. See the revision at the end.
 > - **19 Oct 2026 (ay)** — format **0.11.0** (`31` §3.6): `ai_chat_answer_received` gains `digestAtomIds` (the guide's digest; empty for Haku) and `recentAtomIds` (both tools), so exposure can count what reached the model without a search; the new post-session item ids; `consult_prompt_shown.atViewSeconds` may be later than 60 when the notice yields to a freeze. See the revision at the end.
 > - **19 Oct 2026 (ax)** — format **0.10.0** (`30`): `consult_prompt_shown` / `_opened` / `_dismissed`, `plan_confidence_presented` / `_submitted`; `ai_chat_query_submitted.viaChip`; `query_focus` / `query_first_keystroke` / `query_edit` gain `field` and `cycle`, `pointer_track` gains `cycle` and `viewportPx`; the first emitters of `pointer_track`, the query kinds, `decision_option_hovered`, `probe_option_hovered`, `probe_answer_changed` and `frame_stats`. See the revision at the end.
@@ -644,3 +645,21 @@ Format version **0.10.0** (`TELEMETRY_FORMAT_VERSION`); the kinds are additive, 
 - `plan_review_record_opened { cycle, atomId }` — the guide group opened a record the review cites.
 - `plan_review_closed { cycle, choice: keep | revise | time_cap, dwellMs, capExtendedToSeconds? }` — with `revise` the allocation reopens (`allocation_revision_opened`, `allocation_revised`) and the view ends at the revision with no second review; the cap moves to leave `REVIEW_REVISION_MIN_SECONDS` (45 s) if fewer remain.
 - The review's lines count as AI-stated text in `aiStatedKey` and in exposure.
+
+## Revision 21 Oct 2026 (bb) — format 0.13.0: the public-audience version (`35`)
+
+- **Header:** `audience` (`expert` | `public`; `?yleiso`) and `scope` (`full` | `phaseA`; `?laajuus=a`), written in every new log; a log without them (before 0.13.0) is `expert`, `full`. A resumed session takes them from its header.
+- **New kinds** (public sessions only; an expert session writes none of them):
+
+| Kind | Fields | When |
+|---|---|---|
+| `primer_page` | `pageId`, `dwellMs` (measured by the screen) | a primer page is left (`35` §3 item 1) |
+| `primer_check` | `questionId`, `chosen` (option index), `correct` (the primer's own key, about the words; never a study item's), `attempt` (1, 2, …) | a primer check answered; a wrong answer shows the explanation and the question again |
+| `help_card_opened` | `section` (`glossary` \| `roster` \| `legend`) | a help-card section opened (`35` §3 item 3) |
+| `profile_shown` | — | the commander profile shown, after the post-session questionnaire and before the debrief (`35` §4) |
+
+- **`glossary_opened`** gains its public shape `{ termId, surface, view }` (`surface` ∈ message_log, record, freeze, spam, plan, review, search, guide, help_card, other; `view` 0–14, null outside the views); the R2 shape `{ cycle }` stays in the types for older logs and is not emitted.
+- **The primer left:** `briefing_advanced { screenId: "briefing.primer", dwellMs }`, after the pre-session item and before "briefing.video".
+- **Ids:** the public consent `consent.public.placeholder.v0`; the public debrief `debrief.public.full` / `debrief.public.phaseA` (one per scope, the same in every cell); `session_resumed.resumedAt` may be `primer` or `profile`.
+- **Scope phase A:** the session ends at V7's `cycle_end` (no `hinge_pause_start`, no phase B; the engine passes the hinge and enters DEBRIEF_HANDOFF without a record, as V14's end does) and the post-session questionnaire omits the directive items (`retention.hinge`, `ai.directive_relation`, `directive.fit`) and the `directive` option of `last.basis`.
+- **Never at runtime (§3):** none of the layer's records touches the run's timing — no clock pause, no step or view change; between VP's start and the last view's end a public session writes an expert session's records plus these (`test/public/`).

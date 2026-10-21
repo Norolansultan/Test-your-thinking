@@ -140,6 +140,10 @@ const EXPECTED_KINDS: readonly RecordKind[] = (() => {
       case "plan_review_shown":
       case "plan_review_record_opened":
       case "plan_review_closed":
+      case "primer_page":
+      case "primer_check":
+      case "help_card_opened":
+      case "profile_shown":
         return;
       default:
         assertExhaustive(kind);

@@ -24,8 +24,11 @@ import { attachCheckpoints } from "../../../telemetry/session-checkpoint.js";
 import type { UiShell } from "../../../session/header.js";
 import { TakSessionLayout } from "../tak/TakSessionLayout.js";
 import { useViewTelemetry } from "../useViewTelemetry.js";
+import type { JSX } from "preact";
+import { AudienceContext } from "../audience-context.js";
+import type { Audience, SessionScope } from "../../../session/public-session.js";
 
-export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true }: {
+export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true, audience, scope }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels?: boolean;
   /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11); `allowTourSkip` in demonstration only. */
   readonly guidedTour?: boolean; readonly allowTourSkip?: boolean;
@@ -48,24 +51,28 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
    * SPEC/06 (`?klassinen`). Logged in the header (`uiShell`, through the launcher's annotations); the session is the same.
    */
   readonly uiShell?: UiShell;
+  /** SPEC/35 §2: the public-audience setting and the session's scope (`?yleiso`, `?laajuus=a`); logged in the header. A resume takes its header's. */
+  readonly audience?: Audience | undefined; readonly scope?: SessionScope | undefined;
 }) {
   useDocumentLanguage(language);
   return (
     <LangContext.Provider value={language}>
-      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} minWindowGuard={minWindowGuard} />
+      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} minWindowGuard={minWindowGuard} setting={{ ...(audience ? { audience } : {}), ...(scope ? { scope } : {}) }} />
     </LangContext.Provider>
   );
 }
 
-function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch, uiShell, minWindowGuard }: {
+function SessionBody({ scenario, condition, cell, previewOverride, language, showProbeLevels, guidedTour, allowTourSkip, participantCode, assignment, persistence, studyShell, allowPreflightOverride, allowViewSkip, indexedSearch, uiShell, minWindowGuard, setting }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels: boolean;
   readonly guidedTour: boolean; readonly allowTourSkip: boolean; readonly cell: Cell | undefined;
   readonly participantCode: string | undefined; readonly assignment: SessionAssignment | undefined; readonly persistence: SessionPersistence | undefined;
   readonly studyShell: boolean; readonly allowPreflightOverride: boolean; readonly allowViewSkip: boolean; readonly indexedSearch: boolean; readonly minWindowGuard: boolean;
-  readonly uiShell: UiShell;
+  readonly uiShell: UiShell; readonly setting: { readonly audience?: Audience; readonly scope?: SessionScope };
 }) {
-  const { snapshot, orchestrator } = useSession(scenario, condition, previewOverride, language, showProbeLevels, guidedTour, cell,
-    { ...(participantCode ? { participantCode } : {}), ...(assignment ? { assignment } : {}), studyShell, allowPreflightOverride, allowViewSkip }, persistence);
+  const { snapshot, orchestrator, audience } = useSession(scenario, condition, previewOverride, language, showProbeLevels, guidedTour, cell,
+    { ...(participantCode ? { participantCode } : {}), ...(assignment ? { assignment } : {}), studyShell, allowPreflightOverride, allowViewSkip, ...setting }, persistence);
+  // SPEC/35 §3: the explanation layer reads the audience and reports its use (`AudienceContext`); the default (expert) has no layer.
+  const provide = (screen: JSX.Element) => <AudienceContext.Provider value={audience}>{screen}</AudienceContext.Provider>;
   // A session that ended before the run (consent declined, hard preflight refusal) is not offered for resume.
   const step = snapshot?.step ?? null;
   useEffect(() => {
@@ -96,14 +103,14 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   }
 
   // The study shell (5 Oct 2026): consent, preflight, questionnaires and debrief take the whole screen; the end is `SessionEnd` below.
-  if (SHELL_STEPS.has(snapshot.step)) return <StudyShell snapshot={snapshot} orchestrator={orchestrator} />;
+  if (SHELL_STEPS.has(snapshot.step)) return provide(<StudyShell snapshot={snapshot} orchestrator={orchestrator} />);
 
   // The training (after VP) takes the whole screen (SPEC/15 §2). The briefing step has no page since revision (ae):
   // with the study shell it shows the intro video (10 Oct 2026); otherwise the orchestrator passes it at once.
   if (snapshot.step === "briefing") {
     return snapshot.introVideo ? <IntroVideoScreen video={snapshot.introVideo} orchestrator={orchestrator} /> : <div style={{ padding: 24 }}>{t.loading}</div>;
   }
-  if (snapshot.step === "training") return <IntroScreen condition={condition} cell={cell} orchestrator={orchestrator} />;
+  if (snapshot.step === "training") return provide(<IntroScreen condition={condition} cell={cell} orchestrator={orchestrator} />);
 
   // SPEC/05 §9: after V14 the session completes and its log is uploaded (or exported).
   if (snapshot.step === "complete") {
@@ -119,7 +126,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   const frozen = snapshot.step === "freeze" && snapshot.freeze !== null;
 
   // SPEC/32 §3: the record the plan review opened is marked in whichever message log is on screen (`MessageLogRow`).
-  return (
+  return provide(
     <OpenedRecordContext.Provider value={snapshot.planReview?.openedAtomId ?? null}>
     <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
       {/* Below the minimum window size a cover asks for a larger window (revision (al)); logged, the session runs on. */}

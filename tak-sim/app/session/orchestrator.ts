@@ -18,9 +18,10 @@
  * freeze at the view's end (`afterViewEnded`), and a view's second SPAM item (`spam-delivery.ts`).
  * SPEC/32 §3 (20 Oct 2026): in phase B, the plan review at the moment the plan would become final (`plan-review.ts`; `endView`,
  * `keepPlan`, `revisePlan`), the view's clock standing still while it is open.
+ * SPEC/35 (21 Oct 2026): a public session's primer and commander profile, and a phase-A session's end after V7 (`public-session.ts`).
  */
 
-import { toRenderable, type RenderableAtom } from "../boundary/render-boundary.js";
+import type { RenderableAtom } from "../boundary/render-boundary.js";
 import { DEFAULT_LANG, type Lang } from "../i18n/lang.js";
 import { EngineRunLoop } from "../engine/run-loop.js";
 import { cycleScheduleOf, freezeMaxSecondsFor, PRACTICE_VIEW_INDEX, PRACTICE_VIEW_MAX_SECONDS, SECOND_SPAM_SUFFIX, secondSpamProbeId, STEP_SECONDS, VIEW_MAX_SECONDS, viewLabelFi } from "../scenario/views.js";
@@ -33,15 +34,14 @@ import { planSessionResume, type SessionResumePlan } from "../telemetry/resume.j
 import type { EngineState } from "../engine/freeze-machine.js";
 import { sessionCell, sessionHeader, type HeaderAnnotations } from "./header.js";
 import { applyRenderEvent, EMPTY_RENDER_TREE, type RenderTree } from "../render/render-tree.js";
-import { clockAtVirtual } from "../render/projection-validity.js";
-import type { Cell, FreezeItem, InfoAtom, ProbeSpec, ScenarioContract, ViewSpec } from "../scenario/types.js";
+import type { Cell, FreezeItem, ProbeSpec, ScenarioContract, ViewSpec } from "../scenario/types.js";
 import type { SectorPlan } from "../scenario/plan-types.js";
 import { scaleViewSeconds, type PreviewOverride, type SessionAssignment } from "./preview.js";
-import { cyclePhaseOf, type FreezeView, type HingeCheckView, type JudgementStep, type SessionSnapshot, type TourId, type ViewIndex } from "./snapshot.js";
+import { cyclePhaseOf, type FreezeView, type JudgementStep, type SessionSnapshot, type TourId, type ViewIndex } from "./snapshot.js";
 import { SpamDelivery } from "./spam-delivery.js";
 import { SessionQueries, type ThinkerOptions } from "./queries.js";
 import { allocationViewOf, assertValidPlan, copyPlan, droneTaskingEvents } from "./allocation.js";
-import { recordText, type TemplateAnswer } from "./template-answer.js";
+import type { TemplateAnswer } from "./template-answer.js";
 import { capCues, finalCountdownCues, performanceClock, ViewClock, viewTimingOf, type RealClockMs, type ViewTiming } from "./view-clock.js";
 import { checkFreezeResponses, freezeNowClock, screenFreezeItem } from "./freeze-answers.js";
 import { ProbeToolsLockedError, VisibleProbes } from "./visible-probes.js";
@@ -51,10 +51,15 @@ import { checkQuestionnaireAnswers, multiOptionOrders, questionnaireItems, reten
 import type { OptionOrderSeed } from "./option-order.js";
 import type { IntroVideoOutcome, QuestionnaireId } from "../telemetry/record-kinds.js";
 import type { QuestionnaireView } from "./snapshot.js";
-import { CONSENT_TEXT_ID, debriefTextId } from "../i18n/study-texts.js";
+import { consentTextId, debriefTextId } from "../i18n/study-texts.js";
+import { closeTimelineAt, lastViewOf, PRIMER_SCREEN_ID, PublicLayer, scopedSchedule, type Audience, type AudienceEvent, type SessionScope } from "./public-session.js";
+import { deliveredHistory, DUTY_OFFICER_ID, logRowOf } from "./message-history.js";
+import { shellResumeStep, type ShellResumeStep } from "./shell-resume.js";
+import { HingeCheck } from "./hinge-check.js";
+export { DUTY_OFFICER_ID } from "./message-history.js";
 import type { SpamProbe } from "./spam-delivery.js";
 import { audioManager } from "./audio-manager.js";
-import { aiLiteracyEnded, aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswers } from "./ai-literacy.js";
+import { aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswers } from "./ai-literacy.js";
 import { ConsultNotice, consultToolOf, SUGGESTED_QUESTION, suggestedQuestionOffered } from "./consult-notice.js";
 import { PlanConfidence } from "./plan-confidence.js";
 import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
@@ -73,23 +78,7 @@ export { ProbeToolsLockedError, type VisibleProbeView } from "./visible-probes.j
 type Listener = (snapshot: SessionSnapshot) => void;
 
 /** The steps in which Haku and Thinker may be used (`assertToolsFree`); a visible probe's `probe` step is locked by the probe itself. */
-/**
- * A pushed record's message-log label (systems review F2, 7 Oct 2026): its own traffic time (when it
- * reached the command post, else when it was observed), not the view's or step's start clock, so a
- * record reporting "klo 14.35" is not listed under 14:20. Delivery order is unchanged.
- */
-function recordClockLabel(atom: InfoAtom): string {
-  return clockAtVirtual(atom.provenance.deliveredAt ?? atom.provenance.observedAt);
-}
-
 const TOOL_STEPS: ReadonlySet<JudgementStep> = new Set<JudgementStep>(["exploration", "allocation", "awaiting_view_end", "probe"]);
-
-/**
- * Who the duty officer's messages are from in the message log (4 Oct 2026): P2, the päivystävä
- * palopäällikkö, the participant's superior (was P3, usually the incident commander's own level).
- * DRAFT: the domain reviewer confirms the title.
- */
-export const DUTY_OFFICER_ID = "P2";
 
 export interface SessionOptions {
   readonly participantCode?: string;
@@ -155,6 +144,10 @@ export interface SessionOptions {
    * header (`viewSkipAllowed`), so a demonstration can never pass for a measurement.
    */
   readonly allowViewSkip?: boolean;
+  /** SPEC/35 §2 (`public-session.ts`): `public` adds the primer, the public questionnaire and the profile; logged. Default `expert`. */
+  readonly audience?: Audience;
+  /** SPEC/35 §2: `phaseA` ends the session after V7 (the hinge) and goes on to the questionnaire; logged. Default `full`. */
+  readonly scope?: SessionScope;
 }
 
 /**
@@ -169,9 +162,6 @@ export interface SessionResume {
   /** Wall-clock time between the last durable record and the resume (ms): measured outside the run loop. */
   readonly interruptedForMs: number;
 }
-
-/** The study-shell screens a resume can re-enter (`resumeShellStep`). */
-type ShellResumeStep = "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief";
 
 /** The fault class of an interruption the participant resumed from. */
 export const INTERRUPTION_FAULT_CLASS = "session_interrupted";
@@ -224,9 +214,8 @@ export class SessionOrchestrator {
   private readonly spam: SpamDelivery;
   private boundaryHeld = false;
   private endHeld: ViewEndedDetail["endedBy"] | null = null;
-  /** The manipulation check on the hinge screen (brief D3): where it stands, and the option chosen. */
-  private hingeCheckPhase: HingeCheckView["phase"] | null = null;
-  private hingeCheckChosen: string | null = null;
+  /** The manipulation check on the hinge screen (brief D3, `hinge-check.ts`). */
+  private readonly hingeCheck: HingeCheck;
   /**
    * The visible probes F and U (`visible-probes.ts`; placement in `demo-probes.ts`): the one on screen,
    * those waiting for it (or for a SPAM probe or a freeze) to close, whether this view's F has been
@@ -274,6 +263,9 @@ export class SessionOrchestrator {
   private reviewHeld: PlanReviewEnd | null = null;
   private capSeconds = VIEW_MAX_SECONDS;
   private capGeneration = 0;
+  /** SPEC/35: the public layer's records (`public-session.ts`) and the last main view the scope runs (V14, or V7 in phase A). */
+  private readonly publicLayer: PublicLayer;
+  private readonly lastView: number;
 
   constructor(
     private readonly scenario: ScenarioContract,
@@ -293,12 +285,17 @@ export class SessionOrchestrator {
     this.introVideo = this.studyShell ? (options.resume ? options.resume.header.introVideo ?? null : options.introVideo ?? null) : null;
     const cell = sessionCell(condition, options.cell);
     this.cell = cell;
-    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}) };
+    // SPEC/35 §2: a resumed session keeps its header's audience and scope (absent in logs before 0.13.0: expert, full).
+    const audience = options.resume ? options.resume.header.audience ?? "expert" : options.audience ?? "expert";
+    const scope = options.resume ? options.resume.header.scope ?? "full" : options.scope ?? "full";
+    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope };
     this.log = new SessionLog(header, options.sink ?? new InMemoryLogSink(), options.resume?.records ?? []);
     // SPEC/26 §3: the engine runs the scenario's views (14, hinge after V7, one or two steps each).
     this.loop = new EngineRunLoop(cycleScheduleOf(scenario));
+    this.publicLayer = new PublicLayer({ event: (e) => this.event(e) }, audience, scope);
+    this.lastView = lastViewOf(scope, cycleScheduleOf(scenario));
     this.realMs = options.realClockMs ?? performanceClock;
-    this.resumeInfo = options.resume ? { plan: planSessionResume(options.resume.records, cycleScheduleOf(scenario)), interruptedForMs: Math.max(0, Math.round(options.resume.interruptedForMs)), records: options.resume.records } : null;
+    this.resumeInfo = options.resume ? { plan: planSessionResume(options.resume.records, scopedSchedule(scope, cycleScheduleOf(scenario))), interruptedForMs: Math.max(0, Math.round(options.resume.interruptedForMs)), records: options.resume.records } : null;
     // A resumed session's records continue its time base: the last record's offset plus the interruption.
     this.startedMs = this.realMs() - (this.resumeInfo ? this.resumeInfo.plan.lastWallOffsetMs + this.resumeInfo.interruptedForMs : 0);
     this.viewClock = new ViewClock(this.realMs);
@@ -316,6 +313,7 @@ export class SessionOrchestrator {
     this.visible = new VisibleProbes({ event: (e) => this.event(e), notify: () => this.notify(), optionSeed: this.optionSeed() });
     this.consult = new ConsultNotice({ event: (e) => this.event(e), notify: () => this.notify() }, consultToolOf(cell));
     this.planConfidence = new PlanConfidence({ event: (e) => this.event(e), notify: () => this.notify() });
+    this.hingeCheck = new HingeCheck({ event: (e) => this.event(e), notify: () => this.notify() }, scenario.hinge.manipulationCheck);
     this.review = new PlanReview({ event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(), citedRecord: (atomId, premiseId) => this.citedRecordOf(atomId, premiseId) });
     this.aiLiteracy = new AiLiteracyTest({
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
@@ -400,20 +398,20 @@ export class SessionOrchestrator {
       skipAllowed: this.allowViewSkip, skipAvailable: this.skipAvailable(),
       language: this.language, tour: this.tour,
       // SPEC/27 §4.1: hidden while the check is answered, shown again afterwards (not marked right or wrong).
-      hingeDirective: this.step === "hinge_pause" && this.hingeCheckPhase !== "item" ? this.scenario.hinge.intentStatement : null,
+      hingeDirective: this.step === "hinge_pause" && !this.hingeCheck.asking ? this.scenario.hinge.intentStatement : null,
       // Revision (ag): a SPAM item holds the decision strip, not the tools (Haku and the Thinker stay usable).
       // SPEC/30 §5.4: after the view's end (the plan-confidence item) the tools are closed too.
       // SPEC/32 §3: the plan review closes the tools too (the map and the message log stay).
       spam: this.spam.view(), toolsLocked: this.visible.open || this.step === "plan_confidence" || this.step === "plan_review", decisionHeld: this.spam.itemOpen || this.visible.open,
       waitingOnSession: this.thinkerPending > 0 || this.step === "freeze" || this.step === "probe" || this.spam.open || this.visible.open || (this.step === "plan_review" && !this.review.onScreen),
       visibleProbe: this.visible.view(),
-      hingeCheck: this.hingeCheckView(),
+      hingeCheck: this.step === "hinge_pause" ? this.hingeCheck.view() : null,
       directiveInForce: !this.isPractice() && this.currentCycle > this.scenario.hinge.afterCycle ? this.scenario.hinge.intentStatement : null,
       readingGraceMs: this.readingGraceMs,
       preflight: this.step === "preflight" || this.step === "preflight_refused" ? { proxyNeeded: true /* Haku's chat uses the proxy in every cell (8 Oct 2026) */, outcome: this.preflightOutcome, overrideAllowed: this.allowPreflightOverride } : null,
       questionnaire: this.step === "questionnaire" ? this.questionnaireView() : null,
       aiLiteracy: this.step === "ai_literacy" ? this.aiLiteracy.view() : null,
-      debrief: this.step === "debrief" ? { textId: debriefTextId(this.log.header.cell), cell: this.log.header.cell } : null,
+      debrief: this.step === "debrief" ? { textId: this.debriefId(), cell: this.log.header.cell } : null,
       introVideo: this.step === "briefing" && this.introVideo ? { src: this.introVideo, skippable: this.allowViewSkip } : null,
       // SPEC/30 §4: the notice is out of sight while the tools it opens are (a visible probe) or the screen is blanked.
       consultPrompt: this.visible.open || this.step === "freeze" || this.step === "plan_review" ? null : this.consult.view(),
@@ -500,9 +498,9 @@ export class SessionOrchestrator {
       if (t < from || t >= to) continue;
       const atom = this.scenario.atoms.find((a) => a.id === atomId)!;
       this.renderTree = applyRenderEvent(this.renderTree, { kind: "bubble_delivered", atom });
-      const renderable: RenderableAtom = toRenderable(atom);
+      const { renderable, row } = logRowOf(atom);
       this.bubbleHistory.push(renderable);
-      this.queries.radioLog.push({ id: renderable.id, clockLabel: recordClockLabel(atom), from: renderable.provenance.sourceId, text: recordText(renderable.record) });
+      this.queries.radioLog.push(row);
       await this.event({ kind: "bubble_available", detail: { atomId: renderable.id, mapPosition: null, tier: atom.tier, sourceId: atom.provenance.sourceId } });
     }
   }
@@ -989,11 +987,8 @@ export class SessionOrchestrator {
   private citedRecordOf(atomId: string, premiseId: string): PlanReviewCitedRecord | null {
     const atom = this.scenario.atoms.find((a) => a.id === atomId);
     if (!atom) return null;
-    const renderable = toRenderable(atom);
-    return {
-      id: renderable.id, clockLabel: recordClockLabel(atom), from: renderable.provenance.sourceId, text: recordText(renderable.record),
-      atomId, premiseId, inLog: this.queries.radioLog.some((e) => e.id === atomId),
-    };
+    const { renderable, row } = logRowOf(atom);
+    return { ...row, id: renderable.id, atomId, premiseId, inLog: this.queries.radioLog.some((e) => e.id === atomId) };
   }
 
   /** Real time since the view opened (ms), its tour, freezes and probes included: the working period `drawerOpenFraction` divides by. */
@@ -1014,14 +1009,15 @@ export class SessionOrchestrator {
     this.loop.endCycle();
     await this.event({ kind: "cycle_end", detail: { cycle: finished, totalRealDurationMs: this.viewRealMs() } });
 
-    if (finished === this.scenario.hinge.afterCycle) return this.enterHinge(); // SPEC/26 §3: after V7
-    if (finished === this.scenario.cycles.length) { // the last main view, V14
+    if (finished === this.lastView) { // the last main view: V14, or V7 in a phase-A session (SPEC/35 §2: no hinge, the session ends)
+      closeTimelineAt(this.loop, finished, cycleScheduleOf(this.scenario));
       audioManager.stopAndFadeOut();
       if (this.studyShell) await this.showQuestionnaire("post"); // SPEC/09 §5.1: the questionnaire before any debrief content
       else this.step = "complete";
       this.notify();
       return;
     }
+    if (finished === this.scenario.hinge.afterCycle) return this.enterHinge(); // SPEC/26 §3: after V7
     await this.enterCycle((finished + 1) as CycleIndex);
   }
 
@@ -1088,17 +1084,15 @@ export class SessionOrchestrator {
     audioManager.stopAndFadeOut();
     await this.event({ kind: "hinge_pause_start", detail: { pauseSeconds: this.scenario.hinge.pauseSeconds } });
     this.hingeShownMs = this.realMs();
-    this.hingeCheckPhase = this.scenario.hinge.manipulationCheck ? "directive" : null;
-    this.hingeCheckChosen = null;
+    this.hingeCheck.enter();
     this.step = "hinge_pause";
     this.notify();
   }
 
   async dismissHinge(): Promise<void> {
     if (this.step !== "hinge_pause") throw new Error(`dismissHinge in step ${this.step}`);
-    if (this.hingeCheckPhase !== null && this.hingeCheckPhase !== "answered") throw new Error(`dismissHinge before the manipulation check is answered (${this.hingeCheckPhase})`);
+    this.hingeCheck.leave(); // refused before the manipulation check is answered
     this.step = "exploration"; // a second click finds the hinge already left
-    this.hingeCheckPhase = null;
     this.loop.dismissHinge();
     // Review round 2 (4 Oct 2026): the real dwell on the hinge screen (the directive's reading time, the manipulation's exposure); early = before the pause's length.
     const realDurationMs = Math.round(this.realMs() - this.hingeShownMs);
@@ -1243,31 +1237,10 @@ export class SessionOrchestrator {
 
   // ---- The manipulation check on the hinge screen (brief D3) ----------------------------------------
 
-  private hingeCheckView(): HingeCheckView | null {
-    const item = this.scenario.hinge.manipulationCheck;
-    if (this.step !== "hinge_pause" || !item || this.hingeCheckPhase === null) return null;
-    return { phase: this.hingeCheckPhase, promptFi: item.promptFi, options: item.options.map(({ id, labelFi }) => ({ id, labelFi })), chosen: this.hingeCheckChosen };
-  }
-
   /** The directive is read: the question is shown (`hinge_check_presented`, the answer latency's time base). */
-  async showHingeCheck(): Promise<void> {
-    const item = this.scenario.hinge.manipulationCheck;
-    if (this.step !== "hinge_pause" || !item || this.hingeCheckPhase !== "directive") throw new Error(`showHingeCheck in step ${this.step} (${this.hingeCheckPhase ?? "no check"})`);
-    this.hingeCheckPhase = "item";
-    await this.event({ kind: "hinge_check_presented", detail: { itemId: item.id } });
-    this.notify(); // the question shows once its record is durable (I5)
-  }
-
+  showHingeCheck(): Promise<void> { return this.hingeCheck.show(this.step); }
   /** The check's answer: one submission, one of its options; Continue is enabled after it. */
-  async answerHingeCheck(optionId: string): Promise<void> {
-    const item = this.scenario.hinge.manipulationCheck;
-    if (this.step !== "hinge_pause" || !item || this.hingeCheckPhase !== "item") throw new Error(`answerHingeCheck in step ${this.step} (${this.hingeCheckPhase ?? "no check"})`);
-    if (!item.options.some((o) => o.id === optionId)) throw new RangeError(`answerHingeCheck: "${optionId}" is not an option of ${item.id}`);
-    this.hingeCheckPhase = "answered";
-    this.hingeCheckChosen = optionId;
-    await this.event({ kind: "hinge_check_answered", detail: { itemId: item.id, optionId } });
-    this.notify(); // Continue once the answer is durable (I5)
-  }
+  answerHingeCheck(optionId: string): Promise<void> { return this.hingeCheck.answer(this.step, optionId); }
 
   // ---- The study shell (work package I, 5 Oct 2026) ---------------------------------------------------
 
@@ -1284,7 +1257,7 @@ export class SessionOrchestrator {
     if (this.step !== "consent" || this.submitting) throw new Error(`decideConsent in step ${this.step}`);
     this.submitting = true;
     try {
-      await this.event({ kind: "consent_decided", detail: { decision: accepted ? "accepted" : "declined", attested: accepted && attested, textId: CONSENT_TEXT_ID, dwellMs: this.shellDwellMs() } });
+      await this.event({ kind: "consent_decided", detail: { decision: accepted ? "accepted" : "declined", attested: accepted && attested, textId: consentTextId(this.publicLayer.audience), dwellMs: this.shellDwellMs() } });
       if (!accepted) {
         await this.transition("consent_declined");
         this.step = "consent_declined";
@@ -1361,7 +1334,7 @@ export class SessionOrchestrator {
     const check = this.scenario.hinge.manipulationCheck;
     return {
       id: this.questionnaireId,
-      items: questionnaireItems(this.questionnaireId, this.log.header.cell, this.optionSeed()),
+      items: questionnaireItems(this.questionnaireId, this.log.header.cell, this.optionSeed(), this.publicLayer),
       retentionOptions: check ? retentionOrder(check.options.map(({ id, labelFi }) => ({ id, labelFi }))) : [],
     };
   }
@@ -1381,7 +1354,11 @@ export class SessionOrchestrator {
     await this.event({ kind: "questionnaire_presented", detail: { questionnaireId: id, itemIds: view.items.map((i) => i.id), ...order, ...(multi.length > 0 ? { multiOptionOrders: multi } : {}) } });
   }
 
-  /** A questionnaire's answers (raw, `questionnaire.ts`): the pre-session item leads to the practice view (the briefing step passed at once, revision (ae)), the post-session questionnaire to the debrief. */
+  /**
+   * A questionnaire's answers (raw, `questionnaire.ts`): the pre-session item leads to the practice view (the briefing step passed at
+   * once, revision (ae)), the post-session questionnaire to the debrief. SPEC/35: in a public session, through the primer and the
+   * profile.
+   */
   async submitQuestionnaire(answers: Readonly<Record<string, QuestionnaireValue | undefined>>): Promise<void> {
     if (this.step !== "questionnaire" || this.submitting || this.questionnaireId === null) throw new Error(`submitQuestionnaire in step ${this.step}`);
     const view = this.questionnaireView()!;
@@ -1390,15 +1367,62 @@ export class SessionOrchestrator {
     try {
       await this.event({ kind: "questionnaire_submitted", detail: { questionnaireId: view.id, answers: checked, dwellMs: this.shellDwellMs() } });
       this.questionnaireId = null;
-      if (view.id === "pre") this.showIntro("briefing"); // the intro video, or passed at once, below
-      else {
-        this.step = "debrief";
-        this.shellShownMs = this.realMs();
-        await this.event({ kind: "debrief_shown", detail: { textId: debriefTextId(this.log.header.cell) } });
-      }
+      if (view.id === "pre" && this.publicLayer.isPublic) this.showShellStep("primer");
+      else if (view.id === "post") await (this.publicLayer.isPublic ? this.showProfile() : this.showDebrief());
     } finally { this.submitting = false; }
-    if (view.id === "pre" && !this.introVideo) return this.passBriefing();
+    if (view.id === "pre" && !this.publicLayer.isPublic) return this.toBriefing();
     this.notify();
+  }
+
+  /** The briefing step: the intro video, or (without one) passed at once to the practice view (revision (ae)). */
+  private async toBriefing(): Promise<void> {
+    this.showIntro("briefing");
+    if (!this.introVideo) return this.passBriefing();
+    this.notify();
+  }
+
+  private showShellStep(step: "primer" | "profile" | "debrief"): void {
+    this.step = step;
+    this.shellShownMs = this.realMs();
+  }
+  private async showProfile(): Promise<void> { this.showShellStep("profile"); await this.event({ kind: "profile_shown", detail: {} }); }
+  private async showDebrief(): Promise<void> { this.showShellStep("debrief"); await this.event({ kind: "debrief_shown", detail: { textId: this.debriefId() } }); }
+  private debriefId(): string { return debriefTextId(this.log.header.cell, this.publicLayer); }
+
+  // ---- The public-audience version (SPEC/35; `public-session.ts`) ----------------------------------------------------
+
+  /** Who the session is for and how much of it runs (SPEC/35 §2), as its header logs them. */
+  get audience(): Audience { return this.publicLayer.audience; }
+  get scope(): SessionScope { return this.publicLayer.scope; }
+
+  /** The primer's callbacks (`PrimerScreenProps`): a page left with its dwell, a check answered; logged at once. */
+  primerPage(pageId: string, dwellMs: number): Promise<void> { return this.publicLayer.primerPage(this.step, pageId, dwellMs); }
+  primerCheck(questionId: string, chosen: number, correct: boolean, attempt: number): Promise<void> { return this.publicLayer.primerCheck(this.step, questionId, chosen, correct, attempt); }
+
+  /** The primer is done (`briefing_advanced` "briefing.primer", its dwell): on to the intro video and the practice view. */
+  async finishPrimer(): Promise<void> {
+    if (this.step !== "primer" || this.submitting) throw new Error(`finishPrimer in step ${this.step}`);
+    this.submitting = true;
+    try {
+      await this.event({ kind: "briefing_advanced", detail: { screenId: PRIMER_SCREEN_ID, dwellMs: this.shellDwellMs() } });
+    } finally { this.submitting = false; }
+    return this.toBriefing();
+  }
+
+  /** The commander profile is left: the debrief. */
+  async finishProfile(): Promise<void> {
+    if (this.step !== "profile" || this.submitting) throw new Error(`finishProfile in step ${this.step}`);
+    this.submitting = true;
+    try { await this.showDebrief(); } finally { this.submitting = false; }
+    this.notify();
+  }
+
+  /**
+   * A glossary term or a help-card section opened (SPEC/35 §3; `AudienceInfo`'s callbacks): one record, nothing else — no clock
+   * paused, no step or view changed. Public sessions only; nothing before the consent decision or after `session_completed`.
+   */
+  recordAudienceEvent(event: AudienceEvent): Promise<void> {
+    return this.publicLayer.use(event, this.step, this.currentCycle, this.completed || this.step === "consent" || this.step === "consent_declined");
   }
 
   /** The debrief is read: DEBRIEF_HANDOFF -> COMPLETE; the closing screen with the no-discussion request. */
@@ -1406,7 +1430,7 @@ export class SessionOrchestrator {
     if (this.step !== "debrief" || this.submitting) throw new Error(`finishDebrief in step ${this.step}`);
     this.submitting = true;
     try {
-      await this.event({ kind: "debrief_closed", detail: { textId: debriefTextId(this.log.header.cell), dwellMs: this.shellDwellMs() } });
+      await this.event({ kind: "debrief_closed", detail: { textId: this.debriefId(), dwellMs: this.shellDwellMs() } });
       await this.transition("handoff_complete");
       this.step = "complete";
     } finally { this.submitting = false; }
@@ -1463,7 +1487,7 @@ export class SessionOrchestrator {
   private async startResumed(plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const { target } = plan;
     if (this.studyShell) {
-      const shell = this.resumeShellStep(target);
+      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic });
       if (shell) return this.startResumedShell(shell, plan, interruptedForMs);
     }
     const inView = target.kind === "view" || target.kind === "spam_forced"; // a forced SPAM item lies inside its (run-out) view
@@ -1472,30 +1496,24 @@ export class SessionOrchestrator {
     if (target.kind !== "briefing") fastForward.push("briefing_complete");
     if (target.kind !== "briefing" && !practiceReplay) fastForward.push("warmup_complete");
     const mainViewsBefore = inView && !practiceReplay ? target.view - 1
-      : target.kind === "hinge" ? this.scenario.hinge.afterCycle : target.kind === "complete" ? this.scenario.cycles.length : -1;
+      : target.kind === "hinge" ? this.scenario.hinge.afterCycle : target.kind === "complete" ? this.lastView : -1;
     if (mainViewsBefore >= 0) fastForward.push("tutorial_complete");
     for (const trigger of fastForward) this.loop.transition(trigger);
-    for (let v = 1; v <= mainViewsBefore; v++) {
-      this.loop.endCycle();
-      if (v === this.scenario.hinge.afterCycle && target.kind !== "hinge") this.loop.dismissHinge(); // the hinge was left before the interruption
-    }
+    this.replayViews(mainViewsBefore, target.kind === "hinge");
     // A forced SPAM item's view had run out: its own messages were all delivered, so they are restored too.
     this.restoreMessageHistory(target.kind === "spam_forced" ? (practiceReplay ? 0 : target.view)
       : target.kind === "briefing" || practiceReplay ? -1 : Math.max(0, mainViewsBefore));
 
     // Revision (ah), review L3: both chats come back from the log (the hinge view's clearing rule kept).
-    this.queries.restoreChats(this.resumeInfo?.records ?? [], inView ? target.view : target.kind === "hinge" ? this.scenario.hinge.afterCycle + 1 : target.kind === "complete" ? this.scenario.cycles.length : PRACTICE_VIEW_INDEX);
     const cycleReplayed = (inView ? target.view : target.kind === "hinge" ? this.scenario.hinge.afterCycle + 1
-      : target.kind === "complete" ? this.scenario.cycles.length : PRACTICE_VIEW_INDEX) as CycleIndex;
+      : target.kind === "complete" ? this.lastView : PRACTICE_VIEW_INDEX) as CycleIndex;
+    this.queries.restoreChats(this.resumeInfo?.records ?? [], cycleReplayed);
     await this.event({ kind: "fault", detail: { faultClass: INTERRUPTION_FAULT_CLASS } });
     await this.event({ kind: "fault_resolved", detail: { faultClass: INTERRUPTION_FAULT_CLASS, elapsedWallClockGapMs: interruptedForMs } });
     await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: target.kind } });
 
     switch (target.kind) {
-      case "briefing": // the intro video again, from its start; without it the page is gone: on to the practice view
-        this.showIntro("briefing");
-        if (this.introVideo) { this.notify(); return; }
-        return this.passBriefing();
+      case "briefing": return this.toBriefing(); // the intro video again, from its start; without it the page is gone: on to the practice view
       case "training": this.showIntro("training"); this.notify(); return;
       case "hinge": return this.enterHinge();
       case "complete": this.step = "complete"; this.completed = plan.alreadyCompleted; this.notify(); return;
@@ -1552,38 +1570,17 @@ export class SessionOrchestrator {
     await this.spam.resumeForced(probe, index, target.atViewSeconds, target.viewEndedBy, this.secondSpamOf(probe));
   }
 
-  /**
-   * With the study shell, the parts around the views a resume re-enters (5 Oct 2026): before the
-   * briefing, the consent (not yet decided), the AI literacy test (consent given, the test on and
-   * not yet ended; revision (ac)) or the preflight (the pre-session item not yet submitted); after
-   * V14, the post-session questionnaire or the debrief while not yet closed. `null`: the plain plan applies.
-   */
-  private resumeShellStep(target: SessionResumePlan["target"]): ShellResumeStep | null {
-    const records = this.resumeInfo?.records ?? [];
-    const has = (kind: string, pred: (d: Record<string, unknown>) => boolean = () => true) => records.some((r) => r.kind === kind && pred(r.detail as Record<string, unknown>));
-    if (target.kind === "briefing") {
-      if (!has("consent_decided", (d) => d.decision === "accepted")) return "consent";
-      if (this.aiLiteracyOn && !aiLiteracyEnded(records)) return "ai_literacy";
-      if (!has("questionnaire_submitted", (d) => d.questionnaireId === "pre")) return "preflight";
-      return null;
-    }
-    if (target.kind === "complete" && !has("debrief_closed")) return has("questionnaire_submitted", (d) => d.questionnaireId === "post") ? "debrief" : "questionnaire";
-    return null;
-  }
-
-  /** Re-enters a study-shell screen: the engine is fast-forwarded to that screen's state, the interruption logged, the screen shown again. */
+  /** Re-enters a study-shell screen (`shell-resume.ts`): the engine is fast-forwarded to that screen's state, the interruption logged, the screen shown again. */
   private async startResumedShell(shell: ShellResumeStep, plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
-    const after = shell === "questionnaire" || shell === "debrief";
+    const after = shell === "questionnaire" || shell === "profile" || shell === "debrief";
     if (shell === "preflight" || shell === "ai_literacy") this.loop.transition("start");
+    if (shell === "primer") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
     if (after) {
       for (const trigger of ["start", "preflight_passed", "briefing_complete", "warmup_complete", "tutorial_complete"] as const) this.loop.transition(trigger);
-      for (let v = 1; v <= this.scenario.cycles.length; v++) {
-        this.loop.endCycle();
-        if (v === this.scenario.hinge.afterCycle) this.loop.dismissHinge();
-      }
-      this.restoreMessageHistory(this.scenario.cycles.length);
+      this.replayViews(this.lastView, false);
+      this.restoreMessageHistory(this.lastView);
     }
-    const cycleReplayed = (after ? this.scenario.cycles.length : PRACTICE_VIEW_INDEX) as CycleIndex;
+    const cycleReplayed = (after ? this.lastView : PRACTICE_VIEW_INDEX) as CycleIndex;
     await this.event({ kind: "fault", detail: { faultClass: INTERRUPTION_FAULT_CLASS } });
     await this.event({ kind: "fault_resolved", detail: { faultClass: INTERRUPTION_FAULT_CLASS, elapsedWallClockGapMs: interruptedForMs } });
     await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: shell } });
@@ -1593,33 +1590,28 @@ export class SessionOrchestrator {
       const records = this.resumeInfo?.records ?? [];
       await this.showAiLiteracy(keptAiLiteracyAnswers(records), aiLiteracySpentMs(records), true);
     }
-    else if (shell === "debrief") {
-      this.step = "debrief";
-      await this.event({ kind: "debrief_shown", detail: { textId: debriefTextId(this.log.header.cell) } });
-    } else this.step = shell;
+    else if (shell === "profile") await this.showProfile();
+    else if (shell === "debrief") await this.showDebrief();
+    else this.step = shell; // the consent, the preflight, the primer (from its first page)
     this.notify();
+  }
+
+  /**
+   * The resume's fast-forward through main views 1..`upTo` (no records): the hinge left unless the session resumes at it; at the
+   * session's last view the timeline is closed as that view's end closes it (`closeTimelineAt`: V7 in a phase-A session).
+   */
+  private replayViews(upTo: number, atHinge: boolean): void {
+    for (let v = 1; v <= upTo; v++) {
+      this.loop.endCycle();
+      if (v === this.scenario.hinge.afterCycle && !atHinge && v !== this.lastView) this.loop.dismissHinge(); // the hinge was left before the interruption
+    }
+    if (upTo === this.lastView) closeTimelineAt(this.loop, upTo, cycleScheduleOf(this.scenario));
   }
 
   /** Refills the message log and the bubble history with what the practice view (`upToMainView` ≥ 0) and main views 1..upToMainView delivered — no records (they are in the log already). */
   private restoreMessageHistory(upToMainView: number): void {
-    if (upToMainView < 0) return;
-    const views: ViewSpec[] = [this.scenario.practice.cycle, ...this.scenario.cycles.filter((c) => c.index <= upToMainView)];
-    for (const spec of views) {
-      if (spec.index !== PRACTICE_VIEW_INDEX) {
-        for (const { text } of this.scenario.dutyOfficerMessages.filter((m) => m.cycle === spec.index)) this.queries.radioLog.push({ clockLabel: spec.clockLabel, from: DUTY_OFFICER_ID, text });
-      }
-      const push = (from: number, to: number) => {
-        for (const [k, atomId] of spec.pushedAtomIds.entries()) {
-          const t = spec.deliveryOffsetsSeconds[k]!;
-          if (t < from || t >= to) continue;
-          const atom = this.scenario.atoms.find((a) => a.id === atomId)!;
-          const renderable = toRenderable(atom);
-          this.bubbleHistory.push(renderable);
-          this.queries.radioLog.push({ id: renderable.id, clockLabel: recordClockLabel(atom), from: renderable.provenance.sourceId, text: recordText(renderable.record) });
-        }
-      };
-      push(0, spec.stepBoundary ? STEP_SECONDS : Infinity);
-      if (spec.stepBoundary) push(STEP_SECONDS, Infinity);
-    }
+    const { bubbles, rows } = deliveredHistory(this.scenario, upToMainView);
+    this.bubbleHistory.push(...bubbles);
+    this.queries.radioLog.push(...rows);
   }
 }

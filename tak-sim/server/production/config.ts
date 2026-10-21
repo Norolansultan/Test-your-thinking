@@ -25,10 +25,9 @@
  *   ASSIGN_RATE_PER_HOUR  new codes per client address per hour (default 20)
  *   GEMINI_API_KEY        the model key, read by the SDK from the environment (never logged); without it
  *                         every Thinker answer is the template fallback
- *   RECRUITMENT_GATE      "1" while recruitment runs (SPEC/29 (ay), `recruitment-gate.ts`): the app's page is
- *                         served only to a study link (`?tuotanto`) — the demonstration's start page and the
- *                         game are not reachable — and no file with the game's code is served; unset or "0" =
- *                         off (the demonstration and, after recruitment, the game as an after-action debrief)
+ *   RECRUITMENT_GATE      "1" while recruitment runs (`recruitment-gate.ts`): the app's page is served only to a
+ *                         study link (`?tuotanto`) — the demonstration's start page is not reachable; unset or
+ *                         "0" = off (the demonstration, with its professional/public version switch, SPEC/35)
  */
 
 import { isAbsolute, resolve } from "node:path";
@@ -51,11 +50,11 @@ export interface ProductionConfig {
   readonly adminToken: string | null;
   /** Null: /api/assign is off (404). */
   readonly autoAssign: AutoAssignConfig | null;
-  /** RECRUITMENT_GATE=1: only study links reach the app; the demonstration and the game do not. */
+  /** RECRUITMENT_GATE=1: only study links reach the app; the demonstration does not. */
   readonly recruitmentGate: boolean;
 }
 
-/** RECRUITMENT_GATE, as the server and the build (`tools/deploy/build.ts`) read it: "1" on, unset/""/"0" off. */
+/** RECRUITMENT_GATE, as the server reads it: "1" on, unset/""/"0" off. */
 export function recruitmentGateFrom(raw: string | undefined): boolean {
   const flag = (raw ?? "").trim();
   if (flag === "" || flag === "0") return false;

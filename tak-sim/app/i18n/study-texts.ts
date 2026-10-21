@@ -242,7 +242,7 @@ const FI: StudyText = {
         prompt: "Mitä siitä tunnistit? Valitse kaikki, jotka pitävät paikkansa.",
         options: { fire: "Itse palon", department: "Pelastuslaitoksen", units: "Yksiköt tai niiden tunnukset", course: "Vain tapahtumien kulun" },
       },
-      "prior.demo": { prompt: "Olitko käyttänyt tämän harjoituksen verkkoesittelyä tai pelitilaa ennen tätä päivää?", options: { no: "En", demo: "Verkkoesittelyä", game: "Pelitilaa", both: "Molempia", unsure: "En ole varma" } },
+      "prior.demo": { prompt: "Olitko käyttänyt tämän harjoituksen verkkoesittelyä ennen tätä päivää?", options: { no: "En", demo: "Kyllä", unsure: "En ole varma" } },
       "reliability.answers": {
         prompt: "Kuinka suuri osa saamistasi työkalujen vastauksista piti mielestäsi paikkansa?",
         options: { lt25: "Alle neljännes", m25_50: "Neljänneksestä puoleen", m50_75: "Puolesta kolmeen neljännekseen", gt75: "Yli kolme neljännestä", no_use: "En käyttänyt työkaluja" },
@@ -385,7 +385,7 @@ const EN: StudyText = {
         prompt: "What did you recognise? Choose all that apply.",
         options: { fire: "The fire itself", department: "The rescue department", units: "The units or their call signs", course: "Only the course of events" },
       },
-      "prior.demo": { prompt: "Had you used this exercise's web demonstration or its game mode before today?", options: { no: "No", demo: "The web demonstration", game: "The game mode", both: "Both", unsure: "Not sure" } },
+      "prior.demo": { prompt: "Had you used this exercise's web demonstration before today?", options: { no: "No", demo: "Yes", unsure: "Not sure" } },
       "reliability.answers": {
         prompt: "What share of the answers you got from the tools do you think were right?",
         options: { lt25: "Less than a quarter", m25_50: "A quarter to a half", m50_75: "A half to three quarters", gt75: "More than three quarters", no_use: "I did not use the tools" },

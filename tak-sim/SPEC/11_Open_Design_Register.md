@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **21 Oct 2026 (bc)** — §7.30, §7.31: game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). The items that named it are revised: the demonstration stays gated during recruitment; the replay with expert comparison may still come after data collection, game mode does not.
 > - **20 Oct 2026 (ba)** — §7.31: the researcher items of `32` (critical reading of 20 Oct 2026). See §7.31.
 > - **19 Oct 2026 (az)** — §7.30 (az): phase 3 of the skills review integrated; two additions to the list (an RC on the act coding's boundary sectors; the real Thinker re-index); the resume point for phase 4. See §7.30 (az).
 > - **19 Oct 2026 (ay)** — §7.30 (ay): the before-pilot list after the skills review (`31` §6) supersedes items 1–10; the researcher's confirmations (RC), the panel packet, the Pelastusopisto VERIFY list and the FMI/Prometheus items added.
@@ -960,7 +961,7 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 
 **Before the first pilot with professionals (people, not code; `30` §8):**
 
-1. **Repository visibility.** `Test-your-thinking` is public and holds the freeze keys, panel keys, premises and the whole scenario. Make it private or move the keys out before recruitment; keep the web demonstration and game mode from anyone who may take part. **Researcher.**
+1. **Repository visibility.** `Test-your-thinking` is public and holds the freeze keys, panel keys, premises and the whole scenario. Make it private or move the keys out before recruitment; keep the web demonstration from anyone who may take part (game mode removed 21 Oct 2026). **Researcher.**
 2. **Panel keys** for V9–V14 hold only with at least 4 of 5 experts agreeing; a view without it is reported, not coded. **Panel.**
 3. **The premise-evidence table** (`content/thinker/premise-evidence.json`): statuses, deciding records and times per view; V13's sparks over R2 (§7.28) is decided here. **Domain reviewer, panel.**
 4. **The eight new L3 items, the two SPAM second items and the seven source-memory facts** (`08` (ax)): realism, keys, cueing. **Domain reviewer.**
@@ -993,13 +994,13 @@ The TAK-based build (`tak-sim/`, `28`) changes how the screen looks and how obje
 
 `31` §6 is the one ordered list; it is repeated here in short so this register stays complete. The six phase-1 audits are in `docs/audits/2026-10-19-skills/`; every finding's decision is in `31` §2.
 
-1. **Researcher.** Repository private or keys out; the demonstration and game gated during recruitment (`29` (ay)); **confirm before the pre-registration (RC):** H13 codes the act (`31` §3.1), V14 sound only through the secondary route (§3.2), V14 P2 not contradicted and P1's new wording (§3.4), the re-authored V4 `growth_next` key (§3.5), the three-way told split for H2t (§3.6), the provisional flame-length table (§3.11); send the Prometheus request; model pin and weekly probe; strata sizes; command experience as a covariate; the pre-registration additions of `09` (ay); re-run the power tools (`31` §3.12).
+1. **Researcher.** Repository private or keys out; the demonstration gated during recruitment (`31` P-12; game mode removed 21 Oct 2026); **confirm before the pre-registration (RC):** H13 codes the act (`31` §3.1), V14 sound only through the secondary route (§3.2), V14 P2 not contradicted and P1's new wording (§3.4), the re-authored V4 `growth_next` key (§3.5), the three-way told split for H2t (§3.6), the provisional flame-length table (§3.11); send the Prometheus request; model pin and weekly probe; strata sizes; command experience as a covariate; the pre-registration additions of `09` (ay); re-run the power tools (`31` §3.12).
 2. **Expert panel, one packet after WP-1:** rating sheets V9–V14 with the probe plans (`docs/audits/2026-10-19-skills/coa_rating_sheet.csv`, DRAFT); each view's full record set after the flame table, pushed and recorded marked; horizon 20–40 min; edge state and crew presence for flare-ups; CO unknown; burnouts not rated; ≥ 4 of 5; the key derived from the ratings (`16` (ay)); the premise table and P1 before hashing.
 3. **Domain reviewer:** the items `31` §2.1 marks DR; the R1 stretch; the V14 backup pair; the source-memory facts and lures; rule (d) as restated (`08` (ay)); `27` §7.1 and DF-01/02's framing; TE-11, CA-01/02/04, TG-04; coa F7 and F14; a non-locational cue before US3; the flame table's credibility.
 4. **Native speaker:** every new or changed Finnish text (`31` §6 item 4).
 5. **Pelastusopisto:** VERIFY 1–15 of `radio.md`; the answers feed the deferred call-sign and terminology pass (WP-6).
 6. **FMI / PromS:** the Prometheus ensemble, the flame table, the evening humidity, FWI 55 / ISI 23, US3, MPV25 tables.
-7. **Ethics board:** as item 8 above, plus the lure facts and the new post-session items (believability, recognition, prior demo or game use, perceived reliability).
+7. **Ethics board:** as item 8 above, plus the lure facts and the new post-session items (believability, recognition, prior use of the web demonstration, perceived reliability).
 8. **Pilot 2 measures:** item 10 above, plus freeze timeouts by position, V3.b/V6.b accuracy, knowledge-item ceilings, blocked plan intentions, C base rates per view under both codings, the `score_freezes.py` cross-check, digest reach.
 
 The notes for the domain reviewer above stand, with one correction: "V14's P2 rests on EK16's 19:22 radio" is superseded (V14 P2 is not contradicted, `31` §3.4). §7.28's question (V13 as a fit view) is answered consistently: neither V13 nor V14 counts the crossing of the forest road against P2.
@@ -1024,13 +1025,13 @@ Built on the researcher's instruction of 20 Oct 2026 ("create a plan and fix the
 2. **The primary-switch rule** (`32` §4, `09` (ba)): H13 primary unless pilot 2's Haku fit-view departure rate is ≥ 15 %. Confirm the rule and the threshold before the lock (RC).
 3. **The S-TIAS in Finnish** (`08` (ba)): translation and back-translation, native check; the ethics notice for the changed questionnaire.
 4. **Pilot-2 cued recall** (`32` §6): the consent addendum (screen recording, replay), ethics approval, the coding scheme and two coders.
-5. **After data collection** (`29` (ba)): release game mode and the replay against the expert reference only then.
+5. **After data collection** (`29` (ba)): release game mode and the replay against the expert reference only then. *Revised 21 Oct 2026 (bc): game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it); the replay may still come after data collection, game mode does not.*
 6. **Design Basis v3** (the researcher's Claude Doc): a v4 tab aligned with `30` and `32` was added beside it; adopt v4 or keep editing v3.
 
 ### 7.32 After the map rebuild (20 Oct 2026, `33`; open for the panel, the domain reviewer and the native speaker)
 
 1. **Panel:** V10 (area and R2 bands moved), V12 F7 (20 kV, the distribution company), V14 `se_front_r2` (new basis records); directive basis figures changed in V8, V10, V11, V13, V14 (posture coding unchanged). The packet is regenerated (`npm run review:panel`).
-2. **Domain reviewer:** the DRAFT 20 kV safety distances (persons 2 m; spray 5 m, jet 10 m; fallen conductor 20 m; the game's 15 m no-water distance), the re-authored V5 items, the firefighter-eye realism checklist of `33` §5 R on the new map, and the Salpausselkä question of `33` §8.
+2. **Domain reviewer:** the DRAFT 20 kV safety distances (persons 2 m; spray 5 m, jet 10 m; fallen conductor 20 m; the public primer's 15 m no-water distance, `35` §3), the re-authored V5 items, the firefighter-eye realism checklist of `33` §5 R on the new map, and the Salpausselkä question of `33` §8.
 3. **Native speaker:** every Finnish string listed in `docs/audits/2026-10-20-map/content/changes.md`.
 4. **Thinker index:** still PROVISIONAL; run `npm run thinker:index` and `npm run thinker:eval -- --write` where the embedding model is reachable, before pilot 2.
 

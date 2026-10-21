@@ -1,5 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
-import type { ComponentType } from "preact";
+import { useState } from "preact/hooks";
 import { buildDemoScenario } from "../../scenario/demo-scenario.js";
 import { knownSessionStatus, ResumeGate, SessionLauncher } from "./SessionLauncher.js";
 import type { Cell } from "../../scenario/types.js";
@@ -12,6 +11,7 @@ import { DEFAULT_LANG, isLang, LANGUAGES, type Lang } from "../../i18n/lang.js";
 import { UI_TEXT } from "../../i18n/ui.js";
 import { useDocumentLanguage } from "./i18n.js";
 import { uiShellFromSearch } from "./tak/shell.js";
+import { demoAudience, VersionSwitch } from "./VersionSwitch.js";
 
 let cachedScenario: ReturnType<typeof buildDemoScenario> | null = null;
 function getDemoScenario() {
@@ -51,34 +51,6 @@ export function App() {
 
 type ServerPhase = "idle" | "assigning" | "inactive" | "done";
 
-/**
- * Game mode (SPEC/29 §2): a separate, playable game on the study's terrain, offered on the demonstration start page
- * only. Under `?tuotanto` neither the button nor the import exists; otherwise the game's code is a separate chunk
- * loaded only when the button is pressed, and nothing it does reaches the study's session log, telemetry or store.
- */
-const GAME_BUTTON: Readonly<Record<Lang, string>> = { fi: "Pelitila — komentajan peli", en: "Game mode — commander's game" };
-/** Demonstration only (SPEC/35 §2): the public-audience version without `?yleiso`, for links that cannot carry a query. */
-const PUBLIC_TOGGLE: Readonly<Record<Lang, string>> = { fi: "Yleisöversio: perehdytys ja sanasto", en: "Public version: primer and glossary" };
-
-type GameAppComponent = ComponentType<{ readonly lang: Lang; readonly onExit: () => void }>;
-
-function GameMode({ lang, onExit }: { readonly lang: Lang; readonly onExit: () => void }) {
-  const [Game, setGame] = useState<GameAppComponent | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let live = true;
-    import("../../game/ui/GameApp.js").then((m) => { if (live) setGame(() => m.GameApp); }, () => { if (live) setFailed(true); });
-    return () => { live = false; };
-  }, []);
-  if (Game) return <Game lang={lang} onExit={onExit} />;
-  return (
-    <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-      <p role={failed ? "alert" : "status"}>{failed ? "⚠" : "…"} {GAME_BUTTON[lang]}</p>
-      {failed && <button style={buttonStyle} onClick={onExit}>←</button>}
-    </div>
-  );
-}
-
 function localStore() {
   try { return window.localStorage; } catch { return null; }
 }
@@ -89,8 +61,6 @@ function StartPage() {
   // The shared study link (revision (af)): the server's code once issued, and the phase of the request.
   const [issued, setIssued] = useState<{ readonly choice: Extract<StartChoice, { kind: "assigned" }>; readonly sessionId: string | undefined } | null>(null);
   const [phase, setPhase] = useState<ServerPhase>("idle");
-  const [gameOpen, setGameOpen] = useState(false);
-  const [publicDemo, setPublicDemo] = useState(false);
   const search = window.location.search;
   const inStudy = new URLSearchParams(search).has(STUDY_PARAM);
   const urlChoice = startChoiceFromUrl(search);
@@ -99,6 +69,8 @@ function StartPage() {
   const held = serverLink ? storedCode(localStore()) : null;
   // SPEC/35 §2: `?yleiso` (the public-audience version) and `?laajuus=a` (phase A only); an unknown scope is refused.
   const setting = sessionSettingFromUrl(search);
+  // The demonstration's version switch (`VersionSwitch.tsx`), set from `?yleiso`; never shown or applied under `?tuotanto`.
+  const [publicVersion, setPublicVersion] = useState(() => !("invalid" in setting) && setting.audience === "public");
   const choice: StartChoice = "invalid" in setting ? { kind: "invalid", message: setting.invalid }
     : issued?.choice ?? (held ? assignedByCode(held.code, "server") ?? urlChoice : urlChoice);
   // A table code fixes the session language (the stratum); otherwise the participant chooses it.
@@ -125,8 +97,6 @@ function StartPage() {
     setCell(assigned.cell);
   };
 
-  if (gameOpen && !inStudy) return <GameMode lang={lang} onExit={() => setGameOpen(false)} />;
-
   if (!cell) {
     return (
       <div lang={lang} style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24 }}>
@@ -142,20 +112,14 @@ function StartPage() {
             </select>
           </label>
         )}
+        {choice.kind === "choose" && !inStudy && <VersionSwitch lang={lang} publicVersion={publicVersion} onChange={setPublicVersion} />}
         {choice.kind === "choose" && (
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", padding: "0 16px" }}>
             {/* The Search-only (radio) cell is hidden from the start screen (researcher, 9 Oct 2026); an
                 assigned study link (`koodi`) still opens it. */}
             <button style={buttonStyle} onClick={() => setCell("reasoning_once")}>{t.conditionSubstitutive}</button>
             <button style={buttonStyle} onClick={() => setCell("reasoning_intent")}>{t.conditionIntent}</button>
-            {!inStudy && <button style={{ ...buttonStyle, borderColor: "#19c3d6" }} data-testid="game-mode-button" onClick={() => setGameOpen(true)}>{GAME_BUTTON[lang]}</button>}
           </div>
-        )}
-        {choice.kind === "choose" && !inStudy && (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, opacity: 0.85 }}>
-            <input type="checkbox" data-testid="public-demo-toggle" checked={publicDemo} onChange={(e) => setPublicDemo((e.target as HTMLInputElement).checked)} />
-            {PUBLIC_TOGGLE[lang]}
-          </label>
         )}
         {(choice.kind === "assigned" || choice.kind === "server_assign") && phase === "idle" && (
           <button style={buttonStyle} onClick={() => (serverLink ? void startShared() : choice.kind === "assigned" && setCell(choice.cell))}>{t.startAssigned}</button>
@@ -186,7 +150,7 @@ function StartPage() {
       showProbeLevels={!study} allowTourSkip={!study}
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
       studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} minWindowGuard={study} sessionId={issued?.sessionId}
-      uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)} {...(publicDemo && !study ? { audience: "public" as const } : {})}
+      uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)} {...demoAudience(publicVersion, study)}
     />
   );
 }

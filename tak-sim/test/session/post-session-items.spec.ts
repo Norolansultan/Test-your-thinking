@@ -1,6 +1,6 @@
 /**
  * `31` §3.10 (19 Oct 2026; sagat F17, proposal (a); parity P-6, P-12): the post-session block's new items — believability, recognition
- * (with what was recognised, shown on yes), prior use of the web demonstration or game mode, and two perceived-reliability items — right
+ * (with what was recognised, shown on yes), prior use of the web demonstration, and two perceived-reliability items — right
  * after `prior.knowledge`, in every cell, each with its pre-registered exclusion or sensitivity rule, with text in both languages.
  */
 
@@ -26,6 +26,7 @@ describe("the post-session items of `31` §3.10", () => {
     expect(Object.keys(POST_SESSION_RULES).sort()).toEqual([...NEW_ITEMS].sort());
     expect(POST_SESSION_RULES["recognition.what"]!.rule).toBe("exclude");
     expect(POST_SESSION_RULES["prior.demo"]!.rule).toBe("exclude");
+    expect(POST_SESSION_RULES["prior.demo"]!.when).toBe("the web demonstration used before the session (parity P-12)");
     expect(POST_SESSION_RULES["believability"]!.rule).toBe("sensitivity");
     expect(POST_SESSION_RULES["recognition.real_fire"]!.rule).toBe("sensitivity");
     expect(POST_SESSION_RULES["reliability.answers"]!.rule).toBe("exploratory");
@@ -36,6 +37,13 @@ describe("the post-session items of `31` §3.10", () => {
     const what = questionnaireItems("post", "radio").find((i) => i.id === "recognition.what")!;
     expect(what).toMatchObject({ kind: "multi", showIf: { itemId: "recognition.real_fire", equals: "yes" } });
     expect(what.kind === "multi" ? what.options.map((o) => o.id).sort() : []).toEqual(["course", "department", "fire", "units"]);
+  });
+
+  it("asks about the web demonstration only (21 Oct 2026: game mode removed): no, yes or not sure", () => {
+    const prior = questionnaireItems("post", "radio").find((i) => i.id === "prior.demo")!;
+    expect(prior.kind === "choice" ? prior.options : []).toEqual(["no", "demo", "unsure"]);
+    expect(STUDY_TEXT.fi.questionnaire.items["prior.demo"]?.prompt).toBe("Olitko käyttänyt tämän harjoituksen verkkoesittelyä ennen tätä päivää?");
+    expect(STUDY_TEXT.en.questionnaire.items["prior.demo"]?.prompt).toBe("Had you used this exercise's web demonstration before today?");
   });
 
   it("has its prompt and every option or scale anchor in Finnish and English (DRAFT, native review)", () => {

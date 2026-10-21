@@ -35,8 +35,8 @@ resume) are the requirements; this file is the procedure. Written 5 Oct 2026.
 4. **Build.** `npm run build:prod` — runs the full CI (typecheck, determinism lint, tests), then
    builds `dist/ui` with the commit stamped into the log header's `appVersion`
    (`0.1.0+<commit>`; `-dirty` if the working tree has changes — do not run a study on such a build),
-   and prints the scenario `bundleHash` every session log will carry. Record both. While recruitment
-   runs, build with `RECRUITMENT_GATE=1 npm run build:prod` (§2.1): the build then has no game mode.
+   and prints the scenario `bundleHash` every session log will carry. Record both. The build is the
+   same while recruitment runs: the gate is the server's (§2.1).
 5. **Environment.** Copy `.env.production.example`, fill it in, keep it outside the repository and
    load it into the process environment (systemd `EnvironmentFile=`, `docker --env-file`, …):
    `PORT`, `HOST`, `ALLOWED_ORIGINS`, `SESSION_LOG_DIR`, `STATIC_DIR`, `THINKER`, `THINKER_MODE`
@@ -63,35 +63,31 @@ resume) are the requirements; this file is the procedure. Written 5 Oct 2026.
 Development is unchanged: `npm run dev` plus `npm run thinker:server` and, to test the upload,
 `npm run session-log:server` (Vite proxies both).
 
-### 2.1 The recruitment gate (SPEC/29 revision (ay), `31` P-12; 19 Oct 2026)
+### 2.1 The recruitment gate (`31` P-12, first SPEC/29 (ay); 19 Oct 2026, revised 21 Oct 2026)
 
-Game mode plays on the study's terrain, and the web demonstration runs the study's own scenario. A
-professional who has used either before a session knows the ground and the story, and recruitment runs
-for months in a small community. While it runs, switch the gate on in **both** places:
+The web demonstration runs the study's own scenario. A professional who has used it before a session
+knows the ground and the story, and recruitment runs for months in a small community. While it runs,
+switch the gate on in the server:
 
-- **The build:** `RECRUITMENT_GATE=1 npm run build:prod` (or `npm run build:prod -- --recruitment-gate`).
-  After `vite build` it removes game mode's chunks from `dist/ui` (`tools/deploy/game-gate.ts`: the
-  dynamic entry of `app/game/ui/GameApp.tsx` and what only it reaches, found in the build's chunk
-  graph) and fails unless no file still carries the game's marker (`app/game/ui/marker.ts`). The
-  study's chunks are byte-identical to an ungated build; the bundle hash and `appVersion` are unchanged.
 - **The server:** `RECRUITMENT_GATE=1` in the environment of `npm run serve`
   (`server/production/recruitment-gate.ts`). Only a study link reaches the app: a page request whose
-  query has no `tuotanto` (`/`, `/?solu=…`, `/?pilotti`, `/index.html`, any other path or HTML page,
-  `/about.html` included) gets a neutral bilingual 404 page ("not available; open your study link as
-  you received it"), uncached — never the demonstration's start page with its condition buttons and
-  its game button. No file that carries the game's marker is served, and the gated server **refuses to
-  start** if `dist/ui` still holds the game (an ungated build would leave the game's other chunks
-  fetchable by their hashed names): build with `RECRUITMENT_GATE=1` first. Study links (`?tuotanto`, with or without
-  `koodi`, `pilotti`, `solu`), their assets, the map and every `/api` route are unchanged.
+  query has no `tuotanto` (`/`, `/?solu=…`, `/?pilotti`, `/?yleiso`, `/index.html`, any other path or
+  HTML page, `/about.html` included) gets a neutral bilingual 404 page ("not available; open your study
+  link as you received it"), uncached — never the demonstration's start page with its condition buttons
+  and its professional/public version switch (SPEC/35 §2). Study links (`?tuotanto`, with or without
+  `koodi`, `pilotti`, `solu`, `yleiso`), their assets, the map and every `/api` route are unchanged.
+- **The build** is the ordinary `npm run build:prod`: a gated deployment is a normal build served with
+  the gate. (Until 21 Oct 2026 the build also had to leave game mode out; game mode has been removed,
+  SPEC/29 status line.)
 
-`RECRUITMENT_GATE` accepts `1` (on) or `0`/unset (off); anything else stops the server and the build.
-The server prints `recruitment gate ON` (or OFF) at start. Docker: `docker build --build-arg
-BUILD_FLAGS=--recruitment-gate …` and `docker run -e RECRUITMENT_GATE=1 …` (§8). Check:
-`curl -i https://<host>/` answers 404 and `curl -s https://<host>/?tuotanto` returns the app.
+`RECRUITMENT_GATE` accepts `1` (on) or `0`/unset (off); anything else stops the server. The server
+prints `recruitment gate ON` (or OFF) at start. Docker: `docker run -e RECRUITMENT_GATE=1 …` (§8).
+Check: `curl -i https://<host>/` answers 404 and `curl -s https://<host>/?tuotanto` returns the app.
 
-When recruitment has closed, unset both and rebuild: the demonstration and the game return, the game as
-the after-action debrief (SPEC/29 (ay) rule 2). The post-session questionnaire asks every participant
-whether they had used the demonstration or the game before (SPEC/29 (ay) rule 3).
+When recruitment has closed, unset it and restart the server: the demonstration returns, with the
+public-audience version on its start page. The post-session questionnaire asks every participant
+whether they had used the web demonstration before (`prior.demo`, `31` P-12; an exclusion rule in
+`POST_SESSION_RULES`).
 
 ## 3. The session data
 
@@ -295,9 +291,8 @@ the researcher's PC, route A.)
 container on the volume: two would split the data. If the image build cannot reach Hugging Face for
 the model, build the index on your machine first (`npm run thinker:index …`, §2 step 3): the resulting
 `.cache/` is copied into the image instead. `--build-arg BUILD_FLAGS=--skip-ci` skips the CI inside
-the build, only for a commit whose `npm run ci` has passed. While recruitment runs (§2.1) build with
-`--build-arg BUILD_FLAGS=--recruitment-gate` (both flags: `"--recruitment-gate --skip-ci"`) and run
-with `-e RECRUITMENT_GATE=1`.
+the build, only for a commit whose `npm run ci` has passed. While recruitment runs (§2.1) run with
+`-e RECRUITMENT_GATE=1` (the image is the same).
 
 **Pilot overview page.** `app/render/ui/public/about.html` is served at `https://<host>/about.html`: the supervisors' overview of the design, build, real-fire grounding and open questions (9 Oct 2026). Nothing in the participant flow links to it, and it carries `noindex`. It states the hypotheses, so **delete it before the real study**: participants must not be able to read them.
 
@@ -314,6 +309,6 @@ with `-e RECRUITMENT_GATE=1`.
   Hugging Face access (it is blocked in this development environment).
 - **A pilot** on the participants' typical browsers, including one interrupted and resumed session
   and one failed upload with the export.
-- **The recruitment gate** (§2.1) on the build and the server from the first invitation until
-  recruitment closes, and no other copy of the demonstration or the game online meanwhile (a
+- **The recruitment gate** (§2.1) on the server from the first invitation until
+  recruitment closes, and no other copy of the demonstration online meanwhile (a
   `npm run build:web` copy or a development tunnel has no gate).

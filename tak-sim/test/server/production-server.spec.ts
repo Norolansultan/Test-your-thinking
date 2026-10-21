@@ -4,7 +4,7 @@
  * app directory; configuration from the environment only.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,9 +16,7 @@ import { createAppServer, originAllowed } from "../../server/production/server.j
 import { resolveInside } from "../../server/production/static.js";
 import { ConfigError, loadConfig, recruitmentGateFrom } from "../../server/production/config.js";
 import { SessionLogStore } from "../../server/session-log/store.js";
-import { gateStartupError, isStudyLink } from "../../server/production/recruitment-gate.js";
-import { GAME_CHUNK_MARKER } from "../../app/game/ui/marker.js";
-import { builtFiles, dropGameChunks, gameChunkFiles, gameLeaks, type BuiltChunk, type BuiltFile } from "../../tools/deploy/game-gate.js";
+import { isStudyLink } from "../../server/production/recruitment-gate.js";
 
 let root: string;
 let server: Server;
@@ -180,7 +178,7 @@ describe("configuration from the environment", () => {
     expect(c).toEqual({ port: 9000, host: "0.0.0.0", allowedOrigins: ["https://a.example", "https://b.example:8443"], sessionLogDir: "/data/sessions", staticDir: "/srv/ui", thinker: "off", thinkerMode: "study", adminToken: null, autoAssign: null, recruitmentGate: false });
   });
 
-  it("reads RECRUITMENT_GATE: 1 on; unset, empty or 0 off (SPEC/29 (ay))", () => {
+  it("reads RECRUITMENT_GATE: 1 on; unset, empty or 0 off", () => {
     expect(loadConfig({ RECRUITMENT_GATE: "1" }).recruitmentGate).toBe(true);
     expect(loadConfig({ RECRUITMENT_GATE: " 1 " }).recruitmentGate).toBe(true);
     for (const v of [undefined, "", "0"]) expect(loadConfig({ RECRUITMENT_GATE: v }).recruitmentGate).toBe(false);
@@ -209,8 +207,8 @@ describe("configuration from the environment", () => {
   });
 });
 
-// SPEC/29 revision (ay) rule 2 (`31` P-12): while recruitment runs only study links reach the app; the demonstration's
-// start page (its condition buttons and its game button) and the game's code are not served.
+// `31` P-12 (first SPEC/29 (ay) rule 2): while recruitment runs only study links reach the app; the demonstration's
+// start page (its condition buttons and its professional/public version switch) is not served.
 describe("the recruitment gate (RECRUITMENT_GATE=1)", () => {
   let gateRoot: string;
   let gated: Server;
@@ -218,15 +216,13 @@ describe("the recruitment gate (RECRUITMENT_GATE=1)", () => {
   let gatedBase: string;
   let openBase: string;
   const STUDY_JS = "/assets/index-abc123.js";
-  const GAME_JS = "/assets/GameApp-xyz789.js";
 
   beforeAll(async () => {
     gateRoot = await mkdtemp(join(tmpdir(), "prod-gate-"));
     await mkdir(join(gateRoot, "assets"), { recursive: true });
     await mkdir(join(gateRoot, "maps", "topo"), { recursive: true });
     await writeFile(join(gateRoot, "index.html"), "<!doctype html><title>app</title>");
-    await writeFile(join(gateRoot, STUDY_JS), 'const p="tuotanto";import("./GameApp-xyz789.js")');
-    await writeFile(join(gateRoot, GAME_JS), `export const g=1;const m="${GAME_CHUNK_MARKER}";`);
+    await writeFile(join(gateRoot, STUDY_JS), 'const p="tuotanto";');
     await writeFile(join(gateRoot, "maps", "topo", "0_0.webp"), "img");
     const thinker = async () => ({ status: 200, body: { ok: true } });
     gated = createAppServer({ staticDir: gateRoot, recruitmentGate: true, thinker });
@@ -265,9 +261,7 @@ describe("the recruitment gate (RECRUITMENT_GATE=1)", () => {
     expect((await rawAt(gatedBase, "/", "HEAD")).status).toBe(404);
   });
 
-  it("never serves the game's code, while the study's assets, the map and the API stay as they are", async () => {
-    expect((await rawAt(gatedBase, GAME_JS)).status).toBe(404);
-    expect((await rawAt(gatedBase, `${GAME_JS}?tuotanto`)).status).toBe(404);
+  it("leaves the study's assets, the map and the API as they are", async () => {
     const js = await rawAt(gatedBase, STUDY_JS);
     expect(js.status).toBe(200);
     expect(js.headers["cache-control"]).toContain("immutable");
@@ -275,9 +269,8 @@ describe("the recruitment gate (RECRUITMENT_GATE=1)", () => {
     expect((await rawAt(gatedBase, "/api/thinker", "POST", {}, "{}")).status).toBe(200);
   });
 
-  it("is off by default: the same build serves the demonstration and the game", async () => {
+  it("is off by default: the same build serves the demonstration", async () => {
     for (const p of ["/", "/?solu=k4", "/?tuotanto"]) expect((await rawAt(openBase, p)).status, p).toBe(200);
-    expect((await rawAt(openBase, GAME_JS)).status).toBe(200);
   });
 
   it("reads a study link as the start page does (STUDY_PARAM, any value)", () => {
@@ -286,72 +279,5 @@ describe("the recruitment gate (RECRUITMENT_GATE=1)", () => {
     expect(isStudyLink("/")).toBe(false);
     expect(isStudyLink("/?tuotanto_x=1")).toBe(false);
     expect(isStudyLink("/tuotanto")).toBe(false);
-  });
-});
-
-// The build's half of the gate (`tools/deploy/game-gate.ts`): `npm run build:prod` with RECRUITMENT_GATE=1.
-describe("the recruitment build leaves the game out (game-gate.ts)", () => {
-  const chunk = (fileName: string, o: Partial<BuiltChunk> = {}): BuiltChunk => ({
-    type: "chunk", fileName, isEntry: false, isDynamicEntry: false, facadeModuleId: null, imports: [], dynamicImports: [], moduleIds: [], ...o,
-  });
-  const study = chunk("assets/index-a.js", {
-    isEntry: true, facadeModuleId: "/r/app/render/ui/main.tsx", imports: ["assets/shared-c.js"], dynamicImports: ["assets/GameApp-b.js", "assets/lazy-d.js"],
-    moduleIds: ["/r/app/render/ui/main.tsx", "/r/app/session/preview.ts"], viteMetadata: { importedCss: new Set(["assets/index-a.css"]), importedAssets: new Set() },
-  });
-  const shared = chunk("assets/shared-c.js", { moduleIds: ["/r/node_modules/preact/dist/preact.mjs"] });
-  const game = chunk("assets/GameApp-b.js", {
-    isDynamicEntry: true, facadeModuleId: "C:\\r\\app\\game\\ui\\GameApp.tsx", imports: ["assets/shared-c.js", "assets/world-e.js"],
-    moduleIds: ["C:\\r\\app\\game\\ui\\GameApp.tsx", "C:\\r\\app\\game\\sim\\game.ts"], viteMetadata: { importedCss: new Set(["assets/GameApp-b.css", "assets/index-a.css"]), importedAssets: new Set() },
-  });
-  const world = chunk("assets/world-e.js", { moduleIds: ["/r/content/game/world.json"] });
-  const lazy = chunk("assets/lazy-d.js", { isDynamicEntry: true, facadeModuleId: "/r/node_modules/x/index.js", moduleIds: ["/r/node_modules/x/index.js"] });
-  const files: BuiltFile[] = [study, shared, game, world, lazy, { type: "asset", fileName: "assets/index-a.css" }, { type: "asset", fileName: "assets/GameApp-b.css" }];
-
-  it("finds the game's chunks, its own CSS and what only it reaches — never the study's entry, shared code or other lazy chunks", () => {
-    expect(gameChunkFiles(files)).toEqual(["assets/GameApp-b.css", "assets/GameApp-b.js", "assets/world-e.js"]);
-    expect(builtFiles({ output: files })).toEqual(files);
-    expect(builtFiles([{ output: files }, { output: [] }])).toEqual(files);
-    expect(() => builtFiles({ close() {} })).toThrow();
-  });
-
-  it("stops the build when a study chunk bundles a game module", () => {
-    const leaky = { ...study, moduleIds: [...study.moduleIds, "/r/app/game/contracts.ts"] };
-    expect(() => gameChunkFiles([leaky, shared, game, world])).toThrow(/study's chunks hold game modules/);
-  });
-
-  it("deletes those files and then finds no file with the game's marker; an ungated build still has it", async () => {
-    const dist = await mkdtemp(join(tmpdir(), "gate-dist-"));
-    try {
-      await mkdir(join(dist, "assets"), { recursive: true });
-      await writeFile(join(dist, "index.html"), "<!doctype html>");
-      await writeFile(join(dist, "assets", "index-a.js"), 'import("./GameApp-b.js")');
-      await writeFile(join(dist, "assets", "shared-c.js"), "export {}");
-      await writeFile(join(dist, "assets", "GameApp-b.js"), `const m="${GAME_CHUNK_MARKER}"`);
-      await writeFile(join(dist, "assets", "world-e.js"), "export default {}");
-      await writeFile(join(dist, "assets", "GameApp-b.css"), ".gm-root{}");
-      expect(gameLeaks(dist)).toEqual(["assets/GameApp-b.js"]);
-      expect(dropGameChunks(dist, files)).toEqual(["assets/GameApp-b.css", "assets/GameApp-b.js", "assets/world-e.js"]);
-      expect(gameLeaks(dist)).toEqual([]);
-      expect(existsSync(join(dist, "assets", "index-a.js"))).toBe(true);
-      expect(existsSync(join(dist, "assets", "shared-c.js"))).toBe(true);
-      expect(existsSync(join(dist, "assets", "world-e.js"))).toBe(false);
-    } finally {
-      await rm(dist, { recursive: true, force: true });
-    }
-  });
-
-  it("fails closed: a gated server refuses to start with a build that still holds the game (phase-4 review)", () => {
-    expect(gateStartupError(false, ["assets/GameApp-x.js"])).toBeNull(); // no gate: the demonstration and game are meant to be there
-    expect(gateStartupError(true, [])).toBeNull(); // a gated build
-    expect(gateStartupError(true, ["assets/GameApp-x.js"])).toMatch(/RECRUITMENT_GATE=1 but the build still holds the game \(assets\/GameApp-x\.js\)/);
-    const main = readFileSync("server/production/main.ts", "utf8");
-    expect(main).toMatch(/const gateError = gateStartupError\(config\.recruitmentGate, gameInBuild\);\s*if \(gateError\) \{[\s\S]{0,120}?process\.exit\(1\);/);
-  });
-
-  it("is wired into build:prod behind RECRUITMENT_GATE (or --recruitment-gate)", () => {
-    const build = readFileSync("tools/deploy/build.ts", "utf8");
-    expect(build).toMatch(/recruitmentGateFrom\(process\.env\.RECRUITMENT_GATE\) \|\| process\.argv\.includes\("--recruitment-gate"\)/);
-    expect(build).toMatch(/dropGameChunks\(`\$\{REPO_ROOT\}dist\/ui`, builtFiles\(built\)\)/);
-    expect(build).toMatch(/gameLeaks\(`\$\{REPO_ROOT\}dist\/ui`\)/);
   });
 });

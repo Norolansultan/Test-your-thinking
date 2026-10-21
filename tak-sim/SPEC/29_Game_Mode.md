@@ -1,9 +1,10 @@
 # 29 — Game mode: a live, playable fire-ground on the study's terrain
 
-**Status:** Governing for game mode (`app/game/`). Adopted 14 Oct 2026.
+**Status:** WITHDRAWN 21 Oct 2026 — game mode removed (researcher decision): one simulation for everyone; the public-audience version (SPEC/35) replaces it. The last version with game mode is commit e78c8bc (restore with `git checkout e78c8bc -- tak-sim/app/game …`). Previously: governing for game mode (`app/game/`), adopted 14 Oct 2026.
 **Scope:** a separate mode in which the fire is simulated live, the player commands the units, and orders change the outcome. It reuses the study's terrain and TAK screen conventions. It is **not** the research instrument and changes nothing in it.
 
 > **Changelog**
+> - **21 Oct 2026 (withdrawn)** — game mode removed with `app/game/`, `tools/game/`, `content/game/`, its tests and the build's game gate (`tools/deploy/game-gate.ts`). The recruitment gate stays in the server for the demonstration (`docs/DEPLOYMENT.md` §2.1); `prior.demo` asks about the web demonstration only. The body below is kept as the record of what was built.
 > - **21 Oct 2026 (bb)** — game mode gains a training course, fixed decision tasks and an always-available instructions panel: `34` governs them. Free play (§4) unchanged.
 > - **20 Oct 2026 (ba)** — `32` §8 item 5: game mode and the post-session replay are offered to participants only after data collection closes. See the revision at the end.
 > - **19 Oct 2026 (az)** — WP-5 built: the game's timelines moved off the study's keyed moments, `RECRUITMENT_GATE` in the build and the server, balance re-run (unchanged grades). §4's scenario line is superseded. See the revision at the end.

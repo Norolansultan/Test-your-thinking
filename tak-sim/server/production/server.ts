@@ -10,7 +10,7 @@
  *   /admin, /api/admin/* the researcher's data download (`admin.ts`), only when ADMIN_TOKEN is set;
  *                       otherwise 404 (and /admin is never the app's page)
  *   everything else     the built app (`dist/ui`), GET/HEAD; with RECRUITMENT_GATE=1 the page only under
- *                       `?tuotanto` and never the game's code (`recruitment-gate.ts`, SPEC/29 (ay))
+ *                       `?tuotanto` (`recruitment-gate.ts`)
  *
  * CORS: a request without an Origin header, from the server's own origin (the Host header), or from
  * an origin in ALLOWED_ORIGINS is served; any other origin gets 403 on /api/*. HTTPS is terminated
@@ -43,7 +43,7 @@ export interface AppServerOptions {
   readonly admin?: AdminOptions;
   /** The shared link's code issue (`auto-assign.ts`); absent (AUTO_ASSIGN unset) = /api/assign answers 404. */
   readonly assign?: AutoAssigner;
-  /** RECRUITMENT_GATE=1 (`recruitment-gate.ts`): the app's page only under `?tuotanto`, never the game's code. */
+  /** RECRUITMENT_GATE=1 (`recruitment-gate.ts`): the app's page only under `?tuotanto`. */
   readonly recruitmentGate?: boolean;
 }
 

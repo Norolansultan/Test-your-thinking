@@ -29,7 +29,7 @@
  *
  * - `31` §3.10 (19 Oct 2026; sagat F17, proposal (a), parity P-6, P-12): the source block holds nine facts, two of them false lures;
  *   after `prior.knowledge` come the believability item, the recognition item ("did it remind you of a real fire?") with what was
- *   recognised (shown on yes), the prior use of the web demonstration or game mode, and two perceived-reliability items (exploratory).
+ *   recognised (shown on yes), the prior use of the web demonstration, and two perceived-reliability items (exploratory).
  *   Each has the pre-registered exclusion or sensitivity rule of `POST_SESSION_RULES` (about +1.5 min; `15` (ay) the shortening order).
  *
  * DRAFT: the items and their order await the researcher; the TLX wording needs a validated Finnish version.
@@ -142,7 +142,7 @@ export const POST_SESSION_RULES: Readonly<Record<string, { readonly rule: "exclu
   believability: { rule: "sensitivity", when: "answered 1 or 2 (the situation did not feel believable)" },
   "recognition.real_fire": { rule: "sensitivity", when: "yes (reminded of a real fire), whatever was recognised" },
   "recognition.what": { rule: "exclude", when: "the fire itself, its rescue department or its units recognised (parity P-6; the course of events alone: sensitivity)" },
-  "prior.demo": { rule: "exclude", when: "the web demonstration, the game mode or both used before the session (parity P-12)" },
+  "prior.demo": { rule: "exclude", when: "the web demonstration used before the session (parity P-12)" },
   "reliability.answers": { rule: "exploratory", when: "perceived reliability against the log's (`31` proposal (a))" },
   "reliability.projection": { rule: "exploratory", when: "perceived reliability of the projection against its flags (`31` proposal (a))" },
 };
@@ -173,7 +173,7 @@ export const POST_ITEMS: readonly QuestionnaireItem[] = [
   scale7("believability", "session"),
   { id: "recognition.real_fire", section: "session", kind: "choice", options: yesNoUnsure },
   { id: "recognition.what", section: "session", kind: "multi", options: [{ id: "fire" }, { id: "department" }, { id: "units" }, { id: "course" }], showIf: { itemId: "recognition.real_fire", equals: "yes" } },
-  { id: "prior.demo", section: "session", kind: "choice", options: ["no", "demo", "game", "both", "unsure"] },
+  { id: "prior.demo", section: "session", kind: "choice", options: ["no", "demo", "unsure"] },
   { id: "reliability.answers", section: "session", kind: "choice", options: ["lt25", "m25_50", "m50_75", "gt75", "no_use"] },
   { id: "reliability.projection", section: "session", kind: "choice", options: ["rarely", "sometimes", "mostly", "always"] },
   { id: "role.rank", section: "background", kind: "choice", options: ["crew", "crew_commander", "platoon_commander", "duty_chief", "student", "other"] },

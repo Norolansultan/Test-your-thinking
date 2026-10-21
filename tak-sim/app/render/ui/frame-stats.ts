@@ -4,7 +4,7 @@
  * the participant. 15 records per session.
  *
  * - Frame time: the interval between consecutive animation frames, from the timestamps `requestAnimationFrame` hands
- *   its callback (no clock is read here; `app/game/ui/loop.ts` does the same). An interval over `FRAME_PAUSE_MS` is a
+ *   its callback (no clock is read here). An interval over `FRAME_PAUSE_MS` is a
  *   pause (a hidden tab, rAF throttled), not a frame, and is left out, as is the first frame after the page is hidden.
  *   The median is kept in 0.1 ms buckets (constant memory over a long view) and reported to 0.1 ms.
  * - Long tasks: main-thread tasks over 50 ms, from the browser's Long Tasks API (`PerformanceObserver`, entry type

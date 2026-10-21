@@ -4,6 +4,7 @@
 **Scope:** a setting of the study instrument for participants from the general population (Paper 4: does the Paper 3 model, trained on experts, work with non-experts; expertise as a moderator of AI reliance). The researcher, 21 Oct 2026: "test the same simulation with random people … build the more gamable research solution which could be utilized with wider audience."
 
 > **Changelog**
+> - **21 Oct 2026 (game mode removed)** — this version replaces game mode (`29`, `34`, withdrawn; researcher decision): there is one simulation for everyone, the study's own (Haku / guide groups), and the public-audience version is that same simulation with more explanation. The demonstration start page gains a version switch (§2).
 > - **21 Oct 2026** — created. Finnish texts DRAFT (native check); glossary definitions DRAFT (domain check); the consent, background items and the profile are RC items (§8).
 
 ---
@@ -22,7 +23,8 @@ Expert sessions are unchanged (no layer, no profile).
 
 - `?yleiso` on a study link (with `?tuotanto`) sets `SessionOptions.audience = "public"`; default `"expert"`. Logged in the header (`audience`).
 - `?laajuus=a` sets `SessionOptions.scope = "phaseA"`: the session ends at the hinge (VP + V1–V7, Paper 1's views) and goes to the questionnaire; default `"full"`. Logged (`scope`). Public sessions default to `full`; `phaseA` exists for panels where 100 min is too long.
-- Distribution: a public link carries the real scenario, so it is never published openly while expert recruitment runs (`29` (ay)); it is given only to panel participants with codes, or after expert data collection closes.
+- Distribution: a public link carries the real scenario, so it is never published openly while expert recruitment runs (the recruitment gate, `31` P-12, `docs/DEPLOYMENT.md` §2.1); it is given only to panel participants with codes, or after expert data collection closes.
+- The demonstration (no `?tuotanto`): a version switch above the group buttons on the start page, "Ammattilaisversio / Yleisöversio" (fi DRAFT; en "Professional version / Public version"), default professional, sets the audience for either group (`app/render/ui/VersionSwitch.tsx`); `?yleiso` preselects the public version. It is never shown under `?tuotanto`, and with the recruitment gate on the start page is not served at all.
 
 ## 3. The explanation layer
 

@@ -26,7 +26,7 @@ interface TopoFeatures {
   readonly bridges: readonly number[][];
   readonly labels: readonly { readonly text: string; readonly px: readonly number[]; readonly style: string }[];
 }
-/** Read at run time (7.6 MB: too large for the type checker as a JSON import), as `tools/game/world/build.ts` does. */
+/** Read at run time (7.6 MB: too large for the type checker as a JSON import). */
 const TOPO_PATH = fileURLToPath(new URL("../../content/site/build/topo-features.json", import.meta.url));
 let topoCache: TopoFeatures | null = null;
 function topo(): TopoFeatures {

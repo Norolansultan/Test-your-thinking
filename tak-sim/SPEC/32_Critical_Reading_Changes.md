@@ -4,6 +4,7 @@
 **Scope:** the changes adopted after the critical reading of two AI-generated documents ("Measuring Stealth Metacognition", a Gemini chat; "Human-AI Decision-Making PhD Research", a deep-research report) against arXiv, PsyArXiv, PubMed, Scholar Gateway and Consensus searches (20 Oct 2026); what was rejected and why; the work packages and their acceptance.
 
 > **Changelog**
+> - **21 Oct 2026 (bc)** — §8 item 5 revised: game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). The post-session replay with expert comparison may still come after data collection; game mode does not. §1 adjusted.
 > - **20 Oct 2026** — created. Researcher instruction of 20 Oct 2026: "read all the suggestions, create a plan what to fix and how, then fix them". Every change below is DRAFT until the pilot; the RC items in §8 stay the researcher's.
 
 ---
@@ -12,7 +13,7 @@
 
 - **Keep the measures.** SAGAT freezes with confidence (own SA), SPAM with the tools (team SA), the told split and source memory measure what the study asks. No source found validates log-based SA against SAGAT or SPAM; logs are an addition to be validated (§6), never a replacement.
 - **Keep the guide non-recommending.** Recommendation-driven AI moved participants' decision criterion at equal accuracy (Benk & Miller 2026); reasoning traces raised trust, not performance (Fernandes et al. 2026); wrong LLM recommendations were accepted 73.9 % of the time (Surdilla et al. 2026).
-- **Keep every participant's stimulus identical.** No points, scores, outcome feedback, branching, adaptive difficulty or random events in the session; game mode stays separate (`29`).
+- **Keep every participant's stimulus identical.** No points, scores, outcome feedback, branching, adaptive difficulty or random events in the session; game mode was separate (`29`) and was removed on 21 Oct 2026.
 - **Change four things:** how the premise check reaches the guide group in phase B (§3); how Paper 2 is analysed (§4); trust calibration (§5); validation and analysis details (§6–§7).
 
 ## 2. Rejected, with the reason (added to `30` §9)
@@ -92,7 +93,7 @@ Analysis rules (`09`, pre-registered):
 2. The primary-switch rule of §4 (threshold 15 %).
 3. S-TIAS Finnish wording; ethics notice for the changed questionnaire.
 4. Pilot-2 cued recall: consent addendum, ethics.
-5. Release the post-session replay with expert comparison, and game mode, only after data collection closes (`29` §2).
+5. Release the post-session replay with expert comparison, and game mode, only after data collection closes (`29` §2). *Revised 21 Oct 2026 (bc): game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it); the replay with expert comparison may still come later, game mode does not.*
 
 ## 9. Work packages and acceptance
 

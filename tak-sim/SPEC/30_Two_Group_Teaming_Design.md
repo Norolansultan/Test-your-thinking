@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **21 Oct 2026 (bd)** — game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). §8's demonstration item no longer names it; the post-session replay with expert comparison may still come after data collection (`32` §8 item 5), game mode does not.
 > - **21 Oct 2026 (bc)** — the public-audience version (`35`): the same stimulus for general-population participants with a generic explanation layer, logged; expert sessions unchanged.
 > - **20 Oct 2026 (ba)** — `32`: §3.4 "pull only" becomes pull plus the plan review at commitment in phase B (both groups; the guide group sees the premise lines); §6 adds H15c (criterion) and the primary-switch rule, restates H17; §9 gains the suggestions rejected after the critical reading; §11 re-run with the review (exposure 1). See the revision at the end.
 > - **19 Oct 2026 (az)** — §11 re-run after WP-3 (`31` §3.12): H2 unchanged; H2t under the three-way split falls to 49 % at a small effect; H13 under the act coding and V14's secondary route falls to 53–86 % at exposure .8. See the revision at the end.
@@ -118,7 +119,7 @@ Two-sided, α = .05. One primary per paper; each paper's secondaries are one Hol
 | Pin the model build (§10) and record it in the pre-registration | Researcher |
 | Ethics: the notification, the plan-confidence item, the source-memory block | Researcher, ethics board |
 | Strata sizes of the allocation table (§2) | Researcher |
-| Participants never see the web demonstration or game mode before their session | Researcher |
+| Participants never see the web demonstration before their session (the recruitment gate; game mode removed 21 Oct 2026) | Researcher |
 
 ## 9. What was considered and cut (critical review, 15–19 Oct 2026)
 

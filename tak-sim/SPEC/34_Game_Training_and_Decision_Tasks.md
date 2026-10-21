@@ -1,9 +1,10 @@
 # 34 — Game mode: training course, decision tasks and the instructions panel
 
-**Status:** Governing for game mode (`app/game/`) from 21 Oct 2026. Extends `29`; changes nothing in the study instrument.
+**Status:** WITHDRAWN 21 Oct 2026 — game mode removed (researcher decision): one simulation for everyone; the public-audience version (SPEC/35) replaces it. The last version with game mode is commit e78c8bc (restore with `git checkout e78c8bc -- tak-sim/app/game …`). Previously: governing for game mode (`app/game/`) from 21 Oct 2026, extending `29`.
 **Scope:** three additions to game mode, asked for by the researcher on 21 Oct 2026 ("make it more like the other simulation [XVR]; a longer introduction that teaches the most critical things to check, explained before the simulation runs; instructions available all the time; everybody has the same simulation and solves a static task in each scenario … execute this in the game mode").
 
 > **Changelog**
+> - **21 Oct 2026 (withdrawn)** — the course, the decision tasks and the instructions panel were removed with game mode (`29` status line). The body below is kept as the record of what was built.
 > - **21 Oct 2026 (integration)** — built: course (7 modules, exercises at 07:00–11:00), 7 decision tasks, the instructions pane with the task's prompt and criteria, progress in the browser under `tak-game.` (the isolation test allows that one file and key). The result stays on screen until the player leaves; an unmet criterion caps the grade at C. Open: no "request de-energising" order in the game (scripted); recon grades D (no water used); thin area margins in three tasks; doctrine figures and Finnish texts for review.
 > - **21 Oct 2026** — created. Every Finnish text is DRAFT for the native-speaker check; every doctrine statement is DRAFT for the domain reviewer.
 

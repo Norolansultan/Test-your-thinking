@@ -78,7 +78,8 @@ export function Glossed({ text, surface: own }: { readonly text: string; readonl
   const surface = useContext(GlossSurfaceContext) ?? own;
   const segments = glossedSegments(audience, lang, text);
   if (segments === null) return <>{text}</>;
-  return <>{segments.map((s, i) => (s.kind === "plain" ? s.text : <GlossTerm key={i} termId={s.termId} text={s.text} surface={surface} lang={lang} />))}</>;
+  // One inline span, so a flex parent (a freeze option, a button row) sees one item and adds no gap around the terms.
+  return <span>{segments.map((s, i) => (s.kind === "plain" ? s.text : <GlossTerm key={i} termId={s.termId} text={s.text} surface={surface} lang={lang} />))}</span>;
 }
 
 function GlossTerm({ termId, text, surface, lang }: { readonly termId: string; readonly text: string; readonly surface: GlossarySurface; readonly lang: Lang }) {

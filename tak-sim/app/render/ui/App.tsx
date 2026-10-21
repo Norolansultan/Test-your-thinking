@@ -57,6 +57,8 @@ type ServerPhase = "idle" | "assigning" | "inactive" | "done";
  * loaded only when the button is pressed, and nothing it does reaches the study's session log, telemetry or store.
  */
 const GAME_BUTTON: Readonly<Record<Lang, string>> = { fi: "Pelitila — komentajan peli", en: "Game mode — commander's game" };
+/** Demonstration only (SPEC/35 §2): the public-audience version without `?yleiso`, for links that cannot carry a query. */
+const PUBLIC_TOGGLE: Readonly<Record<Lang, string>> = { fi: "Yleisöversio: perehdytys ja sanasto", en: "Public version: primer and glossary" };
 
 type GameAppComponent = ComponentType<{ readonly lang: Lang; readonly onExit: () => void }>;
 
@@ -88,6 +90,7 @@ function StartPage() {
   const [issued, setIssued] = useState<{ readonly choice: Extract<StartChoice, { kind: "assigned" }>; readonly sessionId: string | undefined } | null>(null);
   const [phase, setPhase] = useState<ServerPhase>("idle");
   const [gameOpen, setGameOpen] = useState(false);
+  const [publicDemo, setPublicDemo] = useState(false);
   const search = window.location.search;
   const inStudy = new URLSearchParams(search).has(STUDY_PARAM);
   const urlChoice = startChoiceFromUrl(search);
@@ -148,6 +151,12 @@ function StartPage() {
             {!inStudy && <button style={{ ...buttonStyle, borderColor: "#19c3d6" }} data-testid="game-mode-button" onClick={() => setGameOpen(true)}>{GAME_BUTTON[lang]}</button>}
           </div>
         )}
+        {choice.kind === "choose" && !inStudy && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, opacity: 0.85 }}>
+            <input type="checkbox" data-testid="public-demo-toggle" checked={publicDemo} onChange={(e) => setPublicDemo((e.target as HTMLInputElement).checked)} />
+            {PUBLIC_TOGGLE[lang]}
+          </label>
+        )}
         {(choice.kind === "assigned" || choice.kind === "server_assign") && phase === "idle" && (
           <button style={buttonStyle} onClick={() => (serverLink ? void startShared() : choice.kind === "assigned" && setCell(choice.cell))}>{t.startAssigned}</button>
         )}
@@ -177,7 +186,7 @@ function StartPage() {
       showProbeLevels={!study} allowTourSkip={!study}
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
       studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} minWindowGuard={study} sessionId={issued?.sessionId}
-      uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)}
+      uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)} {...(publicDemo && !study ? { audience: "public" as const } : {})}
     />
   );
 }

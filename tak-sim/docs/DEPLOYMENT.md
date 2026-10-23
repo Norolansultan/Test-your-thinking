@@ -14,6 +14,7 @@ resume) are the requirements; this file is the procedure. Written 5 Oct 2026.
 | `/api/session-log` | the server | After the session reaches COMPLETE, the browser uploads the log in chunks; the server writes `<SESSION_LOG_DIR>/<sessionId>.jsonl`. Before that, checkpoints at each freeze, the training, the hinge and the closing screens append to `<sessionId>.partial.jsonl` (§3.1). |
 | `/api/assign` | the server | The shared study link's next participant code (§7.1), only when `AUTO_ASSIGN=1`; otherwise 404. Never in `npm run dev`. |
 | `/admin`, `/api/admin/*` | the server | The researcher's data download (§6), only when `ADMIN_TOKEN` is set; otherwise 404. |
+| `/api/results-contact` | the server | A participant's address for the personal results after the study (SPEC/36, §3.2), stored in `RESULTS_CONTACT_DIR`, apart from the session logs; `RESULTS_CONTACT_DIR=off` = 404. |
 | HTTPS, rate limits, access logs | the reverse proxy (nginx, Caddy, the host's load balancer) | The Node server listens on 127.0.0.1 by default. |
 
 ## 2. Steps
@@ -46,7 +47,8 @@ resume) are the requirements; this file is the procedure. Written 5 Oct 2026.
    `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`; unset = off),
    `AUTO_ASSIGN=1` (the shared study link, §7.1; unset = every link needs `?koodi=`), and for a pilot
    only `ASSIGN_CELLS`; optionally `ASSIGN_MAX` and `ASSIGN_RATE_PER_HOUR`; `RECRUITMENT_GATE=1` for
-   as long as recruitment runs (§2.1).
+   as long as recruitment runs (§2.1); `RESULTS_CONTACT_DIR` (the personal-results addresses, §3.2;
+   default `logs/results-contacts` under the app; never inside `SESSION_LOG_DIR`; `off` turns it off).
 6. **Run.** `npm run serve` under a supervisor that restarts it (systemd `Restart=always`). It prints
    the app directory, the log directory, the allowed origins, the Thinker mode, its English retrieval
    and whether the model is configured.
@@ -113,7 +115,7 @@ A participant who closes the tab at V9 and never comes back would otherwise leav
 server. So a study session (`?tuotanto`; not a demonstration) also sends what it has logged so far
 at each **boundary where the scenario stands still**: every freeze (`freeze_v1` … `freeze_v14`,
 `freeze_vp`), the training after the practice view, the hinge after V7, the post-session
-questionnaire and the debrief (`app/telemetry/session-checkpoint.ts`).
+questionnaire, the results step (SPEC/36) and the debrief (`app/telemetry/session-checkpoint.ts`).
 
 - **On the server**: `<SESSION_LOG_DIR>/<sessionId>.partial.jsonl` holds the session file's lines so
   far (header, then records, **no manifest line**: it is not a finished file), and
@@ -137,6 +139,49 @@ questionnaire and the debrief (`app/telemetry/session-checkpoint.ts`).
   (only the new lines). The only request during a view's live time is still Thinker's.
 - A failed checkpoint is silent and harmless: the next boundary sends the missing lines, and the
   browser's own log remains complete for the upload at the end or the export.
+
+### 3.2 Personal results contacts (SPEC/36, 23 Oct 2026)
+
+Every session ends with an optional step "Personal results after the study" (after the questionnaire,
+before the debrief). A participant who ticks the consent and gives an address sends it to
+`POST /api/results-contact` `{sessionId, email, lang}`; the session log records only
+`results_optin {optedIn}`, never the address.
+
+- **Where:** `<RESULTS_CONTACT_DIR>/contacts.jsonl`, one JSON line per contact
+  (`{sessionId, email, lang, receivedAtIso}`; a second send appends a second line, the last one wins).
+  Default `logs/results-contacts` under the app. The server refuses to start when the directory is,
+  or lies inside, `SESSION_LOG_DIR` (or contains it): the research data, the admin download (§6) and
+  `sessions:export` never hold an address. The server creates the directory 0700 and the file 0600,
+  validates every request (session id, address shape and length ≤ 254, language), limits it to 10
+  contacts per client address per hour (429) and a 1 KB body, applies the same CORS rule as the
+  other routes, and never prints the address or the body. `RESULTS_CONTACT_DIR=off`: the route
+  answers 404 and the participant's step says the address could not be saved (they continue with
+  `optedIn: false`). The Vite dev server has no such route: in a demonstration without the
+  production server the step shows and fails the same graceful way.
+- **Access:** restrict the directory to the service user (and the researcher); keep it on the
+  encrypted volume, out of the backups of the research data if they are shared; do not copy it with
+  the session data.
+- **After data collection has closed** (never before: the reports would reach people who have not yet
+  taken part), on the server or a copy of both directories:
+
+      npm run results:reports -- --logs <SESSION_LOG_DIR> --contacts <RESULTS_CONTACT_DIR> --out <dir> [--expert-reference expert.json]
+
+  writes `<dir>/results-<sessionId>.html` (one self-contained, print-friendly page per contact, in
+  the contact's language) and `<dir>/mailing-list.csv` (`email,report_file,lang`). It sends nothing:
+  send each report from your own email, as an attachment, to the address on its row. A contact
+  without a finished session file gets no report (the summary names the session id, never the
+  address). `expert.json` holds the expert sample's medians once it exists:
+  `{"calibrationGapPoints": …, "checkingShare": …, "hakuSearches": …, "guideQuestions": …, "reviewChangeShare": …}`
+  (null = unknown; without the file the reports say the expert comparison is not available yet).
+  `<dir>` holds addresses: treat it like the contact directory.
+- **Deletion after sending:**
+
+      npm run results:reports -- --purge --contacts <RESULTS_CONTACT_DIR> --out <dir> --confirm-sent
+
+  deletes the contact files and the mailing list (the reports in `<dir>` hold no address; delete them
+  too once sent). It refuses while the contact files hold an address not in the mailing list (one that
+  came later, or got no report); `--include-unsent` deletes those as well. The session logs are never
+  touched. Employers and schools get group results only, never a report.
 
 ## 4. Resume
 
@@ -170,7 +215,8 @@ half-entered inputs. A session interrupted after V14 re-enters the end screen an
   Responses carry `nosniff`, `no-referrer`, `X-Frame-Options: DENY`. No Content-Security-Policy is
   set yet (MapLibre's worker needs `blob:`; add one at the proxy after testing).
 - **At rest.** Put `SESSION_LOG_DIR` and `logs/thinker/` on an encrypted volume with backups; restrict
-  the directory to the service user.
+  the directory to the service user. `RESULTS_CONTACT_DIR` (§3.2) holds personal data (addresses):
+  the same volume, the service user only, apart from the research data, deleted after sending.
 - **The data download** (§6) is off unless `ADMIN_TOKEN` is set. The token is compared in constant
   time; it is checked before any route is matched; session ids are matched raw against the upload's
   pattern, so no path leaves the two log directories; the page runs no script and escapes everything

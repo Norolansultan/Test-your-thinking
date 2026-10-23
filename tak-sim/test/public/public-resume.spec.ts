@@ -1,7 +1,7 @@
 /**
  * SPEC/35 P1 with SPEC/05 §9: a public or phase-A session interrupted at one of the new steps resumes there — the primer again
- * from its first page, the profile again, the questionnaire after V7 in a phase-A session — the engine in that screen's state, the
- * log gapless, the header's audience and scope kept.
+ * from its first page, the profile again (with `?profiili=heti`), the questionnaire after V7 in a phase-A session — the engine in
+ * that screen's state, the log gapless, the header's audience and scope kept. SPEC/36: the results step again (any session).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,8 +56,33 @@ describe("resume across the public steps (SPEC/35, SPEC/05 §9)", () => {
     expect((await sink.readAll()).at(-1)!.detail).toMatchObject({ resumedAt: "briefing" });
   });
 
-  it("at the profile: the profile again (profile_shown again), then the debrief, COMPLETE and session_completed once", async () => {
-    const { o, snap, sink } = await interruptAt({ audience: "public" }, "profile");
+  it("at the results step (SPEC/36, an expert session too): the step again (nothing logged twice), then the debrief and the end", async () => {
+    for (const audience of ["expert", "public"] as const) {
+      const { o, snap, sink, before } = await interruptAt({ audience }, "results_optin");
+      expect(snap().step).toBe("results_optin");
+      expect(o.engineState).toBe("DEBRIEF_HANDOFF");
+      let records = await sink.readAll();
+      expect(kinds(records.slice(before))).toEqual(["fault", "fault_resolved", "session_resumed"]);
+      expect(records.at(-1)!.detail).toMatchObject({ resumedAt: "results_optin", cycleReplayed: 14 });
+      await o.decideResultsOptIn(true);
+      expect(snap().step).toBe("debrief");
+      await o.finishDebrief();
+      await o.completeSession();
+      records = await sink.readAll();
+      expect(records.filter((r) => r.kind === "results_optin").map((r) => r.detail)).toEqual([{ optedIn: true }]);
+      expect(kinds(records)).not.toContain("profile_shown");
+      gapless(records);
+    }
+  }, 120_000);
+
+  it("after the results step, before the debrief closed (no profile): the debrief again", async () => {
+    const { snap, sink } = await interruptAt({ audience: "public" }, "debrief");
+    expect(snap().step).toBe("debrief");
+    expect(kinds(await sink.readAll()).filter((k) => k === "results_optin")).toHaveLength(1);
+  }, 60_000);
+
+  it("at the profile (`?profiili=heti`): the profile again (profile_shown again), then the debrief, COMPLETE and session_completed once", async () => {
+    const { o, snap, sink } = await interruptAt({ audience: "public", immediateProfile: true }, "profile");
     expect(snap().step).toBe("profile");
     expect(o.engineState).toBe("DEBRIEF_HANDOFF");
     let records = await sink.readAll();
@@ -75,12 +100,12 @@ describe("resume across the public steps (SPEC/35, SPEC/05 §9)", () => {
   }, 60_000);
 
   it("at the debrief (the profile left): the debrief again, not the profile", async () => {
-    const { snap, sink } = await interruptAt({ audience: "public" }, "debrief");
+    const { snap, sink } = await interruptAt({ audience: "public", immediateProfile: true }, "debrief");
     expect(snap().step).toBe("debrief");
     expect(kinds(await sink.readAll()).slice(-2)).toEqual(["session_resumed", "debrief_shown"]);
   }, 60_000);
 
-  it("phase A, at the questionnaire after V7: the questionnaire again (DEBRIEF_HANDOFF), then the profile and the end", async () => {
+  it("phase A, at the questionnaire after V7: the questionnaire again (DEBRIEF_HANDOFF), then the results step and the end", async () => {
     const { o, snap, sink } = await resumeWhen({ audience: "public", scope: "phaseA" }, (s) => s.step === "questionnaire" && s.questionnaire?.id === "post");
     expect(o.scope).toBe("phaseA");
     expect(snap()).toMatchObject({ step: "questionnaire", questionnaire: { id: "post" } });
@@ -88,7 +113,7 @@ describe("resume across the public steps (SPEC/35, SPEC/05 §9)", () => {
     expect((await sink.readAll()).filter((r) => r.kind === "session_resumed").at(-1)!.detail).toMatchObject({ resumedAt: "questionnaire", cycleReplayed: 7 });
     await driveSession(o, snap);
     const records = await sink.readAll();
-    expect(kinds(records).slice(-6)).toEqual(["questionnaire_submitted", "profile_shown", "debrief_shown", "debrief_closed", "state_transition", "session_completed"]);
+    expect(kinds(records).slice(-6)).toEqual(["questionnaire_submitted", "results_optin", "debrief_shown", "debrief_closed", "state_transition", "session_completed"]);
     expect(records.some((r) => r.kind === "cycle_start" && (r.detail as { cycle: number }).cycle > 7)).toBe(false);
     gapless(records);
   }, 60_000);

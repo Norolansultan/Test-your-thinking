@@ -37,3 +37,13 @@ export interface PrimerCheckDetail {
 export interface HelpCardOpenedDetail {
   readonly section: HelpCardSection;
 }
+
+/**
+ * SPEC/36 (23 Oct 2026, 0.14.0): the participant's answer on the step "Personal results after the study", after the post-session
+ * questionnaire and before the debrief, in every session (both audiences, every cell). `optedIn` is true only when the study server
+ * accepted a contact address for this session; skipping, or continuing after the server could not be reached, is false. The address
+ * itself never enters the log: it goes to the server's separate contact store (`/api/results-contact`).
+ */
+export interface ResultsOptInDetail {
+  readonly optedIn: boolean;
+}

@@ -7,6 +7,8 @@
  *   /api/session-log/*  the post-run session-log upload and its checkpoints (`server/session-log/`)
  *   /api/assign         the shared study link's next code (`auto-assign.ts`), only when AUTO_ASSIGN=1;
  *                       otherwise 404
+ *   /api/results-contact  a participant's address for the personal results after the study (SPEC/36,
+ *                       `results-contact.ts`), stored apart from the research data; 404 with RESULTS_CONTACT_DIR=off
  *   /admin, /api/admin/* the researcher's data download (`admin.ts`), only when ADMIN_TOKEN is set;
  *                       otherwise 404 (and /admin is never the app's page)
  *   everything else     the built app (`dist/ui`), GET/HEAD; with RECRUITMENT_GATE=1 the page only under
@@ -25,6 +27,8 @@ import { BodyTooLargeError, handleSessionLogRequest, isSessionLogPath, readBodyL
 import type { SessionLogStore } from "../session-log/store.js";
 import { handleAdminRequest, isAdminPath, type AdminOptions } from "./admin.js";
 import { ASSIGN_MAX_BODY_BYTES, ASSIGN_PATH, clientAddress, type AutoAssigner } from "./auto-assign.js";
+import { RESULTS_CONTACT_ENDPOINT, RESULTS_CONTACT_MAX_BODY_BYTES } from "../../app/session/results-contact.js";
+import type { ResultsContactStore } from "./results-contact.js";
 import { gateStatic } from "./recruitment-gate.js";
 import { serveStatic } from "./static.js";
 
@@ -45,6 +49,8 @@ export interface AppServerOptions {
   readonly assign?: AutoAssigner;
   /** RECRUITMENT_GATE=1 (`recruitment-gate.ts`): the app's page only under `?tuotanto`. */
   readonly recruitmentGate?: boolean;
+  /** SPEC/36: the personal-results contact store; absent (RESULTS_CONTACT_DIR=off) = /api/results-contact answers 404. */
+  readonly resultsContact?: ResultsContactStore;
 }
 
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
@@ -90,7 +96,8 @@ export function createAppServer(options: AppServerOptions): Server {
         // (`preflight-env.ts`) reads a 204 on /api/thinker as "Thinker is there" (final review, 6 Oct 2026).
         const chat = path === THINKER_ENDPOINT ? options.thinker : path === THINKER_OPEN_ENDPOINT ? options.thinkerOpen : path === PREMISE_REVIEW_ENDPOINT ? options.premiseReview : undefined;
         const assign = path === ASSIGN_PATH ? options.assign : undefined;
-        const routed = chat !== undefined || assign !== undefined || (isSessionLogPath(path) && options.sessionLog !== undefined);
+        const contact = path === RESULTS_CONTACT_ENDPOINT ? options.resultsContact : undefined;
+        const routed = chat !== undefined || assign !== undefined || contact !== undefined || (isSessionLogPath(path) && options.sessionLog !== undefined);
         if (method === "OPTIONS" && !routed) return sendJson(res, 404, { error: "not found" }, cors);
         if (method === "OPTIONS") {
           res.writeHead(204, { ...cors, "access-control-allow-methods": "GET, POST, PUT, OPTIONS", "access-control-allow-headers": "content-type, x-chunk-sha256", "access-control-max-age": "600" });
@@ -113,6 +120,16 @@ export function createAppServer(options: AppServerOptions): Server {
             return sendJson(res, e instanceof BodyTooLargeError ? 413 : 400, { error: e instanceof BodyTooLargeError ? "body too large" : "invalid JSON" }, cors);
           }
           const result = await assign.assign(body, clientAddress(req.headers, req.socket.remoteAddress));
+          return sendJson(res, result.status, result.body, { ...cors, ...result.headers });
+        }
+        if (contact) {
+          // SPEC/36: the body holds an address; it is never logged (nor is anything of it in an error).
+          if (method !== "POST") return sendJson(res, 405, { error: "method not allowed" }, cors);
+          let body: unknown;
+          try { body = JSON.parse((await readBodyLimited(req, RESULTS_CONTACT_MAX_BODY_BYTES)).toString("utf8")); } catch (e) {
+            return sendJson(res, e instanceof BodyTooLargeError ? 413 : 400, { error: e instanceof BodyTooLargeError ? "body too large" : "invalid JSON" }, cors);
+          }
+          const result = await contact.submit(body, clientAddress(req.headers, req.socket.remoteAddress));
           return sendJson(res, result.status, result.body, { ...cors, ...result.headers });
         }
         if (isSessionLogPath(path) && options.sessionLog) {

@@ -4,7 +4,7 @@ import { knownSessionStatus, ResumeGate, SessionLauncher } from "./SessionLaunch
 import type { Cell } from "../../scenario/types.js";
 import { assignedByCode, conditionOfCell, sessionOverrideFromUrl, startChoiceFromUrl, STUDY_PARAM, type StartChoice } from "../../session/preview.js";
 import { browserAssignDeps, obtainAssignment, storedCode } from "../../session/auto-assign.js";
-import { sessionSettingFromUrl } from "../../session/public-session.js";
+import { immediateProfileFromUrl, sessionSettingFromUrl } from "../../session/public-session.js";
 import { browserEnvironment, newSessionId } from "../../session/annotations.js";
 import { AUTO_ASSIGN_TEXT, LINK_INACTIVE_BOTH } from "../../i18n/auto-assign-texts.js";
 import { DEFAULT_LANG, isLang, LANGUAGES, type Lang } from "../../i18n/lang.js";
@@ -68,6 +68,7 @@ function StartPage() {
   // A code this browser already holds for the shared link is used again (never a second draw).
   const held = serverLink ? storedCode(localStore()) : null;
   // SPEC/35 §2: `?yleiso` (the public-audience version) and `?laajuus=a` (phase A only); an unknown scope is refused.
+  // SPEC/36: `?profiili=heti` shows the commander profile on screen after the session (`immediateProfileFromUrl`, passed below).
   const setting = sessionSettingFromUrl(search);
   // The demonstration's version switch (`VersionSwitch.tsx`), set from `?yleiso`; never shown or applied under `?tuotanto`.
   const [publicVersion, setPublicVersion] = useState(() => !("invalid" in setting) && setting.audience === "public");
@@ -151,6 +152,7 @@ function StartPage() {
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
       studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} minWindowGuard={study} sessionId={issued?.sessionId}
       uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)} {...demoAudience(publicVersion, study)}
+      immediateProfile={immediateProfileFromUrl(search)}
     />
   );
 }

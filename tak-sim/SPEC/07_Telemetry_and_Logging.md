@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **23 Oct 2026 (bc)** — format **0.14.0** (`36`, personal results after the study): `results_optin { optedIn }` in every session after the post-session questionnaire (never the address); the header's `immediateProfile`; `profile_shown` only with it. See the revision at the end.
 > - **21 Oct 2026 (bb)** — format **0.13.0** (`35`, the public-audience version): header fields `audience` and `scope`; `primer_page`, `primer_check`, `help_card_opened`, `profile_shown`; `glossary_opened` in a new shape. Expert sessions write the records of 0.12.0. See the revision at the end.
 > - **20 Oct 2026 (ba)** — format **0.12.0** (`32` §3): `plan_review_shown`, `plan_review_record_opened`, `plan_review_closed`. See the revision at the end.
 > - **19 Oct 2026 (ay)** — format **0.11.0** (`31` §3.6): `ai_chat_answer_received` gains `digestAtomIds` (the guide's digest; empty for Haku) and `recentAtomIds` (both tools), so exposure can count what reached the model without a search; the new post-session item ids; `consult_prompt_shown.atViewSeconds` may be later than 60 when the notice yields to a freeze. See the revision at the end.
@@ -663,3 +664,17 @@ Format version **0.10.0** (`TELEMETRY_FORMAT_VERSION`); the kinds are additive, 
 - **Ids:** the public consent `consent.public.placeholder.v0`; the public debrief `debrief.public.full` / `debrief.public.phaseA` (one per scope, the same in every cell); `session_resumed.resumedAt` may be `primer` or `profile`.
 - **Scope phase A:** the session ends at V7's `cycle_end` (no `hinge_pause_start`, no phase B; the engine passes the hinge and enters DEBRIEF_HANDOFF without a record, as V14's end does) and the post-session questionnaire omits the directive items (`retention.hinge`, `ai.directive_relation`, `directive.fit`) and the `directive` option of `last.basis`.
 - **Never at runtime (§3):** none of the layer's records touches the run's timing — no clock pause, no step or view change; between VP's start and the last view's end a public session writes an expert session's records plus these (`test/public/`).
+
+## Revision 23 Oct 2026 (bc) — format 0.14.0: personal results after the study (`36`)
+
+- **New kind** (every session: both audiences, every cell):
+
+| Kind | Fields | When |
+|---|---|---|
+| `results_optin` | `optedIn` (boolean) | the participant answered the step "Personal results after the study", after `questionnaire_submitted` (post) and before `profile_shown` / `debrief_shown`. `true` only once the study server stored a contact address for the session; Skip, or continuing without a server, is `false` |
+
+- **Never logged (§3):** the address. It goes from the step's screen to `POST /api/results-contact` and the server's separate contact store (`RESULTS_CONTACT_DIR`), apart from the session logs and their download; the session itself never receives it.
+- **Header:** `immediateProfile: true` when the commander profile is shown on screen (`?profiili=heti`); absent otherwise (the default since 0.14.0, in every audience). In 0.13.0 logs a public session showed the profile without the field.
+- **`profile_shown`** only with `immediateProfile`, after `results_optin`. `session_resumed.resumedAt` may be `results_optin`. The checkpoint label `results_optin` is taken at the step (DEBRIEF_HANDOFF).
+- **Debrief:** the texts gained one paragraph (requested results arrive after the study closes); the ids (`debrief.<cell>`, `debrief.public.<scope>`) are unchanged — the format version tells the texts apart.
+- **Expert sessions:** the records of 0.12.0 plus `results_optin`, just before `debrief_shown` (`test/public/expert-identity.spec.ts`, updated deliberately: it removes that one record and renumbers; the digests are unchanged).

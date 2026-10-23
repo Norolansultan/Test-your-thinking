@@ -4,6 +4,7 @@
 **Scope:** a setting of the study instrument for participants from the general population (Paper 4: does the Paper 3 model, trained on experts, work with non-experts; expertise as a moderator of AI reliance). The researcher, 21 Oct 2026: "test the same simulation with random people … build the more gamable research solution which could be utilized with wider audience."
 
 > **Changelog**
+> - **23 Oct 2026 (personal results, `36`)** — the commander profile on screen (§4) becomes optional and is **off by default** in every audience: personal results (the profile, development tips, comparison bands) are sent after the study closes (`36`). `?profiili=heti` still shows it on screen after the session (demonstrations, teaching before a lecture), in either audience; logged in the header (`immediateProfile`). Every session (both audiences) gains the results step after the questionnaire (`results_optin`, format 0.14.0). §4, §6 and §9 P1/P3 read with this revision.
 > - **21 Oct 2026 (game mode removed)** — this version replaces game mode (`29`, `34`, withdrawn; researcher decision): there is one simulation for everyone, the study's own (Haku / guide groups), and the public-audience version is that same simulation with more explanation. The demonstration start page gains a version switch (§2).
 > - **21 Oct 2026** — created. Finnish texts DRAFT (native check); glossary definitions DRAFT (domain check); the consent, background items and the profile are RC items (§8).
 
@@ -38,7 +39,7 @@ Not in the layer: hints, checklists of what to check, situation explanations, ch
 
 - During the session nothing changes (no points, scores, outcome feedback, branching): `32` §1 holds.
 - **Framing:** a mission card at the start ("You are the incident commander …") and chapter titles on the views' progress strip (same text both groups).
-- **Commander profile, after the questionnaire** (public only): the participant's own pattern, never the answer key:
+- **Commander profile, after the questionnaire** (public only; **since 23 Oct 2026 off by default in every audience, shown only with `?profiili=heti`; otherwise sent after the study closes, `36`**): the participant's own pattern, never the answer key:
   - calibration: how well confidence matched accuracy (over / under / well calibrated) across the freezes;
   - checking: how often deciding records were opened before acting;
   - tool use: Haku / guide questions asked, and how often the plan changed at the review;

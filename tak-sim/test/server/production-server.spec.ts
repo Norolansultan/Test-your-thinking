@@ -175,7 +175,7 @@ describe("configuration from the environment", () => {
 
   it("reads PORT, HOST, ALLOWED_ORIGINS, SESSION_LOG_DIR, STATIC_DIR, THINKER", () => {
     const c = loadConfig({ PORT: "9000", HOST: "0.0.0.0", ALLOWED_ORIGINS: "https://a.example, https://b.example:8443", SESSION_LOG_DIR: "/data/sessions", STATIC_DIR: "/srv/ui", THINKER: "off" });
-    expect(c).toEqual({ port: 9000, host: "0.0.0.0", allowedOrigins: ["https://a.example", "https://b.example:8443"], sessionLogDir: "/data/sessions", staticDir: "/srv/ui", thinker: "off", thinkerMode: "study", adminToken: null, autoAssign: null, recruitmentGate: false });
+    expect(c).toEqual({ port: 9000, host: "0.0.0.0", allowedOrigins: ["https://a.example", "https://b.example:8443"], sessionLogDir: "/data/sessions", staticDir: "/srv/ui", thinker: "off", thinkerMode: "study", adminToken: null, autoAssign: null, recruitmentGate: false, resultsContactDir: expect.stringMatching(/results-contacts$/) });
   });
 
   it("reads RECRUITMENT_GATE: 1 on; unset, empty or 0 off", () => {

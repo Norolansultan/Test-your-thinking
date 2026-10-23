@@ -21,6 +21,7 @@ import type { Lang } from "./lang.js";
 import type { Cell } from "../scenario/types.js";
 import type { PreflightFailure } from "../session/preflight.js";
 import { SOURCE_MEMORY_FACTS, sourceItemId } from "../scenario/source-memory.js";
+import { RESULTS_DEBRIEF_PARAGRAPH } from "./results-texts.js";
 
 /** Which consent text was shown (logged in `consent_decided`). Change it whenever the text changes. */
 export const CONSENT_TEXT_ID = "consent.placeholder.v0";
@@ -267,6 +268,7 @@ const FI: StudyText = {
       "Istunnon puolivälin tienoilla, tuulen heiketessä, miehistöt ilmoittivat syttymäkohdan eteläpuolen hallinnassa olevaksi, ja ne siirrettiin pohjoissivustalle. VPK:n johtaja huomautti radiossa, että syttymäkohta voi vielä kyteä ja se pitäisi tarkistaa lämpökameralla; huomautus sivuutettiin, ja palo syttyi myöhemmin uudelleen juuri siellä. Huomautus, siirtokäsky ja uudelleensyttyminen olivat käsikirjoitettuja: et olisi voinut muuttaa niitä.",
       "Tauon jälkeen päivystävä palopäällikkö (P2) antoi linjauksen. Sen jälkeiset jaksot oli kirjoitettu niin, että linjaus ei sopinut niihin kaikkiin: joissakin suora hyökkäys saattoi olla perusteltu valinta. Linjauksesta poikkeaminen siellä, missä se ei sopinut tilanteeseen, saattoi olla oikea päätös. Mikään vastaus ei ollut väärä vain siksi, että se poikkesi linjauksesta.",
       "Saat kirjallisen selvityksen 48 tunnin kuluessa. [PAIKKAMERKKI, eettinen toimikunta: miten voit perua tietojesi käytön nyt, kun tiedät, mitä tutkimus selvitti, ja keneen otat yhteyttä.]",
+      RESULTS_DEBRIEF_PARAGRAPH.fi, // SPEC/36: personal results arrive after the study closes
       "Pyydämme, ettet kerro istunnon kulusta tai näistä tiedoista kollegoillesi ennen kuin tutkimus on päättynyt: muut saattavat vielä osallistua.",
     ],
     finish: "Päätä istunto",
@@ -410,6 +412,7 @@ const EN: StudyText = {
       "Around the middle of the session, as the wind eased, crews reported the south side of the point of origin in hand and were moved to the north flank. The volunteer fire brigade's crew leader (VOL1) said on the radio that the origin could still be smouldering and should be checked with a thermal camera; this was overruled, and the fire later flared up there. The objection, the order to move and the flare-up were scripted: nothing you did could have changed them.",
       "After the break, the duty fire chief (P2) gave a directive. The periods after it were written so that the directive did not fit all of them: in some, a direct attack could be the sound choice. Departing from the directive where it did not fit the situation could be the right decision. No answer was wrong just because it departed from the directive.",
       "You will receive a written debrief within 48 hours. [PLACEHOLDER, ethics board: how you can withdraw your data now that you know what the study looked at, and whom to contact.]",
+      RESULTS_DEBRIEF_PARAGRAPH.en, // SPEC/36: personal results arrive after the study closes
       "Please do not describe the session or this information to colleagues until the study has ended: others may still take part.",
     ],
     finish: "End the session",

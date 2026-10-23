@@ -28,7 +28,7 @@ import type { JSX } from "preact";
 import { AudienceContext } from "../audience-context.js";
 import type { Audience, SessionScope } from "../../../session/public-session.js";
 
-export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true, audience, scope }: {
+export function SessionView({ scenario, condition, cell, previewOverride, language, showProbeLevels = true, guidedTour = false, allowTourSkip = false, participantCode, assignment, persistence, studyShell = false, allowPreflightOverride = false, allowViewSkip = false, indexedSearch = false, uiShell = "tak", minWindowGuard = true, audience, scope, immediateProfile }: {
   readonly scenario: ScenarioContract; readonly condition: "directed" | "substitutive"; readonly previewOverride: PreviewOverride | null; readonly language: Lang; readonly showProbeLevels?: boolean;
   /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11); `allowTourSkip` in demonstration only. */
   readonly guidedTour?: boolean; readonly allowTourSkip?: boolean;
@@ -53,11 +53,13 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
   readonly uiShell?: UiShell;
   /** SPEC/35 §2: the public-audience setting and the session's scope (`?yleiso`, `?laajuus=a`); logged in the header. A resume takes its header's. */
   readonly audience?: Audience | undefined; readonly scope?: SessionScope | undefined;
+  /** SPEC/36: the commander profile on screen after the results step (`?profiili=heti`); logged in the header. A resume takes its header's. */
+  readonly immediateProfile?: boolean | undefined;
 }) {
   useDocumentLanguage(language);
   return (
     <LangContext.Provider value={language}>
-      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} minWindowGuard={minWindowGuard} setting={{ ...(audience ? { audience } : {}), ...(scope ? { scope } : {}) }} />
+      <SessionBody scenario={scenario} condition={condition} cell={cell} previewOverride={previewOverride} language={language} showProbeLevels={showProbeLevels} guidedTour={guidedTour} allowTourSkip={allowTourSkip} participantCode={participantCode} assignment={assignment} persistence={persistence} studyShell={studyShell} allowPreflightOverride={allowPreflightOverride} allowViewSkip={allowViewSkip} indexedSearch={indexedSearch} uiShell={uiShell} minWindowGuard={minWindowGuard} setting={{ ...(audience ? { audience } : {}), ...(scope ? { scope } : {}), ...(immediateProfile ? { immediateProfile } : {}) }} />
     </LangContext.Provider>
   );
 }
@@ -67,7 +69,7 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
   readonly guidedTour: boolean; readonly allowTourSkip: boolean; readonly cell: Cell | undefined;
   readonly participantCode: string | undefined; readonly assignment: SessionAssignment | undefined; readonly persistence: SessionPersistence | undefined;
   readonly studyShell: boolean; readonly allowPreflightOverride: boolean; readonly allowViewSkip: boolean; readonly indexedSearch: boolean; readonly minWindowGuard: boolean;
-  readonly uiShell: UiShell; readonly setting: { readonly audience?: Audience; readonly scope?: SessionScope };
+  readonly uiShell: UiShell; readonly setting: { readonly audience?: Audience; readonly scope?: SessionScope; readonly immediateProfile?: boolean };
 }) {
   const { snapshot, orchestrator, audience } = useSession(scenario, condition, previewOverride, language, showProbeLevels, guidedTour, cell,
     { ...(participantCode ? { participantCode } : {}), ...(assignment ? { assignment } : {}), studyShell, allowPreflightOverride, allowViewSkip, ...setting }, persistence);

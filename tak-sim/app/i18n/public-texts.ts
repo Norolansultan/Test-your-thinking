@@ -11,6 +11,7 @@
 
 import type { Lang } from "./lang.js";
 import { STUDY_TEXT, type ItemText, type StudyText } from "./study-texts.js";
+import { RESULTS_DEBRIEF_PARAGRAPH } from "./results-texts.js";
 import { CANONICAL_FLAG_SEQUENCE } from "../scenario/types.js";
 import { HINGE_AFTER_VIEW, MAIN_VIEW_COUNT } from "../scenario/views.js";
 
@@ -77,6 +78,7 @@ const FI: PublicText = {
         : "Istunnon puolivälin tienoilla, tuulen heiketessä, miehistöt ilmoittivat palon syttymäkohdan ympäristön hallinnassa olevaksi, ja ne siirrettiin muualle. VPK:n johtaja huomautti radiossa, että maasto voi siellä vielä kyteä ja se pitäisi tarkistaa lämpökameralla; huomautus sivuutettiin, ja palo syttyi myöhemmin uudelleen juuri siellä. Huomautus, siirtokäsky ja uudelleensyttyminen olivat käsikirjoitettuja: et olisi voinut muuttaa niitä.",
       ...(scope === "phaseA" ? [] : ["Tauon jälkeen päivystävä palopäällikkö (P2), johtajan esimies, antoi linjauksen. Sen jälkeiset jaksot oli kirjoitettu niin, että linjaus ei sopinut niihin kaikkiin. Linjauksesta poikkeaminen siellä, missä se ei sopinut tilanteeseen, saattoi olla oikea päätös. Mikään vastaus ei ollut väärä vain siksi, että se poikkesi linjauksesta."]),
       "Saat kirjallisen selvityksen 48 tunnin kuluessa. [PAIKKAMERKKI, eettinen toimikunta: miten voit perua tietojesi käytön nyt, kun tiedät, mitä tutkimus selvitti, ja keneen otat yhteyttä.]",
+      RESULTS_DEBRIEF_PARAGRAPH.fi, // SPEC/36
       "Pyydämme, ettet kerro istunnon kulusta tai näistä tiedoista kenellekään ennen kuin tutkimus on päättynyt: muut saattavat vielä osallistua.",
     ];
   },
@@ -122,6 +124,7 @@ const EN: PublicText = {
         : "Around the middle of the session, as the wind eased, crews reported the area around the fire's point of origin under control and were moved elsewhere. The volunteer crew's leader (VOL1) said on the radio that the ground there could still be smouldering and should be checked with a thermal camera; this was overruled, and the fire later flared up there. The warning, the order to move and the flare-up were scripted: nothing you did could have changed them.",
       ...(scope === "phaseA" ? [] : ["After the break, the duty fire chief (P2), the commander's superior, gave a directive. The periods after it were written so that the directive did not fit all of them. Departing from the directive where it did not fit the situation could be the right decision. No answer was wrong just because it departed from the directive."]),
       "You will receive a written debrief within 48 hours. [PLACEHOLDER, ethics board: how you can withdraw your data now that you know what the study looked at, and whom to contact.]",
+      RESULTS_DEBRIEF_PARAGRAPH.en, // SPEC/36
       "Please do not describe the session or this information to anyone until the study has ended: others may still take part.",
     ];
   },

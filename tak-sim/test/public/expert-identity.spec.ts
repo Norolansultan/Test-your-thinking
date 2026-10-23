@@ -4,6 +4,12 @@
  * questionnaire, the debrief, the end) is run in each cell with the options the app gives it, and its records are compared with
  * the same run's records before the layer was built (commit fccaa56, telemetry format 0.12.0): identical, byte for byte, except
  * the header's new fields (`audience`, `scope`) and its format version in `session_started`.
+ *
+ * Updated deliberately for SPEC/36 (23 Oct 2026, format 0.14.0): every session, expert sessions included, now has the results step
+ * after the post-session questionnaire, which writes ONE new record, `results_optin {optedIn}`, just before `debrief_shown`. The
+ * comparison removes that record and renumbers the records after it (seq − 1); everything else is still the 0.12.0 run's, byte for
+ * byte (the same digests), so the stimulus and every measure are unchanged. The debrief text gained a paragraph, but its id (the
+ * logged `textId`) did not change, so it is not visible here.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,9 +21,11 @@ import { driveSession, newStudySession, wholeSession } from "./public-run.js";
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-/** The records with `session_started`'s header stripped of the fields 0.13.0 adds or changes. */
+/** The records with `session_started`'s header stripped of the fields 0.13.0 adds or changes, and without 0.14.0's `results_optin` (renumbered). */
 function withoutNewHeaderFields(records: readonly LogRecord[]): string {
-  return records.map((r) => {
+  const optIn = records.findIndex((r) => r.kind === "results_optin");
+  const kept = optIn < 0 ? records : [...records.slice(0, optIn), ...records.slice(optIn + 1).map((r) => ({ ...r, seq: (r.seq - 1) as LogRecord["seq"] }))];
+  return kept.map((r) => {
     if (r.kind !== "session_started") return JSON.stringify(r);
     const { formatVersion: _version, audience: _audience, scope: _scope, ...rest } = r.detail as Record<string, unknown>;
     return JSON.stringify({ ...r, detail: rest });
@@ -35,7 +43,11 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
   for (const cell of ["radio", "reasoning_once", "reasoning_intent"] as const) {
     it(`${cell}: the records are those of 0.12.0 except the header's new fields`, async () => {
       const { o, records } = await wholeSession({ cell });
-      expect(records).toHaveLength(502);
+      expect(records).toHaveLength(503); // 0.12.0's 502 and SPEC/36's `results_optin`
+      const optIn = records.findIndex((r) => r.kind === "results_optin");
+      expect(records[optIn]!.detail).toEqual({ optedIn: false });
+      expect(records[optIn - 1]).toMatchObject({ kind: "questionnaire_submitted", detail: { questionnaireId: "post" } });
+      expect(records[optIn + 1]!.kind).toBe("debrief_shown");
       expect(sha256Hex(withoutNewHeaderFields(records))).toBe(BEFORE[cell]);
       // The header's new fields are present, with the expert defaults.
       expect(o.logHeader).toMatchObject({ formatVersion: TELEMETRY_FORMAT_VERSION, audience: "expert", scope: "full" });

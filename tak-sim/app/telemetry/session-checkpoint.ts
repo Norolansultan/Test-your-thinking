@@ -34,7 +34,7 @@ import { sha256Hex } from "./sha256.js";
 
 /**
  * The checkpoint a screen takes, or null: ai_literacy, freeze_v<n> (freeze_vp in the practice view),
- * training, hinge, questionnaire, profile (SPEC/35, public sessions), debrief. The screens outside the views also need the engine's matching state.
+ * training, hinge, questionnaire, results_optin (SPEC/36), profile (SPEC/35, `?profiili=heti`), debrief. The screens outside the views also need the engine's matching state.
  */
 export function checkpointLabel(step: JudgementStep, view: number, engineState: EngineState): string | null {
   switch (step) {
@@ -49,6 +49,8 @@ export function checkpointLabel(step: JudgementStep, view: number, engineState: 
     case "debrief": return engineState === "DEBRIEF_HANDOFF" ? "debrief" : null;
     // SPEC/35 §4: a public session's commander profile, after the questionnaire: its answers are kept if the session ends there.
     case "profile": return engineState === "DEBRIEF_HANDOFF" ? "profile" : null;
+    // SPEC/36: the results step after the questionnaire (every session); the questionnaire's answers are kept if the session ends there.
+    case "results_optin": return engineState === "DEBRIEF_HANDOFF" ? "results_optin" : null;
     default: return null;
   }
 }

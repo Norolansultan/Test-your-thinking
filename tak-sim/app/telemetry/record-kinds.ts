@@ -36,7 +36,7 @@ import type {
   QueryEditDetail, QuerySubmittedDetail, QueryClearedDetail, RetrievalMissDetail, ResultItemDetail, TrafficRequestedDetail,
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
-import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail } from "./record-kinds-public.js";
+import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 
 // ---------------------------------------------------------------------------
 // §2.1 Session and lifecycle
@@ -132,7 +132,7 @@ export interface SessionResumedDetail {
    * open; the session resumed into that item (not a replay: `cycleReplayed` names the view, which is
    * not run again, and the analysis does not count it as replayed).
    */
-  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile";
+  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile" | "results_optin";
 }
 export type PhaseEnteredDetail = { readonly phase: "practice" | "tutorial" | "phase_a" | "hinge" | "phase_b" };
 
@@ -207,7 +207,7 @@ export type {
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
 // SPEC/35 (0.13.0): the public-audience version's records, `record-kinds-public.ts`.
-export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail } from "./record-kinds-public.js";
+export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 
 // ---------------------------------------------------------------------------
 // §2.6 Probe and decision interaction
@@ -833,7 +833,9 @@ export type TelemetryEvent =
   | { readonly kind: "primer_page"; readonly detail: PrimerPageDetail }
   | { readonly kind: "primer_check"; readonly detail: PrimerCheckDetail }
   | { readonly kind: "help_card_opened"; readonly detail: HelpCardOpenedDetail }
-  | { readonly kind: "profile_shown"; readonly detail: Record<string, never> };
+  | { readonly kind: "profile_shown"; readonly detail: Record<string, never> }
+  // SPEC/36 (23 Oct 2026): personal results after the study, every session
+  | { readonly kind: "results_optin"; readonly detail: ResultsOptInDetail };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1038,7 +1040,14 @@ export type RecordKind = TelemetryEvent["kind"];
  * "briefing.primer" (the primer left); `session_resumed.resumedAt` may be `primer` or `profile`. All of them only in public sessions:
  * an expert session writes the records of 0.12.0 (with `scope: "phaseA"` it ends after V7 and its questionnaire skips the directive).
  */
-export const TELEMETRY_FORMAT_VERSION = "0.13.0";
+/*
+ * 0.14.0 (SPEC/36, 23 Oct 2026): personal results after the study. `results_optin` ({optedIn}) is added, written in EVERY session
+ * (both audiences, every cell) after `questionnaire_submitted` (post) and before `profile_shown` / `debrief_shown`; the contact address
+ * never enters the log. The commander profile on screen is off by default: `profile_shown` only with the header's `immediateProfile`
+ * (`?profiili=heti`). `session_resumed.resumedAt` may be `results_optin`. The debrief texts gained one paragraph (when the results
+ * arrive); their ids are unchanged, the format version tells them apart.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.14.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1069,4 +1078,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "consult_prompt_shown", "consult_prompt_opened", "consult_prompt_dismissed", "plan_confidence_presented", "plan_confidence_submitted",
   "plan_review_shown", "plan_review_record_opened", "plan_review_closed",
   "primer_page", "primer_check", "help_card_opened", "profile_shown",
+  "results_optin",
 ];

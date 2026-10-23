@@ -162,6 +162,8 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "primer_check", detail: { questionId: "q1.role", chosen: 2, correct: false, attempt: 1 } },
   { kind: "help_card_opened", detail: { section: "roster" } },
   { kind: "profile_shown", detail: {} },
+  // SPEC/36 (0.14.0): personal results after the study
+  { kind: "results_optin", detail: { optedIn: true } },
   // The AI literacy test (9 Oct 2026, revision (ac))
   { kind: "ai_literacy_started", detail: { instrumentId: "SNAIL", version: "snail-31.2023.v1", itemIds: ["snail.V01", "snail.V02"], timeLimitMs: 300_000, itemsPerPage: 4, firstPage: 0, remainingMs: 300_000, resumed: false, keptItemIds: [], itemsPending: false } },
   { kind: "ai_literacy_answered", detail: { itemId: "snail.V01", sourceItemId: "V01", position: 1, page: 0, response: 5, timeOnItemMs: 6_000 } },

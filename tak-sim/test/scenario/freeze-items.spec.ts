@@ -68,9 +68,14 @@ describe("the goal-based bank's structure", () => {
     }
   });
 
-  it("the practice freeze (ids with practice) practises every format and level: 4 items, one L3 and one map_point", () => {
+  it("the practice freeze (ids with practice) practises every format and level: 5 items, one L3 and one map_point", () => {
     const items = scenario.practice.freeze.items;
-    expect(items).toHaveLength(4);
+    // Difficulty audit (23 Oct 2026, proposal (b.2)): a fifth item, the forecast, answerable only with Haku (its record is recorded only).
+    expect(items).toHaveLength(5);
+    const forecast = items.find((it) => it.id === "freeze.practice.forecast")!;
+    expect(forecast).toMatchObject({ level: "L1", kind: "choice", keyAtomIds: ["evt.wx.01"], retrievalDependent: true });
+    expect(scenario.practice.cycle.pushedAtomIds).not.toContain("evt.wx.01");
+    expect(items.map((it) => it.id)).toEqual(["freeze.practice.infra", "freeze.practice.forecast", "freeze.practice.first_target", "freeze.practice.r1_arrival", "freeze.practice.head_now"]);
     for (const it of items) expect(it.id).toMatch(/^freeze\.practice\./);
     expect(new Set(items.map((it) => it.level))).toEqual(new Set(["L1", "L2", "L3"]));
     expect(items.filter((it) => it.kind === "map_point")).toHaveLength(1);

@@ -79,7 +79,13 @@ export function RightPanel({ snapshot, orchestrator, condition, aiPresent, hakuF
   return (
     <div style={stacked ? { ...panelWrap, width: "100%", height: STACKED_HEIGHT, borderLeft: "none", borderTop: "1px solid #33383e" } : panelWrap}>
       <div inert={locked} style={{ display: "flex", gap: 6, padding: "8px 10px", borderBottom: "1px solid #33383e", opacity: locked ? 0.45 : 1 }}>
-        <button data-tour="haku" disabled={locked} style={toolButton(tool === "haku")} onClick={() => toggle("haku")}>{t.haku}</button>
+        <button data-tour="haku" disabled={locked} style={toolButton(tool === "haku")} onClick={() => toggle("haku")}>
+          {t.haku}
+          {/* Difficulty audit (a.4): the content-free "New records" badge (no count), hidden while Haku is open. */}
+          {snapshot.recordsBadge && tool !== "haku" && (
+            <span data-testid="records-badge" style={{ marginLeft: 6, padding: "1px 5px", borderRadius: 4, background: "#f4a261", color: "#1c1b19", fontSize: 10.5, fontWeight: 700 }}>{t.recordsBadge}</span>
+          )}
+        </button>
         {aiPresent && condition === "substitutive" && (
           <button data-tour="thinker" disabled={locked} style={toolButton(tool === "ai")} onClick={() => toggle("ai")}>Thinker</button>
         )}

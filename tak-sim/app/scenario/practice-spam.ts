@@ -12,6 +12,8 @@
  * prompt waits (no expiry), can be collapsed, and is forced before VP ends if "ready" never comes; the
  * answer window is 60 s, so an item said "ready" to at once closes by 145 s, before VP's minimum
  * (180 s since 11 Oct 2026); the search tools stay usable while answering. Tested in `test/scenario/practice-spam.spec.ts`.
+ * Difficulty audit (23 Oct 2026): a second item follows under the same "ready", the measuring task (`practice-measure.ts`), with
+ * its own 60 s window; while it is open VP's end waits for it, as a main view's does for V3's and V6's second items.
  *
  * The key is TRUTH: it is exported for tests and the review packet only (`PRACTICE_SPAM_KEY_OPTION`)
  * and found by content (`practiceSpamKeyRecordId`), never put into the probe. Finnish DRAFT; English

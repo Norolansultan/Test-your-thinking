@@ -63,8 +63,9 @@ describe("the reference overlay (revision (al))", () => {
     }
     const ov = code("app/render/ui/map-overlay.ts");
     expect(ov).not.toMatch(/POND_W|BRIDGE_W3|WATER_SVG/);
-    expect(OVERLAY_FONT_PX).toBe(9);
-    for (const l of fi.filter((x) => x.kind !== "region")) expect(l.html, l.key).not.toMatch(/font:\s*\d+ (1[0-9])px/);
+    // Difficulty audit (23 Oct 2026, `proposal-map.md` d1): 11 px with the white halo (was 9 px since revision (am)); never larger.
+    expect(OVERLAY_FONT_PX).toBe(11);
+    for (const l of fi.filter((x) => x.kind !== "region")) expect(l.html, l.key).not.toMatch(/font:\s*\d+ (1[2-9])px/);
     expect(fi.find((l) => l.key === "bridge")!.html).toContain("R3:n silta (Kotkanjoki)");
     expect(en.find((l) => l.key === "bridge")!.html).toContain("R3 bridge (Eagle River)");
     // The bridge's load limit is V14's infrastructure key and first appears in the 18:20 records: never on the map.
@@ -80,14 +81,15 @@ describe("the reference overlay (revision (al))", () => {
     const e = scenario.extent;
     const cpLabel = overlayLabels("en").find((l) => l.key === "cp")!;
     const r1 = OVERLAY.roads.find((r) => r.id === "R1")!.at;
-    // The flag: "CP" (2 × ~5.6 px at 9 px) + 1 px + the 10 × 12 flag; anchored bottom-right at CP_OFFSET_PX.
-    const cpW = 2 * 5.6 + 1 + 10, cpH = 12;
+    // The flag: "CP" (2 × ~0.62 em at OVERLAY_FONT_PX) + 1 px + the 10 × 12 flag; anchored bottom-right at CP_OFFSET_PX.
+    const em = OVERLAY_FONT_PX / 9; // the R1 box below was measured at 9 px
+    const cpW = 2 * 5.6 * em + 1 + 10, cpH = 12;
     for (const [w, h] of [[920, 420], [920, 300], [1280, 720], [920, 560]] as const) {
       for (const cam of [openingCamera(e, w, h, 16), extentCamera(e, w, h, 16)]) {
         const p = mercatorProjector(cam, w, h);
         const c = p(cpLabel.at), r = p(r1);
         const cp = { left: c.x + CP_OFFSET_PX[0] - cpW, right: c.x + CP_OFFSET_PX[0], top: c.y + CP_OFFSET_PX[1] - cpH, bottom: c.y + CP_OFFSET_PX[1] };
-        const road = { left: r.x - 8, right: r.x + 8, top: r.y - 6, bottom: r.y + 6 }; // "R1" at 9 px in its box
+        const road = { left: r.x - 8 * em, right: r.x + 8 * em, top: r.y - 6 * em, bottom: r.y + 6 * em }; // "R1" in its box, scaled from 9 px
         const unit = { left: c.x - COMPACT_FRAME.w / 2, right: c.x + COMPACT_FRAME.w / 2, top: c.y - COMPACT_FRAME.h / 2, bottom: c.y + COMPACT_FRAME.h / 2 };
         const hit = (a: typeof cp, b: typeof cp) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         expect(hit(cp, road), `${w}×${h} R1`).toBe(false);
@@ -179,12 +181,24 @@ describe("the reference overlay (revision (al))", () => {
     expect(order).toEqual(LEGEND_ROWS.filter((k) => v13rows.has(k)));
   });
 
-  it("sectors are drawn as neutral grey dashed outlines with their codes only, under the fire layers", () => {
+  it("sectors are drawn as neutral grey dashed outlines with their codes and names (difficulty audit d2), under the fire layers", () => {
     const ov = code("app/render/ui/map-overlay.ts");
     expect(ov).toMatch(/"line-dasharray": \[\.\.\.SECTOR_LINE\.dash\]/);
     expect(ov).not.toMatch(/fill-color/);
     const mv = code("app/render/ui/components/MapView.tsx");
     expect(mv.indexOf("addOverlayLines(map);")).toBeLessThan(mv.indexOf("addFireLayers(map);"));
-    for (const s of SITE_SCENARIO.sectors) expect(overlayLabels("fi").find((l) => l.key === `sector:${s.id}`)!.html.replace(/<[^>]+>/g, "")).toBe(s.id);
+    const text = (lang: "fi" | "en", id: string) => overlayLabels(lang).find((l) => l.key === `sector:${id}`)!.html.replace(/<[^>]+>/g, "");
+    expect(SITE_SCENARIO.sectors.map((s) => text("fi", s.id))).toEqual(["L1 Pohjoinen", "L2 Koillinen", "L3 Etelä", "L4 Länsi"]);
+    expect(SITE_SCENARIO.sectors.map((s) => text("en", s.id))).toEqual(["L1 North", "L2 North-east", "L3 South", "L4 West"]);
+  });
+
+  it("difficulty audit d4: the two settlements are labelled at their points, in both languages; nothing else is added", () => {
+    for (const [key, feature, fi, en] of [["settlement:cabins", "CABINS", "Mökkiranta (loma-asuntoja)", "Lakeside Cottages (holiday homes)"], ["settlement:village", "VILLAGE", "Lahdenkylä", "Bay Village"]] as const) {
+      const f = overlayLabels("fi").find((l) => l.key === key)!, e = overlayLabels("en").find((l) => l.key === key)!;
+      expect(f.at).toEqual(SITE_SCENARIO.features[feature]);
+      expect(f.html.replace(/<[^>]+>/g, "")).toBe(fi);
+      expect(e.html.replace(/<[^>]+>/g, "")).toBe(en);
+    }
+    expect(overlayLabels("fi").filter((l) => l.kind === "settlement")).toHaveLength(2);
   });
 });

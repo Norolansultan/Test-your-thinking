@@ -18,7 +18,7 @@ import type { TourId } from "../../session/snapshot.js";
 import type { Cell } from "../../scenario/types.js";
 
 export type TourStepId =
-  | "welcome" | "status" | "fire" | "projection" | "legend" | "wind" | "zoom" | "sectors" | "units" | "log" | "haku" | "decision" | "freeze" | "spam" | "ready"
+  | "welcome" | "status" | "fire" | "projection" | "legend" | "wind" | "zoom" | "measure" | "sectors" | "units" | "log" | "haku" | "decision" | "freeze" | "spam" | "ready"
   | "practiceThinker"
   | "toolsHaku" | "toolsThinker" | "toolsThinkerIntent";
 
@@ -51,6 +51,9 @@ export const PRACTICE_TOUR: readonly TourStep[] = [
   { id: "legend", target: at("legend"), placement: "right" },
   { id: "wind", target: at("wind"), placement: "right" },
   { id: "zoom", target: at("zoom"), placement: "bottom" },
+  // Difficulty audit (23 Oct 2026, `proposal-map.md` d5): the measure tool, the TAK shell's R&B button (the classic layout has none:
+  // there the step shows in the middle of the screen).
+  { id: "measure", target: '[data-testid="tak-tool-range_bearing"]', placement: "left" },
   // Revision (al), 10 Oct 2026: the four sectors by their terrain (`briefing.ts` SECTORS_*), in the middle of the screen.
   { id: "sectors", target: null },
   // Revision (al), map-overlay: folded markers are display:none inside a stack badge, so the first visible marker or badge.

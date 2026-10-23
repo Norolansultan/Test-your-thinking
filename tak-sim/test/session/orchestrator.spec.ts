@@ -54,7 +54,7 @@ describe("the practice view VP (SPEC/26 D3)", () => {
     expect(snap().step).toBe("allocation");
     await vi.advanceTimersByTimeAsync((practiceFreezeAt - 20) * 1000);
     expect(snap().step).toBe("freeze");
-    expect(snap().freeze!.items).toHaveLength(4);
+    expect(snap().freeze!.items).toHaveLength(5); // difficulty audit (23 Oct 2026): the Haku-only forecast item added
     await o.submitFreeze([]);
     expect(snap().step).toBe("allocation");
     await o.submitAllocation(PLAN);

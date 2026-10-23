@@ -16,6 +16,11 @@
  * W1–W3 (researcher: the map should not point out where the water-taking places are; they stay in the radio texts
  * only, and the W2 pond stays as terrain in the tiles).
  *
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/proposal-map.md` d1, d2, d4): the text is 11 px again (was 9 px
+ * since revision (am)), the sector codes carry their names ("L1 Pohjoinen"), and the two settlements, Mökkiranta and Lahdenkylä, are
+ * labelled at their points. Not done (they reverse researcher decisions; RC): the water points W1–W3 (d3) and this overlay on the
+ * memory-check map (d6).
+ *
  * No label sits near the old fire's north edge or V13's US2 (`test/render/map-overlay.spec.ts` holds every one
  * ≥ 600 m from both), none marks a safety zone, escape route or fuel, and none changes with the view.
  * Coordinates: the scenario export and `map-overlay.json` (`scripts/build-map-overlay.ts`, build time; its `grid` is
@@ -33,8 +38,27 @@ import overlayData from "./map-overlay.json" with { type: "json" };
 
 export const OVERLAY = overlayData;
 export const SECTOR_LINE = { color: "#5f646b", widthPx: 1.3, dash: [4, 3] as const, opacity: 0.85 };
-/** The overlay's text size, px (revision (am): 9, was 10–11). */
-export const OVERLAY_FONT_PX = 9;
+/**
+ * The overlay's text size, px (revision (am): 9, was 10–11). Difficulty audit (23 Oct 2026, `proposal-map.md` d1): 11 again, with the
+ * white halo, so the codes and names are readable on a laptop screen.
+ */
+export const OVERLAY_FONT_PX = 11;
+
+/**
+ * Difficulty audit (23 Oct 2026, `proposal-map.md` d2, d4): the sectors' names beside their codes ("L1 Pohjoinen" / "L1 North"; the
+ * tour already gives them) and the two settlements' names, which the basemap prints small. Both are named by the radio and the items,
+ * so making them legible is the same for everyone and points at no answer. Finnish DRAFT.
+ */
+export const SETTLEMENT_LABELS: readonly { readonly key: string; readonly feature: "CABINS" | "VILLAGE"; readonly fi: string; readonly en: string }[] = [
+  { key: "settlement:cabins", feature: "CABINS", fi: "Mökkiranta (loma-asuntoja)", en: "Lakeside Cottages (holiday homes)" },
+  { key: "settlement:village", feature: "VILLAGE", fi: "Lahdenkylä", en: "Bay Village" },
+];
+const SECTOR_NAME_EN: Readonly<Record<string, string>> = { Pohjoinen: "North", Koillinen: "North-east", "Etelä": "South", "Länsi": "West" };
+/** A sector's label: its code and its name in the session language (the scenario export's `label`). */
+export function sectorLabelText(s: { readonly id: string; readonly label?: string }, lang: "fi" | "en"): string {
+  const name = s.label ? (lang === "en" ? SECTOR_NAME_EN[s.label] ?? s.label : s.label) : "";
+  return name ? `${s.id} ${name}` : s.id;
+}
 /**
  * The command post's flag sits up and to the left of its point (revision (am)): the marker's bottom-right corner is
  * this far from the point, px, so the R1 label ~300 m east and a unit staged on the point (V7–V10) leave it clear.
@@ -73,7 +97,7 @@ export function sectorLabelPoint(geometry: Polygon, ignition: LatLon): LatLon {
 export const SECTOR_OUTLINES: readonly { readonly id: string; readonly geometry: Polygon; readonly labelAt: LatLon }[] =
   SITE_SCENARIO.sectors.map((s) => ({ id: s.id, geometry: s.geometry, labelAt: sectorLabelPoint(s.geometry, SITE_SCENARIO.ignition) }));
 
-export interface OverlayLabel { readonly key: string; readonly at: LatLon; readonly html: string; readonly kind: "road" | "bridge" | "power" | "cp" | "sector" | "region" }
+export interface OverlayLabel { readonly key: string; readonly at: LatLon; readonly html: string; readonly kind: "road" | "bridge" | "power" | "cp" | "sector" | "settlement" | "region" }
 
 const TEXT = `font:600 ${OVERLAY_FONT_PX}px/1.15 -apple-system,'Segoe UI',Roboto,sans-serif;color:#1c1b19;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -81,12 +105,16 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 /** Every overlay label, in a fixed order, in the session language. */
 export function overlayLabels(lang: "fi" | "en"): OverlayLabel[] {
   const out: OverlayLabel[] = [];
-  OVERLAY.roads.forEach((r, k) => out.push({ key: `road:${r.id}:${k}`, at: r.at, kind: "road", html: `<span style="display:inline-block;padding:0 2px;border:1px solid #6b6660;border-radius:2px;background:#fffdf8e6;font:700 ${OVERLAY_FONT_PX}px/10px ui-monospace,Consolas,monospace;color:#1c1b19">${esc(r.id)}</span>` }));
+  OVERLAY.roads.forEach((r, k) => out.push({ key: `road:${r.id}:${k}`, at: r.at, kind: "road", html: `<span style="display:inline-block;padding:0 2px;border:1px solid #6b6660;border-radius:2px;background:#fffdf8e6;font:700 ${OVERLAY_FONT_PX}px/${OVERLAY_FONT_PX + 1}px ui-monospace,Consolas,monospace;color:#1c1b19">${esc(r.id)}</span>` }));
   const bridge = lang === "en" ? englishNames("R3 bridge (Kotkanjoki)") : OVERLAY.bridge.fi;
   out.push({ key: "bridge", at: OVERLAY.bridge.at, kind: "bridge", html: `<span style="${TEXT};position:relative;top:-10px">${esc(bridge)}</span>` });
   out.push({ key: "power", at: OVERLAY.powerLine.at, kind: "power", html: `<span data-power style="${TEXT};font-weight:500;display:inline-block">${esc(OVERLAY.powerLine.label)}</span>` });
   out.push({ key: "cp", at: OVERLAY.commandPost, kind: "cp", html: `<span style="${TEXT};margin-right:1px">${lang === "en" ? "CP" : "JP"}</span>${CP_SVG}` });
-  for (const s of SITE_SCENARIO.sectors) out.push({ key: `sector:${s.id}`, at: sectorLabelPoint(s.geometry, SITE_SCENARIO.ignition), kind: "sector", html: `<span style="font:700 ${OVERLAY_FONT_PX}px/1 ui-monospace,Consolas,monospace;color:${SECTOR_LINE.color};text-shadow:0 0 2px #fff,0 0 3px #fff,0 0 4px #fff">${esc(s.id)}</span>` });
+  for (const s of SITE_SCENARIO.sectors) out.push({ key: `sector:${s.id}`, at: sectorLabelPoint(s.geometry, SITE_SCENARIO.ignition), kind: "sector", html: `<span style="font:700 ${OVERLAY_FONT_PX}px/1 ui-monospace,Consolas,monospace;color:${SECTOR_LINE.color};text-shadow:0 0 2px #fff,0 0 3px #fff,0 0 4px #fff">${esc(sectorLabelText(s, lang))}</span>` });
+  for (const l of SETTLEMENT_LABELS) {
+    const at = SITE_SCENARIO.features[l.feature];
+    if (at) out.push({ key: l.key, at, kind: "settlement", html: `<span style="${TEXT};font-style:italic">${esc(lang === "en" ? l.en : l.fi)}</span>` });
+  }
   for (const r of regionFires()) {
     const name = lang === "en" ? `${r.nameEn}, ${r.haEn}` : `${r.nameFi}, ${r.haFi}`;
     out.push({ key: `region:${r.id}`, at: r.at, kind: "region", html: `${REGION_SVG}<span style="${TEXT};margin-left:3px">${esc(name)}</span>` });

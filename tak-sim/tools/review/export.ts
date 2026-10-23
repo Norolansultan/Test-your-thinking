@@ -40,6 +40,7 @@ import type { ItemDef } from "../../app/scenario/freeze-bank-core.js";
 import { DIRECTIVE_KEYS } from "../../app/scenario/demo-directive.js";
 import { SPAM_AUTHORED, SPAM_ITEMS, SPAM_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
 import { PRACTICE_SPAM_AUTHORED, PRACTICE_SPAM_ID, practiceSpamKeyRecordId } from "../../app/scenario/practice-spam.js";
+import { PRACTICE_MEASURE } from "../../app/scenario/practice-measure.js";
 import { viewOfStep } from "../../app/scenario/views.js";
 import type { Cell, InfoAtom } from "../../app/scenario/types.js";
 import { soundRoutes } from "../../app/telemetry/directive-act-coding.js";
@@ -244,6 +245,13 @@ export function collectKeys(): KeyRow[] {
   try { psRecord = recordsOf([practiceSpamKeyRecordId()]); } catch (e) { psRecord = `KEY RECORD NOT FOUND: ${(e as Error).message}`; }
   rows.push({ kind: "SPAM (practice, not scored)", id: PRACTICE_SPAM_ID, view: "VP", itemFi: `${ps.prompt} [${psOptions.map((o) => o.fi).join(" / ")}]`, itemEn: `${en(ps.prompt)} [${psOptions.map((o) => en(o.fi)).join(" / ")}]`,
     keyFi: `${psKey.id}: ${psKey.fi}`, keyEn: en(psKey.fi), basis: "VPK's pushed VP water report", basisRecords: psRecord });
+  // Difficulty audit (23 Oct 2026): the practice measuring task under the same "ready" (`practice-measure.ts`; key computed).
+  const pm = scenario.practice.spamSecond;
+  if (pm && pm.response.kind === "categorical") {
+    const pmKey = pm.response.options.find((o) => o.id === PRACTICE_MEASURE.keyOptionId)!;
+    rows.push({ kind: "SPAM (practice, not scored)", id: pm.id, view: "VP", itemFi: `${pm.prompt} [${pm.response.options.map((o) => o.fi).join(" / ")}]`, itemEn: `${en(pm.prompt)} [${pm.response.options.map((o) => en(o.fi)).join(" / ")}]`,
+      keyFi: `${pmKey.id}: ${pmKey.fi}`, keyEn: en(pmKey.fi), basis: `measured on the map: the R3 bridge ${PRACTICE_MEASURE.fromOriginM} m from the point of origin, ${PRACTICE_MEASURE.fromHeadM} m from the drawn head`, basisRecords: "" });
+  }
 
   const check = scenario.hinge.manipulationCheck!;
   const checkKey = scenario.invariants.find((i) => i.name === check.invariantName)!.expected as string;

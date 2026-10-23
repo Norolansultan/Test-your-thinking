@@ -36,7 +36,7 @@ describe("the public-audience version in the UI (SPEC/35 P1)", () => {
 
   it("the study shell shows the primer and the profile through their contract props, logging through the orchestrator", () => {
     const shell = code(`${UI}/components/StudyShell.tsx`);
-    expect(shell).toMatch(/"debrief", "primer", "profile", "results_optin"\]\)/);
+    expect(shell).toMatch(/"debrief", "primer", "profile", "results_optin", "map_pretest"\]\)/); // difficulty audit: the pretest is a shell step too
     expect(shell).toContain("orchestrator.primerPage(pageId, dwellMs)");
     expect(shell).toContain("orchestrator.primerCheck(questionId, chosen, correct, attempt)");
     expect(shell).toContain("orchestrator.finishPrimer()");

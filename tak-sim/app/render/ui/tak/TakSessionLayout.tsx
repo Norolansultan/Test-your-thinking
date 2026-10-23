@@ -243,7 +243,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
             {body(pane)}
           </TakSidePane>
         )}
-        <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} />
+        <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} recordsBadge={snapshot.recordsBadge} />
         {/* SPEC/30 §4: the consult notification beside its tool's toolbar button; non-modal (over a side pane, never over the map's centre). */}
         {snapshot.consultPrompt && (
           <ConsultNotice prompt={snapshot.consultPrompt} text={t.consult} onOpen={openConsult} onDismiss={() => void orchestrator.dismissConsultPrompt().catch(() => undefined)}

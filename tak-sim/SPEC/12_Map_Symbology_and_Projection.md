@@ -658,3 +658,13 @@ Researcher, 10 Oct 2026: on "Mark the head of the fire on the map" the map showe
 - **Frame:** opens on the live map's opening frame, the fixed 5 × 5 km box about the extent's centre (`openingCamera`, revision (am)) instead of the whole extent; zooming out is allowed as far as the whole study area. Still content-independent (revision (aj)): the frame reads nothing from a view and points at no answer. Every map key of every freeze lies a tolerance inside the box (`test/session/freeze-map-frame.spec.ts`).
 - **Pan and zoom limit:** the basemap itself (~20 × 20 km, from the tile corners) instead of 12 km from the centre, so a wide, low box never shows black beyond the basemap: MapLibre zooms in as far as needed. On a very low window the 5 km box's north and south edges can then fall just outside the view; the participant pans or zooms out.
 - **Checked in the browser** (demo session, English, `reasoning_intent`, 1280 × 529): practice + all seven freezes (46 items, 9 map picks), the five situation questions, the directive check and the V13/V14 after-view probes; no console errors. Found, not changed: at this height the directive check's and the V14 after-view item's last option sits at the panel's bottom edge and needs a scroll.
+
+## Revision 23 Oct 2026 (be) — clearer reference labels (the difficulty audit)
+
+Source: `docs/audits/2026-10-23-difficulty/proposal-map.md` (d), the cheap set. Identical for everyone; the overlay stays static and on the live map only.
+
+- **d1:** the overlay's text is 11 px (was 9 px since (am)), with its white halo.
+- **d2:** the sector codes carry their names: "L1 Pohjoinen", "L2 Koillinen", "L3 Etelä", "L4 Länsi" (en North, North-east, South, West), the names the tour already gives.
+- **d4:** the two settlements are labelled at their points: "Mökkiranta (loma-asuntoja)" / "Lakeside Cottages (holiday homes)" and "Lahdenkylä" / "Bay Village" (the basemap prints them small). Both labels keep (am)'s distances from the old north edge and V13's US2 (tested).
+- **d5:** the measure tool's tour step (`15` (be)).
+- **Not done (they reverse earlier decisions; RC before pilot 2):** d3, the water points W1–W3 on the overlay (removed by the researcher in (am)); d6, the static reference overlay on the memory-check map (the map points would then test memory of the fire against named references rather than basemap reading, and their difficulty would fall). d7 (an optional simplified layer, medium cost) waits for pilot 2.

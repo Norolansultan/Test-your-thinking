@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **23 Oct 2026 (be)** — format **0.15.0** (the difficulty audit, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest's `map_pretest_started` / `_answer` / `_completed`, the practice feedback's `practice_feedback_shown`; the header's `mapPretest` and `practiceFeedback`; VP's fifth freeze item and second SPAM item. The "New records" badge is not logged. Main views write the records of 0.14.0. See the revision at the end.
 > - **23 Oct 2026 (bc)** — format **0.14.0** (`36`, personal results after the study): `results_optin { optedIn }` in every session after the post-session questionnaire (never the address); the header's `immediateProfile`; `profile_shown` only with it. See the revision at the end.
 > - **21 Oct 2026 (bb)** — format **0.13.0** (`35`, the public-audience version): header fields `audience` and `scope`; `primer_page`, `primer_check`, `help_card_opened`, `profile_shown`; `glossary_opened` in a new shape. Expert sessions write the records of 0.12.0. See the revision at the end.
 > - **20 Oct 2026 (ba)** — format **0.12.0** (`32` §3): `plan_review_shown`, `plan_review_record_opened`, `plan_review_closed`. See the revision at the end.
@@ -678,3 +679,23 @@ Format version **0.10.0** (`TELEMETRY_FORMAT_VERSION`); the kinds are additive, 
 - **`profile_shown`** only with `immediateProfile`, after `results_optin`. `session_resumed.resumedAt` may be `results_optin`. The checkpoint label `results_optin` is taken at the step (DEBRIEF_HANDOFF).
 - **Debrief:** the texts gained one paragraph (requested results arrive after the study closes); the ids (`debrief.<cell>`, `debrief.public.<scope>`) are unchanged — the format version tells the texts apart.
 - **Expert sessions:** the records of 0.12.0 plus `results_optin`, just before `debrief_shown` (`test/public/expert-identity.spec.ts`, updated deliberately: it removes that one record and renumbers; the digests are unchanged).
+
+## Revision 23 Oct 2026 (be) — format 0.15.0: the difficulty audit's changes
+
+Source: `docs/audits/2026-10-23-difficulty/` (`audit.md`, `proposal.md` (a)–(b), `proposal-map.md` (c)–(d)); the session side is `15` (be), the items `08` (be).
+
+- **New kinds** (every session with the step on; the app turns both on in every session, both groups, both audiences):
+
+| Kind | Fields | When |
+|---|---|---|
+| `map_pretest_started` | `version`, `itemIds`, `timeLimitMs` (240 000), `remainingMs`, `resumed`, `keptItemIds` | the map-reading pretest shown, after the pre-session item (and a public session's primer), before the intro video |
+| `map_pretest_answer` | `itemId`, `choiceId`, `position` (1-based), `rtMs` (time on the item) | an item answered and left; final, one per item |
+| `map_pretest_completed` | `endReason` (`completed` \| `timeout`), `answeredCount`, `missingItemIds`, `durationMs` | the last item answered, or the 4-minute cap |
+| `practice_feedback_shown` | `itemIds` (the practice-freeze items it lists) | after VP's `cycle_end` and `warmup_complete`, before the training; left with `briefing_advanced { screenId: "practice.feedback", dwellMs }` |
+
+- **Header:** `mapPretest: true`, `practiceFeedback: true` when the steps ran; absent: they did not (logs before 0.15.0, and sessions built without them).
+- **`session_resumed.resumedAt`** may be `map_pretest` (the first unanswered item; the cap less the `rtMs` already logged) or `practice_feedback` (the screen again; the head mark from the practice `freeze_submitted`).
+- **VP's own records change:** the practice freeze has five items (`freeze.practice.forecast` added, so a `freeze_submitted` may list it), and the practice SPAM delivery has a second item (`probe.s.practice.b`: its own `spam_answered` and `recall_confidence_submitted`, as V3's and V6's second items). The analysis drops VP as before (view 0, inside `phase_entered` "practice").
+- **Not logged: the "New records" badge** on the Haku button. It is set at every view's `cycle_start` and `step_boundary_reached` unless the Haku tool is open, and cleared by `tab_selected` "haku": its state is a function of records the log already has, so a record of its own would add nothing. It carries no count.
+- **Never in the log:** the pretest's key (`content/pretest/map-pretest.key.json`, analysis only) and any score; the pretest is a covariate (`09` (be)).
+- **Expert sessions:** the main session (V1 to the end) writes exactly the records of 0.14.0; the stream before VP gains the pretest's records, VP the records above (`test/public/expert-identity.spec.ts`, updated deliberately: segment digests from the 0.12.0-equivalent run, see its note).

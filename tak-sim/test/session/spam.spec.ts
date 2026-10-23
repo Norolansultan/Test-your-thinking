@@ -54,7 +54,8 @@ async function at(view: number, condition: "directed" | "substitutive" = "substi
 
 const kinds = (records: readonly LogRecord[]) => records.map((r) => r.kind);
 /** The practice item's records (VP, not scored). */
-const isPractice = (r: LogRecord) => (r.detail as { probeId?: string }).probeId === "probe.s.practice";
+// The practice delivery's records: its first item and (difficulty audit, 23 Oct 2026) its second, the measuring task.
+const isPractice = (r: LogRecord) => /^probe\.s\.practice(?:\.b)?$/.test((r.detail as { probeId?: string }).probeId ?? "");
 const offsetS = SPAM_OFFSET_MS / 1000;
 
 beforeEach(() => vi.useFakeTimers());

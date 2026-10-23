@@ -80,7 +80,9 @@ describe("the wildfire-skills scenario package", () => {
 
   it("has as many items as the instrument's bank, unique ids, every fact_id in facts.json", () => {
     expect(items.length).toBe(bankSize(pkg.scenario));
-    expect(items.length).toBe(62); // 4 practice + 4×8 + 3×6 freeze items, 6 SPAM + the practice SPAM item, the hinge check
+    // 5 practice + 4×8 + 3×6 freeze items, 6 SPAM + the two practice SPAM items, the hinge check (difficulty audit, 23 Oct 2026: the
+    // practice forecast item and the practice measuring task added; was 62)
+    expect(items.length).toBe(64);
     expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
     const ids = new Set(facts.map((f) => f.id));
     for (const it of items) for (const id of it.fact_ids) expect(ids.has(id), `${it.id} → ${id}`).toBe(true);

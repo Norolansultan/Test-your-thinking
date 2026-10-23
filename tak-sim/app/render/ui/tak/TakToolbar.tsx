@@ -38,7 +38,7 @@ export const TAK_PANE_ICON: Readonly<Record<TakPaneId, JSX.Element>> = {
 /** The toolbar's `data-tour` targets: the guided tour points at Haku and the Thinker here (`tour.ts`). */
 const TOUR_TARGET: Partial<Record<TakPaneId, string>> = { haku: "haku", thinker: "thinker", indexed_search: "indexed-search" };
 
-export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTarget }: {
+export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTarget, recordsBadge = false }: {
   readonly panes: readonly TakPaneId[];
   readonly open: TakPaneId | null;
   readonly onSelect: (pane: TakPaneId) => void;
@@ -48,6 +48,8 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
   readonly unread: number;
   /** The GeoChat button carries the tour's "log" target while its pane is closed. */
   readonly logTarget: boolean;
+  /** Difficulty audit (a.4): the content-free "New records" badge on the Haku button (no count; hidden while Haku is open). */
+  readonly recordsBadge?: boolean;
 }) {
   const { t } = useLang();
   return (
@@ -58,9 +60,10 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
         const disabled = searchLocked && SEARCH_PANES.has(p);
         const tour = p === "geochat" && logTarget ? "log" : TOUR_TARGET[p];
         const badge = p === "geochat" && unread > 0 && !active;
+        const records = p === "haku" && recordsBadge && !active;
         return (
           <button key={p} type="button" data-testid={`tak-tool-${p}`} {...(tour ? { "data-tour": tour } : {})} disabled={disabled} aria-pressed={active}
-            aria-label={toolbarButtonName(t.tak.toolbar[p], t.tak.paneTitle[p], badge ? t.tak.geochat.unread(unread) : null)}
+            aria-label={toolbarButtonName(t.tak.toolbar[p], t.tak.paneTitle[p], badge ? t.tak.geochat.unread(unread) : records ? t.recordsBadge : null)}
             onClick={() => onSelect(p)} title={t.tak.paneTitle[p]}
             style={{
               position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
@@ -74,6 +77,12 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
               <span data-testid="tak-unread" aria-hidden="true"
                 style={{ position: "absolute", top: 4, right: 8, minWidth: 18, height: 18, padding: "0 4px", boxSizing: "border-box", borderRadius: 9, background: TAK.warn, color: "#1c1b19", fontSize: 11, fontWeight: 700, lineHeight: "18px" }}>
                 {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+            {records && (
+              <span data-testid="records-badge" aria-hidden="true"
+                style={{ maxWidth: TAK.toolbarWidth - 10, padding: "1px 4px", borderRadius: 4, background: TAK.warn, color: "#1c1b19", fontSize: 9.5, fontWeight: 700, lineHeight: 1.15 }}>
+                {t.recordsBadge}
               </span>
             )}
           </button>

@@ -43,10 +43,20 @@ describe("the source-memory facts (SPEC/30 §5.5, `31` F17)", () => {
   it("mix what an AI answer would likely state with a pushed control, what only the records or the map give, and two lures", () => {
     const kinds = SOURCE_MEMORY_FACTS.map((f) => f.expected);
     expect(kinds.filter((k) => k === "ai_likely").length).toBeGreaterThanOrEqual(2);
-    expect(kinds.filter((k) => k === "record_only").length).toBeGreaterThanOrEqual(2);
+    // Difficulty audit (23 Oct 2026) §7 item 1: `pp2_560`, `ek15_arrival` and `ek14_fuel` were `record_only`, but their records are all
+    // pushed; they are `pushed` now (four pushed facts, none record-only).
+    expect(kinds.filter((k) => k === "record_only")).toHaveLength(0);
     expect(kinds.filter((k) => k === "map").length).toBeGreaterThanOrEqual(1);
-    expect(kinds.filter((k) => k === "pushed")).toHaveLength(1);
+    expect(SOURCE_MEMORY_FACTS.filter((f) => f.expected === "pushed").map((f) => f.id)).toEqual(["head_rate_1420", "pp2_560", "ek15_arrival", "ek14_fuel"]);
     expect(kinds.filter((k) => k === "lure")).toHaveLength(2);
+  });
+
+  it("difficulty audit §7: a fact's class matches its records — a `pushed` fact has a pushed record stating it, a `record_only` fact none", () => {
+    for (const f of trueFacts) {
+      const statedByPushed = f.atomIds.some((id) => pushedIds.has(id) && statesFact(fiText(id), f, "fi"));
+      if (f.expected === "pushed") expect(statedByPushed, f.id).toBe(true);
+      if (f.expected === "record_only") expect(statedByPushed, f.id).toBe(false);
+    }
   });
 
   it("the true ones rest on records that exist, the first on hand by the fact's view and every one within phase A (pushed or recorded)", () => {
@@ -91,8 +101,9 @@ describe("the source-memory facts (SPEC/30 §5.5, `31` F17)", () => {
       for (const id of f.atomIds) expect(pushedIds.has(id), `${f.id}: ${id}`).toBe(false);
       for (const id of pushedIds) expect(statesFact(fiText(id), f, "fi"), `${f.id} stated by pushed ${id}`).toBe(false);
     }
-    const control = SOURCE_MEMORY_FACTS.find((f) => f.expected === "pushed")!;
-    expect(control.atomIds.some((id) => pushedIds.has(id) && statesFact(fiText(id), control, "fi")), control.id).toBe(true);
+    for (const control of SOURCE_MEMORY_FACTS.filter((f) => f.expected === "pushed")) {
+      expect(control.atomIds.some((id) => pushedIds.has(id) && statesFact(fiText(id), control, "fi")), control.id).toBe(true);
+    }
   });
 
   it("`31` F17: the overlapping sources are one class (Haku's results are records); a lure answered with any source is a false memory", () => {

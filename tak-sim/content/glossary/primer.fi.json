@@ -6,7 +6,7 @@
     "pageOf": "Sivu {n} / {total}",
     "back": "Edellinen",
     "next": "Seuraava",
-    "done": "Valmis – siirry harjoitukseen",
+    "done": "Valmis – jatka",
     "check": "Tarkistuskysymys",
     "right": "Oikein.",
     "wrong": "Ei aivan.",
@@ -123,16 +123,16 @@
       "title": "Ruutu",
       "body": [
         "Keskellä on kartta: palo, yksiköt ja lohkot. Kartan selite vasemmassa alakulmassa kertoo, mitä merkit tarkoittavat.",
-        "Oikealla ovat viestiloki, johon yksiköiden ilmoitukset tulevat, ja hakutyökalut. Alhaalla teet suunnitelman.",
+        "Oikealla on viestiloki. Se näyttää vain osan liikenteestä: sinulle välitetyt ilmoitukset. Kaikki muu (yksiköiden omat ilmoitukset ja tilavastaukset, droonien ja anturien tiedot, sääennusteet) on kirjauksissa. Löydät ne Hausta, kuten kysyisit johtokeskukselta radiolla. Alhaalla teet suunnitelman.",
         "Välillä tilanne pysäytetään ja kuva piilotetaan. Vastaa silloin kysymyksiin muistisi varassa ja kerro, kuinka varma olet (asteikko 25–100).",
         "Pisteviivalla alleviivatun sanan merkityksen näet osoittamalla tai napauttamalla sitä. Sanasto ja ohjeet -kortista löydät kaikki sanat, yksiköt ja karttamerkit."
       ],
       "question": {
-        "id": "primer.q.screen",
-        "stem": "Mistä näet yksiköiden ilmoitukset?",
-        "options": ["Viestilokista", "Kartan selitteestä", "Suunnitelmasta"],
-        "correct": 0,
-        "explanation": "Yksiköiden ilmoitukset tulevat oikealla olevaan viestilokiin. Selite kertoo karttamerkkien merkityksen, ja suunnitelma on sinun päätöksesi."
+        "id": "primer.q.records",
+        "stem": "Drooni on mitannut jotain, mutta mittaus ei näy viestilokissa. Mistä löydät sen?",
+        "options": ["Ei mistään: jos se ei ole lokissa, sitä ei ole ilmoitettu", "Hausta, kirjauksista", "Kartan selitteestä"],
+        "correct": 1,
+        "explanation": "Viestiloki näyttää vain osan liikenteestä. Kaiken kirjatun, myös droonien mittaukset, löydät Hausta."
       }
     }
   ]

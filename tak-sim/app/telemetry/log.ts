@@ -91,6 +91,12 @@ export interface LogHeader {
    */
   readonly immediateProfile?: boolean;
   /**
+   * Difficulty audit (23 Oct 2026, 0.15.0): the map-reading pretest ran before the practice view (`SessionOptions.mapPretest`), and the
+   * practice feedback screen after it (`SessionOptions.practiceFeedback`). The app sets both in every session; absent: neither ran.
+   */
+  readonly mapPretest?: boolean;
+  readonly practiceFeedback?: boolean;
+  /**
    * Where `cell` came from (SPEC/27 §2.2, 5 Oct 2026; `app/session/preview.ts` `SessionAssignment`):
    * `table` — the allocation table by participant code (`participantCode` is the table's code;
    * `tableSha256` is the table's `rowsSha256`; `block` its block in the language stratum), the only

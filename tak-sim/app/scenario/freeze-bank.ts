@@ -144,10 +144,39 @@ const RELIEF = (() => {
   return { key: ranked[0]![0], hours, ids: [vpk.id, ek12.id], ek11At, vpkAt };
 })();
 
+/**
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/proposal.md` (b.2), option A): the practice item only Haku answers —
+ * the 12.00 forecast (`evt.wx.01`, recorded only, T2; no pushed VP record states a forecast, and all four options agree with the map's
+ * south-west wind arrow, so the arrow cannot answer it). Practice only: never scored, no scored item or key changes. The key is the
+ * record's own wording, checked here against the record (a changed forecast fails the build rather than moving the key).
+ *
+ * Option B, kept for the panel if A is judged too close to V5's wind items (`ek14_shelter`, `wind_shift`): the forest register,
+ * `evt.vp.012` (T2) — stem "Mitä metsävararekisteri kertoo syttymäkohdan ympäristöstä?", key "Kuivaa mäntykangasta, maapohja kantaa
+ * koneet", distractors "Kosteaa korpea, koneet uppoavat" · "Nuorta kuusikkoa, maa kivikkoista" · "Ojitettua suota, turve kuivaa". A teaches
+ * the record class the scored items most need (every forecast is recorded only); B teaches the rule without touching any scored item's basis.
+ */
+export const PRACTICE_FORECAST_ATOM = "evt.wx.01";
+const PRACTICE_FORECAST_KEY_FI = "Lounaistuulta 4–6 m/s, puuskissa 8–10 m/s";
+{
+  const wx = SITE_SCENARIO.traffic.find((t) => t.id === PRACTICE_FORECAST_ATOM);
+  if (!wx || wx.session_view !== 0 || wx.tier === "T1_pushed" || !/lounaistuulta 4–6 m\/s, puuskissa 8–10 m\/s/.test(wx.content)) {
+    throw new Error(`practice forecast item: ${PRACTICE_FORECAST_ATOM} is not VP's recorded forecast stating the key's wind`);
+  }
+}
+
 export const PRACTICE_BANK: readonly ItemDef[] = [
   point({
     slug: "head_now", level: "L1", goal: "containment", promptFi: HEAD_NOW_FI, point: headNow(-3),
     keyAtomIds: ["evt.vp.002", "evt.vp.008"], rule: "computed", basis: "the observed head W2 draws (observedHead.anchor)",
+  }),
+  choice({
+    slug: "forecast", level: "L1", goal: "containment", promptFi: "Mitä sääennuste lupaa iltapäivän tuulesta?",
+    options: [
+      ["sw_gusts", PRACTICE_FORECAST_KEY_FI], ["sw_showers", "Lounaistuulta 4–6 m/s, iltapäivällä sadekuuroja"],
+      ["sw_thunder", "Lounaistuuli voimistuu 10–12 m/s:iin, ukkosta"], ["sw_calm", "Lounaistuuli heikkenee tyyneksi iltapäivällä"],
+    ], key: "sw_gusts",
+    keyAtomIds: [PRACTICE_FORECAST_ATOM], rule: "cited",
+    basis: "the Finnish Meteorological Institute's 12.00 local forecast (recorded only, T2, 12.07): south-west 4–6 m/s, gusts 8–10 m/s, dry in the afternoon",
   }),
   choice({
     slug: "first_target", level: "L2", goal: "values", promptFi: "Mihin kohteeseen palo ehtii ensimmäisenä, jos se jatkaa nykyiseen suuntaan?",

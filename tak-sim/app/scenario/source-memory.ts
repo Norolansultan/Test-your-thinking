@@ -19,6 +19,10 @@
  * from acquiescence: their only right answer is "I did not know this". `SOURCE_ANSWER_CLASS` defines the scoring where the sources
  * overlap (Haku's results are records).
  *
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/audit.md` §7 item 1): `pp2_560`, `ek15_arrival` and `ek14_fuel`
+ * were classed `record_only`, but every record they rest on is pushed in the built scenario; they are re-classed `pushed`. No fact is
+ * `record_only` now (the class stays defined for a future fact). The class is an analysis covariate only: no stimulus changes.
+ *
  * DRAFT: facts, wording and patterns for the domain and native-speaker review (SPEC/30 §8).
  */
 
@@ -94,7 +98,9 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
   {
     // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the crown run throws two spot fires, not three; DR1 confirms the farther one, PP2,
     // ~560 m ahead of the head at 15.32 (was "pp3_600": PP3 ~600 m ahead at 15.33).
-    id: "pp2_560", view: 5, expected: "record_only",
+    // Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/audit.md` §7 item 1): its record is pushed (V5), so the class is
+    // `pushed` (was `record_only`, which no record of the built scenario supports).
+    id: "pp2_560", view: 5, expected: "pushed",
     statementFi: "Pistepalo PP2 vahvistettiin noin 560 metriä kärjen edessä.",
     statementEn: "Spot fire SF2 was confirmed about 560 metres ahead of the head.",
     atomIds: [recordAt(7, /^DR1: pistepalo PP2 vahvistettu lämpökuvasta, noin 560 m kärjen edessä/)],
@@ -104,14 +110,14 @@ export const SOURCE_MEMORY_FACTS: readonly SourceMemoryFact[] = [
     },
   },
   {
-    id: "ek15_arrival", view: 7, expected: "record_only",
+    id: "ek15_arrival", view: 7, expected: "pushed", // difficulty audit §7: both records pushed in V7 (was `record_only`)
     statementFi: "Vahvennusyksikkö EK15 saapui johtopaikalle noin klo 16.20.",
     statementEn: "The reinforcement unit EK15 arrived at the command post at about 16.20.",
     atomIds: [recordAt(10, /^EK15: saavuimme johtopaikalle/), recordAt(10, /^EK15, johtopaikka: valmiina johtopaikalla/)],
     keyStatements: { fi: [`EK15${S(80)}(?:saapu|johtopaik)`, `(?:saapu\\w*|johtopaik\\w*)${S(60)}EK15`], en: [`EK15${S(80)}(?:arriv|command post)`, `(?:arriv\\w*|command post)${S(60)}EK15`] },
   },
   {
-    id: "ek14_fuel", view: 5, expected: "record_only",
+    id: "ek14_fuel", view: 5, expected: "pushed", // difficulty audit §7: both records pushed, V5 and V7 (was `record_only`)
     statementFi: "EK14 pyysi bensiiniä moottoriruiskuunsa, jonka polttoaine oli loppumassa.",
     statementEn: "EK14 asked for petrol for its portable pump, which was running out of fuel.",
     atomIds: [recordAt(7, /^EK14 pohjoisreuna — moottoriruiskun polttoaine riittää noin \d+ min/), recordAt(10, /^EK14 pohjoisreuna, Karhujärven puoli — moottoriruiskun polttoaine riittää noin \d+ min/)], // gate R (R1): the minutes are drawn (40 → 70 at step 7)

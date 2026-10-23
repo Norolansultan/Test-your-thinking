@@ -4,6 +4,7 @@
 **Scope:** a setting of the study instrument for participants from the general population (Paper 4: does the Paper 3 model, trained on experts, work with non-experts; expertise as a moderator of AI reliance). The researcher, 21 Oct 2026: "test the same simulation with random people … build the more gamable research solution which could be utilized with wider audience."
 
 > **Changelog**
+> - **23 Oct 2026 (be, the difficulty audit)** — the primer's screen page states the information rule (the message log is only part of the traffic; the rest is in the records, found with Haku) and its check question tests it (new id `primer.q.records`, replacing `primer.q.screen`, so old and new answers are never pooled); the primer's "done" button no longer names the practice. The map-reading pretest follows the primer (expert sessions: at the same point, after the pre-session item). See the revision at the end.
 > - **23 Oct 2026 (personal results, `36`)** — the commander profile on screen (§4) becomes optional and is **off by default** in every audience: personal results (the profile, development tips, comparison bands) are sent after the study closes (`36`). `?profiili=heti` still shows it on screen after the session (demonstrations, teaching before a lecture), in either audience; logged in the header (`immediateProfile`). Every session (both audiences) gains the results step after the questionnaire (`results_optin`, format 0.14.0). §4, §6 and §9 P1/P3 read with this revision.
 > - **21 Oct 2026 (game mode removed)** — this version replaces game mode (`29`, `34`, withdrawn; researcher decision): there is one simulation for everyone, the study's own (Haku / guide groups), and the public-audience version is that same simulation with more explanation. The demonstration start page gains a version switch (§2).
 > - **21 Oct 2026** — created. Finnish texts DRAFT (native check); glossary definitions DRAFT (domain check); the consent, background items and the profile are RC items (§8).
@@ -74,3 +75,13 @@ The expert model frozen before public data; transfer of discrimination (AUROC) a
 | P3 Profile | `commanderProfile(records)` pure; profile screen | Unit tests on synthetic logs; never exposes keys |
 
 `npx tsc --noEmit -p .`, `npm run lint:determinism`, `npm test`, `npm run build:web` pass.
+
+## Revision 23 Oct 2026 (be) — the information rule in the primer (the difficulty audit)
+
+Source: `docs/audits/2026-10-23-difficulty/audit.md` §1 (the primer said the message log is "where the units' reports arrive" and its check question was keyed "In the message log") and `proposal.md` (a.3).
+
+- **Page `screen`, second paragraph** (fi DRAFT, en): "On the right is the message log. It shows only part of the traffic: the reports passed to you. Everything else (the units' own reports and status answers, drone and sensor data, weather forecasts) is in the records. You find it with Search, as you would ask the command centre by radio. At the bottom you make your plan."
+- **Its check question** `primer.q.records` (was `primer.q.screen`; a new id so the two are never pooled): "A drone has measured something, but it is not in the message log. Where can you find it?" — (0) Nowhere: if it is not in the log, it was not reported · **(1) With Search, in the records** · (2) In the map legend; the explanation restates the rule. The primer's own key, about the screen, never a study item's.
+- **Generic** (§1): it names kinds of information any incident has, no place, unit, time or event of the scenario; the same in both groups. The expert sessions, which have no primer, get the rule through the tour (`15` (be)).
+- **After the primer** the map-reading pretest (`15` (be), `08` (be)), then the intro video and VP; the "done" button reads "Done – continue" / "Valmis – jatka".
+- **Pilot criterion** (`09` (be)): ≥ 80 % correct at the first attempt on `primer.q.records` (`primer_check`), DRAFT threshold.

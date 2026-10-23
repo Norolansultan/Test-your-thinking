@@ -42,6 +42,7 @@
     "tak:replay": "tsx tools/tak/replay.ts",
     "skills:export": "tsx tools/skills/export.ts",
     "demo:bridge": "tsx tools/demo-bridge/build.ts",
+    "play": "tsx tools/play/play.ts",
     "results:reports": "tsx tools/results/reports.ts"
   },
   "devDependencies": {

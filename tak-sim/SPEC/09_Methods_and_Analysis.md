@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `04_Methods_v2.md`. All two-sitting, eight-cycle and two-scenario language is replaced.
 
 > **Changelog**
+> - **23 Oct 2026 (be)** — the difficulty audit (`docs/audits/2026-10-23-difficulty/`): pre-registered pilot-2 checks (seeking, key records reached, item discrimination, late items, map, the pretest, background groups, the badge, group parity); the map-reading pretest as a covariate only; `tools/power/h2-power.ts` to be re-run with pilot 2's told-class rates (power not changed now); three source-memory facts re-classed `pushed`. See the revision at the end.
 > - **20 Oct 2026 (ba)** — `32`: Paper 2 as signal detection (H15c criterion added; the pre-stated primary-switch rule); the plan review's measures (before/after, revised at review, cited record opened; H17 restated); trust calibration (S-TIAS, stated vs actual projection reliability, behaviour); roadblock latency, the lowest-confidence share and AI answer length; resolution at group level only; source memory by a source-monitoring model (sensitivity); Paper 3 against an item-and-person baseline with a permutation null; RPD indicators exploratory. See the revision at the end.
 > - **19 Oct 2026 (ay)** — `31`: H13 codes the act (RC) with the label coding as sensitivity; V14 via the secondary route (RC); fallbacks for mixed views; H2's dual-key, format and chance sensitivities; H2t's three-way told split (RC); exposure = retrieved ∪ digest ∪ recent; the error-class fold; H-T as an item-level model; new covariates and exclusion rules; the pre-registration list. See the revision at the end.
 > - **19 Oct 2026 (ax)** — 100 = 2 × 50 (`30`): H2 is the overconfidence gap on 24 items (primary), resolution secondary; H2t, H-T, H18 added; H13 is the guide against Haku, H16 withdrawn; `aiStatedKey` as the key secondary analysis; Paper 3 pre-registered; a period term for a forced model-build change; power recomputed by the updated tools. See the revision at the end.
@@ -1019,3 +1020,34 @@ Pre-register as written; `32` §3–§7 holds the definitions.
 - **Paper 3**: a model counts only if it beats a baseline using the item's difficulty and the person's mean confidence (leave-participants-out); significance by 1000 label permutations within participant.
 - **Reactivity**: the `afterFreeze` splits; SPAM `readyLatencyMs` is analysed on its own (experts delay accepting probes).
 - **RPD indicators (exploratory)**: `last.possibilities`, `last.basis` (experience vs projection vs the AI), decision time, projection reliance; experience (`years.service`, `incidents.commanded`) as moderator.
+
+## Revision 23 Oct 2026 (be) — the difficulty audit: pre-registered pilot checks, the pretest covariate, the source-memory classes
+
+Source: `docs/audits/2026-10-23-difficulty/` (`audit.md`, `proposal.md` (f), (g)). The changes to the session are `15` (be), to the items `08` (be), to the records `07` (be). They are a treatment revision before pilot 2: no data are pooled across them (`30` §2).
+
+**1. Pilot checks (pre-registered for pilot 2; the thresholds are DRAFT, RC).** Each is computed from the browser log by the named code; a check that fails is reported, and the listed next step is taken before the lock — never a change to a scored item's key after data.
+
+| Check | Target | Computed by |
+|---|---|---|
+| The rule is understood (public sessions) | ≥ 80 % correct at the first attempt on `primer.q.records` | `primer_check` (attempt 1) |
+| Seeking starts early | ≥ 90 % of participants submit at least one Haku or Thinker question by V2's freeze; ≥ 70 % in VP | `isInformationSeekingAct` (`derived-measures.ts`) on `ai_chat_query_submitted` / `query_submitted`, by view |
+| Seeking continues | median ≥ 1 question per view in V1–V7 and in V8–V14; views with no seeking act ≤ 40 % | the same records; `timeToFirstInformationSeekingActMs` |
+| The practice lesson reaches its record | the forecast record (`evt.wx.01`) retrieved in VP in ≥ 50 % of sessions | `atomExposure` (routes `haku_chat`, `thinker`, `digest`, `recent`), view 0 |
+| Key records reached | for the 14 items whose key needs a recorded-only record: the key record retrieved before the freeze in ≥ 50 % of sessions | `freezeItemExposure` / `atomExposure` |
+| Items discriminate | per-item accuracy 30–85 % for L2/L3 and 40–95 % for L1; no item below 30 % in both groups (the floor; chance is 25 %) | `freezeItemScores`; `spamMeasures` |
+| Confidence is used | the lowest-confidence (25) share ≤ 40 % per participant | `lowestConfidenceShare` |
+| Freezes fit their cap | timeouts ≤ 5 % of freezes; no item missing in > 10 % | `freeze_submitted.timedOut`, `missing` |
+| Late items | the 8 late items' accuracy (`items.csv` `late_lt60s`) not more than 15 points below their view's other items | `freezeItemScores` × the audit's lead |
+| Map | the map-point error median ≤ the tolerance; map-dependent items' accuracy correlated with the pretest score (reported, not a gate) | `haversineMetres` in `freezeItemScores`; `map_pretest_answer` scored against `content/pretest/map-pretest.key.json` |
+| The pretest itself | no pretest item answered right by every one of the first five novices (else new marks); completion within the cap ≥ 90 % | `map_pretest_answer`, `map_pretest_completed.endReason` |
+| Background groups | firefighters, military and novices: L2/L3 accuracy reported per background; no background group under 35 % on the H2 window | `freezeItemScores` × `role.rank` and the public background items |
+| The cue and the notice are seen | the consult notice opened in ≥ 30 % of the views where it is shown; Haku opened while the "New records" badge is up in ≥ 50 % of views (`cycle_start` / `step_boundary_reached` before `tab_selected` "haku") | `consultExposure`; the badge's state rebuilt from those records (`07` (be)) |
+| Group parity of seeking | the Haku-question count differs by < 20 % between groups in phase A; the Thinker group's own questions counted apart | the same records, by cell |
+
+If seeking stays under its target after these changes, the next step is not to push more records (which would remove seeking) but to raise the practice lesson to two items and repeat the rule at V2's start. If the late items fall short, the pre-registered fallback is `proposal-items.md` e.2 (ii).
+
+**2. The pretest as a covariate.** The score (0–6, the key file's options) enters only as a covariate: item-level on the map-dependent freeze items (`items.csv` `map_dependence` required or helps) and on map-point error. It is never an exclusion criterion and never shown. Scored in the analysis from the key file; the browser log carries the choices only.
+
+**3. Power.** H2t's power (`30` (az), 49 % at a small effect) assumed 8 of 24 stream-told items and today's seeking; the rule in the tour and primer, the practice lesson and the badge raise seeking in both groups and so shift `toldClass` rates (the AI-told share up, the "neither" stratum down). **Re-run `tools/power/h2-power.ts` with pilot 2's `toldClass` rates before the lock**; the power figures are not changed now.
+
+**4. Source memory (`30` §5.5).** Three facts were classed `record_only` though every record they rest on is pushed (`pp2_560`, `ek15_arrival`, `ek14_fuel`; `audit.md` §7 item 1): they are `pushed` now (`source-memory.ts`, tested), so four facts are pushed controls, two `ai_likely`, one `map`, two lures, and none `record_only`. The class is a covariate; no stimulus changed. `cabins_nw` (`map`) is also stated by two pushed records (`evt.vp.011`, `evt.c01.008`): RC whether it stays `map`.

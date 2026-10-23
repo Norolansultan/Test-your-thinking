@@ -47,6 +47,7 @@ import { CYCLE_STORY, storyAtoms, type UnitId } from "./demo-story.js";
 import { buildBranchStatements } from "./branch-statements.js";
 import { buildFreezes, buildHingeCheck, buildPracticeFreeze, buildProbeSchedule, FREEZE_VIEWS, SPAM_ANSWER_TIMEOUT_MS, SPAM_SECOND_ITEMS, type SpamItem } from "./demo-probes.js";
 import { buildPracticeSpam } from "./practice-spam.js";
+import { buildPracticeMeasure } from "./practice-measure.js";
 import { buildDecisionItems, buildPracticeBranchStatements, buildPracticeDecisionItem } from "./demo-decisions.js";
 
 /**
@@ -104,6 +105,7 @@ function buildPracticeView(seed: bigint): PracticeView {
     decisionItem: buildPracticeDecisionItem(),
     branchStatements: buildPracticeBranchStatements(),
     spam: buildPracticeSpam(),
+    spamSecond: buildPracticeMeasure(), // difficulty audit (23 Oct 2026): the measuring task, under the same "ready"
   };
 }
 

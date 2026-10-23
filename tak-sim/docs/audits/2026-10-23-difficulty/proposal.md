@@ -1,6 +1,7 @@
 # Proposal, 23 Oct 2026: teach the information rule, give a search lesson, test and support map reading
 
-**Status:** DRAFT for the researcher (RC), the native speaker (Finnish wording) and the expert panel (items). Nothing here is built. It rests on `audit.md`.
+**Status:** DRAFT for the researcher (RC), the native speaker (Finnish wording) and the expert panel (items). It rests on `audit.md`.
+**Built (23 Oct 2026, the safe parts; `SPEC/15`, `07`, `08`, `09`, `12`, `35` revision (be)):** (a) the rule in the tour and the primer, and a.4's number-free badge (not logged: its state follows from existing records); (b) option A's practice item and the SOURCE-ONLY practice feedback (g.3's strict variant; the map tasks get skill feedback); (c) the pretest (`tools/review/map-pretest.ts`; P1 falls back to the lake's island, see `SPEC/08` (be)) and both practice map tasks; (d) d1, d2, d4, d5; g.2's source-memory classes. **Not built:** d3 and d6 (they reverse researcher decisions), d7, every item fix of (e), the numbered badge, the optional rule card for expert sessions.
 **Constraints kept everywhere:**
 - identical for both groups;
 - content-free with respect to the situation: it names kinds of information, never what to look for in this scenario;

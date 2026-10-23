@@ -184,9 +184,9 @@ describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
 describe("SPEC/26 D3: the practice view", () => {
   const vp = scenario.practice;
 
-  it("has a 4-item practice freeze (the infrastructure item, a map point, an L2 and an L3 item; SPEC/08 amendment 2 Oct 2026), a decision item and candidate developments, all tagged practice", () => {
+  it("has a 5-item practice freeze (the infrastructure item, a map point, an L2 and an L3 item; SPEC/08 amendment 2 Oct 2026; the Haku-only forecast item, difficulty audit 23 Oct 2026), a decision item and candidate developments, all tagged practice", () => {
     expect(vp.cycle.hasFreeze).toBe(true);
-    expect(vp.freeze.items).toHaveLength(4);
+    expect(vp.freeze.items).toHaveLength(5);
     for (const item of vp.freeze.items) expect(item.id).toMatch(/^freeze\.practice\./);
     expect(vp.decisionItem.id).toBe("decision.practice");
     expect(vp.branchStatements.filter((b) => b.truth.isActualDevelopment)).toHaveLength(1);

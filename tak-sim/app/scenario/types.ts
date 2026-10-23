@@ -738,6 +738,11 @@ export interface PracticeView {
   readonly branchStatements: readonly (Omit<BranchStatement, "cycle"> & { readonly cycle: PracticeViewIndex })[];
   /** The practice SPAM item (5 Oct 2026, `practice-spam.ts`): not scored, no key here. */
   readonly spam?: Omit<ProbeSpec, "cycle"> & { readonly cycle: PracticeViewIndex };
+  /**
+   * Difficulty audit (23 Oct 2026, `proposal-map.md` c.3 item 2): the practice SPAM item's second item under the same "ready"
+   * (`probe.s.practice.b`): measure the distance to the R3 bridge with the measure tool. Not scored, no key here.
+   */
+  readonly spamSecond?: Omit<ProbeSpec, "cycle"> & { readonly cycle: PracticeViewIndex };
 }
 
 // ---------------------------------------------------------------------------

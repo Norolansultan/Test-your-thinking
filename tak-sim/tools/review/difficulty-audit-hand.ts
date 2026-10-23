@@ -37,6 +37,8 @@ export const HAND: Readonly<Record<string, HandRow>> = {
   "freeze.practice.first_target": row("a,d", "yes", "helps", "EK11's pushed reports: head north-east towards R1 ~320 m; the cottages 2.1 km and the village 3.0 km away"),
   "freeze.practice.r1_arrival": row("a,d", "yes", "helps", "EK11's pushed 320 m at 4 m/min gives ~80 min (the drawn head and rate ~97 min): arithmetic on pushed figures"),
   "freeze.practice.head_now": row("b,e", "yes", "required", "the drawn fire; placed on the blank freeze basemap by the terrain around it (R1, the clear-cut)"),
+  // Added after the audit (23 Oct 2026, proposal (b.2) option A): the practice search lesson, by design answerable only with Haku.
+  "freeze.practice.forecast": row("c", "no", "none", "the 12.00 forecast is recorded only (T2, 12.07); every option agrees with the map's wind arrow", { seek: "Haku: \"Mikä on sääennuste?\" (1st, lexical)" }),
 
   // V2 (merged, steps 2–3; freeze at 105 s; step-3 records arrive at 65 s)
   "freeze.2.infra": row("c,d", "partly", "none", "DR1's road reports are recorded only (sensor log); pushed are only V1's 'the edge crossed road R1 at the head' and 3–4 m flames, which suggest but do not state the road's state", { seek: "Haku: DR1 road report (R1 south of Dry Heath)", anyOf: true, extra: ["atom.demo.1.1"] }),

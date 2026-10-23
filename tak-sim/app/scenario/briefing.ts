@@ -69,6 +69,36 @@ export const UNIT_ANSWERS_FI = "Yksiköiden vastaukset johtopaikan kysymyksiin n
 export const UNIT_ANSWERS_EN = "The units' answers to the command post's questions appear in the records. ";
 
 /**
+ * The information rule (difficulty audit, 23 Oct 2026, `docs/audits/2026-10-23-difficulty/proposal.md` (a.1)): the message log is only
+ * part of the traffic; the rest is in the records, found with Haku. It names kinds of information any incident has — never a place,
+ * unit, time or event of this scenario — and is the same for both groups. Used in the tour's log, Haku and V1 steps (`ui.ts`) and in
+ * the public primer's screen page. Finnish DRAFT (native check).
+ */
+export const RECORDS_RULE_FI =
+  "Viestiloki näyttää vain osan liikenteestä. Yksiköiden omat ilmoitukset ja vastaukset, droonien ja anturien tiedot, sääennusteet ja yksiköiden tila ovat kirjauksissa: löydät ne Hausta, kuten kysyisit johtokeskukselta radiolla.";
+export const RECORDS_RULE_EN =
+  "The message log shows only part of the traffic. The units' own reports and answers, drone and sensor data, weather forecasts and the units' status are in the records: find them with Search, as you would ask the command centre by radio.";
+
+/** Proposal (a.2): the tour's log step (replaces "Reports … arrive in the message log …"). Finnish DRAFT. */
+export const TOUR_LOG_FI =
+  "Sinulle välitetyt ilmoitukset tulevat tähän lähettäjän ja kellonajan kanssa. Se on vain osa liikenteestä. Yksiköiden omat ilmoitukset ja vastaukset, droonien ja anturien tiedot, sääennusteet ja yksiköiden tila (vesi, työvuoron pituus, sijainti) säilyvät kirjauksissa. Ne löydät Hausta.";
+export const TOUR_LOG_EN =
+  "Reports passed to you arrive here with their sender and time. This is only part of the traffic. The units' own reports and answers, drone and sensor data, weather forecasts and the units' status (water, hours on shift, location) are kept in the records. You find them with Search.";
+
+/**
+ * Proposal (a.2), with (a.4)'s number-free badge: the sentence added to the tour's Haku step before `HAKU_CHAT_*`. The badge says only
+ * that new records have come in; it carries no count (`proposal.md` (a.4), the recommended default). Finnish DRAFT.
+ */
+export const TOUR_HAKU_ASK_FI =
+  "Kysy Hausta kuten kysyisit johtokeskukselta radiolla: omin sanoin mitä tahansa, mitä viestiloki ei näytä. Merkintä ”Uusia kirjauksia” painikkeessa kertoo, että kirjauksiin on tullut uutta; se poistuu, kun avaat Haun.";
+export const TOUR_HAKU_ASK_EN =
+  "Ask Search as you would ask the command centre by radio: in your own words, about anything the message log does not show you. The mark “New records” on the button tells you that new records have come in; it goes when you open Search.";
+
+/** Proposal (a.2): V1's tool reminder for Haku (both groups; replaces "Search is available … also in the decision phase."). Finnish DRAFT. */
+export const TOOLS_HAKU_FI = "Haku on käytössäsi koko istunnon ajan, myös päätösvaiheessa. Muista: viestiloki näyttää vain osan liikenteestä, loput ovat kirjauksissa.";
+export const TOOLS_HAKU_EN = "Search is available throughout the session, also in the decision phase. Remember: the message log shows only part of the traffic. The rest is in the records.";
+
+/**
  * `31` coa F1 (b) (19 Oct 2026): one line per secondary task, the same for everyone, in the practice tour's decision step (`ui.ts`
  * tour.steps.decision): mop-up is for an edge that has stopped spreading, a direct attack for an edge that is spreading. The labels are
  * `ui.ts` `secondaryTasks`. DRAFT, native and domain check.
@@ -92,7 +122,7 @@ export const SECONDARY_TASK_DEFINITIONS_EN: readonly string[] = [
  * The whole text is kept for the review export and the record (`briefing_advanced` "briefing.setting").
  */
 export const SETTING_TEXT_FI =
-  ROLE_TEXT_FI + UNIT_ANSWERS_FI + AUTONOMOUS_ASSETS_FI + " Näet yksiköiden sijainnit kartalla ja niiden ilmoitukset viestilokissa. Tehtäväsi on muodostaa " +
+  ROLE_TEXT_FI + UNIT_ANSWERS_FI + AUTONOMOUS_ASSETS_FI + " Näet yksiköiden sijainnit kartalla ja sinulle välitetyt ilmoitukset viestilokissa; muut ovat kirjauksissa. Tehtäväsi on muodostaa " +
   "tilannekuva tallentuneen tiedon perusteella ja kirjata kohdennuksesi. " +
   "Kussakin jaksossa on aikaa enintään kaksi ja puoli minuuttia. " +
   PERIOD_TIME_FI + " " +
@@ -221,7 +251,7 @@ export const ROLE_TEXT_EN =
 
 export const SETTING_TEXT_EN =
   ROLE_TEXT_EN + UNIT_ANSWERS_EN + AUTONOMOUS_ASSETS_EN + " You see the " +
-  "units' positions on the map and their reports in the message log. Your task is to build a picture of the " +
+  "units' positions on the map and the reports passed to you in the message log; the rest are in the records. Your task is to build a picture of the " +
   "situation from the recorded information and record your allocations. " +
   "Each period has at most two and a half minutes. " +
   PERIOD_TIME_EN + " " +

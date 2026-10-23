@@ -99,7 +99,7 @@ describe("no participant-facing radio (SPEC/02 revision (j), SPEC/07 revision (j
   it("offers no way to ask a unit, and the radio record kinds stay gone (log format 0.8.0)", async () => {
     const { o } = await session("directed");
     expect((o as unknown as Record<string, unknown>).askUnit).toBeUndefined();
-    expect(TELEMETRY_FORMAT_VERSION).toBe("0.14.0"); // SPEC/36 (23 Oct 2026): `results_optin`, the header's `immediateProfile`
+    expect(TELEMETRY_FORMAT_VERSION).toBe("0.15.0"); // difficulty audit (23 Oct 2026): the map pretest's and the practice feedback's records
     for (const kind of ["radio_request_submitted", "unit_reply_delivered"]) expect(ALL_RECORD_KINDS as readonly string[]).not.toContain(kind);
   });
 

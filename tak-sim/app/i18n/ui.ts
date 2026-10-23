@@ -9,6 +9,7 @@ import type { DepartureReason, MainEffortPosture, PlanDroneTaskId, SecondaryTask
 import {
   HAKU_CHAT_EN, HAKU_CHAT_FI, PRACTICE_THINKER_EN, PRACTICE_THINKER_EXAMPLE_EN, PRACTICE_THINKER_EXAMPLE_FI, PRACTICE_THINKER_FI, PROJECTION_CAVEAT_EN, PROJECTION_CAVEAT_FI,
   SECONDARY_TASK_DEFINITIONS_EN, SECONDARY_TASK_DEFINITIONS_FI, SECTORS_EN, SECTORS_FI, TOOLS_THINKER_AGAIN_EN, TOOLS_THINKER_AGAIN_FI, TOOLS_THINKER_INTENT_AGAIN_EN, TOOLS_THINKER_INTENT_AGAIN_FI, TOUR_SETTING_EN, TOUR_SETTING_FI,
+  TOOLS_HAKU_EN, TOOLS_HAKU_FI, TOUR_HAKU_ASK_EN, TOUR_HAKU_ASK_FI, TOUR_LOG_EN, TOUR_LOG_FI,
 } from "../scenario/briefing.js";
 import type { TourStepId } from "../render/ui/tour.js";
 import type { TakOverlayLayer, TakPaneId } from "../telemetry/record-kinds.js";
@@ -275,6 +276,11 @@ export interface UiText {
   readonly freeTextPlaceholder: string;
   readonly searching: string;
   readonly haku: string;
+  /**
+   * Difficulty audit (23 Oct 2026, `proposal.md` (a.4), the number-free default): the badge on the Haku button at each view's start and
+   * step boundary until Haku is opened. Content-free: no count, the same text in every view and both groups. Finnish DRAFT.
+   */
+  readonly recordsBadge: string;
   /** Demonstration only (11 Oct 2026): the original index-based search tab. */
   readonly indexedSearch: string;
   readonly closeTool: string;
@@ -448,16 +454,19 @@ const FI: UiText = {
       wind: { title: "Tuuli", body: "Tuulen suunta ja keskinopeus säähavaintoasemalta." },
       // Revision (al), 10 Oct 2026 (wording by `map-overlay`; the "Lohko" button is now "2 km").
       zoom: { title: "Kartan mittakaava", body: "Alue, Palo ja 2 km vaihtavat kartan mittakaavaa; voit myös lähentää hiiren rullalla tai kosketuslevyllä. Lähennä karttaa nähdäksesi palon ja yksiköt tarkemmin." },
+      // Difficulty audit (23 Oct 2026, `proposal-map.md` d5): the measure tool, which no step named. DRAFT.
+      measure: { title: "Mittaa", body: "Mittaa-työkalulla näet etäisyyden ja suunnan: valitse oikean reunan työkaluista Mittaa ja napauta kartalta kahta kohtaa. Viiva jää kartalle, kunnes tyhjennät sen. Myös kartan mittakaavajana kertoo matkan." },
       // Revision (al): the four sectors by their terrain (`briefing.ts` SECTORS_FI, wording by `map-tiles`).
       sectors: { title: "Lohkot", body: SECTORS_FI.join("\n") },
       units: { title: "Yksiköt", body: "Yksiköiden merkit näyttävät niiden viimeksi ilmoitetun sijainnin ja työn. Droonien kohdalla näkyy myös kuvausalue." },
-      log: { title: "Viestiloki", body: "Yksiköiden ja muiden toimijoiden ilmoitukset tulevat viestilokiin lähettäjän ja kellonajan kanssa." },
-      haku: { title: "Haku", body: `Avaa Haku tästä. ${HAKU_CHAT_FI}` },
+      // Difficulty audit (23 Oct 2026, `proposal.md` (a.2)): the log is only part of the traffic (was "… ilmoitukset tulevat viestilokiin …").
+      log: { title: "Viestiloki: vain osa liikenteestä", body: TOUR_LOG_FI },
+      haku: { title: "Haku", body: `Avaa Haku tästä. ${TOUR_HAKU_ASK_FI} ${HAKU_CHAT_FI}` },
       decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy.\n" + SECONDARY_TASK_DEFINITIONS_FI.join("\n") },
       freeze: { title: "Muistikatko", body: "Välillä kuva piilotetaan ja saat kysymyksiä tilanteesta. Vastaa muistin varassa (joskus napauttamalla kohtaa tyhjältä kartalta), ja arvioi varmuutesi. Kello on pysähdyksissä katkon ajan, ja jatkat siitä, mihin jäit." },
       spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kysymys \"Valmis vastaamaan?\". Paina Valmis, kun ehdit; vasta silloin näet kysymyksen ja sen neljä vaihtoehtoa. Kysymys odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole vastannut jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Harjoituksessa saat kokeilla yhtä." },
       ready: { title: "Valmis", body: "Harjoitus alkaa, kun painat Aloita. Kokeile rauhassa karttaa, viestilokia ja hakua." },
-      toolsHaku: { title: "Haku", body: "Haku on käytössäsi koko istunnon ajan, myös päätösvaiheessa." },
+      toolsHaku: { title: "Haku", body: TOOLS_HAKU_FI }, // difficulty audit (a.2): with the rule's reminder
       // Revision (am): the AI group's practice step (both Thinker cells), and V1's short Thinker reminders after it.
       practiceThinker: { title: "Thinker", body: PRACTICE_THINKER_FI },
       toolsThinker: { title: "Thinker", body: TOOLS_THINKER_AGAIN_FI },
@@ -495,6 +504,7 @@ const FI: UiText = {
   freeTextPlaceholder: "Vapaa haku…",
   searching: "Haetaan…",
   haku: "Haku",
+  recordsBadge: "Uusia kirjauksia",
   indexedSearch: "Indeksihaku",
   closeTool: "Sulje työkalu",
   noQuestions: (tool) => `Ei kysymyksiä vielä. ${tool} vastaa vain kysyttäessä, ja vastaus voi olla väärä tai puutteellinen.`,
@@ -636,15 +646,16 @@ const EN: UiText = {
       legend: { title: "Legend", body: "The legend explains the map symbols: the fire edges, the burnt area, spot fires, the drones' heat detections and the projection's bands." },
       wind: { title: "Wind", body: "The wind direction and mean speed from the weather station." },
       zoom: { title: "Map scale", body: "Area, Fire and 2 km change the map's scale; you can also zoom with the mouse wheel or touchpad. Zoom in to see the fire and the units in detail." },
+      measure: { title: "Measure (R&B)", body: "The R&B tool gives a distance and a bearing: choose R&B among the tools on the right edge and tap two points on the map. The line stays on the map until you clear it. The map's scale bar tells distances too." },
       sectors: { title: "Sectors", body: SECTORS_EN.join("\n") },
       units: { title: "Units", body: "The unit symbols show each unit's last reported position and work. For the drones, their imaging area is shown too." },
-      log: { title: "Message log", body: "Reports from the units and other actors arrive in the message log with their sender and time." },
-      haku: { title: "Search", body: `Open Search here. ${HAKU_CHAT_EN}` },
+      log: { title: "Message log: only part of the traffic", body: TOUR_LOG_EN },
+      haku: { title: "Search", body: `Open Search here. ${TOUR_HAKU_ASK_EN} ${HAKU_CHAT_EN}` },
       decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends.\n" + SECONDARY_TASK_DEFINITIONS_EN.join("\n") },
       freeze: { title: "Memory check", body: "Now and then the picture is hidden and you get questions about the situation. Answer from memory (sometimes by tapping a point on a blank map), and rate your confidence. The clock stands still during the check, and you continue where you left off." },
       spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. Press Ready when you can; only then do you see the question and its four options. The question waits for you: you can minimise it, and it does not go away. If you have not answered by the end of the period, it appears before the period ends. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in the practice." },
       ready: { title: "Ready", body: "The practice starts when you press Start. Try out the map, the message log and the search at your own pace." },
-      toolsHaku: { title: "Search", body: "Search is available to you throughout the session, also in the decision phase." },
+      toolsHaku: { title: "Search", body: TOOLS_HAKU_EN },
       practiceThinker: { title: "Thinker", body: PRACTICE_THINKER_EN },
       toolsThinker: { title: "Thinker", body: TOOLS_THINKER_AGAIN_EN },
       toolsThinkerIntent: { title: "Thinker", body: TOOLS_THINKER_INTENT_AGAIN_EN }, // revision (al): the reasoning_intent cell
@@ -680,6 +691,7 @@ const EN: UiText = {
   freeTextPlaceholder: "Free search…",
   searching: "Searching…",
   haku: "Search",
+  recordsBadge: "New records",
   indexedSearch: "Indexed search",
   closeTool: "Close the tool",
   noQuestions: (tool) => `No questions yet. ${tool} answers only when asked, and its answer can be wrong or incomplete.`,

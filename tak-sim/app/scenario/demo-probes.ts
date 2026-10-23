@@ -7,7 +7,7 @@
  * | Probe | Views |
  * |---|---|
  * | Type J (containment judgement) | none — withdrawn (revision (x), 6 Oct 2026): a view asks only for the sector plan |
- * | Blanked freeze (SAGAT) | V2, V4, V5, V7: 8 items each, 2×L1 (one the infrastructure item), 2×L2, 4×L3 (SPEC/30 §5.1) \| V10, V12, V14: 6 items each, 2×L1, 2×L2 (F7 at V12), 2×L3 — all at the view's end (`31` §3.8) — from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each but V7 and V14; plus a 4-item practice freeze in VP (L1 infrastructure, L1 map point, L2, L3) |
+ * | Blanked freeze (SAGAT) | V2, V4, V5, V7: 8 items each, 2×L1 (one the infrastructure item), 2×L2, 4×L3 (SPEC/30 §5.1) \| V10, V12, V14: 6 items each, 2×L1, 2×L2 (F7 at V12), 2×L3 — all at the view's end (`31` §3.8) — from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each but V7 and V14; plus a 5-item practice freeze in VP (L1 infrastructure, L1 forecast — Haku only, the difficulty audit of 23 Oct 2026 —, L1 map point, L2, L3) |
  * | SPAM (Type S, online) | V3, V6, V8, V11 — rewritten 4 Oct 2026 (round 2, agent C) to be answerable from the display; the tools stay usable since `27` (ag), and V3 and V6 add a second, tool-aided item (SPEC/30 §5.2, `31` §3.7); the manipulation check is on the hinge screen (`buildHingeCheck`) |
  * | No SA probe | V1, V9 (omission), V13 (contradiction) |
  * | Type E | none — withdrawn with H6 (researcher decision, 6 Oct 2026) |
@@ -213,9 +213,10 @@ export function buildFreezes(): FreezeSpec[] {
 }
 
 /**
- * VP's practice freeze: four items, one per format and level — the infrastructure item (L1), the
+ * VP's practice freeze: one item per format and level — the infrastructure item (L1), the
  * head on a blank map (L1, `map_point`), an L2 and an L3 item — so the participant meets every
- * item format before V1. Ids carry `practice` so its answers are dropped with the view.
+ * item format before V1; and (difficulty audit, 23 Oct 2026) the forecast item (L1), answerable only
+ * with Haku, the practice search lesson. Ids carry `practice` so its answers are dropped with the view.
  */
 export function buildPracticeFreeze(): PracticeView["freeze"] {
   return { cycle: PRACTICE_VIEW_INDEX, items: mapItemsLast(arrangedFreezes().get(PRACTICE_VIEW_INDEX)!) };

@@ -18,6 +18,7 @@ import { tr } from "../../app/i18n/text.js";
 import { MAIN_VIEWS, SECOND_SPAM_SUFFIX } from "../../app/scenario/views.js";
 import { SPAM_KEY_ATOMS, SPAM_SECOND_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
 import { PRACTICE_SPAM_KEY_OPTION, practiceSpamKeyRecordId } from "../../app/scenario/practice-spam.js";
+import { PRACTICE_MEASURE } from "../../app/scenario/practice-measure.js";
 import { cycleOfStep, stepOfVirtual, toEN } from "./geo.js";
 
 export interface ItemOption { readonly id: string; readonly label_fi: string; readonly label_en: string | null }
@@ -88,6 +89,13 @@ export function buildItems(s: ScenarioContract): SkillItem[] {
     type: "choice", correct: PRACTICE_SPAM_KEY_OPTION, family: ps.contentKind, scope: "team", probe: "spam", practice: true, goal: null,
     prompt_fi: ps.prompt, prompt_en: enOf(ps.prompt), options: spamOptions(ps.response),
   });
+  // Difficulty audit (23 Oct 2026): the practice item's second, the measuring task (a map skill: no record states the distance).
+  const pm = s.practice.spamSecond;
+  if (pm) items.push({
+    id: pm.id, freeze_id: "spam.VP", cycle: 0, view: "VP", level: LEVEL[pm.saLevel ?? 1], fact_ids: [],
+    type: "choice", correct: PRACTICE_MEASURE.keyOptionId, family: pm.contentKind, scope: "team", probe: "spam", practice: true, goal: null,
+    prompt_fi: pm.prompt, prompt_en: enOf(pm.prompt), options: spamOptions(pm.response),
+  });
   for (const p of s.probeSchedule.probes.filter((x) => x.type === "S")) {
     const view = MAIN_VIEWS.find((v) => v.index === (p.cycle as number));
     if (!view) throw new Error(`${p.id}: unknown view ${p.cycle}`);
@@ -120,6 +128,6 @@ function spamOptions(response: ScenarioContract["probeSchedule"]["probes"][numbe
 /** The bank's size, counted from the contract independently of `buildItems` (the test holds the two together). */
 export function bankSize(s: ScenarioContract): number {
   const freezes = s.practice.freeze.items.length + s.freezes.reduce((n, f) => n + f.items.length, 0);
-  const spam = s.probeSchedule.probes.filter((p) => p.type === "S").length + (s.practice.spam ? 1 : 0); // + the practice item
+  const spam = s.probeSchedule.probes.filter((p) => p.type === "S").length + (s.practice.spam ? 1 : 0) + (s.practice.spamSecond ? 1 : 0); // + the practice items
   return freezes + spam + (s.hinge.manipulationCheck ? 1 : 0);
 }

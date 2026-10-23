@@ -37,6 +37,7 @@ import type {
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
 import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
+import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 
 // ---------------------------------------------------------------------------
 // §2.1 Session and lifecycle
@@ -132,7 +133,7 @@ export interface SessionResumedDetail {
    * open; the session resumed into that item (not a replay: `cycleReplayed` names the view, which is
    * not run again, and the analysis does not count it as replayed).
    */
-  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile" | "results_optin";
+  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile" | "results_optin" | "map_pretest" | "practice_feedback";
 }
 export type PhaseEnteredDetail = { readonly phase: "practice" | "tutorial" | "phase_a" | "hinge" | "phase_b" };
 
@@ -208,6 +209,8 @@ export type {
 } from "./record-kinds-interaction.js";
 // SPEC/35 (0.13.0): the public-audience version's records, `record-kinds-public.ts`.
 export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
+// The difficulty audit's changes (0.15.0): the map-reading pretest and the practice feedback screen, `record-kinds-difficulty.ts`.
+export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 
 // ---------------------------------------------------------------------------
 // §2.6 Probe and decision interaction
@@ -835,7 +838,12 @@ export type TelemetryEvent =
   | { readonly kind: "help_card_opened"; readonly detail: HelpCardOpenedDetail }
   | { readonly kind: "profile_shown"; readonly detail: Record<string, never> }
   // SPEC/36 (23 Oct 2026): personal results after the study, every session
-  | { readonly kind: "results_optin"; readonly detail: ResultsOptInDetail };
+  | { readonly kind: "results_optin"; readonly detail: ResultsOptInDetail }
+  // The difficulty audit's changes (23 Oct 2026, 0.15.0)
+  | { readonly kind: "map_pretest_started"; readonly detail: MapPretestStartedDetail }
+  | { readonly kind: "map_pretest_answer"; readonly detail: MapPretestAnswerDetail }
+  | { readonly kind: "map_pretest_completed"; readonly detail: MapPretestCompletedDetail }
+  | { readonly kind: "practice_feedback_shown"; readonly detail: PracticeFeedbackShownDetail };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1047,7 +1055,14 @@ export type RecordKind = TelemetryEvent["kind"];
  * (`?profiili=heti`). `session_resumed.resumedAt` may be `results_optin`. The debrief texts gained one paragraph (when the results
  * arrive); their ids are unchanged, the format version tells them apart.
  */
-export const TELEMETRY_FORMAT_VERSION = "0.14.0";
+/*
+ * 0.15.0 (difficulty audit, 23 Oct 2026, `docs/audits/2026-10-23-difficulty/`; SPEC/07 revision): `map_pretest_started`,
+ * `map_pretest_answer` and `map_pretest_completed` (the map-reading pretest before VP, header `mapPretest`) and
+ * `practice_feedback_shown` (after VP, header `practiceFeedback`; the screen is left with `briefing_advanced` "practice.feedback") are
+ * added; `session_resumed.resumedAt` may be `map_pretest` or `practice_feedback`. The practice view gains a fifth freeze item
+ * (`freeze.practice.forecast`) and a second SPAM item (`probe.s.practice.b`); every main view's records are unchanged.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.15.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1079,4 +1094,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "plan_review_shown", "plan_review_record_opened", "plan_review_closed",
   "primer_page", "primer_check", "help_card_opened", "profile_shown",
   "results_optin",
+  "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown",
 ];

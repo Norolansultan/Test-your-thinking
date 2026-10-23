@@ -169,8 +169,10 @@ describe("accessible names", () => {
       }
     }
     const bar = code("app/render/ui/tak/TakToolbar.tsx");
-    expect(bar).toMatch(/aria-label=\{toolbarButtonName\(t\.tak\.toolbar\[p\], t\.tak\.paneTitle\[p\], badge \? t\.tak\.geochat\.unread\(unread\) : null\)\}/);
+    // Difficulty audit (23 Oct 2026, (a.4)): Haku's "New records" badge is in its button's name the same way.
+    expect(bar).toMatch(/aria-label=\{toolbarButtonName\(t\.tak\.toolbar\[p\], t\.tak\.paneTitle\[p\], badge \? t\.tak\.geochat\.unread\(unread\) : records \? t\.recordsBadge : null\)\}/);
     expect(bar).toMatch(/data-testid="tak-unread" aria-hidden="true"/); // its count is in the button's name
+    expect(bar).toMatch(/data-testid="records-badge" aria-hidden="true"/);
     expect(bar).toMatch(/\{TAK_PANE_ICON\[p\]\}/);
     expect(raw("app/render/ui/tak/TakToolbar.tsx")).toMatch(/aria-hidden="true">\{body\}<\/svg>/); // icons are decoration
   });

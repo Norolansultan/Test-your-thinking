@@ -9,7 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import type { BriefingAdvancedDetail, CycleStartDetail } from "../../app/telemetry/record-kinds.js";
-import { APP_OPTIONS, driveSession, driveStep, kinds, newStudySession, wholeSession } from "./public-run.js";
+import { APP_OPTIONS, driveSession, driveStep, kinds, newStudySession, passPretest, wholeSession } from "./public-run.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -30,11 +30,13 @@ function stimulus(records: readonly LogRecord[]): string[] {
 describe("a public session (SPEC/35 §3–§5)", () => {
   it("runs the primer before the intro video and VP; with `?profiili=heti` the profile after the results step and before the debrief", async () => {
     const { o, records } = await wholeSession({ audience: "public", immediateProfile: true });
-    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.14.0", immediateProfile: true });
+    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.15.0", immediateProfile: true, mapPretest: true });
     const at = {
       pre: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "pre"),
       firstPage: index(records, (r) => r.kind === "primer_page"),
       primerLeft: index(records, screenIs("briefing.primer")),
+      // Difficulty audit (23 Oct 2026): the map-reading pretest after the primer, before the intro video.
+      pretest: index(records, (r) => r.kind === "map_pretest_started"),
       video: index(records, screenIs("briefing.video")),
       vp: index(records, (r) => r.kind === "cycle_start"),
       post: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "post"),
@@ -44,7 +46,9 @@ describe("a public session (SPEC/35 §3–§5)", () => {
       completed: index(records, (r) => r.kind === "session_completed"),
     };
     expect(Object.values(at).every((i) => i >= 0)).toBe(true);
-    expect([at.pre, at.firstPage, at.primerLeft, at.video, at.vp, at.post, at.optIn, at.profile, at.debrief, at.completed]).toEqual([...Object.values(at)].sort((a, b) => a - b));
+    expect([at.pre, at.firstPage, at.primerLeft, at.pretest, at.video, at.vp, at.post, at.optIn, at.profile, at.debrief, at.completed]).toEqual([...Object.values(at)].sort((a, b) => a - b));
+    expect(at.pretest).toBe(at.primerLeft + 1);
+    expect(records[at.video - 1]!.kind).toBe("map_pretest_completed");
     expect(at.optIn).toBe(at.post + 1);
     expect(at.profile).toBe(at.optIn + 1);
     expect(at.debrief).toBe(at.profile + 1);
@@ -93,6 +97,9 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     await expect(o.primerCheck("q1", 1.5, true, 1)).rejects.toThrow(RangeError);
     await expect(o.primerCheck("q1", 0, true, 0)).rejects.toThrow(RangeError);
     await o.finishPrimer();
+    expect(snap().step).toBe("map_pretest"); // difficulty audit (23 Oct 2026): the pretest after the primer (BRIEFING still)
+    expect(o.engineState).toBe("BRIEFING");
+    await passPretest(o, snap);
     expect(snap().step).toBe("briefing");
     expect(snap().introVideo).not.toBeNull();
     await expect(o.primerPage("p1", 10)).rejects.toThrow(/primerPage in step briefing/);
@@ -107,13 +114,14 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     expect(snap()).toMatchObject({ step: "debrief", debrief: { textId: "debrief.public.full" } });
   }, 60_000);
 
-  it("without an intro video the primer leads straight to the practice view", async () => {
+  it("without an intro video the primer (and the map-reading pretest) leads straight to the practice view", async () => {
     vi.setSystemTime(0);
     const { introVideo: _none, ...noVideo } = APP_OPTIONS;
     const { o, snap } = newStudySession({ audience: "public" }, noVideo);
     await o.start();
     await driveSession(o, snap, ["primer"]);
     await o.finishPrimer();
+    await passPretest(o, snap);
     expect(snap()).toMatchObject({ step: "exploration", practice: true });
   });
 
@@ -124,6 +132,7 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     await driveSession(o, snap, ["primer"]);
     await o.recordAudienceEvent({ kind: "glossary_opened", termId: "kärki", surface: "other" });
     await o.finishPrimer();
+    await passPretest(o, snap);
     await o.finishIntroVideo("ended");
     const before = { step: snap().step, view: snap().currentCycle, seconds: snap().secondsLeft, clock: snap().clockLabel };
     const n = (await o.logRecords()).length;

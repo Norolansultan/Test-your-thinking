@@ -58,13 +58,19 @@ export function snapshotOf(o: SessionOrchestrator): SessionSnapshot {
   return s!;
 }
 
-/** A forced SPAM item on screen (revision (ag)) is answered — its first option, confidence 50 — so the view ends. */
+/**
+ * A forced SPAM delivery on screen (revision (ag)) is answered — each item's first option (or `optionId` for the first), confidence
+ * 50 — so the view ends. Difficulty audit (23 Oct 2026): the practice delivery has a second item too (the measuring task), forced with
+ * the first, so every forced item of the delivery is answered here.
+ */
 export async function answerForcedSpam(o: SessionOrchestrator, optionId?: string): Promise<boolean> {
-  const spam = snapshotOf(o).spam;
-  if (!spam || spam.phase === "ready" || !spam.forced) return false;
-  if (spam.phase === "item") await o.answerSpam(optionId ?? spam.options[0]!.id);
-  await o.submitSpamConfidence(50);
-  return true;
+  let answered = false;
+  for (let spam = snapshotOf(o).spam; spam && spam.phase !== "ready" && spam.forced; spam = snapshotOf(o).spam) {
+    if (spam.phase === "item") await o.answerSpam(!answered && optionId ? optionId : spam.options[0]!.id);
+    await o.submitSpamConfidence(50);
+    answered = true;
+  }
+  return answered;
 }
 
 /**

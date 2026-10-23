@@ -6,7 +6,7 @@
     "pageOf": "Page {n} of {total}",
     "back": "Back",
     "next": "Next",
-    "done": "Done – go to the practice",
+    "done": "Done – continue",
     "check": "Check question",
     "right": "Correct.",
     "wrong": "Not quite.",
@@ -123,16 +123,16 @@
       "title": "The screen",
       "body": [
         "In the middle is the map: the fire, the units and the sectors. The map legend at the bottom left tells what the symbols mean.",
-        "On the right are the message log, where the units' reports arrive, and the search tools. At the bottom you make your plan.",
+        "On the right is the message log. It shows only part of the traffic: the reports passed to you. Everything else (the units' own reports and status answers, drone and sensor data, weather forecasts) is in the records. You find it with Search, as you would ask the command centre by radio. At the bottom you make your plan.",
         "From time to time the situation is paused and the picture hidden. Answer the questions from memory then, and say how sure you are (scale 25–100).",
         "To see what a word with a dotted underline means, point at it or tap it. The Glossary & help card has every word, unit and map symbol."
       ],
       "question": {
-        "id": "primer.q.screen",
-        "stem": "Where do you see the units' reports?",
-        "options": ["In the message log", "In the map legend", "In the plan"],
-        "correct": 0,
-        "explanation": "The units' reports arrive in the message log on the right. The legend explains the map's symbols, and the plan is your decision."
+        "id": "primer.q.records",
+        "stem": "A drone has measured something, but it is not in the message log. Where can you find it?",
+        "options": ["Nowhere: if it is not in the log, it was not reported", "With Search, in the records", "In the map legend"],
+        "correct": 1,
+        "explanation": "The message log shows only part of the traffic. Everything recorded, drone measurements included, can be found with Search."
       }
     }
   ]

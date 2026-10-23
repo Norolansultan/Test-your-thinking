@@ -1,6 +1,7 @@
 /**
  * Drives a whole study-shell session (SPEC/35 P1): consent, the AI literacy test (skipped), the preflight, the pre-session
- * item, the primer (public sessions), the intro video, VP, the training, V1–V14 (or V1–V7 with `scope: "phaseA"`), the hinge,
+ * item, the primer (public sessions), the map-reading pretest (each item's first option), the intro video, VP, the practice feedback,
+ * the training, V1–V14 (or V1–V7 with `scope: "phaseA"`), the hinge,
  * the post-session questionnaire, the results step (SPEC/36: skipped here unless `optIn`), the commander profile (only with
  * `immediateProfile`), the debrief and the end. The real clock is the fake timers' `Date.now()` (the spec sets it to 0), so every
  * record is deterministic.
@@ -21,9 +22,12 @@ export const GOOD_ENV: PreflightEnv = {
   maxTouchPoints: 0, pointer: "fine", viewport: { w: 1440, h: 900, dpr: 1 }, indexedDb: true, webgl2: true, proxy: "reachable",
 };
 
-/** The options the app gives a study session (`useSession.ts`), the Haku group, a 5 s preview minimum. */
+/**
+ * The options the app gives a study session (`useSession.ts`), the Haku group, a 5 s preview minimum. Difficulty audit (23 Oct 2026):
+ * the app turns on the map-reading pretest and the practice feedback in every session.
+ */
 export const APP_OPTIONS: SessionOptions = {
-  cell: "radio", studyShell: true, aiLiteracyTest: true, introVideo: "/video/intro.mp4", previewOverride: { minViewSeconds: 5 },
+  cell: "radio", studyShell: true, aiLiteracyTest: true, introVideo: "/video/intro.mp4", previewOverride: { minViewSeconds: 5 }, mapPretest: true, practiceFeedback: true,
   participantCode: "P-35", realClockMs: () => Date.now(), thinker: { transport: vi.fn() },
 };
 
@@ -41,6 +45,11 @@ export async function passPrimer(o: SessionOrchestrator): Promise<void> {
   await o.primerCheck("q1.role", 0, true, 2);
   await o.primerPage("p2.units", 3_000);
   await o.finishPrimer();
+}
+
+/** Difficulty audit (23 Oct 2026): answers the map-reading pretest on screen, each item's first option at once, until it ends. */
+export async function passPretest(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
+  while (snap().step === "map_pretest" && snap().mapPretest) await o.answerMapPretest(snap().mapPretest!.itemId, snap().mapPretest!.options[0]!.id);
 }
 
 /**
@@ -66,7 +75,10 @@ export async function driveStep(o: SessionOrchestrator, snap: () => SessionSnaps
     case "preflight": await o.submitPreflight(GOOD_ENV); return;
     case "questionnaire": return o.submitQuestionnaire(s.questionnaire!.id === "pre" ? { "fatigue.start": 3 } : {});
     case "primer": return passPrimer(o);
+    case "map_pretest": return o.answerMapPretest(s.mapPretest!.itemId, s.mapPretest!.options[0]!.id); // each item's first option, at once
     case "briefing": return o.finishIntroVideo("ended");
+    case "practice_feedback": return o.finishPracticeFeedback();
+    case "training": return o.completeTraining();
     case "results_optin": return o.decideResultsOptIn(optIn);
     case "profile": return o.finishProfile();
     case "debrief": return o.finishDebrief();

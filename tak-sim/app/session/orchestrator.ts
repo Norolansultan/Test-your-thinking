@@ -21,6 +21,9 @@
  * SPEC/35 (21 Oct 2026): a public session's primer and commander profile, and a phase-A session's end after V7 (`public-session.ts`).
  * SPEC/36 (23 Oct 2026): every session's step "Personal results after the study" after the post-session questionnaire
  * (`results_optin`, `decideResultsOptIn`); the commander profile on screen only with `immediateProfile` (`?profiili=heti`).
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest before VP (`mapPretest`,
+ * `map-pretest.ts`), the source-only practice feedback after VP (`practiceFeedback`, `practice-feedback.ts`), the practice SPAM
+ * item's measuring task (`practice-measure.ts`), and the content-free "New records" badge on the Haku button (`recordsBadge`).
  */
 
 import type { RenderableAtom } from "../boundary/render-boundary.js";
@@ -66,6 +69,8 @@ import { ConsultNotice, consultToolOf, SUGGESTED_QUESTION, suggestedQuestionOffe
 import { PlanConfidence } from "./plan-confidence.js";
 import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
 import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
+import { keptPretestAnswers, MapPretest, pretestSpentMs } from "./map-pretest.js";
+import { PRACTICE_FEEDBACK_SCREEN_ID, PRACTICE_HEAD_ITEM_ID, practiceFeedbackView, practiceHeadMarkOf, type PracticeFeedbackView } from "./practice-feedback.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
@@ -155,6 +160,17 @@ export interface SessionOptions {
    * logged in the header (`immediateProfile`). Default off: personal results are sent after the study closes.
    */
   readonly immediateProfile?: boolean;
+  /**
+   * Difficulty audit (23 Oct 2026, `proposal-map.md` c.2): the map-reading pretest after the pre-session item (and a public session's
+   * primer), before the intro video and VP; with the study shell only. Off by default so the earlier specs run unchanged; the app turns
+   * it on in every session, and the header logs it (`mapPretest`).
+   */
+  readonly mapPretest?: boolean;
+  /**
+   * Difficulty audit (`proposal.md` (b.3)): the source-only practice feedback screen after VP, before the training. Off by default (the
+   * earlier specs run unchanged); the app turns it on in every session; logged in the header (`practiceFeedback`).
+   */
+  readonly practiceFeedback?: boolean;
 }
 
 /**
@@ -275,6 +291,15 @@ export class SessionOrchestrator {
   private readonly lastView: number;
   /** SPEC/36: the commander profile is shown after the results step (`SessionOptions.immediateProfile`). */
   private readonly immediateProfile: boolean;
+  /** Difficulty audit: the map-reading pretest (`SessionOptions.mapPretest`) and the practice feedback (`SessionOptions.practiceFeedback`). */
+  private readonly mapPretestOn: boolean;
+  private readonly mapPretest: MapPretest;
+  private readonly practiceFeedbackOn: boolean;
+  private practiceFeedback: PracticeFeedbackView | null = null;
+  private practiceHeadMark: LatLon | null = null; // the practice freeze's head mark, for the feedback's map task
+  /** Difficulty audit (a.4): the "New records" badge, and whether the Haku tool is open now (its last `tab_selected`). */
+  private recordsBadge = false;
+  private hakuOpen = false;
 
   constructor(
     private readonly scenario: ScenarioContract,
@@ -299,7 +324,10 @@ export class SessionOrchestrator {
     const scope = options.resume ? options.resume.header.scope ?? "full" : options.scope ?? "full";
     // SPEC/36: so does the profile's timing (absent in a header: not shown).
     this.immediateProfile = options.resume ? options.resume.header.immediateProfile === true : options.immediateProfile === true;
-    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope, ...(this.immediateProfile ? { immediateProfile: true } : {}) };
+    // Difficulty audit: so do the pretest and the practice feedback (absent in a header: off).
+    this.mapPretestOn = this.studyShell && (options.resume ? options.resume.header.mapPretest === true : options.mapPretest === true);
+    this.practiceFeedbackOn = options.resume ? options.resume.header.practiceFeedback === true : options.practiceFeedback === true;
+    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope, ...(this.immediateProfile ? { immediateProfile: true } : {}), ...(this.mapPretestOn ? { mapPretest: true } : {}), ...(this.practiceFeedbackOn ? { practiceFeedback: true } : {}) };
     this.log = new SessionLog(header, options.sink ?? new InMemoryLogSink(), options.resume?.records ?? []);
     // SPEC/26 §3: the engine runs the scenario's views (14, hinge after V7, one or two steps each).
     this.loop = new EngineRunLoop(cycleScheduleOf(scenario));
@@ -329,6 +357,10 @@ export class SessionOrchestrator {
     this.aiLiteracy = new AiLiteracyTest({
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: async () => { this.step = "preflight"; this.notify(); }, // its end record is durable: on to the preflight
+    }, this.language);
+    this.mapPretest = new MapPretest({
+      event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
+      ended: () => this.toBriefing(), // its end record is durable: on to the intro video and VP
     }, this.language);
   }
 
@@ -429,6 +461,9 @@ export class SessionOrchestrator {
       suggestedQuestion: !this.isPractice() && suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle),
       planConfidence: this.step === "plan_confidence" ? this.planConfidence.view() : null,
       planReview: this.step === "plan_review" ? this.review.view() : null,
+      mapPretest: this.step === "map_pretest" ? this.mapPretest.view() : null,
+      practiceFeedback: this.step === "practice_feedback" ? this.practiceFeedback : null,
+      recordsBadge: this.recordsBadge,
     };
   }
 
@@ -492,6 +527,52 @@ export class SessionOrchestrator {
     } finally { this.submitting = false; }
   }
 
+  /**
+   * Difficulty audit (`proposal.md` (b.3), `practice-feedback.ts`): after VP, the source-only feedback screen (TUTORIAL; the training
+   * follows it). Shown once its record (`practice_feedback_shown`) is durable (I5).
+   */
+  private async showPracticeFeedback(): Promise<void> {
+    this.practiceFeedback = practiceFeedbackView(this.scenario, this.practiceHeadMark);
+    this.step = "practice_feedback";
+    this.shellShownMs = this.realMs();
+    await this.event({ kind: "practice_feedback_shown", detail: { itemIds: this.practiceFeedback.items.map((i) => i.itemId) } });
+    this.notify();
+  }
+
+  /** The practice feedback is left (`briefing_advanced` "practice.feedback", its dwell): on to the training text. */
+  async finishPracticeFeedback(): Promise<void> {
+    if (this.step !== "practice_feedback" || this.submitting) throw new Error(`finishPracticeFeedback in step ${this.step}`);
+    this.submitting = true;
+    try {
+      await this.event({ kind: "briefing_advanced", detail: { screenId: PRACTICE_FEEDBACK_SCREEN_ID, dwellMs: this.shellDwellMs() } });
+      this.practiceFeedback = null;
+      this.showIntro("training");
+    } finally { this.submitting = false; }
+    this.notify();
+  }
+
+  /** Difficulty audit (`proposal-map.md` c.2): after the pre-session item (and a public session's primer), the pretest when it is on, else the briefing. */
+  private async afterPreSession(): Promise<void> {
+    if (!this.mapPretestOn) return this.toBriefing();
+    return this.showMapPretest();
+  }
+
+  /** Shows the map-reading pretest (`map_pretest_started` first: the screen shows once it is durable); a resume keeps the answers logged. */
+  private async showMapPretest(records: readonly LogRecord[] = [], resumed = false): Promise<void> {
+    this.step = "map_pretest";
+    this.shellShownMs = this.realMs();
+    await this.mapPretest.start(keptPretestAnswers(records), pretestSpentMs(records), resumed);
+    if (this.step === "map_pretest") this.notify(); // (a pretest whose every item was kept has ended and moved on already)
+  }
+
+  /** A pretest item answered and left (final); the last ends the pretest and the session goes on to the briefing. */
+  answerMapPretest(itemId: string, choiceId: string): Promise<void> {
+    if (this.step !== "map_pretest") return Promise.reject(new Error(`answerMapPretest in step ${this.step}`));
+    return this.mapPretest.answer(itemId, choiceId);
+  }
+  /** Whole seconds left on the pretest's cap (its countdown). */
+  mapPretestSecondsLeft(): number { return this.mapPretest.secondsLeft(); }
+
   /** TUTORIAL -> RUNNING: the group-specific training is read; V1 starts at 13:20, virtual 0. */
   async completeTraining(): Promise<void> {
     if (this.step !== "training") throw new Error(`completeTraining in step ${this.step}`);
@@ -533,6 +614,7 @@ export class SessionOrchestrator {
     this.timing = viewTimingOf(cycleSpec, this.previewOverride);
     this.currentStep = cycleSpec.startsAtVirtual / STEP_SECONDS + 1;
     this.renderTree = applyRenderEvent(EMPTY_RENDER_TREE, { kind: "cycle_start", cycle: cycleSpec });
+    this.recordsBadge = !this.hakuOpen; // difficulty audit (a.4): a view's first-step records are released now
     this.queries.startView(index); // the Open Thinker's history is cleared once, at the first view from V8 on
     await this.event({ kind: "cycle_start", detail: { cycle: index, phase: this.isPractice() ? "practice" : cycleSpec.phase, clockLabel: cycleSpec.clockLabel, minViewSeconds: cycleSpec.minViewSeconds, freezeAtSeconds: cycleSpec.freezeAtSeconds, navSources: this.queries.navigationSources() } });
     // The superior's (P2, `DUTY_OFFICER_ID`) messages open their view, both groups: the intent at V1, the directive at V8, on leaving the hinge (SPEC/15 §2).
@@ -639,6 +721,7 @@ export class SessionOrchestrator {
     await this.event({ kind: "step_boundary_reached", detail: { cycle: this.currentCycle, atViewSeconds } });
     this.renderTree = applyRenderEvent(this.renderTree, { kind: "step_boundary", cycle: cycleSpec });
     await this.deliverPushed(cycleSpec, STEP_SECONDS, Infinity);
+    this.recordsBadge = this.recordsBadge || !this.hakuOpen; // difficulty audit (a.4): the second step's records are released now
     this.notify();
   }
 
@@ -714,6 +797,7 @@ export class SessionOrchestrator {
     });
     return this.guarded("freeze", "submitFreeze", async () => { // one submission only: a second click is refused (review 2 Oct 2026)
       await this.event({ kind: "freeze_submitted", detail: { cycle: this.currentCycle, responses: checked, ...(options.skipped ? { skipped: true as const } : {}), ...(options.timedOut ? { timedOut: true as const } : {}), ...(missing.length > 0 ? { missing } : {}) } });
+      if (this.isPractice()) this.practiceHeadMark = checked.find((r) => r.itemId === PRACTICE_HEAD_ITEM_ID)?.point ?? null; // the feedback's map task
       this.clearFreezeCap();
       audioManager.exitFreeze();
       if (this.endFreeze) { this.endFreeze = false; await this.afterViewEnded("probes"); return; } // SPEC/30 §5.1: on to what follows the view
@@ -1012,6 +1096,7 @@ export class SessionOrchestrator {
       // (SPEC/15 §2), and the main timeline starts at V1 once TUTORIAL is complete.
       await this.event({ kind: "cycle_end", detail: { cycle: finished, totalRealDurationMs: this.viewRealMs() } });
       await this.transition("warmup_complete");
+      if (this.practiceFeedbackOn) return this.showPracticeFeedback(); // difficulty audit (b.3): before the training
       this.showIntro("training");
       this.notify();
       return;
@@ -1071,6 +1156,9 @@ export class SessionOrchestrator {
   logPanelUse(event: PanelUseEvent): Promise<unknown> { return this.event(event); }
   /** The right-panel tool tab the participant selects (`none`: closed); logged for the tool-use sequence (P1-1, 8 Oct 2026). */
   logTabSelected(tool: "haku" | "open_thinker" | "indexed_search" | "none"): Promise<unknown> {
+    // Difficulty audit (a.4): opening Haku clears the "New records" badge; the badge is not set again while Haku stays open.
+    this.hakuOpen = tool === "haku";
+    if (this.hakuOpen && this.recordsBadge) { this.recordsBadge = false; this.notify(); }
     return this.event({ kind: "tab_selected", detail: { tool, view: this.currentCycle, phase: this.phaseTag() } });
   }
   /**
@@ -1121,8 +1209,11 @@ export class SessionOrchestrator {
   }
 
   /** SPEC/30 §5.2: the item shown after `first` under the same "ready" (`<first id>.b`), if the scenario has one. */
-  private secondSpamOf(first: SpamProbe | ProbeSpec): ProbeSpec | null {
+  private secondSpamOf(first: SpamProbe | ProbeSpec): SpamProbe | null {
     const id = secondSpamProbeId(first.id);
+    // Difficulty audit (23 Oct 2026): the practice item's second, the measuring task (`practice-measure.ts`).
+    const practice = this.scenario.practice.spamSecond;
+    if (practice && practice.id === id) return practice;
     return this.scenario.probeSchedule.probes.find((p) => p.id === id && p.type === "S") ?? null;
   }
 
@@ -1381,7 +1472,7 @@ export class SessionOrchestrator {
       if (view.id === "pre" && this.publicLayer.isPublic) this.showShellStep("primer");
       else if (view.id === "post") this.showShellStep("results_optin"); // SPEC/36: nothing is logged until the participant answers
     } finally { this.submitting = false; }
-    if (view.id === "pre" && !this.publicLayer.isPublic) return this.toBriefing();
+    if (view.id === "pre" && !this.publicLayer.isPublic) return this.afterPreSession(); // the pretest (when on), then the briefing
     this.notify();
   }
 
@@ -1417,7 +1508,7 @@ export class SessionOrchestrator {
     try {
       await this.event({ kind: "briefing_advanced", detail: { screenId: PRIMER_SCREEN_ID, dwellMs: this.shellDwellMs() } });
     } finally { this.submitting = false; }
-    return this.toBriefing();
+    return this.afterPreSession(); // the pretest (when on), then the intro video and the practice view
   }
 
   /**
@@ -1517,7 +1608,7 @@ export class SessionOrchestrator {
   private async startResumed(plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const { target } = plan;
     if (this.studyShell) {
-      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic, immediateProfile: this.immediateProfile });
+      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic, immediateProfile: this.immediateProfile, mapPretestOn: this.mapPretestOn });
       if (shell) return this.startResumedShell(shell, plan, interruptedForMs);
     }
     const inView = target.kind === "view" || target.kind === "spam_forced"; // a forced SPAM item lies inside its (run-out) view
@@ -1538,13 +1629,19 @@ export class SessionOrchestrator {
     const cycleReplayed = (inView ? target.view : target.kind === "hinge" ? this.scenario.hinge.afterCycle + 1
       : target.kind === "complete" ? this.lastView : PRACTICE_VIEW_INDEX) as CycleIndex;
     this.queries.restoreChats(this.resumeInfo?.records ?? [], cycleReplayed);
+    // Difficulty audit (b.3): after VP, the practice feedback again while it has not been left (the head mark from the log).
+    const records = this.resumeInfo?.records ?? [];
+    const feedbackPending = target.kind === "training" && this.practiceFeedbackOn
+      && !records.some((r) => r.kind === "briefing_advanced" && (r.detail as { screenId?: string }).screenId === PRACTICE_FEEDBACK_SCREEN_ID);
     await this.event({ kind: "fault", detail: { faultClass: INTERRUPTION_FAULT_CLASS } });
     await this.event({ kind: "fault_resolved", detail: { faultClass: INTERRUPTION_FAULT_CLASS, elapsedWallClockGapMs: interruptedForMs } });
-    await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: target.kind } });
+    await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: feedbackPending ? "practice_feedback" : target.kind } });
 
     switch (target.kind) {
       case "briefing": return this.toBriefing(); // the intro video again, from its start; without it the page is gone: on to the practice view
-      case "training": this.showIntro("training"); this.notify(); return;
+      case "training":
+        if (feedbackPending) { this.practiceHeadMark = practiceHeadMarkOf(records); return this.showPracticeFeedback(); }
+        this.showIntro("training"); this.notify(); return;
       case "hinge": return this.enterHinge();
       case "complete": this.step = "complete"; this.completed = plan.alreadyCompleted; this.notify(); return;
       case "view":
@@ -1604,7 +1701,7 @@ export class SessionOrchestrator {
   private async startResumedShell(shell: ShellResumeStep, plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const after = shell === "questionnaire" || shell === "results_optin" || shell === "profile" || shell === "debrief";
     if (shell === "preflight" || shell === "ai_literacy") this.loop.transition("start");
-    if (shell === "primer") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
+    if (shell === "primer" || shell === "map_pretest") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
     if (after) {
       for (const trigger of ["start", "preflight_passed", "briefing_complete", "warmup_complete", "tutorial_complete"] as const) this.loop.transition(trigger);
       this.replayViews(this.lastView, false);
@@ -1620,6 +1717,7 @@ export class SessionOrchestrator {
       const records = this.resumeInfo?.records ?? [];
       await this.showAiLiteracy(keptAiLiteracyAnswers(records), aiLiteracySpentMs(records), true);
     }
+    else if (shell === "map_pretest") return this.showMapPretest(this.resumeInfo?.records ?? [], true); // the first unanswered item
     else if (shell === "profile") await this.showProfile();
     else if (shell === "debrief") await this.showDebrief();
     else this.step = shell; // the consent, the preflight, the primer (from its first page), the results step (SPEC/36)

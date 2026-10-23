@@ -15,6 +15,7 @@ import { hasLabelEn, tr } from "../../app/i18n/text.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import { PLAN } from "../session/view-flow.js";
 import { PRACTICE_VIEW_MIN_SECONDS } from "../../app/scenario/views.js";
+import { PRACTICE_MEASURE, PRACTICE_MEASURE_ID } from "../../app/scenario/practice-measure.js";
 
 const scenario = buildDemoScenario();
 const probe = scenario.practice.spam!;
@@ -70,10 +71,15 @@ describe("the practice SPAM item in the session", () => {
       await expect(o.searchAtoms("VPK")).resolves.toBeDefined(); // revision (ag): Haku usable while answering
       await o.answerSpam(PRACTICE_SPAM_KEY_OPTION);
       await o.submitSpamConfidence(100);
+      // Difficulty audit (23 Oct 2026): the measuring task follows under the same "ready" (`practice-measure.ts`), tools at hand.
+      expect(snap()).toMatchObject({ toolsLocked: false, decisionHeld: true, spam: { phase: "item", probeId: PRACTICE_MEASURE_ID } });
+      await o.answerSpam(PRACTICE_MEASURE.keyOptionId);
+      await o.submitSpamConfidence(75);
       expect(snap()).toMatchObject({ toolsLocked: false, decisionHeld: false });
       const records = (await o.logRecords()).filter((r) => /^spam_|recall_confidence/.test(r.kind));
-      expect(records.map((r) => r.kind)).toEqual(["spam_prompt_shown", "spam_ready", "spam_answered", "recall_confidence_submitted", "spam_closed"]);
+      expect(records.map((r) => r.kind)).toEqual(["spam_prompt_shown", "spam_ready", "spam_answered", "recall_confidence_submitted", "spam_answered", "recall_confidence_submitted", "spam_closed"]);
       expect(records[0]!.detail).toEqual({ probeId: PRACTICE_SPAM_ID, cycle: 0, atViewSeconds: 85 });
+      expect(records[4]!.detail).toMatchObject({ probeId: PRACTICE_MEASURE_ID });
     });
 
     it(`${condition}: a prompt left up is forced before VP ends — the clock paused, the tools usable — and the training follows its answer`, async () => {
@@ -86,6 +92,9 @@ describe("the practice SPAM item in the session", () => {
       expect(snap().secondsLeft).toBe(left); // the view's clock stands still
       await expect(o.searchAtoms("VPK")).resolves.toBeDefined();
       await o.answerSpam(PRACTICE_SPAM_KEY_OPTION);
+      await o.submitSpamConfidence(75);
+      expect(snap()).toMatchObject({ spam: { phase: "item", forced: true, probeId: PRACTICE_MEASURE_ID } }); // the measuring task, forced too
+      await o.answerSpam(PRACTICE_MEASURE.keyOptionId);
       await o.submitSpamConfidence(75);
       expect(snap().step).toBe("training");
       const records = await o.logRecords();

@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryLogSink, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import type { SessionOptions, SessionSnapshot } from "../../app/session/orchestrator.js";
-import { driveSession, driveStep, kinds, newStudySession } from "./public-run.js";
+import { driveSession, driveStep, kinds, newStudySession, passPretest } from "./public-run.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -41,6 +41,8 @@ describe("resume across the public steps (SPEC/35, SPEC/05 §9)", () => {
     expect(records.at(-1)!.detail).toMatchObject({ resumedAt: "primer", cycleReplayed: 0 });
     await o.primerPage("p1.role", 1_000);
     await o.finishPrimer();
+    expect(snap().step).toBe("map_pretest"); // difficulty audit (23 Oct 2026): the pretest after the primer
+    await passPretest(o, snap);
     expect(snap().step).toBe("briefing");
     await o.finishIntroVideo("ended");
     expect(snap()).toMatchObject({ step: "exploration", practice: true });

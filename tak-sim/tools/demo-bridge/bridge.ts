@@ -13,4 +13,9 @@ function dataUrl(): string {
   try { return new URL(DEMO_BRIDGE_DATA_FILE, src || new URL("./demo-bridge/", location.href)).href; } catch { return `./demo-bridge/${DEMO_BRIDGE_DATA_FILE}`; }
 }
 
-if (typeof window !== "undefined" && typeof window.fetch === "function") installDemoBridge(window as unknown as BridgeWindow, { dataUrl: dataUrl() });
+/** Set by `data.js` (the same data as a script) when it is published and loaded before this one. */
+const inline = typeof window !== "undefined" ? (window as unknown as { __TAK_DEMO_BRIDGE_DATA__?: unknown }).__TAK_DEMO_BRIDGE_DATA__ : undefined;
+
+if (typeof window !== "undefined" && typeof window.fetch === "function") {
+  installDemoBridge(window as unknown as BridgeWindow, { dataUrl: dataUrl(), ...(inline !== undefined ? { data: inline } : {}) });
+}

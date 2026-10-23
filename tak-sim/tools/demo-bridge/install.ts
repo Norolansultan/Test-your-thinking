@@ -26,6 +26,8 @@ export interface BridgeWindow {
 export interface BridgeOptions {
   /** Where `data.json` is (beside `bridge.js`). */
   readonly dataUrl: string;
+  /** The same data already in the page (`data.js` sets it), for viewers whose sandbox blocks the page's own fetch. */
+  readonly data?: unknown;
   readonly clock?: BridgeClock;
 }
 
@@ -94,6 +96,7 @@ export function bridgedFetch(win: BridgeWindow, original: typeof fetch, options:
     if (typeof sample !== "function") return null;
     try {
       // determinism-lint-allow: the demo bridge reads its own data file, published beside the page (no study run)
+      if (options.data !== undefined) return createBridgeServer(sample as SampleFn, parseBridgeData(options.data), options.clock);
       const res = await original(options.dataUrl, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return createBridgeServer(sample as SampleFn, parseBridgeData(await res.json()), options.clock);

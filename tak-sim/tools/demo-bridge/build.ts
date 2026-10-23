@@ -97,7 +97,9 @@ export async function buildDemoBridge(outDir: string = DEMO_BRIDGE_OUT_DIR): Pro
   if (forbidden.length > 0) throw new Error(`demo bridge: forbidden modules in the bundle: ${forbidden.join(", ")}`);
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, DEMO_BRIDGE_DATA_FILE), JSON.stringify(data), "utf8");
-  const names = [DEMO_BRIDGE_SCRIPT_FILE, DEMO_BRIDGE_DATA_FILE];
+  // The same data as a classic script, for viewers whose sandbox blocks the page's fetch of its own files.
+  writeFileSync(join(outDir, "data.js"), `window.__TAK_DEMO_BRIDGE_DATA__=${JSON.stringify(data)};\n`, "utf8");
+  const names = [DEMO_BRIDGE_SCRIPT_FILE, DEMO_BRIDGE_DATA_FILE, "data.js"];
   const leaks = findLeaks(Object.fromEntries(names.map((n) => [n, readFileSync(join(outDir, n), "utf8")])));
   if (leaks.length > 0) throw new Error(`demo bridge: premise or freeze-key content in the outputs:\n  ${leaks.join("\n  ")}`);
   const files = names.map((name) => ({ name, bytes: statSync(join(outDir, name)).size }));

@@ -54,12 +54,17 @@ content (`leaks.ts`; `test/demo-bridge/leaks.spec.ts` checks the same).
 1. In `dist/web/index.html`, add this line in `<head>`, **before** the app's `<script type="module" …>`:
 
    ```html
+   <script src="./demo-bridge/data.js"></script>
    <script src="./demo-bridge/bridge.js"></script>
    ```
 
+   `data.js` puts the same data as `data.json` in the page, for viewers whose sandbox blocks the page's fetch of its own
+   files; without it the bridge reads `data.json`.
+
    A classic script runs before the module script, so the app's first request already goes through the bridge.
 2. Publish `dist/web/index.html` as the page with its assets, and add the two bridge files at these published paths:
-   `demo-bridge/bridge.js` ← `dist/demo-bridge/bridge.js`, `demo-bridge/data.json` ← `dist/demo-bridge/data.json`
+   `demo-bridge/bridge.js` ← `dist/demo-bridge/bridge.js`, `demo-bridge/data.js` ← `dist/demo-bridge/data.js`
+   (and, optionally, `demo-bridge/data.json` ← `dist/demo-bridge/data.json`)
    (`data.json` is read from beside `bridge.js`).
 3. Declare the `sample` capability on the artifact (`capabilities: {sample: {}}`).
 

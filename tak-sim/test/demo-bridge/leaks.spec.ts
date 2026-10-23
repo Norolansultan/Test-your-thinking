@@ -23,7 +23,9 @@ const rel = (f: string) => relative(ROOT, f).split(sep).join("/");
 
 let out: string;
 let built: DemoBridgeBuild;
-const outputs = () => ({ "bridge.js": readFileSync(join(out, "bridge.js"), "utf8"), "data.json": readFileSync(join(out, "data.json"), "utf8") });
+const outputs = () => ({
+  "bridge.js": readFileSync(join(out, "bridge.js"), "utf8"), "data.json": readFileSync(join(out, "data.json"), "utf8"), "data.js": readFileSync(join(out, "data.js"), "utf8"),
+});
 
 beforeAll(async () => {
   out = mkdtempSync(join(tmpdir(), "demo-bridge-"));
@@ -32,8 +34,8 @@ beforeAll(async () => {
 afterAll(() => { if (out) rmSync(out, { recursive: true, force: true }); });
 
 describe("the bridge's outputs carry no premise data and no freeze keys", () => {
-  it("builds bridge.js and data.json", () => {
-    expect(built.files.map((f) => f.name)).toEqual(["bridge.js", "data.json"]);
+  it("builds bridge.js, data.json and data.js (the same data as a script)", () => {
+    expect(built.files.map((f) => f.name)).toEqual(["bridge.js", "data.json", "data.js"]);
     expect(built.totalBytes).toBeLessThan(4 * 1024 * 1024);
   });
 

@@ -71,6 +71,14 @@ function designOf(status: string, view: number | null): string {
   }
 }
 
+/**
+ * What the template fallback showed of a record at a retrieval rank (0-based): rank 1's text is the answer, ranks 2–3 appear only as
+ * source labels in the basis line, ranks 4–8 are retrieved but not shown (the study's model would see all eight).
+ */
+function hakuShown(rank: number): string {
+  return rank === 0 ? "rank 1: text shown" : rank <= 2 ? `rank ${rank + 1}: source label only` : `rank ${rank + 1}: retrieved, not shown`;
+}
+
 export function scoreRun(session: PlaySession, records: readonly LogRecord[]): { readonly items: ItemRow[]; readonly haku: HakuRow[] } {
   const s = session.scenario;
   const atoms = new Map(s.atoms.map((a) => [a.id, a]));
@@ -92,7 +100,7 @@ export function scoreRun(session: PlaySession, records: readonly LogRecord[]): {
       const q = viaHaku ? haku.find((h) => h.seq < anchor! && h.retrieved.includes(a.id)) : undefined;
       return {
         atomId: a.id, source: atom?.provenance.sourceId ?? "?", clock: atom ? recordClockLabel(atom) : "?", tier: a.tier, design: designOf(a.status, a.view),
-        had: log && viaHaku ? "both" : log ? "log" : viaHaku ? "haku" : "never", hakuQuestion: q ? `#${q.n} "${q.question}"` : null,
+        had: log && viaHaku ? "both" : log ? "log" : viaHaku ? "haku" : "never", hakuQuestion: q ? `#${q.n} "${q.question}" (${hakuShown(q.retrieved.indexOf(a.id))})` : null,
       };
     });
     if (item.kind === "freeze") {

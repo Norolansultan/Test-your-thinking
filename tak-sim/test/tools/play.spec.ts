@@ -139,3 +139,31 @@ describe("the freeze map's grid", () => {
     expect("error" in freezePointAt(1, 1, extent)).toBe(true);
   });
 });
+
+describe("messages that come in while a command runs", () => {
+  it("are reported, and stop a `wait`, in a run that asks for it (24 Oct 2026: the shared log list hid every one)", async () => {
+    const session = await PlaySession.create({ audience: "expert", lang: "en", waitStopsOnMessages: true });
+    const ctx = { runDir: "/nonexistent", withMap: false };
+    const asked = new Set<number>();
+    try {
+      // To the start of V2 with the smoke's policy.
+      for (let guard = 0; !(session.snap().currentCycle === 2 && session.snap().step === "exploration" && session.snap().tour === null) && guard < 600; guard++) {
+        const [cmd, ...args] = dumbPolicy(session, asked);
+        session.begin(null);
+        await runCommand(session, cmd, args, ctx);
+      }
+      expect(session.snap().currentCycle).toBe(2);
+      const logAtStart = session.snap().radioLog.length;
+      // Waits stop at whatever a participant would notice (the decision panel opening, too); wait on until the log grows.
+      let out = "";
+      for (let i = 0; i < 10 && session.snap().radioLog.length === logAtStart && session.snap().step !== "freeze"; i++) {
+        session.begin(null);
+        out = await runCommand(session, "wait", ["200"], ctx);
+      }
+      // V2's second step comes in as one burst before the freeze: the wait stops there and says so.
+      expect(session.snap().radioLog.length).toBeGreaterThan(logAtStart);
+      expect(out).toMatch(/new message\(s\) in the log/);
+      expect(session.snap().step).not.toBe("freeze");
+    } finally { session.dispose(); }
+  });
+});

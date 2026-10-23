@@ -102,7 +102,7 @@ async function smoke(config: PlayConfig, dir: string): Promise<string> {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const out = resolve(process.argv[2] ?? join("tools", "play", ".smoke"));
   rmSync(out, { recursive: true, force: true });
-  for (const config of [{ audience: "expert", lang: "fi" }, { audience: "public", lang: "en" }] as const) {
+  for (const config of [{ audience: "expert", lang: "fi", waitStopsOnMessages: true }, { audience: "public", lang: "en", waitStopsOnMessages: true }] as const) {
     process.stdout.write(`${await smoke(config, join(out, `${config.audience}-${config.lang}`))}\n`);
   }
 }

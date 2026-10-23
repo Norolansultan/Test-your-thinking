@@ -36,6 +36,11 @@ import type { Camera } from "../../app/render/map-frame.js";
 export interface PlayConfig {
   readonly audience: Audience;
   readonly lang: Lang;
+  /**
+   * `wait` stops when a message comes into the log (runs started from 24 Oct 2026). Runs started before it played with a `wait` that
+   * never saw a new message (the snapshot shares the live list), and replay keeps that rule for them so their recorded times hold.
+   */
+  readonly waitStopsOnMessages?: boolean;
 }
 
 /** One command the player issued: what, when (virtual ms at its start) and the virtual ms each of its costs spent. */
@@ -166,7 +171,8 @@ export class PlaySession {
   async spend(seconds: number, stop: (before: SessionSnapshot, now: SessionSnapshot) => boolean = interrupted): Promise<number> {
     const nominal = this.replayCosts ? this.replayCosts.shift() ?? 0 : Math.round(seconds * 1000);
     if (!this.replayCosts) this.spentNow.push(nominal);
-    const before = this.snap();
+    const live = this.snap();
+    const before = this.config.waitStopsOnMessages === true ? { ...live, radioLog: live.radioLog.slice() } : live;
     const ms = await this.clock.advance(nominal, () => stop(before, this.snap()));
     await this.autoAdvance();
     return ms / 1000;

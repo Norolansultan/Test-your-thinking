@@ -41,11 +41,13 @@ const confidenceOf = (raw: string | undefined): number => {
 /** Runs one command; returns what the player sees. Images to draw are left in `session.images`. */
 export async function runCommand(session: PlaySession, cmd: string, args: readonly string[], ctx: CommandContext): Promise<string> {
   const before = session.snap();
+  // The snapshot shares the orchestrator's live message list, so its length is read now (24 Oct 2026: no new message was ever reported).
+  const logBefore = before.radioLog.length;
   const seen = session.seenLog;
   const notes = session.autoNotes.splice(0);
   if (cmd !== "haku" && cmd !== "look" && cmd !== "haku-history") await closeHakuPane(session);
   const body = await dispatch(session, cmd, args, ctx);
-  const after = changeLines(before, session.snap(), seen, session);
+  const after = changeLines(before, logBefore, session.snap(), seen, session);
   return [...notes.map(H), body, ...after, ...session.autoNotes.splice(0).map(H)].filter((l) => l !== "").join("\n");
 }
 
@@ -410,12 +412,12 @@ async function probeAnswer(session: PlaySession, s: SessionSnapshot, args: reado
 }
 
 /** What changed while the command ran, as the participant would notice it; then where they are. */
-function changeLines(before: SessionSnapshot, now: SessionSnapshot, seenAtStart: number, session: PlaySession): string[] {
+function changeLines(before: SessionSnapshot, logBefore: number, now: SessionSnapshot, seenAtStart: number, session: PlaySession): string[] {
   const t = UI_TEXT[session.config.lang], lang = session.config.lang;
   const out: string[] = [];
   if (now.currentCycle !== before.currentCycle) out.push(`Period ended. Now: ${now.practice ? t.practiceLabel : t.viewLabel(now.currentCycle, 14)}, ${t.clock} ${now.clockLabel}.`);
   if (now.step !== before.step) out.push(`Screen: ${now.step}${now.step === "freeze" ? ` (${t.freezeTitle})` : ""}.`);
-  const fresh = now.radioLog.length - Math.max(seenAtStart, before.radioLog.length);
+  const fresh = now.radioLog.length - Math.max(seenAtStart, logBefore);
   if (fresh > 0 && now.step !== "freeze") out.push(`${fresh} new message(s) in the log: ${now.radioLog.slice(-fresh).map((e) => `${e.clockLabel} ${sourceName(lang, e.from)}`).join(", ")} (\`look\`).`);
   // A freeze blanks the log, so the messages that came in before it are shown whole: a participant watching saw them arrive.
   if (fresh > 0 && now.step === "freeze") out.push(`${fresh} message(s) came into the log before the screen froze:`, ...now.radioLog.slice(-fresh).map((e) => `  ${logRow(session, e)}`));

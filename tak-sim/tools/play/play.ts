@@ -60,7 +60,7 @@ async function main(): Promise<number> {
     if (cmd === "start") {
       const audience = flags.get("audience") ?? "expert", lang = flags.get("lang") ?? "fi";
       if ((audience !== "expert" && audience !== "public") || (lang !== "fi" && lang !== "en")) throw new PlayError("start --audience expert|public --lang fi|en");
-      result = await startRun(dir, { audience: audience as Audience, lang: lang as Lang }, { withMap });
+      result = await startRun(dir, { audience: audience as Audience, lang: lang as Lang, waitStopsOnMessages: true }, { withMap });
       if (result.ok) result = { ...result, text: [...PREAMBLE, "", result.text].join("\n") };
     } else if (cmd === "score") {
       const session = await replayRun(dir);

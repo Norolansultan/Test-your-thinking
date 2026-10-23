@@ -1,0 +1,57 @@
+run,n,view,clock,question,top_record,top_source_step,judgement,should_have_returned,note
+commander-fi,1,V0,12:00,"Mikä on tuuliennuste seuraavaksi tunniksi, onko käännöstä tulossa?",evt.wx.01,SÄÄENNUSTE s-3 recorded,hit,,
+commander-fi,2,V1,13.20,"Onko sammutushelikopteri tulossa kärkeen, ja milloin se on paikalla?",atom.demo.1.0,EK11 s1 pushed,gap,—,no record of a helicopter request or ETA before 15:39 (first: evt.c07.038)
+commander-fi,3,V1,13.20,"Tuleeko EK12:n letkulinjalle vettä riittävästi, ja onko sille lähdössä lisää letkua?",evt.c01.032,EK12 s1 pushed,partial,—,request repeated; no record says hose is sent
+commander-fi,4,V2,13.40,Onko alueelle hälytetty sammutushelikopteria tai muuta ilmasammutusta?,evt.c01.033,EK12 s1 recorded,gap,—,as #2
+commander-fi,5,V2,13.40,Onko droonien lämpökuvassa heitteitä kärjen edessä tien pohjoispuolella?,atom.demo.1.1,DR1 s1 pushed,miss,evt.c02.006 / evt.c02.009,EK11 watching embers; DR1 13:45 hot spots (recorded)
+commander-fi,6,V3,14.20,Onko kärjen lähellä lähempää vedenottopaikkaa kuin Haukilampi?,evt.c03.034,KY21 s3 recorded,miss,evt.c03.025,"EK13 (when asked) filling at W3, R3 bridge: rank 8"
+commander-fi,7,V3,14.20,Paljonko uutta palanutta alaa oli edellisessä DR3:n kehäkartoituksessa?,evt.c04.033,DR3 s4 pushed,miss,evt.c03.035,"asked for the previous survey; lexical has no recency, newest ranked 1, the 14.15 one 3rd"
+commander-fi,8,V3,14.20,Mitä DR3 ilmoitti kehäkartoituksesta klo 14.15?,evt.c03.035,DR3 s3 recorded,hit,,source+time trick (time is in the text)
+commander-fi,9,V4,14.40,"Missä EK12 on nyt kärkeen nähden, ja onko sillä perääntymistie ja vettä?",evt.c05.043,EK12 s5 recorded,miss,evt.c05.020 / evt.c05.011,"EK12 when asked (water 92 %, escape) and its vehicle location; top = EK12 hose pressure 14:58"
+commander-fi,10,V4,14.40,Mihin aikaan tuulen ennustetaan kääntyvän etelään ja myöhemmin luoteeseen?,evt.wx.02,SÄÄENNUSTE s1 recorded,hit,,
+commander-fi,11,V5,15.20,Mitä lisäyksiköitä on hälytetty ja milloin ne ovat paikalla?,evt.vp.001,HÄTÄKESKUS s-3 pushed,gap,—,"no dispatch/ETA record for EK15/EK16/KY23; only ""requesting more units"" (rank 2)"
+commander-fi,12,V5,15.20,"Onko kärjen edessä koillisessa asutusta, teitä tai muita suojattavia kohteita?",evt.c01.003,EK11 s1 pushed,gap,evt.c01.008,"nothing lies NE; the ""nearest homes"" record (rank 6) is the honest answer"
+commander-fi,13,V6,15.40,"Onko Mökkirannan mökeillä ihmisiä, ja onko niitä varoitettu?",evt.c01.008,EK11 s1 pushed,gap,—,occupancy record atom.demo.9.1 is step 9; at 15.40 (step 8) not yet reachable
+commander-fi,14,V6,15.40,Mikä on tien R1 tila Kuivakankaan kohdalla viimeisimmän havainnon mukaan?,atom.demo.1.1,DR1 s1 pushed,miss,evt.c08.012,DR2 15:47 road report not in top 8; top = DR1 13:22
+commander-fi,15,V7,16.20,"Onko poliisi ilmoittanut, onko Mökkirannan mökeissä ihmisiä?",evt.c10.029,EK14 s10 pushed,partial,atom.demo.9.1,rank 2; top = EK14 asking the same
+commander-fi,16,V7,16.20,Mitä johtopaikka kirjasi klo 16.20?,evt.c08.024,DR2 s8 recorded,miss,rekindle.in_hand.log,JOHTOPAIKKA 16:20 not in top 8; planted record at rank 3 (label only)
+commander-fi,17,V8,16.40,Onko uutta sääennustetta? Milloin tuuli kääntyy länteen tai luoteeseen ja kuinka kovaksi se voimistuu?,evt.wx.01,SÄÄENNUSTE s-3 recorded,miss,evt.wx.04,16.00 forecast rank 3; 12.00 forecast rank 1
+commander-fi,18,V8,16.40,Mitä Ilmatieteen laitoksen klo 16.01 ennuste sanoo illan tuulesta?,evt.wx.03,SÄÄENNUSTE s6 recorded,miss,evt.wx.04,rank 3; 15.00 update rank 1
+commander-fi,19,V8,16.40,Mikä on viimeisin sääennuste?,evt.c06.015,KY21 s6 recorded,miss,evt.wx.04,rank 8; a radio line rank 1
+commander-fi,20,V9,17.00,Syttymäkohdan kaakkoispuolelle on syttynyt uusi palo. Kuinka nopeasti se leviää ja onko kukaan sen lähellä?,atom.radio.7.2,KY21 s7 pushed,miss,atom.demo.12.1,SPOT 17:10 rank 2; top = Alder Creek crossing (15:22)
+commander-fi,21,V9,17.00,Mitä palovartiolento SPOT ilmoitti klo 17.10?,atom.demo.12.1,SPOT s12 recorded,hit,,source+time trick (time is in the text)
+commander-fi,22,V10,17.20,"Onko joku yksikkö menossa uudelleensyttymälle US1, ja kuinka suureksi se on kasvanut?",evt.c13.026,DR2 s13 pushed,partial,evt.c13.010,"DR2 17:25 ""separate fire ~1.0 ha"" not in top 8; nobody is tasked to RK1 (correct ""no"")"
+commander-fi,23,V10,17.20,Mitä VPK ilmoitti klo 17.24?,evt.c13.006,VD1 s13 recorded,miss,evt.c13.008,"VPK 17:24 ""smoke 600 m south, possible rekindle""; lexical matched the token 17.24 in VD1's battery log"
+commander-fi,24,V11,17.40,"Kuinka nopeasti uusi palo etenee nyt kohti Honkaharjun metsäautotietä, ja paljonko aikaa linjan tekoon on?",atom.demo.13.0,DR2 s13 pushed,partial,evt.c14.008 / evt.c14.011,DR2 7.6 m/min at 17:45 not in top 8
+commander-fi,25,V11,17.40,Mitä VPK ilmoitti klo 17.58?,evt.vp.001,HÄTÄKESKUS s-3 pushed,miss,evt.c14.038,"VPK 17:58 rank 4; top = 12:00 alarm (contains ""VPK"")"
+commander-fi,26,V12,18.20,"Mitä häkämittarit näyttävät Honkaharjun metsäautotiellä savun alla, ja onko miehistöillä perääntymistie?",atom.radio.14.1,EK16 s14 pushed,gap,—,no CO reading anywhere in the corpus; escape routes come at step 17
+commander-fi,27,V12,18.20,Mitä VPK ilmoitti klo 18.38 metsäautotieltä?,evt.vp.001,HÄTÄKESKUS s-3 pushed,miss,evt.c16.044,VPK 18:38 rank 8; top = 12:00 alarm
+commander-fi,28,V12,18.40,Näytä tilannekuva klo 18.35.,evt.c17.034,TILANNEKUVA s17 recorded,partial,evt.c16.037,got the 18:55 picture (useful); 18:35 not in top 8
+commander-fi,29,V13,19.00,"Pohjoisreunan uusi leimahdus US2: kuinka iso se on, mihin se etenee ja kuka sitä sammuttaa?",atom.demo.18.0,SPOT s18 pushed,partial,evt.c18.044 / evt.c18.006,SPOT ~170 ha / EK15 rank 7-8
+commander-fi,30,V13,19.00,Mitä uutta on tullut kymmenen viime minuutin aikana?,evt.c10.011,EK11 s10 pushed,unanswerable,—,"""what is new in 10 min"": lexical has no time filter"
+commander-fi,31,V14,19.20,Syttymäkohdan länsipuolen uudelleensyttymä US3: kuinka nopeasti ja mihin suuntaan se leviää?,atom.demo.19.2,SPOT s19 pushed,partial,atom.demo.19.3,"SPOT 19:30 (0.3 ha, smoke SE) not in top 8"
+business-en,1,V0,12:00,What's the weather forecast for the next hour?,evt.wx.01,SÄÄENNUSTE s-3 recorded,hit,,
+business-en,2,V1,13.20,How much water do the crews have left?,evt.c01.033,EK12 s1 recorded,miss,evt.c01.020 / evt.c01.024 / evt.c01.035,"T3 ""when asked"" water % (ranks 3-5 for #2); Contacts pane also shows water %"
+business-en,3,V1,13.20,What percentage of water is left in the tanks of EK11 and EK12?,atom.radio.1.0,EK11 s1 recorded,miss,evt.c01.020 / evt.c01.024,as #2
+business-en,4,V1,13.20,What are the new reports?,evt.c01.016,VPK s1 pushed,unanswerable,—,"""new reports"": no time filter"
+business-en,5,V2,13.40,Is there a risk the fire becomes a crown fire when it reaches the spruce on Spruce Hill?,atom.demo.2.0,DR1 s2 pushed,partial,—,no record before step 5 states the crown risk; DR1 13:41 is what exists
+business-en,6,V2,14.00,What do the latest drone reports say?,evt.c01.011,DRONERYHMÄ s1 recorded,miss,evt.c03.018,DR1 14:06 road report rank 7; top = drone team 13:20
+business-en,7,V3,14.20,Is there a water point closer to the fire than Pike Pond?,evt.c01.016,VPK s1 pushed,miss,evt.c03.025,EK13 to W3 not in top 8
+business-en,8,V3,14.20,"What did the previous perimeter mapping before 14.35 say, how many hectares new?",evt.c04.033,DR3 s4 pushed,miss,evt.c03.035,rank 2; newest ranked 1
+business-en,9,V3,14.20,DR3 perimeter mapping at 14.15,evt.c03.035,DR3 s3 recorded,hit,,source+time trick
+business-en,10,V4,14.40,"Has EK13 delivered the water basin, how much water do EK11 and EK12 have now?",evt.c02.008,EK12 s2 recorded,miss,evt.c05.019 / evt.c05.020,water supply 14:47 rank 3; top = EK12 13:45
+business-en,11,V4,14.40,Water supply at 14.47,evt.c05.019,VESIHUOLTO s5 recorded,hit,,source+time trick
+business-en,12,V5,15.20,Are there any houses or people in the path of the fire to the north-east?,evt.c05.005,EK12 s5 recorded,gap,evt.c01.008,nothing NE; nearest homes record not in top 8
+business-en,13,V5,15.20,When will the wind turn to the south?,evt.wx.03,SÄÄENNUSTE s6 recorded,hit,,after the 15.20 freeze
+business-en,14,V6,15.40,"Are there people at Lakeside Cottages, and are they in danger now that the wind has turned?",evt.c08.005,EK12 s8 recorded,partial,—,occupancy record not yet reachable at step 8; got the wind turn instead
+business-en,15,V6,15.40,latest road report road R1 south of Dry Heath,evt.c06.022,DR2 s6 recorded,miss,evt.c08.012,15:47 rank 4; the designed 15:07 lure ranked 1 -> wrong SPAM answer
+business-en,16,V7,16.20,Have the police checked whether there are people at the Lakeside Cottages?,evt.c10.029,EK14 s10 pushed,partial,atom.demo.9.1,rank 2
+business-en,17,V8,16.40,What is the latest weather forecast for this evening?,evt.wx.01,SÄÄENNUSTE s-3 recorded,miss,evt.wx.04,rank 3; 12.00 forecast rank 1
+business-en,18,V8,16.40,Weather forecast at 16.01,evt.wx.03,SÄÄENNUSTE s6 recorded,miss,evt.wx.04,rank 6
+business-en,19,V9,17.00,"forecast update for the evening: north-west wind, how strong, gusts?",evt.wx.05,SÄÄENNUSTE s12 recorded,hit,,
+business-en,20,V11,17.40,Latest DR3 perimeter mapping: how many hectares burned now?,evt.c04.033,DR3 s4 pushed,miss,evt.c14.033,17:55 rank 3; 14:35 rank 1
+business-en,21,V11,17.40,DR3 perimeter mapping at 17.55,evt.c14.033,DR3 s14 recorded,hit,,source+time trick
+business-en,22,V12,18.20,The heavy tankers OUT1 and OUT2 cannot cross the R3 bridge. Is there another route for them?,atom.radio.16.1,OUT2 s16 pushed,gap,—,the detour report comes at step 17
+business-en,23,V13,19.00,Is the 20 kV power line switched off?,f7.grid_record,VERKKOYHTIÖ s6 recorded,hit,,"first power-line question, prompted by the 19.00 freeze"
+business-en,24,V13,19.00,Distribution company at 19.18,evt.c18.019,DR2 s18 recorded,miss,f7.grid_at_line,rank 8; time 19.18 is not in the record text
+business-en,25,V14,19.20,How far is the south-east front from road R2 now?,atom.demo.19.1,EK12 s19 pushed,miss,evt.c19.009 / evt.c19.027,"EK16 ""fire 850 m NW"", OUT2 ""nearest fire 900 m"" not in top 8"

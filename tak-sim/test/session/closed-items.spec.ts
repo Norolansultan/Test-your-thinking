@@ -1,7 +1,8 @@
 /**
  * Revision (ai), 9 Oct 2026 (researcher: no open-ended questions in the session; three professor
  * reviews): the closed items. No free-text participant input is left except the Search/Thinker
- * question box; the questionnaire's multi-select kind (exclusive option, cell filter, seeded order with
+ * question box (and, since SPEC/36 on 23 Oct 2026, the one documented exception: the optional email
+ * field of the results step after the questionnaire, type="email", never logged); the questionnaire's multi-select kind (exclusive option, cell filter, seeded order with
  * fixed-last options, logged); the conditional `disagreement.action`; `last.basis.main` over the
  * ticked options; `felt.wrong` without a content list; `directive.fit`; the participant option order;
  * V13's area item and its scoring; the departure reason never reaching the Thinker.
@@ -26,15 +27,39 @@ const seed = (participantCode: string): OptionOrderSeed => ({ scenarioSeed: scen
 const item = (items: readonly QuestionnaireItem[], id: string) => items.find((i) => i.id === id)!;
 const optionIds = (i: QuestionnaireItem) => (i.kind === "multi" ? i.options.map((o) => o.id) : []);
 
+/**
+ * The allow-list of text inputs outside the Search/Thinker question box. SPEC/36 (23 Oct 2026): the results step's address, a
+ * necessary exception to the closed-items rule — it is not an answer to the study (the address goes to the server's separate
+ * contact store and never into the log, which records only `results_optin {optedIn}`), it is shown only after the post-session
+ * questionnaire, and it is the only input of that file, of type="email". Anything else added here needs the same justification.
+ */
+const EMAIL_EXCEPTION = "app/render/ui/components/ResultsOptInScreen.tsx";
+
 describe("no free-text participant input is left, except the Search/Thinker question box", () => {
   const files: string[] = [];
   const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.tsx?$/.test(f)) files.push(p.replace(/\\/g, "/")); } };
   walk("app");
 
-  it("no textarea anywhere; text inputs only in Haku's search drawer and the question box (RightPanel)", () => {
+  it("no textarea anywhere; text inputs only in Haku's search drawer and the question box (RightPanel), and the results step's email field", () => {
     for (const f of files) expect(readFileSync(f, "utf8"), f).not.toMatch(/<textarea/);
     const withTextInput = files.filter((f) => /<input(?![^>]*type="(checkbox|number|radio|range)")/.test(readFileSync(f, "utf8")));
-    expect(withTextInput.sort()).toEqual(["app/render/ui/components/Drawers.tsx", "app/render/ui/components/RightPanel.tsx"]);
+    expect(withTextInput.sort()).toEqual(["app/render/ui/components/Drawers.tsx", EMAIL_EXCEPTION, "app/render/ui/components/RightPanel.tsx"]);
+  });
+
+  it("the email exception is narrow: one input of type=\"email\" in the results step, no other text input there, and no address in the log", () => {
+    const source = readFileSync(EMAIL_EXCEPTION, "utf8");
+    const textInputs = source.match(/<input(?![^>]*type="(checkbox|number|radio|range)")[^>]*/g) ?? [];
+    expect(textInputs).toHaveLength(1);
+    expect(textInputs[0]).toMatch(/type="email"/);
+    // The screen hands the session a boolean only; the address goes to the contact endpoint.
+    expect(source).toContain("onDecide(true)");
+    expect(source).toContain("sendResultsContact(");
+    const orchestrator = readFileSync("app/session/orchestrator.ts", "utf8");
+    expect(orchestrator).toMatch(/async decideResultsOptIn\(optedIn: boolean\)/);
+    expect(orchestrator).toContain(`{ kind: "results_optin", detail: { optedIn } }`);
+    expect(orchestrator).not.toMatch(/email/i);
+    // The shell step mounts this screen only on the results step.
+    expect(readFileSync("app/render/ui/components/StudyShell.tsx", "utf8")).toMatch(/case "results_optin": return <ResultsOptInStep/);
   });
 
   it("no questionnaire item or probe takes text", () => {

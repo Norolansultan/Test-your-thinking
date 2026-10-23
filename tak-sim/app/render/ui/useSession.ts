@@ -30,7 +30,9 @@ export const INTRO_VIDEO_SRC = "/video/intro.mp4";
 export function useSession(scenario: ScenarioContract, condition: "directed" | "substitutive", previewOverride: PreviewOverride | null, language: Lang = "fi", showProbeLevels = true, guidedTour = false, cell?: Cell,
   start: { readonly participantCode?: string; readonly assignment?: SessionAssignment; readonly studyShell?: boolean; readonly allowPreflightOverride?: boolean; readonly allowViewSkip?: boolean;
     /** SPEC/35 §2: who the session is for and how much of it runs (`public-session.ts`), from the start page's URL. */
-    readonly audience?: Audience; readonly scope?: SessionScope } = {}, persistence?: SessionPersistence) {
+    readonly audience?: Audience; readonly scope?: SessionScope;
+    /** SPEC/36: the commander profile on screen after the results step (`?profiili=heti`). */
+    readonly immediateProfile?: boolean } = {}, persistence?: SessionPersistence) {
   const orchestratorRef = useRef<SessionOrchestrator | null>(null);
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
 

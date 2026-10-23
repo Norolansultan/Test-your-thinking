@@ -19,6 +19,8 @@
  * SPEC/32 §3 (20 Oct 2026): in phase B, the plan review at the moment the plan would become final (`plan-review.ts`; `endView`,
  * `keepPlan`, `revisePlan`), the view's clock standing still while it is open.
  * SPEC/35 (21 Oct 2026): a public session's primer and commander profile, and a phase-A session's end after V7 (`public-session.ts`).
+ * SPEC/36 (23 Oct 2026): every session's step "Personal results after the study" after the post-session questionnaire
+ * (`results_optin`, `decideResultsOptIn`); the commander profile on screen only with `immediateProfile` (`?profiili=heti`).
  */
 
 import type { RenderableAtom } from "../boundary/render-boundary.js";
@@ -148,6 +150,11 @@ export interface SessionOptions {
   readonly audience?: Audience;
   /** SPEC/35 §2: `phaseA` ends the session after V7 (the hinge) and goes on to the questionnaire; logged. Default `full`. */
   readonly scope?: SessionScope;
+  /**
+   * SPEC/36: the commander profile on screen after the results step (`?profiili=heti`: demonstrations, teaching), in either audience;
+   * logged in the header (`immediateProfile`). Default off: personal results are sent after the study closes.
+   */
+  readonly immediateProfile?: boolean;
 }
 
 /**
@@ -266,6 +273,8 @@ export class SessionOrchestrator {
   /** SPEC/35: the public layer's records (`public-session.ts`) and the last main view the scope runs (V14, or V7 in phase A). */
   private readonly publicLayer: PublicLayer;
   private readonly lastView: number;
+  /** SPEC/36: the commander profile is shown after the results step (`SessionOptions.immediateProfile`). */
+  private readonly immediateProfile: boolean;
 
   constructor(
     private readonly scenario: ScenarioContract,
@@ -288,7 +297,9 @@ export class SessionOrchestrator {
     // SPEC/35 §2: a resumed session keeps its header's audience and scope (absent in logs before 0.13.0: expert, full).
     const audience = options.resume ? options.resume.header.audience ?? "expert" : options.audience ?? "expert";
     const scope = options.resume ? options.resume.header.scope ?? "full" : options.scope ?? "full";
-    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope };
+    // SPEC/36: so does the profile's timing (absent in a header: not shown).
+    this.immediateProfile = options.resume ? options.resume.header.immediateProfile === true : options.immediateProfile === true;
+    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope, ...(this.immediateProfile ? { immediateProfile: true } : {}) };
     this.log = new SessionLog(header, options.sink ?? new InMemoryLogSink(), options.resume?.records ?? []);
     // SPEC/26 §3: the engine runs the scenario's views (14, hinge after V7, one or two steps each).
     this.loop = new EngineRunLoop(cycleScheduleOf(scenario));
@@ -1356,8 +1367,8 @@ export class SessionOrchestrator {
 
   /**
    * A questionnaire's answers (raw, `questionnaire.ts`): the pre-session item leads to the practice view (the briefing step passed at
-   * once, revision (ae)), the post-session questionnaire to the debrief. SPEC/35: in a public session, through the primer and the
-   * profile.
+   * once, revision (ae)), the post-session questionnaire to the debrief. SPEC/35: in a public session, through the primer. SPEC/36:
+   * after the post-session questionnaire, in every session, the results step (then the profile when it is on, then the debrief).
    */
   async submitQuestionnaire(answers: Readonly<Record<string, QuestionnaireValue | undefined>>): Promise<void> {
     if (this.step !== "questionnaire" || this.submitting || this.questionnaireId === null) throw new Error(`submitQuestionnaire in step ${this.step}`);
@@ -1368,7 +1379,7 @@ export class SessionOrchestrator {
       await this.event({ kind: "questionnaire_submitted", detail: { questionnaireId: view.id, answers: checked, dwellMs: this.shellDwellMs() } });
       this.questionnaireId = null;
       if (view.id === "pre" && this.publicLayer.isPublic) this.showShellStep("primer");
-      else if (view.id === "post") await (this.publicLayer.isPublic ? this.showProfile() : this.showDebrief());
+      else if (view.id === "post") this.showShellStep("results_optin"); // SPEC/36: nothing is logged until the participant answers
     } finally { this.submitting = false; }
     if (view.id === "pre" && !this.publicLayer.isPublic) return this.toBriefing();
     this.notify();
@@ -1381,7 +1392,7 @@ export class SessionOrchestrator {
     this.notify();
   }
 
-  private showShellStep(step: "primer" | "profile" | "debrief"): void {
+  private showShellStep(step: "primer" | "profile" | "debrief" | "results_optin"): void {
     this.step = step;
     this.shellShownMs = this.realMs();
   }
@@ -1408,6 +1419,25 @@ export class SessionOrchestrator {
     } finally { this.submitting = false; }
     return this.toBriefing();
   }
+
+  /**
+   * SPEC/36: the answer on the results step — `true` only once the study server has stored the participant's address (the screen
+   * sends it, `results-contact.ts`; the address never reaches the session or its log), `false` for Skip or for continuing without
+   * a server. One record (`results_optin`), then the profile when it is on (`?profiili=heti`), else the debrief.
+   */
+  async decideResultsOptIn(optedIn: boolean): Promise<void> {
+    if (this.step !== "results_optin" || this.submitting) throw new Error(`decideResultsOptIn in step ${this.step}`);
+    if (typeof optedIn !== "boolean") throw new RangeError(`decideResultsOptIn: ${String(optedIn)} is not a boolean`);
+    this.submitting = true;
+    try {
+      await this.event({ kind: "results_optin", detail: { optedIn } });
+      await (this.immediateProfile ? this.showProfile() : this.showDebrief());
+    } finally { this.submitting = false; }
+    this.notify();
+  }
+
+  /** SPEC/36: whether the commander profile follows the results step (the header's `immediateProfile`). */
+  get profileOnScreen(): boolean { return this.immediateProfile; }
 
   /** The commander profile is left: the debrief. */
   async finishProfile(): Promise<void> {
@@ -1487,7 +1517,7 @@ export class SessionOrchestrator {
   private async startResumed(plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const { target } = plan;
     if (this.studyShell) {
-      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic });
+      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic, immediateProfile: this.immediateProfile });
       if (shell) return this.startResumedShell(shell, plan, interruptedForMs);
     }
     const inView = target.kind === "view" || target.kind === "spam_forced"; // a forced SPAM item lies inside its (run-out) view
@@ -1572,7 +1602,7 @@ export class SessionOrchestrator {
 
   /** Re-enters a study-shell screen (`shell-resume.ts`): the engine is fast-forwarded to that screen's state, the interruption logged, the screen shown again. */
   private async startResumedShell(shell: ShellResumeStep, plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
-    const after = shell === "questionnaire" || shell === "profile" || shell === "debrief";
+    const after = shell === "questionnaire" || shell === "results_optin" || shell === "profile" || shell === "debrief";
     if (shell === "preflight" || shell === "ai_literacy") this.loop.transition("start");
     if (shell === "primer") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
     if (after) {
@@ -1592,7 +1622,7 @@ export class SessionOrchestrator {
     }
     else if (shell === "profile") await this.showProfile();
     else if (shell === "debrief") await this.showDebrief();
-    else this.step = shell; // the consent, the preflight, the primer (from its first page)
+    else this.step = shell; // the consent, the preflight, the primer (from its first page), the results step (SPEC/36)
     this.notify();
   }
 

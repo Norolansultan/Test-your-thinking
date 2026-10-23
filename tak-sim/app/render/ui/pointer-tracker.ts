@@ -34,6 +34,7 @@ export type Schedule = (fn: () => void, ms: number) => () => void;
 /** The steps that are not part of a view (the study shell, the screens between views, the end). */
 const OUTSIDE_VIEW: ReadonlySet<string> = new Set([
   "briefing", "training", "hinge_pause", "complete", "consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief",
+  "primer", "profile", "results_optin", // SPEC/35, SPEC/36: full-screen pages outside the views
 ]);
 
 /** Whether the snapshot is inside a view (VP or V1–V14, its freeze, probes and tour included). */

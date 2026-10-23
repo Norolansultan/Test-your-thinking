@@ -17,6 +17,7 @@ import { listSessions } from "./admin-data.js";
 import { AutoAssigner } from "./auto-assign.js";
 import { loadConfig } from "./config.js";
 import { createAppServer } from "./server.js";
+import { ResultsContactStore } from "./results-contact.js";
 
 const config = loadConfig(process.env);
 if (!existsSync(join(config.staticDir, "index.html"))) {
@@ -53,6 +54,7 @@ const server = createAppServer({
   sessionLog: new SessionLogStore({ dir: config.sessionLogDir }),
   allowedOrigins: config.allowedOrigins,
   recruitmentGate: config.recruitmentGate,
+  ...(config.resultsContactDir ? { resultsContact: new ResultsContactStore({ dir: config.resultsContactDir }) } : {}),
   ...(assign ? { assign } : {}),
   ...(config.adminToken ? { admin: { token: config.adminToken, dirs: adminDirs, ...(assign ? { assignments: assign.overview.bind(assign) } : {}) } } : {}),
   ...(deps ? {
@@ -64,6 +66,8 @@ const server = createAppServer({
 server.listen(config.port, config.host, () => {
   console.log(`serve: http://${config.host}:${config.port}/ (app ${config.staticDir})`);
   console.log(`serve: session logs -> ${config.sessionLogDir}`);
+  // SPEC/36: the directory only, never an address.
+  console.log(`serve: personal-results contacts ${config.resultsContactDir ? `-> ${config.resultsContactDir} (restrict access; delete after sending)` : "OFF (RESULTS_CONTACT_DIR=off): /api/results-contact answers 404"}`);
   // The token itself is never printed here (the start script prints it once, to its own console).
   console.log(`serve: data download ${config.adminToken ? "ON at /admin?token=<ADMIN_TOKEN>" : "OFF (ADMIN_TOKEN unset)"}`);
   if (!assign) console.log("serve: automatic assignment OFF (AUTO_ASSIGN unset): /api/assign answers 404; study links need ?koodi=");

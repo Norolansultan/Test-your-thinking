@@ -18,6 +18,7 @@ import { assertGapless, InMemoryLogSink, type LogHeader, type LogSink } from "..
 import { conditionOfCell } from "../../app/session/preview.js";
 import type { PreflightEnv } from "../../app/session/preflight.js";
 import { hasLabelEn, recordEn, tr } from "../../app/i18n/text.js";
+import { RESULTS_OPTIN_TEXT } from "../../app/i18n/results-texts.js";
 import { STUDY_TEXT } from "../../app/i18n/study-texts.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { assertNoTruthKeysPresent } from "../../app/boundary/render-boundary.js";
@@ -148,6 +149,7 @@ async function runEnglishSession(cell: Cell, participantCode = "P-3", run: { rea
         else if (s.hingeCheck?.phase === "item") await o.answerHingeCheck(s.hingeCheck.options[0]!.id);
         else await o.dismissHinge();
         break;
+      case "results_optin": await o.decideResultsOptIn(false); break; // SPEC/36: the results step, skipped
       case "debrief": await o.finishDebrief(); break;
       case "freeze": await o.submitFreeze([]); break;
       case "plan_review": // SPEC/32 §3: phase B; a cited record opened once (the guide group), then the plan kept
@@ -174,7 +176,7 @@ describe("a whole English study session (consent to the end)", () => {
     it(`${cell}: every participant-facing string is English, no truth key reaches the screen, the shell frames the run`, async () => {
       const { seen, records, o } = await runEnglishSession(cell);
       // The session went through everything.
-      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "plan_review", "plan_confidence", "hinge_pause", "debrief", "complete"]) {
+      for (const step of ["consent", "ai_literacy", "preflight", "questionnaire", "briefing", "training", "exploration", "freeze", "allocation", "probe", "plan_review", "plan_confidence", "hinge_pause", "results_optin", "debrief", "complete"]) {
         expect(seen.steps.has(step), step).toBe(true);
       }
       expect([...seen.probeTypes].sort()).toEqual(["U"]);
@@ -254,6 +256,7 @@ describe("a whole English study session (consent to the end)", () => {
     // The glossary names Finnish terms on purpose (its glosses are checked in `study-texts.spec.ts`).
     walk({ ...STUDY_TEXT.en, debrief: { ...STUDY_TEXT.en.debrief, paragraphs: null }, glossary: null });
     for (const cell of ["radio", "reasoning_once", "reasoning_intent"] as const) walk(STUDY_TEXT.en.debrief.paragraphs(cell));
+    walk(RESULTS_OPTIN_TEXT.en); // SPEC/36: the results step
     // Proper names (places, call signs) are not Finnish words; the regex lists only common words.
     expect(strings.filter((s) => FINNISH.test(s))).toEqual([]);
   });

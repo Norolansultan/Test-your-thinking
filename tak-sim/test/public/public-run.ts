@@ -1,8 +1,9 @@
 /**
  * Drives a whole study-shell session (SPEC/35 P1): consent, the AI literacy test (skipped), the preflight, the pre-session
  * item, the primer (public sessions), the intro video, VP, the training, V1–V14 (or V1–V7 with `scope: "phaseA"`), the hinge,
- * the post-session questionnaire, the commander profile (public sessions), the debrief and the end. The real clock is the
- * fake timers' `Date.now()` (the spec sets it to 0), so every record is deterministic.
+ * the post-session questionnaire, the results step (SPEC/36: skipped here unless `optIn`), the commander profile (only with
+ * `immediateProfile`), the debrief and the end. The real clock is the fake timers' `Date.now()` (the spec sets it to 0), so every
+ * record is deterministic.
  */
 
 import { vi } from "vitest";
@@ -46,18 +47,18 @@ export async function passPrimer(o: SessionOrchestrator): Promise<void> {
  * Moves the session on from the screen it is at until `stopAt` is on screen (or the end is complete). Each step is
  * answered as a participant would: the pre-session item 3, the post-session questionnaire blank.
  */
-export async function driveSession(o: SessionOrchestrator, snap: () => SessionSnapshot, stopAt: readonly SessionSnapshot["step"][] = []): Promise<void> {
+export async function driveSession(o: SessionOrchestrator, snap: () => SessionSnapshot, stopAt: readonly SessionSnapshot["step"][] = [], optIn = false): Promise<void> {
   for (let guard = 0; guard < 400; guard++) {
     const s = snap();
     if (stopAt.includes(s.step)) return;
-    await driveStep(o, snap);
+    await driveStep(o, snap, optIn);
     if (s.step === "complete") return;
   }
   throw new Error(`driveSession: no end (at ${snap().step})`);
 }
 
 /** Answers the screen on show: one shell screen, or the whole view on screen (with the training or the hinge after it). */
-export async function driveStep(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
+export async function driveStep(o: SessionOrchestrator, snap: () => SessionSnapshot, optIn = false): Promise<void> {
   const s = snap();
   switch (s.step) {
     case "consent": return o.decideConsent(true, true);
@@ -66,6 +67,7 @@ export async function driveStep(o: SessionOrchestrator, snap: () => SessionSnaps
     case "questionnaire": return o.submitQuestionnaire(s.questionnaire!.id === "pre" ? { "fatigue.start": 3 } : {});
     case "primer": return passPrimer(o);
     case "briefing": return o.finishIntroVideo("ended");
+    case "results_optin": return o.decideResultsOptIn(optIn);
     case "profile": return o.finishProfile();
     case "debrief": return o.finishDebrief();
     case "complete": return o.completeSession();

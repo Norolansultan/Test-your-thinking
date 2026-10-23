@@ -1,5 +1,6 @@
 /**
- * SPEC/35 §4: the commander profile after the questionnaire (public sessions; work package P1 shows it and logs `profile_shown`).
+ * SPEC/35 §4: the commander profile after the questionnaire (work package P1 shows it and logs `profile_shown`). Since SPEC/36 (23 Oct
+ * 2026) it is shown only with `?profiili=heti` (either audience); otherwise the same profile is sent after the study closes.
  * One calm page: three cards (calibration, checking, tool use), each with the participant's own value, what the pattern means in
  * general and one generic tip, the expert comparison's slot, the note that the profile is private and not a test score, and Continue.
  * The values come from `commanderProfile` (`app/telemetry/profile.ts`), which returns aggregates only: nothing here can name an

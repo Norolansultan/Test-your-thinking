@@ -9,18 +9,14 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { VNode } from "preact";
 import { describe, expect, it, vi } from "vitest";
-import { tr } from "../../app/i18n/text.js";
 import { ProfileScreen, ProfileView } from "../../app/render/ui/components/ProfileScreen.js";
 import { PROFILE_TEXT } from "../../app/render/ui/profile/profile-texts.js";
-import { buildFreezes, buildPracticeFreeze } from "../../app/scenario/demo-probes.js";
-import type { FreezeItem } from "../../app/scenario/types.js";
 import { commanderProfile, type CommanderProfile } from "../../app/telemetry/profile.js";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { freezeLog, guideQuestion, hakuChat, LogBuilder, plan, recordOpened, reviewClosed, reviewShown, revisePlan, sessionStarted, start, viewEnded } from "./fixtures.js";
+import { ALL_ITEMS, FORBIDDEN_TOKENS, FREEZES, leaks } from "./leak-scan.js";
 
-const FREEZES = buildFreezes();
 const PHASE_A = FREEZES.filter((f) => f.cycle <= 7);
-const ALL_ITEMS: readonly FreezeItem[] = [...FREEZES.flatMap((f) => f.items), ...(buildPracticeFreeze()?.items ?? [])];
 
 /** Every string a vnode tree renders (text and string props), function components called. */
 function strings(node: unknown, out: string[] = []): string[] {
@@ -53,19 +49,7 @@ function textStrings(node: unknown, out: string[] = []): string[] {
   return out;
 }
 
-/** The forbidden strings: item ids, identifier-like option ids (whole tokens), prompts and option labels (fi, en), map-key coordinates. */
-const FORBIDDEN_SUBSTRINGS: readonly string[] = [...new Set(ALL_ITEMS.flatMap((item) => [
-  item.id, item.promptFi, tr("en", item.promptFi),
-  ...item.options.flatMap((o) => [o.labelFi, tr("en", o.labelFi)]),
-  ...(item.mapKey ? [item.mapKey.point.lat.toFixed(4), item.mapKey.point.lon.toFixed(4)] : []),
-]).filter((s) => s.length >= 6).map((s) => s.toLowerCase()))];
-const FORBIDDEN_TOKENS: readonly string[] = [...new Set(ALL_ITEMS.flatMap((item) => item.options.map((o) => o.id)).filter((id) => /[_\d]/.test(id)))];
-
-function leaks(text: string): string[] {
-  const lower = text.toLowerCase();
-  const tokens = new Set(lower.split(/[^a-z0-9_äöå.]+/));
-  return [...FORBIDDEN_SUBSTRINGS.filter((s) => lower.includes(s)), ...FORBIDDEN_TOKENS.filter((t) => tokens.has(t.toLowerCase()))];
-}
+/** The forbidden strings and the scan: `leak-scan.ts` (shared with the personal results reports' test, SPEC/36). */
 
 function sessions(): Record<string, LogRecord[]> {
   const guide = new LogBuilder().add(sessionStarted("reasoning_once"));

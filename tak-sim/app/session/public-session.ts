@@ -5,8 +5,9 @@
  *   it `scope: "phaseA"` (default `full`): the session ends at the hinge, after V7, and goes on to the questionnaire. Both are
  *   chosen on the start page from the URL and logged in the header (`audience`, `scope`).
  * - **The public steps** (§3, §4): the primer after the pre-session item and before the intro video and the practice view
- *   (`primer`; left with `briefing_advanced` "briefing.primer"), and the commander profile after the post-session questionnaire
- *   and before the debrief (`profile`; `profile_shown`). Both are full-screen pages outside the views: nothing in a view changes.
+ *   (`primer`; left with `briefing_advanced` "briefing.primer"). The commander profile after the post-session questionnaire
+ *   (`profile`; `profile_shown`) is, since SPEC/36 (23 Oct 2026), off by default in every audience and shown only with
+ *   `?profiili=heti`. Both are full-screen pages outside the views: nothing in a view changes.
  * - **The explanation layer's records** (§3, §6): a primer page left (`primer_page`), a primer check answered (`primer_check`),
  *   a glossary term opened (`glossary_opened`) and a help-card section opened (`help_card_opened`). Logged as they happen, in public
  *   sessions only; they never touch the run's timing (no clock pause, no step or view change). An expert session logs none.
@@ -39,6 +40,18 @@ export function sessionSettingFromUrl(search: string): SessionSetting {
   const scope = Object.hasOwn(SCOPE_PARAM_VALUES, raw) ? SCOPE_PARAM_VALUES[raw] : undefined;
   if (!scope) return { invalid: `?${SCOPE_PARAM}= must be "a" (phase A only); got "${raw}"` };
   return { audience, scope };
+}
+
+/**
+ * SPEC/36 (23 Oct 2026): `?profiili=heti` shows the commander profile on screen after the questionnaire (demonstrations and teaching
+ * before a lecture), in either audience; logged in the header (`immediateProfile`). Without it, the default for everyone, the
+ * profile is not shown: personal results are sent after the study closes. Any other value leaves it off.
+ */
+export const PROFILE_PARAM = "profiili";
+export const PROFILE_NOW_VALUE = "heti";
+
+export function immediateProfileFromUrl(search: string): boolean {
+  return new URLSearchParams(search).get(PROFILE_PARAM) === PROFILE_NOW_VALUE;
 }
 
 /** The last main view the session runs: V14, or the hinge view (V7) in a phase-A session. */

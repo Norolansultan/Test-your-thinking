@@ -28,9 +28,13 @@
  *   RECRUITMENT_GATE      "1" while recruitment runs (`recruitment-gate.ts`): the app's page is served only to a
  *                         study link (`?tuotanto`) — the demonstration's start page is not reachable; unset or
  *                         "0" = off (the demonstration, with its professional/public version switch, SPEC/35)
+ *   RESULTS_CONTACT_DIR   SPEC/36: where participants' addresses for the personal results go (`results-contact.ts`;
+ *                         default logs/results-contacts under the app); must not be or lie inside SESSION_LOG_DIR
+ *                         (nor contain it), so the research data and their download never hold an address; "off" =
+ *                         /api/results-contact answers 404 (the participant's step says the address could not be saved)
  */
 
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import type { Cell } from "../../app/scenario/types.js";
 import { REPO_ROOT, type ThinkerServerMode } from "../thinker/config.js";
 import { MIN_ADMIN_TOKEN_LENGTH } from "./admin.js";
@@ -52,6 +56,8 @@ export interface ProductionConfig {
   readonly autoAssign: AutoAssignConfig | null;
   /** RECRUITMENT_GATE=1: only study links reach the app; the demonstration does not. */
   readonly recruitmentGate: boolean;
+  /** SPEC/36: the personal-results contact directory; null (RESULTS_CONTACT_DIR=off) = the route answers 404. */
+  readonly resultsContactDir: string | null;
 }
 
 /** RECRUITMENT_GATE, as the server reads it: "1" on, unset/""/"0" off. */
@@ -82,12 +88,24 @@ export function loadConfig(env: Readonly<Record<string, string | undefined>>): P
   const autoAssign = autoAssignConfig(env);
   const recruitmentGate = recruitmentGateFrom(env.RECRUITMENT_GATE);
   const dir =(value: string | undefined, fallback: string) => (value ? (isAbsolute(value) ? value : resolve(REPO_ROOT, value)) : resolve(REPO_ROOT, fallback));
+  const sessionLogDir = dir(env.SESSION_LOG_DIR, "logs/sessions");
+  const contactRaw = env.RESULTS_CONTACT_DIR?.trim();
+  const resultsContactDir = contactRaw === "off" ? null : dir(contactRaw || undefined, "logs/results-contacts");
+  if (resultsContactDir !== null && (within(resultsContactDir, sessionLogDir) || within(sessionLogDir, resultsContactDir))) {
+    throw new ConfigError(`RESULTS_CONTACT_DIR (${resultsContactDir}) must be apart from SESSION_LOG_DIR (${sessionLogDir}): contact addresses never go with the research data`);
+  }
   return {
     port, host: env.HOST ?? "127.0.0.1", allowedOrigins,
-    sessionLogDir: dir(env.SESSION_LOG_DIR, "logs/sessions"),
+    sessionLogDir,
     staticDir: dir(env.STATIC_DIR, "dist/ui"),
-    thinker, thinkerMode, adminToken, autoAssign, recruitmentGate,
+    thinker, thinkerMode, adminToken, autoAssign, recruitmentGate, resultsContactDir,
   };
+}
+
+/** Whether `path` is `base` or lies inside it. */
+function within(path: string, base: string): boolean {
+  const rel = relative(base, path);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
 function positiveInt(name: string, raw: string | undefined): number | null {

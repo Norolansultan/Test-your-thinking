@@ -1,8 +1,9 @@
 /**
  * SPEC/35 P1: a public session's flow — consent … the pre-session item → the primer → the intro video → VP … V14 → the
- * post-session questionnaire → the commander profile → the debrief → the end; `scope: "phaseA"` ends at the hinge (after V7);
- * the explanation layer's records; and the stimulus unchanged: between VP's start and the last view's end a public session writes
- * exactly an expert session's records, plus the layer's own.
+ * post-session questionnaire → the results step (SPEC/36) → the debrief → the end, the commander profile between the results step
+ * and the debrief only with `immediateProfile` (`?profiili=heti`, SPEC/36: off by default); `scope: "phaseA"` ends at the hinge
+ * (after V7); the explanation layer's records; and the stimulus unchanged: between VP's start and the last view's end a public
+ * session writes exactly an expert session's records, plus the layer's own.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,9 +28,9 @@ function stimulus(records: readonly LogRecord[]): string[] {
 }
 
 describe("a public session (SPEC/35 §3–§5)", () => {
-  it("runs the primer before the intro video and VP, and the profile after the questionnaire and before the debrief", async () => {
-    const { o, records } = await wholeSession({ audience: "public" });
-    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.13.0" });
+  it("runs the primer before the intro video and VP; with `?profiili=heti` the profile after the results step and before the debrief", async () => {
+    const { o, records } = await wholeSession({ audience: "public", immediateProfile: true });
+    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.14.0", immediateProfile: true });
     const at = {
       pre: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "pre"),
       firstPage: index(records, (r) => r.kind === "primer_page"),
@@ -37,13 +38,15 @@ describe("a public session (SPEC/35 §3–§5)", () => {
       video: index(records, screenIs("briefing.video")),
       vp: index(records, (r) => r.kind === "cycle_start"),
       post: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "post"),
+      optIn: index(records, (r) => r.kind === "results_optin"),
       profile: index(records, (r) => r.kind === "profile_shown"),
       debrief: index(records, (r) => r.kind === "debrief_shown"),
       completed: index(records, (r) => r.kind === "session_completed"),
     };
     expect(Object.values(at).every((i) => i >= 0)).toBe(true);
-    expect([at.pre, at.firstPage, at.primerLeft, at.video, at.vp, at.post, at.profile, at.debrief, at.completed]).toEqual([...Object.values(at)].sort((a, b) => a - b));
-    expect(at.profile).toBe(at.post + 1);
+    expect([at.pre, at.firstPage, at.primerLeft, at.video, at.vp, at.post, at.optIn, at.profile, at.debrief, at.completed]).toEqual([...Object.values(at)].sort((a, b) => a - b));
+    expect(at.optIn).toBe(at.post + 1);
+    expect(at.profile).toBe(at.optIn + 1);
     expect(at.debrief).toBe(at.profile + 1);
     expect(kinds(records.slice(at.pre + 1, at.primerLeft + 1))).toEqual(["primer_page", "primer_check", "primer_check", "primer_page", "briefing_advanced"]);
     expect(records.slice(at.firstPage, at.primerLeft).map((r) => r.detail)).toEqual([
@@ -68,9 +71,18 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     }
   }, 120_000);
 
-  it("the steps on screen: primer (BRIEFING), then the video; profile (DEBRIEF_HANDOFF), then the debrief", async () => {
+  it("without `?profiili=heti` (the default, SPEC/36) no profile: the questionnaire, the results step, the debrief", async () => {
+    const { o, records } = await wholeSession({ audience: "public" });
+    expect(o.logHeader).not.toHaveProperty("immediateProfile");
+    expect(kinds(records)).not.toContain("profile_shown");
+    const post = index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "post");
+    expect(kinds(records.slice(post, post + 3))).toEqual(["questionnaire_submitted", "results_optin", "debrief_shown"]);
+    expect(records[post + 2]!.detail).toEqual({ textId: "debrief.public.full" });
+  }, 60_000);
+
+  it("the steps on screen: primer (BRIEFING), then the video; the results step and the profile (DEBRIEF_HANDOFF), then the debrief", async () => {
     vi.setSystemTime(0);
-    const { o, snap } = newStudySession({ audience: "public" });
+    const { o, snap } = newStudySession({ audience: "public", immediateProfile: true });
     await o.start();
     await driveSession(o, snap, ["primer"]);
     expect(snap().step).toBe("primer");
@@ -84,8 +96,12 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     expect(snap().step).toBe("briefing");
     expect(snap().introVideo).not.toBeNull();
     await expect(o.primerPage("p1", 10)).rejects.toThrow(/primerPage in step briefing/);
-    await driveSession(o, snap, ["profile"]);
+    await driveSession(o, snap, ["results_optin"]);
     expect(o.engineState).toBe("DEBRIEF_HANDOFF");
+    await expect(o.finishProfile()).rejects.toThrow(/finishProfile in step results_optin/);
+    await o.decideResultsOptIn(true);
+    expect(snap().step).toBe("profile");
+    await expect(o.decideResultsOptIn(true)).rejects.toThrow(/decideResultsOptIn in step profile/);
     await expect(o.finishDebrief()).rejects.toThrow(/finishDebrief in step profile/);
     await o.finishProfile();
     expect(snap()).toMatchObject({ step: "debrief", debrief: { textId: "debrief.public.full" } });

@@ -3,7 +3,8 @@
  * AI literacy questionnaire (SNAIL, revision (ac), 9 Oct 2026), the preflight and its refusal, the questionnaires, the debrief. Full-screen pages like the briefing
  * (`IntroScreen`). The texts are in `app/i18n/study-texts.ts`, all DRAFT; the consent text is a
  * placeholder for the ethics board and says so on screen. SPEC/35 (21 Oct 2026): a public session's consent, questionnaire
- * items and debrief come from `app/i18n/public-texts.ts`, and its primer and commander profile are shown here too.
+ * items and debrief come from `app/i18n/public-texts.ts`, and its primer and commander profile are shown here too. SPEC/36 (23 Oct
+ * 2026): every session's results step (`ResultsOptInScreen`), after the post-session questionnaire.
  */
 
 import { useEffect, useState } from "preact/hooks";
@@ -17,6 +18,7 @@ import { gatherPreflightEnv } from "../preflight-env.js";
 import { useLang } from "../i18n.js";
 import { PrimerScreen } from "./PrimerScreen.js";
 import { ProfileScreen } from "./ProfileScreen.js";
+import { ResultsOptInScreen } from "./ResultsOptInScreen.js";
 
 const page = { display: "flex", height: "100%", overflowY: "auto", justifyContent: "center", padding: "32px 24px", boxSizing: "border-box" } as const;
 const column = { maxWidth: 720, width: "100%", display: "flex", flexDirection: "column", gap: 14 } as const;
@@ -37,12 +39,13 @@ export function StudyShell({ snapshot, orchestrator }: { readonly snapshot: Sess
     case "debrief": return <DebriefScreen snapshot={snapshot} orchestrator={orchestrator} />;
     case "primer": return <PrimerStep orchestrator={orchestrator} />;
     case "profile": return <ProfileStep orchestrator={orchestrator} />;
+    case "results_optin": return <ResultsOptInStep orchestrator={orchestrator} />;
     default: return null;
   }
 }
 
-/** The steps the shell draws (full screen); SPEC/35: a public session's primer and commander profile too. */
-export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief", "primer", "profile"]);
+/** The steps the shell draws (full screen); SPEC/35: a public session's primer and commander profile too; SPEC/36: the results step. */
+export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief", "primer", "profile", "results_optin"]);
 
 /** The shell's texts for this session (SPEC/35: the public consent, questionnaire items and debrief in a public session). */
 function textOf(lang: Lang, orchestrator: SessionOrchestrator) {
@@ -67,6 +70,12 @@ function ProfileStep({ orchestrator }: { readonly orchestrator: SessionOrchestra
   useEffect(() => { void orchestrator.logRecords().then(setRecords); }, []);
   if (!records) return null;
   return <ProfileScreen lang={lang} records={records} onDone={() => void orchestrator.finishProfile().catch(() => undefined)} />;
+}
+
+/** SPEC/36: the results step; the address goes from the screen to the server, the session learns only the outcome. */
+function ResultsOptInStep({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {
+  const { lang } = useLang();
+  return <ResultsOptInScreen lang={lang} sessionId={orchestrator.logHeader.sessionId} onDecide={(optedIn) => orchestrator.decideResultsOptIn(optedIn)} />;
 }
 
 function ConsentScreen({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {

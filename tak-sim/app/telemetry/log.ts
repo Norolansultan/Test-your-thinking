@@ -85,6 +85,12 @@ export interface LogHeader {
    */
   readonly scope?: "full" | "phaseA";
   /**
+   * SPEC/36 (23 Oct 2026, 0.14.0): the commander profile was shown on screen after the questionnaire (`?profiili=heti`: demonstrations
+   * and teaching). Absent (the default since 0.14.0): the profile is not shown; personal results are sent after the study closes.
+   * In 0.13.0 logs a public session showed the profile without this field.
+   */
+  readonly immediateProfile?: boolean;
+  /**
    * Where `cell` came from (SPEC/27 §2.2, 5 Oct 2026; `app/session/preview.ts` `SessionAssignment`):
    * `table` — the allocation table by participant code (`participantCode` is the table's code;
    * `tableSha256` is the table's `rowsSha256`; `block` its block in the language stratum), the only

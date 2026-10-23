@@ -191,7 +191,7 @@ describe("the questionnaires and the debrief", () => {
     expect(snap().practice).toBe(true);
   });
 
-  it("after V14 the post-session questionnaire comes before any debrief; then the debrief by cell; then COMPLETE", async () => {
+  it("after V14 the post-session questionnaire comes before any debrief; then the results step (SPEC/36); then the debrief by cell; then COMPLETE", async () => {
     const { o, snap } = await toEnd("reasoning_intent");
     const q = snap().questionnaire!;
     expect(q.id).toBe("post");
@@ -225,6 +225,14 @@ describe("the questionnaires and the debrief", () => {
     expect(answer("last.basis.main").value).toBe("thinker");
     expect(answer("disagreement.action")).toMatchObject({ value: null, notShown: true });
     expect(JSON.stringify(submitted)).not.toMatch(/power line/);
+    // SPEC/36: the results step, nothing logged until the answer; then one `results_optin` record and the debrief.
+    expect(snap()).toMatchObject({ step: "results_optin", debrief: null });
+    expect(records.at(-1)!.kind).toBe("questionnaire_submitted");
+    await expect(o.finishDebrief()).rejects.toThrow(/finishDebrief in step results_optin/);
+    await expect(o.decideResultsOptIn("yes" as never)).rejects.toThrow(RangeError);
+    await o.decideResultsOptIn(false);
+    records = await o.logRecords();
+    expect(records.at(-2)!).toMatchObject({ kind: "results_optin", detail: { optedIn: false } });
     expect(snap()).toMatchObject({ step: "debrief", debrief: { textId: "debrief.reasoning_intent", cell: "reasoning_intent" } });
     expect(records.at(-1)!).toMatchObject({ kind: "debrief_shown", detail: { textId: "debrief.reasoning_intent" } });
 
@@ -316,6 +324,8 @@ describe("resume into the study shell (5 Oct 2026)", () => {
     const { o, snap } = await resumeFrom(sink, "reasoning_intent");
     expect(snap()).toMatchObject({ step: "questionnaire", questionnaire: { id: "post" } });
     await o.submitQuestionnaire({});
+    expect(snap().step).toBe("results_optin");
+    await o.decideResultsOptIn(true);
     expect(snap().step).toBe("debrief");
     await o.finishDebrief();
     expect(snap().step).toBe("complete");

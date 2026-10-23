@@ -58,6 +58,8 @@ type LaunchProps = {
   readonly uiShell: UiShell;
   /** SPEC/35 §2: the public-audience version (`?yleiso`) and the session's scope (`?laajuus=a`); logged in the header. */
   readonly audience?: Audience | undefined; readonly scope?: SessionScope | undefined;
+  /** SPEC/36: the commander profile on screen after the results step (`?profiili=heti`); logged in the header. */
+  readonly immediateProfile?: boolean | undefined;
 };
 
 function Centered({ children }: { readonly children: ComponentChildren }) {

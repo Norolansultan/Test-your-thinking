@@ -227,3 +227,28 @@ The full list is in `haku.csv`. The pattern, with representative cases:
 - **A harness bug hid new log messages** for the whole session (finding 2). The "I never saw it" reports for the V2 and V4 bursts overstate what a participant would miss.
 - **Not available to the players:** the intro video, the primer's illustrations, the tour's pointers, hovers and the window-size behaviour. The map was drawn at one window size.
 - **One coder, with keys.** The verdicts in `items.csv` are DRAFT. The panel items in §5 need fire officers.
+
+---
+
+## 9. Replication without item ids (24 Oct 2026)
+
+A third run, `commander-en` ("Kari", expert version, **English**, 32 Haku questions), was played on the harness after the id fix: no item or option ids were shown. It was started before the message-reporting fix, so `wait` did not stop at new messages; its V4 burst again went unannounced. Scores from `npm run -s play -- score` count 60 scored entries, including the practice:
+
+| Run | All | L1 | L2 | L3 |
+|---|---|---|---|---|
+| commander-fi (ids shown) | 53/60 | 17/21 | 16/16 | 20/23 |
+| business-en (ids shown) | 47/60 | 14/21 | 15/16 | 18/23 |
+| commander-en (no ids) | 51/60 | 17/21 | 15/16 | 19/23 |
+
+**The same items fail in all three runs, so they are item or design problems, not player or harness luck:**
+- `probe.s.cycle_3.b`: lost to the hidden 60 s window for the third time out of three. Each time the player was searching for the record the item needs (finding 3, D4).
+- `freeze.12.head_now`: 278 m off (327 and 268 m before), displaced the same way (finding 1, D1).
+- `freeze.10.south_front_point`: 203 m off against a 100 m tolerance (112 and 199 m before) (finding 4, D8).
+- `freeze.4.head_later`: 614 m off (518 and 792 m before) (§5 panel item).
+- `freeze.10.infra`: "threatened" again (§5 panel item).
+
+**`freeze.4.ek12_where` was answered wrong at confidence 100** ("spruce edge", the position at the header's 15.00). That is the "now" contradiction of finding 1 producing a confident error. Kari wrote that this item contradicts the item asking about the withdrawal.
+
+**The id hints were not what carried the cued items.** Without ids, `ek11_between` (confidence 100), `head_unattended` and `cp_safe` were still answered right. The cue is in the stems and in the safety-sounding defaults (finding 5, D3), not only in the ids. `area_total_hour` was wrong at confidence 25 without the id, which fits "no basis in the log" (finding 5, D5). `ek14_shelter` was right at confidence 50 after Kari found the 15.00 forecast with Haku (V4), which is the intended route.
+
+**Haku in English:** 9 of 32 questions fully hit what was needed, 6 partly, 17 missed. Questions about "now" returned records hours old, still marked certain: the 12:10 weather station reading at 15:20; DR2 17:21 "a good kilometre from R2" at 19:20. Air-support and reinforcement arrival times were never answered (D9). The workaround again was to quote a record's own words or the basis line's source and time (D10). As in Finnish, the planted power-line record and VOL1's smouldering objection never reached the player.

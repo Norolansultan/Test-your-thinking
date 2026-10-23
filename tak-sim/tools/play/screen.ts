@@ -32,6 +32,19 @@ import { openingOf, widthMetres } from "./map-camera.js";
 import { pageText } from "./screen-pages.js";
 
 /** A text with the glossary's terms marked ‹…› in a public session (the app underlines them; `glossary <term>` opens one). */
+/** The letter a player types for an option (a, b, c …): the app shows option texts only, never their ids (some ids name the key). */
+export function optionLetter(index: number): string {
+  return String.fromCharCode(97 + index);
+}
+
+/** An option chosen by its letter or, as in runs played before the letters, by its id; null when neither. */
+export function optionByArg(ids: readonly string[], arg: string | undefined): string | null {
+  if (arg === undefined) return null;
+  if (ids.includes(arg)) return arg;
+  const i = /^[a-z]$/.test(arg) ? arg.charCodeAt(0) - 97 : -1;
+  return i >= 0 && i < ids.length ? ids[i]! : null;
+}
+
 export function gl(session: PlaySession, text: string): string {
   const segs = glossedSegments(session.config.audience, session.config.lang, text);
   return segs ? segs.map((s) => (s.kind === "term" ? `‹${s.text}›` : s.text)).join("") : text;
@@ -108,10 +121,10 @@ function spamLines(session: PlaySession, s: SessionSnapshot): string[] {
   const out = [`-- ${t.spam.title}${spam.itemCount > 1 ? ` · ${t.spam.itemOf(spam.itemIndex, spam.itemCount)}` : ""} --`];
   if (spam.forced) out.unshift(t.spam.forcedTitle);
   out.push(gl(session, tr(lang, spam.promptFi)));
-  for (const o of spam.options) out.push(`  ${o.id}: ${gl(session, tr(lang, o.fi))}${spam.chosen === o.id ? "  ◀" : ""}`);
+  spam.options.forEach((o, i) => out.push(`  ${optionLetter(i)}) ${gl(session, tr(lang, o.fi))}${spam.chosen === o.id ? "  ◀" : ""}`));
   if (spam.phase === "confidence") out.push(`${t.spam.confidencePrompt} (${scale})`);
   out.push(spam.forced ? t.spam.forcedNote : t.spam.note);
-  out.push(H(spam.phase === "item" ? "`spam-answer <option id> <confidence 25|50|75|100>` — the choice is final." : "`spam-answer <confidence>` gives the confidence."));
+  out.push(H(spam.phase === "item" ? "`spam-answer <letter> <confidence 25|50|75|100>` — the choice is final." : "`spam-answer <confidence>` gives the confidence."));
   return out;
 }
 
@@ -122,11 +135,11 @@ function probeLines(session: PlaySession, s: SessionSnapshot): string[] {
   if (p.kind === "area") {
     out.push(`  ${t.visibleProbe.yes} / ${t.visibleProbe.no}`);
     if (p.followUpFi) out.push(`  (${t.visibleProbe.yes} →) ${gl(session, tr(lang, p.followUpFi))}`);
-    for (const o of p.options) out.push(`    ${o.id}: ${gl(session, tr(lang, o.fi))}`);
-    out.push(H("`probe-answer no`, or `probe-answer yes <option id>[,<option id>…]` (any number, in your order)."));
+    p.options.forEach((o, i) => out.push(`    ${optionLetter(i)}) ${gl(session, tr(lang, o.fi))}`));
+    out.push(H("`probe-answer no`, or `probe-answer yes <letter>[,<letter>…]` (any number, in your order)."));
   } else if (p.kind === "choice") {
-    for (const o of p.options) out.push(`  ${o.id}: ${gl(session, tr(lang, o.fi))}`);
-    out.push(H(`\`probe-answer <option id>${p.collectsConfidence ? " <confidence 25|50|75|100>" : ""}\`.`));
+    p.options.forEach((o, i) => out.push(`  ${optionLetter(i)}) ${gl(session, tr(lang, o.fi))}`));
+    out.push(H(`\`probe-answer <letter>${p.collectsConfidence ? " <confidence 25|50|75|100>" : ""}\`.`));
   } else out.push(`  ${scale}`, H("`probe-answer <25|50|75|100>`."));
   out.push(t.visibleProbe.note);
   return out;
@@ -156,8 +169,8 @@ function decisionLines(session: PlaySession, s: SessionSnapshot): string[] {
       if (s.hingeDirective !== null) out.push(`${t.hingeDirectiveFrom}: ${gl(session, tr(lang, s.hingeDirective))}`);
       if (check?.phase === "directive") out.push(`[${t.hingeCheck.read}] → \`continue\``);
       if (check && check.phase !== "directive") {
-        out.push(gl(session, tr(lang, check.promptFi)), ...check.options.map((o) => `  ${o.id}: ${gl(session, tr(lang, o.labelFi))}${check.chosen === o.id ? "  ◀" : ""}`));
-        if (check.phase === "item") out.push(t.hingeCheck.note, H("`hinge-answer <option id>`."));
+        out.push(gl(session, tr(lang, check.promptFi)), ...check.options.map((o, i) => `  ${optionLetter(i)}) ${gl(session, tr(lang, o.labelFi))}${check.chosen === o.id ? "  ◀" : ""}`));
+        if (check.phase === "item") out.push(t.hingeCheck.note, H("`hinge-answer <letter>`."));
       }
       if (!check || check.phase === "answered") out.push(`[${t.continue}] → \`continue\``);
       return out;
@@ -215,14 +228,14 @@ function freezeText(session: PlaySession, s: SessionSnapshot, mapPath: string, w
     return { text: out.join("\n"), images };
   }
   const item = items[state.index]!;
-  out.push("", `${t.freezeProgress(state.index + 1, items.length)} · ${t.freezeNoReturn}`, `[${item.id}] ${gl(session, tr(lang, item.promptFi))}`);
+  out.push("", `${t.freezeProgress(state.index + 1, items.length)} · ${t.freezeNoReturn}`, gl(session, tr(lang, item.promptFi)));
   if (isMapItem(item)) {
     out.push(t.freezeMapHint);
     if (withMap) { images.push({ kind: "freeze", path: mapPath, lang }); out.push(H(`Map (basemap only, as the app's memory-check map): ${mapPath}`)); }
-    out.push(H(`Answer with the image's pixel coordinates read off its grid: \`freeze-answer ${item.id} <x>,<y> <confidence 25|50|75|100>\`. The point must lie inside the study area (unshaded).`));
+    out.push(H(`Answer with the image's pixel coordinates read off its grid: \`freeze-answer <x>,<y> <confidence 25|50|75|100>\`. The point must lie inside the study area (unshaded).`));
   } else {
-    for (const o of item.options) out.push(`  ${o.id}: ${gl(session, tr(lang, o.labelFi))}`);
-    out.push(H(`\`freeze-answer ${item.id} <option id> <confidence 25|50|75|100>\` (${t.confidence}); the answer moves you on (${t.freezeNext}).`));
+    item.options.forEach((o, i) => out.push(`  ${optionLetter(i)}) ${gl(session, tr(lang, o.labelFi))}`));
+    out.push(H(`\`freeze-answer <letter> <confidence 25|50|75|100>\` (${t.confidence}); the answer moves you on (${t.freezeNext}).`));
   }
   out.push(`${t.confidence}: ${scale}`);
   return { text: out.join("\n"), images };

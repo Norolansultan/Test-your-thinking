@@ -49,10 +49,10 @@ prompt, the period's end). Use `look` after any command to see the whole screen.
 | `plan-confidence 25\|50\|75\|100` | the plan's confidence after a main view | 4 |
 | `review keep\|change` | the plan review (phase B) | 4 |
 | `spam-ready`, `spam-collapse`, `spam-expand` | the SPAM ready prompt | 2, 1, 1 |
-| `spam-answer <option> <confidence>` (`spam-answer <confidence>` for the confidence alone) | the SPAM question; the choice is final | 10 |
-| `freeze-answer <item> <option\|x,y> <confidence>` / `freeze-submit` | the freeze, one item at a time, no going back; a map item is answered in the freeze map PNG's pixel coordinates | 10 / 2 |
-| `probe-answer no` · `probe-answer yes a,b` · `probe-answer <option> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
-| `hinge-answer <option>` | the hinge's question | 10 |
+| `spam-answer <letter> <confidence>` (`spam-answer <confidence>` for the confidence alone) | the SPAM question; the choice is final | 10 |
+| `freeze-answer <letter\|x,y> <confidence>` / `freeze-submit` | the freeze, one item at a time (the one on screen), no going back; a map item is answered in the freeze map PNG's pixel coordinates. Options are lettered a, b, c … and no item or option id is shown, as in the app (some ids name the key); runs played before 24 Oct 2026, which named the item and the option id, still replay | 10 / 2 |
+| `probe-answer no` · `probe-answer yes a,b` · `probe-answer <letter> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
+| `hinge-answer <letter>` | the hinge's question | 10 |
 | `pretest-answer <item> <option>` | the map-reading pretest (its extract as a PNG) | 20 |
 | `primer-answer <n>`, `primer-retry`, `primer-next`, `primer-back` | the primer (public) | 10, 5, 20, 20 |
 | `glossary <term>`, `help [glossary\|roster\|legend] [letter]` | the glossary and the help card (public; logged as the app logs them) | 5, 10 |

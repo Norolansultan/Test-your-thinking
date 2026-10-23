@@ -23,7 +23,7 @@ import { displayAnswerText } from "../../app/session/chat-display.js";
 import { COST_S, DEFAULT_WAIT_S, MAX_WAIT_S } from "./costs.js";
 import { noticed, PlayError, VIEW_STEPS, type PlaySession } from "./session.js";
 import { freezePointAt } from "./freeze-grid.js";
-import { gl, lookText } from "./screen.js";
+import { gl, logRow, lookText, optionByArg, optionLetter } from "./screen.js";
 import { glossaryText, helpText } from "./help.js";
 import { MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
 import { contactsCommand, measureCommand } from "./tak-tools.js";
@@ -164,9 +164,11 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
     case "probe-answer": return probeAnswer(session, s, args);
     case "hinge-answer": {
       need(s.step === "hinge_pause" && s.hingeCheck?.phase === "item", "no hinge question is on screen");
-      need(s.hingeCheck!.options.some((o) => o.id === args[0]), `options: ${s.hingeCheck!.options.map((o) => o.id).join(", ")}`);
+      const hingeIds = s.hingeCheck!.options.map((o) => o.id);
+      const chosen = optionByArg(hingeIds, args[0]);
+      need(chosen !== null, `options: ${hingeIds.map((_, i) => optionLetter(i)).join(", ")}`);
       await session.spend(COST_S.hingeAnswer);
-      await session.act(() => session.o.answerHingeCheck(args[0]!));
+      await session.act(() => session.o.answerHingeCheck(chosen!));
       return look(session, ctx);
     }
     case "quest-answer": {
@@ -214,7 +216,7 @@ async function proceed(session: PlaySession, s: SessionSnapshot): Promise<string
     case "hinge_pause": {
       const check = s.hingeCheck;
       if (check?.phase === "directive") { await session.spend(COST_S.hingeRead); await session.act(() => o.showHingeCheck()); return "Directive read; its question follows (`look`)."; }
-      need(check === null || check.phase === "answered", "answer the question first (`hinge-answer <option id>`)");
+      need(check === null || check.phase === "answered", "answer the question first (`hinge-answer <letter>`)");
       await session.spend(COST_S.hingeContinue);
       await session.act(() => o.dismissHinge());
       return "Continued.";
@@ -301,17 +303,19 @@ async function freezeAnswer(session: PlaySession, s: SessionSnapshot, args: read
   const items = s.freeze!.items;
   const state = session.freezeState();
   const item = items[state.index]!;
-  need(args[0] === item.id, `the item on screen is ${item.id} (one at a time, no going back)`);
-  const confidence = confidenceOf(args[2]);
+  // The item on screen is answered (`freeze-answer <letter|x,y> <confidence>`); runs played before 24 Oct 2026 named the item first.
+  if (items.some((i) => i.id === args[0])) { need(args[0] === item.id, "the item on screen is the one to answer (one at a time, no going back)"); args = args.slice(1); }
+  const confidence = confidenceOf(args[1]);
   let draft: { optionId?: string; point?: { lat: number; lon: number }; pointPx?: string; confidence: number };
   if (isMapItem(item)) {
-    const [x, y] = (args[1] ?? "").split(",").map(Number);
+    const [x, y] = (args[0] ?? "").split(",").map(Number);
     const at = freezePointAt(x!, y!, session.scenario.extent);
     need(!("error" in at), "error" in at ? at.error : "");
-    draft = { optionId: MAP_POINT_OPTION_ID, point: (at as { point: { lat: number; lon: number } }).point, pointPx: args[1]!, confidence };
+    draft = { optionId: MAP_POINT_OPTION_ID, point: (at as { point: { lat: number; lon: number } }).point, pointPx: args[0]!, confidence };
   } else {
-    need(item.options.some((o) => o.id === args[1]), `options: ${item.options.map((o) => o.id).join(", ")}`);
-    draft = { optionId: args[1]!, confidence };
+    const chosen = optionByArg(item.options.map((o) => o.id), args[0]);
+    need(chosen !== null, `options: ${item.options.map((_, i) => optionLetter(i)).join(", ")}`);
+    draft = { optionId: chosen!, confidence };
   }
   await session.spend(COST_S.freezeAnswer);
   if (session.snap().step !== "freeze" || session.freezeState() !== state) return "The freeze closed (its time ran out) before the answer.";
@@ -335,13 +339,14 @@ async function spamAnswer(session: PlaySession, s: SessionSnapshot, args: readon
     return look(session, ctx);
   }
   const item = spam as Exclude<NonNullable<SessionSnapshot["spam"]>, { phase: "ready" }>;
-  need(item.options.some((o) => o.id === args[0]), `spam-answer <option id> <confidence>; options: ${item.options.map((o) => o.id).join(", ")}`);
+  const chosen = optionByArg(item.options.map((o) => o.id), args[0]);
+  need(chosen !== null, `spam-answer <letter> <confidence>; options: ${item.options.map((_, i) => optionLetter(i)).join(", ")}`);
   const v = confidenceOf(args[1]);
   await session.spend(COST_S.spamAnswer);
   const now = session.snap().spam;
   if (!now || now.phase !== "item" || now.probeId !== item.probeId) return "The question closed before the answer (its answer window ran out).";
-  await session.act(() => session.o.logPanelUse({ kind: "probe_answer_changed", detail: { probeId: item.probeId, from: null, to: args[0]! } }));
-  await session.act(() => session.o.answerSpam(args[0]!));
+  await session.act(() => session.o.logPanelUse({ kind: "probe_answer_changed", detail: { probeId: item.probeId, from: null, to: chosen! } }));
+  await session.act(() => session.o.answerSpam(chosen!));
   if (session.snap().spam?.phase === "confidence") await session.act(() => session.o.submitSpamConfidence(v));
   return look(session, ctx);
 }
@@ -385,16 +390,17 @@ async function probeAnswer(session: PlaySession, s: SessionSnapshot, args: reado
   const p = s.visibleProbe!;
   const ids = p.options.map((o) => o.id);
   if (p.kind === "area") {
-    need(args[0] === "yes" || args[0] === "no", "probe-answer no | probe-answer yes <id>[,<id>…]");
-    const areas = args[0] === "yes" ? (args[1] ?? "").split(",").filter((x) => x !== "") : [];
-    need(args[0] === "no" || (areas.length > 0 && areas.every((a) => ids.includes(a))), `parts: ${ids.join(", ")}`);
+    need(args[0] === "yes" || args[0] === "no", "probe-answer no | probe-answer yes <letter>[,<letter>…]");
+    const areas = args[0] === "yes" ? (args[1] ?? "").split(",").filter((x) => x !== "").map((a) => optionByArg(ids, a) ?? a) : [];
+    need(args[0] === "no" || (areas.length > 0 && areas.every((a) => ids.includes(a))), `parts: ${ids.map((_, i) => optionLetter(i)).join(", ")}`);
     await session.spend(COST_S.probeAnswer);
     await session.act(() => session.o.submitProbeArea(args[0] === "yes", areas));
   } else if (p.kind === "choice") {
-    need(ids.includes(args[0] ?? ""), `options: ${ids.join(", ")}`);
+    const chosen = optionByArg(ids, args[0]);
+    need(chosen !== null, `options: ${ids.map((_, i) => optionLetter(i)).join(", ")}`);
     const c = p.collectsConfidence ? confidenceOf(args[1]) : undefined;
     await session.spend(COST_S.probeAnswer);
-    await session.act(() => session.o.submitProbeChoice(args[0]!, c));
+    await session.act(() => session.o.submitProbeChoice(chosen!, c));
   } else {
     const v = confidenceOf(args[0]);
     await session.spend(COST_S.probeAnswer);
@@ -411,6 +417,9 @@ function changeLines(before: SessionSnapshot, now: SessionSnapshot, seenAtStart:
   if (now.step !== before.step) out.push(`Screen: ${now.step}${now.step === "freeze" ? ` (${t.freezeTitle})` : ""}.`);
   const fresh = now.radioLog.length - Math.max(seenAtStart, before.radioLog.length);
   if (fresh > 0 && now.step !== "freeze") out.push(`${fresh} new message(s) in the log: ${now.radioLog.slice(-fresh).map((e) => `${e.clockLabel} ${sourceName(lang, e.from)}`).join(", ")} (\`look\`).`);
+  // A freeze blanks the log, so the messages that came in before it are shown whole: a participant watching saw them arrive.
+  if (fresh > 0 && now.step === "freeze") out.push(`${fresh} message(s) came into the log before the screen froze:`, ...now.radioLog.slice(-fresh).map((e) => `  ${logRow(session, e)}`));
+  if (before.spam && before.spam.phase !== "ready" && !now.spam) out.push(`${t.spam.title}: the question card is no longer on screen.`);
   if (now.spam && (!before.spam || before.spam.probeId !== now.spam.probeId || before.spam.phase !== now.spam.phase) && now.spam.phase === "ready") out.push(`${t.spam.readyPrompt} (\`spam-ready\`)`);
   if (now.spam && now.spam.phase !== "ready" && now.spam.forced && !(before.spam && before.spam.phase !== "ready" && before.spam.forced)) out.push(t.spam.forcedTitle);
   if (now.consultPrompt && !before.consultPrompt) out.push(`[${t.consult.notice}]`);

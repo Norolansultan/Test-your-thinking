@@ -63,13 +63,17 @@ async function playToV4(): Promise<{ readonly outputs: string[]; readonly logChe
 }
 
 describe("the play harness's player-facing output", () => {
-  it("never carries a freeze or SPAM key, and lists a key option exactly as the others", async () => {
+  it("never carries a freeze or SPAM key or an item id, and lists a key option exactly as the others", async () => {
     const { outputs, logChecks } = await playToV4();
     const all = outputs.join("\n");
     expect(logChecks).toBeGreaterThan(5);
     // The play reached the items the check is about.
-    expect(all).toContain("[freeze.practice.infra]");
-    expect(all).toMatch(/\[freeze\.2\./);
+    const freezeItems = [...scenario.practice.freeze.items, ...scenario.freezes.flatMap((f) => f.items)];
+    const shown = freezeItems.filter((x) => all.includes(tr("en", x.promptFi)));
+    expect(shown.some((x) => x.id === "freeze.practice.infra")).toBe(true);
+    expect(shown.some((x) => x.id.startsWith("freeze.2."))).toBe(true);
+    // The app shows no item ids (some name the key, e.g. `freeze.5.ek14_shelter`), so the harness shows none either.
+    expect(all).not.toMatch(/freeze\.(practice|\d+)\./);
     expect(all).toContain("Situation question");
     expect(all).toContain("TEMPLATE FALLBACK");
     // No key record id, no key field, no map key's coordinates.
@@ -77,12 +81,12 @@ describe("the play harness's player-facing output", () => {
     expect(keyAtoms.size).toBeGreaterThan(10);
     for (const id of keyAtoms) expect(all).not.toContain(id);
     expect(all).not.toMatch(/keyAtomIds|basisAtomIds|mapKey|projectionPoint|projectionOptionId|truthOptionId|"correct"|correct:/);
-    const freezeItems = [...scenario.practice.freeze.items, ...scenario.freezes.flatMap((f) => f.items)];
     for (const it of freezeItems) if (it.mapKey) for (const v of [it.mapKey.point.lat, it.mapKey.point.lon]) expect(all).not.toContain(v.toFixed(4));
-    // A key option's line is the same as every other option's: "  <id>: <label>", nothing added.
-    const shownLine = (id: string, label: string) => new RegExp(`^  ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}: ${tr("en", label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m");
-    for (const it of freezeItems.filter((x) => all.includes(`[${x.id}]`) && x.kind !== "map_point")) {
-      for (const o of it.options) expect(all).toMatch(shownLine(o.id, o.labelFi));
+    // A key option's line is the same as every other option's: "  <letter>) <label>" (in the order the screen gives), nothing added.
+    const shownLine = (label: string) => new RegExp(`^  [a-z]\\) ${tr("en", label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m");
+    for (const it of shown.filter((x) => x.kind !== "map_point")) {
+      for (const o of it.options) expect(all).toMatch(shownLine(o.labelFi));
+      for (const o of it.options) expect(all).not.toContain(`  ${o.id}: `);
     }
     const spamKeys = spamKeysOf(scenario.probeSchedule.probes, scenario.invariants);
     const spams = [scenario.practice.spam!, ...scenario.probeSchedule.probes.filter((p) => p.type === "S" && Number(p.cycle) <= 3)];
@@ -90,7 +94,7 @@ describe("the play harness's player-facing output", () => {
       if (p.response.kind !== "categorical" || !all.includes(tr("en", p.prompt))) continue;
       const key = spamKeys.get(p.id) ?? (p.id === scenario.practice.spam!.id ? PRACTICE_SPAM_KEY_OPTION : null);
       expect(key).not.toBeNull();
-      for (const o of p.response.options) expect(all).toMatch(shownLine(o.id, o.fi));
+      for (const o of p.response.options) expect(all).toMatch(shownLine(o.fi));
     }
   });
 });

@@ -34,19 +34,19 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
     }
     case "map_pretest": return ["pretest-answer", s.mapPretest!.itemId, s.mapPretest!.options[0]!.id];
     case "briefing": case "training": case "practice_feedback": case "debrief": case "profile": return ["continue"];
-    case "hinge_pause": return s.hingeCheck?.phase === "item" ? ["hinge-answer", s.hingeCheck.options[0]!.id] : ["continue"];
+    case "hinge_pause": return s.hingeCheck?.phase === "item" ? ["hinge-answer", "a"] : ["continue"];
     case "freeze": {
       const items = s.freeze!.items;
       const state = session.freezeState();
       const item = items[state.index]!;
       if (state.drafts.has(item.id) && state.index === items.length - 1) return ["freeze-submit"];
-      if (!isMapItem(item)) return ["freeze-answer", item.id, item.options[0]!.id, "50"];
+      if (!isMapItem(item)) return ["freeze-answer", "a", "50"];
       const f = freezeFrame(session.scenario.extent);
-      return ["freeze-answer", item.id, `${Math.round(FREEZE_MAP_MARGIN_PX + f.widthPx / 2)},${Math.round(FREEZE_MAP_MARGIN_PX + f.heightPx / 2)}`, "50"];
+      return ["freeze-answer", `${Math.round(FREEZE_MAP_MARGIN_PX + f.widthPx / 2)},${Math.round(FREEZE_MAP_MARGIN_PX + f.heightPx / 2)}`, "50"];
     }
     case "probe": {
       const p = s.visibleProbe!;
-      return p.kind === "area" ? ["probe-answer", "no"] : p.kind === "choice" ? ["probe-answer", p.options[0]!.id, ...(p.collectsConfidence ? ["50"] : [])] : ["probe-answer", "50"];
+      return p.kind === "area" ? ["probe-answer", "no"] : p.kind === "choice" ? ["probe-answer", "a", ...(p.collectsConfidence ? ["50"] : [])] : ["probe-answer", "50"];
     }
     case "plan_confidence": return s.planConfidence ? ["plan-confidence", "50"] : ["wait", "1"];
     case "plan_review": return s.planReview ? ["review", "keep"] : ["wait", "1"];
@@ -57,7 +57,7 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
     default: break;
   }
   if (s.spam?.phase === "ready") return ["spam-ready"];
-  if (s.spam?.phase === "item") return ["spam-answer", s.spam.options[0]!.id, "50"];
+  if (s.spam?.phase === "item") return ["spam-answer", "a", "50"];
   if (s.spam?.phase === "confidence") return ["spam-answer", "50"];
   if (s.consultPrompt) return ["consult", "dismiss"];
   if (s.step === "allocation" && !s.decisionHeld) {

@@ -18,7 +18,6 @@
  * Finnish treatment, which the response and the log name (`hybrid_fi_fallback`). Never mixed.
  */
 
-import type { GoogleGenAI } from "@google/genai";
 import { toRenderable } from "../../app/boundary/render-boundary.js";
 import { hybridRetrieve, roundVector, type Embedder, type RetrievalLang, type VectorIndex } from "../../app/retrieval/hybrid.js";
 import { reachableAtoms, stepAtVirtualTime } from "../../app/retrieval/time-gate.js";
@@ -41,6 +40,7 @@ import { assignmentOf, type AssignmentTable } from "../../app/session/assignment
 import { ALLOCATION_TABLE } from "../../app/session/preview.js";
 import { rosterForView } from "../../app/scenario/allocation.js";
 import { indexFileOf, sha256Hex, THINKER_MODEL_ID, type SystemPrompt } from "./config.js";
+import type { ThinkerModelClient } from "./model-client.js";
 import { ageReferenceOf, buildUserContent, callThinkerModel, callOpenThinkerModel, clockLineOf, latestDigest, openPlanContext, openSystemInstruction, receivedUpToOf, recentMatches, taggedAtoms } from "./model.js";
 
 export interface ThinkerDeps {
@@ -93,8 +93,8 @@ export interface ThinkerDeps {
   readonly expectedModelVersion?: string | null;
   /** SPEC/30 §10: each session's first answer's model build, for `modelVersionChanged` (absent: kept per deps object). */
   readonly sessionModelVersions?: Map<string, string>;
-  /** Null when GEMINI_API_KEY is unset: every answer is the template, `no_api_key`. */
-  readonly client: GoogleGenAI | null;
+  /** Null when GEMINI_API_KEY is unset: every answer is the template, `no_api_key`. The SDK client (`model-client.ts`). */
+  readonly client: ThinkerModelClient | null;
   /** Appends one JSON line to the session's log. */
   readonly appendLog: (sessionId: string, line: Readonly<Record<string, unknown>>) => Promise<void>;
   /** A monotonic millisecond clock, for the latency. */

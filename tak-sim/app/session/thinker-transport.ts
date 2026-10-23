@@ -5,7 +5,10 @@
  * so the Haku group's session, and every test, can run without it.
  */
 
-import { THINKER_CLIENT_TIMEOUT_MS, THINKER_ENDPOINT, THINKER_OPEN_ENDPOINT, type OpenThinkerResponse, type ThinkerRequest, type ThinkerResponse } from "./thinker-protocol.js";
+import { STUDY_PARAM } from "./preview.js";
+import {
+  DEMO_BRIDGE_MODEL_ID, THINKER_CLIENT_TIMEOUT_MS, THINKER_ENDPOINT, THINKER_OPEN_ENDPOINT, type OpenThinkerResponse, type ThinkerRequest, type ThinkerResponse,
+} from "./thinker-protocol.js";
 
 export type ThinkerTransport = (request: ThinkerRequest) => Promise<ThinkerResponse>;
 export type OpenThinkerTransport = (request: ThinkerRequest) => Promise<OpenThinkerResponse>;
@@ -71,6 +74,18 @@ export function assertOpenThinkerResponseShape(body: unknown): asserts body is O
   assertContextIds(body);
 }
 
+/** The page's query string, or "" outside a browser. */
+const pageSearch = (): string => (typeof location === "undefined" ? "" : location.search);
+
+/**
+ * The published demonstration's page-side bridge (`tools/demo-bridge/`) answers with {@link DEMO_BRIDGE_MODEL_ID}: accepted outside
+ * the study only. In the study (`?tuotanto`) such a reply is refused like one of the wrong shape (the local fallback), so it can
+ * never become study data. The real proxy never sends that id, so the study's behaviour is unchanged.
+ */
+export function assertNotDemoBridgeInStudy(body: { readonly modelId?: unknown }, search: string = pageSearch()): void {
+  if (body.modelId === DEMO_BRIDGE_MODEL_ID && new URLSearchParams(search).has(STUDY_PARAM)) throw new ThinkerBadResponseError("the demonstration bridge answered in the study");
+}
+
 export function httpThinkerTransport(endpoint = THINKER_ENDPOINT, timeoutMs = THINKER_CLIENT_TIMEOUT_MS): ThinkerTransport {
   return async (request) => {
     const controller = new AbortController();
@@ -86,6 +101,7 @@ export function httpThinkerTransport(endpoint = THINKER_ENDPOINT, timeoutMs = TH
       if (!res.ok) throw new Error(`Thinker proxy answered HTTP ${res.status}`);
       const body: unknown = await res.json();
       assertThinkerResponseShape(body);
+      assertNotDemoBridgeInStudy(body);
       return body;
     } catch (e) {
       if (controller.signal.aborted) throw new ThinkerTimeoutError(timeoutMs);
@@ -111,6 +127,7 @@ export function httpOpenThinkerTransport(endpoint = THINKER_OPEN_ENDPOINT, timeo
       if (!res.ok) throw new Error(`Open Thinker proxy answered HTTP ${res.status}`);
       const body: unknown = await res.json();
       assertOpenThinkerResponseShape(body);
+      assertNotDemoBridgeInStudy(body);
       return body;
     } catch (e) {
       if (controller.signal.aborted) throw new ThinkerTimeoutError(timeoutMs);

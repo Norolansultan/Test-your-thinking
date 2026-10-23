@@ -40,7 +40,8 @@
     "review:uncertainty": "tsx tools/review/thinker-uncertainty-audit.ts",
     "tak:export": "tsx tools/tak/export.ts",
     "tak:replay": "tsx tools/tak/replay.ts",
-    "skills:export": "tsx tools/skills/export.ts"
+    "skills:export": "tsx tools/skills/export.ts",
+    "demo:bridge": "tsx tools/demo-bridge/build.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",

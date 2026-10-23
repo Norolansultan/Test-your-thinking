@@ -26,6 +26,12 @@ export const THINKER_MAX_QUESTION_CHARS = 500;
 export const OPEN_THINKER_MAX_HISTORY = 10;
 /** A model turn in the history is at most this long (F2); the browser cuts longer answers to it. */
 export const OPEN_THINKER_MAX_MODEL_TURN_CHARS = 4000;
+/**
+ * The `modelId` (and the proxy log's `modelVersion`) of an answer from the published demonstration's page-side bridge
+ * (`tools/demo-bridge/`): Claude answered in the page, on the viewer's own account, not the study's proxy. Never study data:
+ * the browser refuses such an answer in the study (`?tuotanto`, `thinker-transport.ts`), and the study proxy's model pin is unchanged.
+ */
+export const DEMO_BRIDGE_MODEL_ID = "claude-demo-bridge";
 /** A request body's byte limit: Haku's chat (question only) and the Open Thinker (with its history, F2's caps in UTF-8). */
 export const THINKER_MAX_BODY_BYTES = 16 * 1024;
 export const OPEN_THINKER_MAX_BODY_BYTES = 64 * 1024;

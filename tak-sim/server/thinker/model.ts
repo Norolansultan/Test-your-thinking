@@ -6,7 +6,7 @@
  * No server-side model `fallbacks`: a different model would silently change the treatment.
  */
 
-import type { GoogleGenAI } from "@google/genai";
+import type { ThinkerModelClient, ThinkerModelParams, ThinkerModelResponse } from "./model-client.js";
 import { hybridRetrieve, type RetrievalLang, type RetrievedRecord, type VectorQuery } from "../../app/retrieval/hybrid.js";
 import { clockAt, recordText } from "../../app/session/template-answer.js";
 import { recordIn, sourceName, tr } from "../../app/i18n/text.js";
@@ -398,8 +398,8 @@ export function isRetryable(e: unknown): boolean {
   return /\b(?:RESOURCE_EXHAUSTED|UNAVAILABLE)\b/.test(`${err.message} ${typeof err.status === "string" ? err.status : ""}`);
 }
 
-type GenerateParams = Parameters<GoogleGenAI["models"]["generateContent"]>[0];
-type GenerateResponse = Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>>;
+type GenerateParams = ThinkerModelParams;
+type GenerateResponse = ThinkerModelResponse;
 
 class GenerateFailure extends Error {
   constructor(override readonly cause: unknown, readonly timedOut: boolean, readonly attempts: number) {
@@ -414,7 +414,7 @@ class GenerateFailure extends Error {
  * or 503 is retried once, identically (the same request body), when at least
  * `THINKER_RETRY_MIN_REMAINING_MS` of the same timeout is left — the budget is not extended.
  */
-async function generateWithin(client: GoogleGenAI, params: GenerateParams): Promise<{ readonly response: GenerateResponse; readonly attempts: number }> {
+async function generateWithin(client: ThinkerModelClient, params: GenerateParams): Promise<{ readonly response: GenerateResponse; readonly attempts: number }> {
   const controller = new AbortController();
   const startedAt = Date.now();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -453,7 +453,7 @@ function failureOutcome(e: unknown): ModelOutcome & { readonly ok: false } {
 }
 
 /** Calls the model (one identical retry on 429 / 503, revision (al)). `client` null = no API key. */
-export async function callThinkerModel(client: GoogleGenAI | null, system: string, userContent: string, variant: ThinkerPromptVariant = "standard"): Promise<ModelOutcome> {
+export async function callThinkerModel(client: ThinkerModelClient | null, system: string, userContent: string, variant: ThinkerPromptVariant = "standard"): Promise<ModelOutcome> {
   if (!client) return { ok: false, reason: "no_api_key" };
   try {
     const { response, attempts } = await generateWithin(client, {
@@ -522,7 +522,7 @@ export function completeSentences(text: string): string | null {
  * (`invalid_output`, or `truncated` when the cap cut it) and the browser shows "unavailable" — never a free-text answer.
  */
 export async function callOpenThinkerModel(
-  client: GoogleGenAI | null,
+  client: ThinkerModelClient | null,
   system: string,
   userContent: string,
   history?: readonly { role: "user" | "model"; text: string }[],

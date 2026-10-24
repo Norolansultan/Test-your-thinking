@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **24 Oct 2026 (bf)** — §7.33: after the play-test — §7.18's V12 `head_now` item closed; the native, domain, researcher and panel items the play-test decisions leave; the Thinker index carried (rebuild before any session). See §7.33.
 > - **21 Oct 2026 (bc)** — §7.30, §7.31: game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). The items that named it are revised: the demonstration stays gated during recruitment; the replay with expert comparison may still come after data collection, game mode does not.
 > - **20 Oct 2026 (ba)** — §7.31: the researcher items of `32` (critical reading of 20 Oct 2026). See §7.31.
 > - **19 Oct 2026 (az)** — §7.30 (az): phase 3 of the skills review integrated; two additions to the list (an RC on the act coding's boundary sectors; the real Thinker re-index); the resume point for phase 4. See §7.30 (az).
@@ -1035,3 +1036,13 @@ Built on the researcher's instruction of 20 Oct 2026 ("create a plan and fix the
 3. **Native speaker:** every Finnish string listed in `docs/audits/2026-10-20-map/content/changes.md`.
 4. **Thinker index:** still PROVISIONAL; run `npm run thinker:index` and `npm run thinker:eval -- --write` where the embedding model is reachable, before pilot 2.
 
+### 7.33 After the play-test (24 Oct 2026, `docs/audits/2026-10-23-playtest/`; open for the researcher, the panel, the domain reviewer and the native speaker)
+
+The researcher's decisions D1–D8 and D11 of 24 Oct 2026 are built (`08` (bf), `09` (bf), `18` (bf)). **Closed:** §7.18's V12 `head_now` item (the map item keyed on the drawn head under a header that said 19.00): re-keyed at 19.00. Open:
+
+1. **Native speaker:** the freeze header ("Jakson viimeisimmät tiedot kattavat klo …. Kysymysten ”nyt” on tilanne niiden mukaan."), "viimeisimpien tietojen mukaan" in eleven phase-A stems, the L3 clocks ("(klo 15.00)", "(klo 15.00 mennessä)"), V2 `ek11_between` and V4 `head_unattended` with their options, V10 `area_growth_hour`, the seven new or changed records (`18` (bf)) and the R1 stretch "Kuivakankaan kohdalla" beside "Kuivakankaan eteläpuolella".
+2. **Domain reviewer:** the CO figures (EK11 ~25 ppm on the esker at 14.08, EK16 ~45 ppm with peaks over 100 ppm on the forest road at 18.45) against MPV25's zones once its figures 14–18 are read (`mpv25_extract.md` READ); the helicopter's two-hour ETA (at the region's other fire); "P2:n evakuointipäätös" (D11) against the Rescue Act §36 reading of 6 Oct 2026 (the incident commander decides).
+3. **Researcher (RC):** the 16.00 forecast stays recorded only — pushing it would cue V7's rekindle item (H10) with its front and west-north-west turn; push it too, or keep only the 15.00 headline (as built). V4's two distractors that turn on the wind ("Ei laskeudu ennen tuulen kääntymistä", "Kyllä, kun tuuli kääntyy ennen ojaa") now sit beside the pushed 15.05 headline (a turn at 15.30–16.00, inside their 40-minute horizon); the keys are unchanged.
+4. **Panel** (the play-test analysis §5 list stands): V10 `area_growth_hour`'s bands (2/15/40 ha, truth 9.0 ha), and whether its truth key with a stated tolerance should stay or become report-keyed (the reports give 2.9 ha, the same band); V4 `head_later`, V2 `junction_hour`, V10 `infra`, SPAM V6.b, F7 (now H9 only), V7 `cp_safe`, V5 `area_hour` and `road_jump`, V2 `spruce_behaviour` as listed.
+5. **Thinker index:** PROVISIONAL, carried (582 Finnish and 645 English vectors carried, ten of each fresh: six new records, four reworded); run `npm run thinker:index` (both languages, the embedding model) and `npm run thinker:eval -- --write` before any session.
+6. **Pilot 2:** rerun the play-test's Haku questions (`haku.csv`) with the study model; the late items as "reading under load" (`09` (bf) §2); F7's exposure rate (H9's power).

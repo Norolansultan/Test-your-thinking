@@ -4,6 +4,7 @@
 **Scope:** every finding of `docs/audits/2026-10-19-skills/` (sagat, radio, coa, fire_tactical, parity_measures), the conflicts with `30` they raise, the data the scenario must add before Gate A, the people list, and the phase-3 work packages.
 
 > **Changelog**
+> - **24 Oct 2026 (bf)** — F13's header ("the screen's clock at the freeze") is superseded by the play-test's one definition of "now" (`08` (bf) bf.1): the span of the period's latest reports. §3.8's view-end "now" (V10 17.40, V12 19.00, V14 20.00) and its horizons stand, each L3 stem now names its clock, and V12 `head_now` is keyed at 19.00.
 > - **21 Oct 2026 (bc)** — game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). P-12's game timeline, WP-5's game items and phase-4 review note 3 with its fail-closed fix (the build's game gate) lapse. The recruitment gate stays in the server for the demonstration (`docs/DEPLOYMENT.md` §2.1); the prior-use item asks about the web demonstration only (`prior.demo`).
 > - **19 Oct 2026 (az)** — §3.12's re-runs done after WP-3 (figures in `30` (az)); WP-1 to WP-5 merged and reconciled; the act coding reads the core front for the primary (RC with §3.1); what phase 3 leaves open. See the revision at the end.
 > - **19 Oct 2026** — created (phase 2 of the skills review; reports at commit 588908b, scenario export 3631cd4).

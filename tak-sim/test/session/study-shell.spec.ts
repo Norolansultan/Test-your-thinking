@@ -118,7 +118,7 @@ describe("preflight in the session", () => {
     expect(results[1]).toMatchObject({ passed: true, refusalReason: null, failures: [], userAgent: GOOD.userAgent, pointer: "fine", indexedDb: true, webgl2: true });
     expect(transitions(records)).toEqual(["start", "preflight_passed"]);
     expect(snap().step).toBe("questionnaire");
-    expect(snap().questionnaire).toMatchObject({ id: "pre", items: [{ id: "fatigue.start" }] });
+    expect(snap().questionnaire).toMatchObject({ id: "pre", items: [{ id: "fatigue.start" }, { id: "sleep.hours" }, { id: "shift.recent" }] }); // revision (bf)
   });
 
   it("checks the proxy in every cell (Haku's chat uses it, 8 Oct 2026); an unreachable proxy is fixable", async () => {
@@ -182,8 +182,11 @@ describe("the questionnaires and the debrief", () => {
     await expect(o.submitQuestionnaire({ "tlx.mental": 3 })).rejects.toThrow(/not an item shown/);
     await o.submitQuestionnaire({ "fatigue.start": 2 });
     const records = await o.logRecords();
-    expect(records.find((r) => r.kind === "questionnaire_presented")!.detail).toEqual({ questionnaireId: "pre", itemIds: ["fatigue.start"] });
-    expect(records.find((r) => r.kind === "questionnaire_submitted")!.detail).toEqual({ questionnaireId: "pre", answers: [{ itemId: "fatigue.start", value: 2 }], dwellMs: expect.any(Number) });
+    // Revision (bf), 24 Oct 2026: the hours slept and (an expert session) the recent shift follow the fatigue item; both may be blank.
+    expect(records.find((r) => r.kind === "questionnaire_presented")!.detail).toEqual({ questionnaireId: "pre", itemIds: ["fatigue.start", "sleep.hours", "shift.recent"] });
+    expect(records.find((r) => r.kind === "questionnaire_submitted")!.detail).toEqual({
+      questionnaireId: "pre", answers: [{ itemId: "fatigue.start", value: 2 }, { itemId: "sleep.hours", value: null }, { itemId: "shift.recent", value: null }], dwellMs: expect.any(Number),
+    });
     const after = (await o.logRecords()).slice(records.findIndex((r) => r.kind === "questionnaire_submitted") + 1);
     expect(after.find((r) => r.kind === "briefing_advanced")!.detail).toEqual({ screenId: "briefing.setting", dwellMs: 0, auto: true, screenRemoved: true });
     expect(after.some((r) => r.kind === "state_transition" && (r.detail as { trigger: string }).trigger === "briefing_complete")).toBe(true);
@@ -259,7 +262,8 @@ describe("questionnaire items (app/session/questionnaire.ts)", () => {
     for (const id of ["retention.hinge", "ai.directive_relation", "tlx.mental", "tlx.frustration", "fatigue.end", "picture.quality", "stias.tools.1", "stias.tools.2", "stias.tools.3", "freeze.intrusiveness", "attention.check",
       "last.possibilities", "last.basis", "disagreement.recall", "disagreement.action", "felt.wrong", "prior.knowledge",
       "role.rank", "years.service", "incidents.commanded", "sim.exposure", "region.familiarity"]) expect(ids).toContain(id);
-    expect(ids).not.toContain("accuracy.perceived"); // revision (x), 6 Oct 2026: no containment judgement to rate
+    // Revision (x), 6 Oct 2026 removed it (no containment judgement to rate); revision (bf), 24 Oct 2026 brings it back for the freezes' items.
+    expect(ids).toContain("accuracy.perceived");
     expect(new Set(ids).size).toBe(ids.length);
     expect(questionnaireItems("post", "reasoning_once").map((i) => i.id)).toContain("ai.directive_relation");
   });

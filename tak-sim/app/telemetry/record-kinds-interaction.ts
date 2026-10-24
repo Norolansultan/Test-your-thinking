@@ -253,7 +253,10 @@ export interface AiChatQuerySubmittedDetail {
   readonly virtualTimeS: number;
   readonly phase: "exploration" | "decision";
   readonly tool?: AiChatTool;
-  /** SPEC/30 §4: the question was the guide's suggested-question chip, submitted as shown. */
+  /**
+   * SPEC/30 §4: the question was a suggested-question chip, submitted as shown — the guide's (`tool: "open_thinker"`) or, since 0.16.0
+   * (revision (bf), 24 Oct 2026), the Haku group's (`tool: "haku"`).
+   */
   readonly viaChip?: true;
 }
 /**

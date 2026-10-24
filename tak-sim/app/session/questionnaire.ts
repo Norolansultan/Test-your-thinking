@@ -32,6 +32,13 @@
  *   recognised (shown on yes), the prior use of the web demonstration, and two perceived-reliability items (exploratory).
  *   Each has the pre-registered exclusion or sensitivity rule of `POST_SESSION_RULES` (about +1.5 min; `15` (ay) the shortening order).
  *
+ * - Revision (bf), 24 Oct 2026 (adopted before pilot 2; SPEC/09 (bf)): `pre` gains `sleep.hours` (0–24, whole hours) and, in expert
+ *   sessions only, `shift.recent` (off a work shift in the last 12 h), after `fatigue.start`: covariates only. `post` gains, after the
+ *   source block and before the workload items, the global self-estimate `accuracy.perceived` (0–100 %, brought back for the freezes'
+ *   items) and two perceived-influence items in the group's own tool (`influence.plan_views.<tool>`, a count 0–14;
+ *   `influence.answers.<tool>`, 0–100 in tens): the Haku group is asked about Haku, the Thinker cells about the Thinker, the wording
+ *   otherwise the same. The awareness index is perceived against logged influence (`awareness-measures.ts`).
+ *
  * DRAFT: the items and their order await the researcher; the TLX wording needs a validated Finnish version.
  */
 
@@ -39,6 +46,7 @@ import type { Cell } from "../scenario/types.js";
 import type { QuestionnaireId } from "../telemetry/record-kinds.js";
 import { SOURCE_MEMORY_FACTS, sourceItemId } from "../scenario/source-memory.js";
 import { participantOptionOrder, type OptionOrderSeed } from "./option-order.js";
+import { HINGE_AFTER_VIEW, MAIN_VIEW_COUNT } from "../scenario/views.js";
 
 /** An item is shown only when an earlier item was answered with a given option. */
 export interface ShowIf {
@@ -65,7 +73,8 @@ export type QuestionnaireItem =
    * (`resolveItems`) `options` are already filtered for the cell, in the authored order.
    */
   | (ItemBase & { readonly kind: "choice"; readonly options: readonly string[]; readonly optionCells?: Readonly<Record<string, readonly Cell[]>> })
-  | (ItemBase & { readonly kind: "scale"; readonly min: number; readonly max: number })
+  /** A rating scale, one button per point; `step` (revision (bf)): the points are min, min + step, …, max (default 1). */
+  | (ItemBase & { readonly kind: "scale"; readonly min: number; readonly max: number; readonly step?: number })
   | (ItemBase & { readonly kind: "number"; readonly min: number; readonly max: number })
   /**
    * Multi-select (revision (ai)): any number of `options`; `exclusive`, when ticked, is the only answer;
@@ -83,7 +92,39 @@ const scale7 = (id: string, section: string, cells?: readonly Cell[]): Questionn
 const tlx = (id: string): QuestionnaireItem => ({ id, section: "workload", kind: "scale", min: 0, max: 20 });
 const yesNoUnsure = ["yes", "no", "unsure"] as const;
 
-export const PRE_ITEMS: readonly QuestionnaireItem[] = [scale7("fatigue.start", "session")];
+/**
+ * Revision (bf), 24 Oct 2026: the pre-session items — fatigue now (as before), the hours slept last night and, for professionals,
+ * whether they come off a work shift (`EXPERT_ONLY_IDS`). Covariates only (SPEC/09 (bf)); every item may be left blank.
+ */
+export const PRE_ITEMS: readonly QuestionnaireItem[] = [
+  scale7("fatigue.start", "session"),
+  { id: "sleep.hours", section: "session", kind: "number", min: 0, max: 24 },
+  { id: "shift.recent", section: "session", kind: "choice", options: ["yes", "no"] },
+];
+
+/** Revision (bf): items asked of professionals only (a public session leaves them out; the questionnaire branches by audience). */
+export const EXPERT_ONLY_IDS: readonly string[] = ["shift.recent"];
+
+/**
+ * Revision (bf), 24 Oct 2026 (SPEC/09 (bf)): the post-session self-estimate and perceived influence, after the source block. The
+ * self-estimate comes first, so that thinking about the tool's influence does not move it. The influence items name the group's own
+ * tool — the tool the consult notice opens (`consultToolOf`) — and are otherwise worded alike; their ids end in the tool, so each
+ * session holds one of each pair. `influence.plan_views.*` is a count over the 14 periods (the logged count is on the same scale);
+ * `influence.answers.*` is 0–100 in tens (one click, as the other ratings).
+ */
+export const REFLECTION_SECTION = "reflection";
+export const ACCURACY_PERCEIVED_ID = "accuracy.perceived";
+export type InfluenceTool = "haku" | "thinker";
+export const influencePlanViewsId = (tool: InfluenceTool): string => `influence.plan_views.${tool}`;
+export const influenceAnswersId = (tool: InfluenceTool): string => `influence.answers.${tool}`;
+const RADIO_CELL: readonly Cell[] = ["radio"];
+const REFLECTION_ITEMS: readonly QuestionnaireItem[] = [
+  { id: ACCURACY_PERCEIVED_ID, section: REFLECTION_SECTION, kind: "number", min: 0, max: 100 },
+  { id: influencePlanViewsId("haku"), section: REFLECTION_SECTION, kind: "number", min: 0, max: MAIN_VIEW_COUNT, cells: RADIO_CELL },
+  { id: influencePlanViewsId("thinker"), section: REFLECTION_SECTION, kind: "number", min: 0, max: MAIN_VIEW_COUNT, cells: THINKER_CELLS },
+  { id: influenceAnswersId("haku"), section: REFLECTION_SECTION, kind: "scale", min: 0, max: 100, step: 10, cells: RADIO_CELL },
+  { id: influenceAnswersId("thinker"), section: REFLECTION_SECTION, kind: "scale", min: 0, max: 100, step: 10, cells: THINKER_CELLS },
+];
 
 export const RETENTION_ITEM_ID = "retention.hinge";
 
@@ -152,6 +193,7 @@ export const POST_ITEMS: readonly QuestionnaireItem[] = [
   { id: "ai.directive_relation", section: "recall", kind: "choice", options: ["yes", "no", "dont_know"], cells: THINKER_CELLS },
   { id: "directive.fit", section: "recall", kind: "choice", options: ["fitted", "not_at_times", "not_mostly", "dont_know"] },
   ...SOURCE_ITEMS,
+  ...REFLECTION_ITEMS,
   tlx("tlx.mental"), tlx("tlx.physical"), tlx("tlx.temporal"), tlx("tlx.performance"), tlx("tlx.effort"), tlx("tlx.frustration"),
   scale7("fatigue.end", "session"),
   scale7("picture.quality", "session"),
@@ -222,9 +264,13 @@ function forSetting(items: readonly QuestionnaireItem[], setting: QuestionnaireS
   let out = items;
   if (setting.scope === "phaseA") {
     out = out.filter((i) => !DIRECTIVE_ITEM_IDS.includes(i.id))
-      .map((i) => (i.id === "last.basis" && i.kind === "multi" ? { ...i, options: i.options.filter((o) => o.id !== "directive") } : i));
+      .map((i) => (i.id === "last.basis" && i.kind === "multi" ? { ...i, options: i.options.filter((o) => o.id !== "directive") } : i))
+      // Revision (bf): a phase-A session has seven periods, so the count of periods runs to 7 (the prompt names no number).
+      .map((i) => (i.id.startsWith("influence.plan_views.") && i.kind === "number" ? { ...i, max: HINGE_AFTER_VIEW } : i));
   }
-  if (setting.audience === "public") out = out.flatMap((i) => (i.id === "role.rank" ? PUBLIC_BACKGROUND_ITEMS : EXPERT_BACKGROUND_IDS.includes(i.id) ? [] : [i]));
+  if (setting.audience === "public") {
+    out = out.flatMap((i) => (i.id === "role.rank" ? PUBLIC_BACKGROUND_ITEMS : EXPERT_BACKGROUND_IDS.includes(i.id) || EXPERT_ONLY_IDS.includes(i.id) ? [] : [i]));
+  }
   return out;
 }
 
@@ -315,6 +361,7 @@ export function checkQuestionnaireAnswers(items: readonly QuestionnaireItem[], g
       case "scale":
       case "number":
         if (typeof raw !== "number" || !Number.isInteger(raw) || raw < item.min || raw > item.max) throw new RangeError(`questionnaire: ${String(raw)} is out of range for ${item.id}`);
+        if (item.kind === "scale" && (raw - item.min) % (item.step ?? 1) !== 0) throw new RangeError(`questionnaire: ${raw} is not a point of ${item.id}'s scale`);
         return { itemId: item.id, value: raw };
       case "multi": {
         if (!Array.isArray(raw) || raw.some((v) => typeof v !== "string")) throw new RangeError(`questionnaire: ${item.id} takes a list of options`);

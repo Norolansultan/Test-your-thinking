@@ -8,6 +8,10 @@
  *   (`probe.s.practice.b`'s answer and confidence) are removed; the practice freeze's `missing` list loses the new
  *   `freeze.practice.forecast`; the header loses `mapPretest` and `practiceFeedback`.
  * - The header's 0.13.0 fields (`audience`, `scope`) and its `formatVersion` are dropped.
+ * - Adopted before pilot 2 (24 Oct 2026, 0.16.0): the questionnaires' new items (`ADDED_ITEM_IDS`: the pre-session `sleep.hours` and
+ *   `shift.recent`, the post-session `accuracy.perceived` and `influence.*`) are removed from `questionnaire_presented.itemIds` and
+ *   `questionnaire_submitted.answers` (the driver leaves them blank). The hinge's fatigue item and the Haku chip write nothing unless
+ *   used, and the driver uses neither; the session has no stratum.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -21,6 +25,12 @@ import { sha256Hex } from "../../app/telemetry/sha256.js";
 
 const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown"]);
 
+/** 0.16.0's new questionnaire items (`app/session/questionnaire.ts` revision (bf)). */
+const ADDED_ITEM_IDS: ReadonlySet<string> = new Set([
+  "sleep.hours", "shift.recent", "accuracy.perceived",
+  "influence.plan_views.haku", "influence.plan_views.thinker", "influence.answers.haku", "influence.answers.thinker",
+]);
+
 type Rec = { readonly seq: number; readonly tVirtual: unknown; readonly tWallOffsetMs: number; readonly kind: string; readonly detail: unknown };
 
 export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
@@ -33,6 +43,14 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     if (r.kind === "session_started") {
       const { formatVersion: _v, audience: _a, scope: _s, mapPretest: _m, practiceFeedback: _p, ...rest } = d;
       kept.push({ ...r, detail: rest });
+      continue;
+    }
+    if (r.kind === "questionnaire_presented") {
+      kept.push({ ...r, detail: { ...d, itemIds: (d.itemIds as string[]).filter((id) => !ADDED_ITEM_IDS.has(id)) } });
+      continue;
+    }
+    if (r.kind === "questionnaire_submitted") {
+      kept.push({ ...r, detail: { ...d, answers: (d.answers as { itemId: string }[]).filter((a) => !ADDED_ITEM_IDS.has(a.itemId)) } });
       continue;
     }
     if (r.kind === "freeze_submitted" && d.cycle === 0 && Array.isArray(d.missing)) {

@@ -65,7 +65,7 @@ export { DUTY_OFFICER_ID } from "./message-history.js";
 import type { SpamProbe } from "./spam-delivery.js";
 import { audioManager } from "./audio-manager.js";
 import { aiLiteracySpentMs, AiLiteracyTest, keptAiLiteracyAnswers } from "./ai-literacy.js";
-import { ConsultNotice, consultToolOf, SUGGESTED_QUESTION, suggestedQuestionOffered } from "./consult-notice.js";
+import { ConsultNotice, consultToolOf, HAKU_SUGGESTED_QUESTION, hakuChipOffered, SUGGESTED_QUESTION, suggestedQuestionOffered } from "./consult-notice.js";
 import { PlanConfidence } from "./plan-confidence.js";
 import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
 import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
@@ -459,6 +459,8 @@ export class SessionOrchestrator {
       // SPEC/30 §4: the notice is out of sight while the tools it opens are (a visible probe) or the screen is blanked.
       consultPrompt: this.visible.open || this.step === "freeze" || this.step === "plan_review" ? null : this.consult.view(),
       suggestedQuestion: !this.isPractice() && suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle),
+      hakuChip: !this.isPractice() && hakuChipOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle),
+      hingeFatigue: this.step === "hinge_pause" && this.hingeCheck.settled ? { value: this.hingeCheck.fatigueValue } : null,
       planConfidence: this.step === "plan_confidence" ? this.planConfidence.view() : null,
       planReview: this.step === "plan_review" ? this.review.view() : null,
       mapPretest: this.step === "map_pretest" ? this.mapPretest.view() : null,
@@ -1125,11 +1127,11 @@ export class SessionOrchestrator {
     const results = this.queries.searchAtoms(query);
     return this.queries.logTextQuery(query, results).then(() => results);
   }
-  async askAiChat(query: string): Promise<TemplateAnswer> {
+  async askAiChat(query: string, options: { readonly viaChip?: boolean } = {}): Promise<TemplateAnswer> {
     this.assertToolsFree("askAiChat");
     this.thinkerPending += 1; this.readingGraceMs = 0; this.notify(); // waiting on the session: no idle time (`attention.ts`)
     try {
-      const answer = await this.queries.askAiChat(query);
+      const answer = await this.queries.askAiChat(query, options.viaChip === true);
       this.readingGraceMs = readingGraceMsFor(answer.answerFi.length + answer.basisFi.length + answer.certaintyFi.length + answer.wouldChangeIfFi.length);
       return answer;
     } finally { this.thinkerPending -= 1; this.notify(); }
@@ -1147,6 +1149,11 @@ export class SessionOrchestrator {
   async askSuggestedQuestion(): Promise<string> {
     if (this.isPractice() || !suggestedQuestionOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle)) throw new Error(`askSuggestedQuestion in V${this.currentCycle} (${this.cell}): the chip is the guide group's, from V8`);
     return this.askOpenThinker(SUGGESTED_QUESTION[this.language], { viaChip: true });
+  }
+  /** SPEC/30 §4 revision (bf): the Haku group's chip — exactly its question, Haku's normal path, logged `viaChip` (`tool: "haku"`). */
+  async askHakuChip(): Promise<TemplateAnswer> {
+    if (this.isPractice() || !hakuChipOffered(this.cell, this.currentCycle, this.scenario.hinge.afterCycle)) throw new Error(`askHakuChip in V${this.currentCycle} (${this.cell}): the Haku chip is the Haku group's, from V8`);
+    return this.askAiChat(HAKU_SUGGESTED_QUESTION[this.language], { viaChip: true });
   }
   /** SPEC/30 §4: the consult notification's button; resolves to the tool the screen opens, once `consult_prompt_opened` is durable. */
   openConsultPrompt(): Promise<ConsultTool> { return this.consult.openTool(); }
@@ -1343,6 +1350,8 @@ export class SessionOrchestrator {
   showHingeCheck(): Promise<void> { return this.hingeCheck.show(this.step); }
   /** The check's answer: one submission, one of its options; Continue is enabled after it. */
   answerHingeCheck(optionId: string): Promise<void> { return this.hingeCheck.answer(this.step, optionId); }
+  /** SPEC/15 revision (bf): the hinge's optional 1–7 fatigue item (`hinge_fatigue_rated`, logged at once; the last click counts). */
+  rateHingeFatigue(value: number): Promise<void> { return this.hingeCheck.rateFatigue(this.step, value); }
 
   // ---- The study shell (work package I, 5 Oct 2026) ---------------------------------------------------
 

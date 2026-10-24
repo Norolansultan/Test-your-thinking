@@ -11,8 +11,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import {
-  ASSIGNMENT_PLAN, assignmentOf, BLOCK_SIZE, CODE_ALPHABET, generateAssignmentRows, type AssignmentTable,
+  ASSIGNMENT_PLAN, assignmentOf, BLOCK_SIZE, CODE_ALPHABET, generateAssignmentRows, inStratum, stratumSeed, type AssignmentTable,
 } from "../../app/session/assignment.js";
+import { STRATA, stratumId } from "../../app/telemetry/record-kinds-pilot2.js";
 import { sessionHeader } from "../../app/session/header.js";
 import { SessionOrchestrator } from "../../app/session/orchestrator.js";
 import { ALLOCATION_TABLE, conditionOfCell, startChoiceFromUrl } from "../../app/session/preview.js";
@@ -38,36 +39,51 @@ describe("the allocation table", () => {
     expect(ALLOCATION_TABLE.rowsSha256).toBe(table.rowsSha256); // the app reads the same file
   });
 
-  it("has the strata of SPEC/30 §2: English 12 blocks (120 codes), Finnish 2 blocks (20 codes, pilots)", () => {
-    expect(ASSIGNMENT_PLAN.strata).toEqual([{ language: "en", blocks: 12 }, { language: "fi", blocks: 2 }]);
+  it("has the strata of SPEC/30 §2 revision (bf): language × profession × leads others, every one of the twelve with its codes", () => {
+    expect(ASSIGNMENT_PLAN.strata).toHaveLength(12);
+    expect(ASSIGNMENT_PLAN.strata.map((s) => `${s.language}.${stratumId(s)}`)).toEqual(
+      (["en", "fi"] as const).flatMap((language) => STRATA.map((s) => `${language}.${stratumId(s)}`)),
+    );
+    expect(table.version).toBe(2);
     expect(table.strata).toEqual(ASSIGNMENT_PLAN.strata);
-    expect(table.rows.filter((r) => r.language === "en")).toHaveLength(120);
-    expect(table.rows.filter((r) => r.language === "fi")).toHaveLength(20);
-    expect(table.rows).toHaveLength(140);
-    // English first: its rows do not depend on the Finnish stratum's size.
-    expect(generateAssignmentRows({ ...ASSIGNMENT_PLAN, strata: [{ language: "en", blocks: 12 }] })).toEqual(table.rows.filter((r) => r.language === "en"));
-    expect(table.rowsSha256).toBe("4a4b080bca1177e81811cddea6b5d3f3e3e5deb8f56248a953f79d74b3d038f2"); // SPEC/30 §2 (was 3f813613…8ccd, three cells)
+    expect(table.rows.filter((r) => r.language === "en")).toHaveLength(140);
+    expect(table.rows.filter((r) => r.language === "fi")).toHaveLength(68);
+    expect(table.rows).toHaveLength(208);
+    expect(table.rowsSha256).toBe("b7da0140b9e87f0afb34451db92b46da07665ef02b27266b73e22ec2ef9664ec"); // revision (bf) (was 4a4b080b…38f2, language strata only)
+  });
+
+  it("each stratum has its own stream: its rows do not depend on any other stratum's size or position", () => {
+    const one = ASSIGNMENT_PLAN.strata[3]!; // en.military.nolead
+    const alone = generateAssignmentRows({ ...ASSIGNMENT_PLAN, strata: [one] });
+    expect(alone).toEqual(table.rows.filter((r) => inStratum(r, one.language, one)));
+    const bigger = generateAssignmentRows({ ...ASSIGNMENT_PLAN, strata: ASSIGNMENT_PLAN.strata.map((s, i) => (i === 0 ? { ...s, blocks: s.blocks + 3 } : s)) });
+    expect(bigger.filter((r) => inStratum(r, one.language, one))).toEqual(alone);
+    expect(stratumSeed(ASSIGNMENT_PLAN.seed, "en", one)).not.toBe(stratumSeed(ASSIGNMENT_PLAN.seed, "fi", one));
   });
 
   it("another seed gives another table (the seed is what fixes it)", () => {
     expect(generateAssignmentRows({ ...ASSIGNMENT_PLAN, seed: ASSIGNMENT_PLAN.seed + 1 })).not.toEqual(table.rows);
   });
 
-  it("is permuted blocks of 10, 5 : 5, within each language stratum; no code carries reasoning_once (SPEC/30 §2)", () => {
-    for (const { language, blocks } of ASSIGNMENT_PLAN.strata) {
-      const rows = table.rows.filter((r) => r.language === language);
-      expect(rows).toHaveLength(blocks * BLOCK_SIZE);
-      for (let b = 1; b <= blocks; b++) {
+  it("is permuted blocks of 4, 2 : 2, within each stratum; no code carries reasoning_once (SPEC/30 §2 (bf))", () => {
+    expect(BLOCK_SIZE).toBe(4);
+    for (const s of ASSIGNMENT_PLAN.strata) {
+      const rows = table.rows.filter((r) => inStratum(r, s.language, s));
+      expect(rows).toHaveLength(s.blocks * BLOCK_SIZE);
+      for (let b = 1; b <= s.blocks; b++) {
         const block = rows.filter((r) => r.block === b);
         expect(block).toHaveLength(BLOCK_SIZE);
         const count = (cell: string) => block.filter((r) => r.cell === cell).length;
-        expect([count("radio"), count("reasoning_intent")]).toEqual([5, 5]);
+        expect([count("radio"), count("reasoning_intent")]).toEqual([2, 2]);
       }
+      // Issued in table order, a stratum is never more than two codes out of balance.
+      let diff = 0;
+      for (const r of rows) { diff += r.cell === "radio" ? 1 : -1; expect(Math.abs(diff)).toBeLessThanOrEqual(2); }
     }
     expect(table.rows.some((r) => r.cell === "reasoning_once")).toBe(false);
-    // Shuffled, not in composition order: not every block opens with five Haku rows.
-    const blockStarts = table.rows.filter((_, i) => i % BLOCK_SIZE === 0).map((_, b) => table.rows.slice(b * BLOCK_SIZE, b * BLOCK_SIZE + 5));
-    expect(blockStarts.every((five) => five.every((r) => r.cell === "radio"))).toBe(false);
+    // Shuffled, not in composition order: not every block opens with two Haku rows.
+    const blockStarts = table.rows.filter((_, i) => i % BLOCK_SIZE === 0).map((_, b) => table.rows.slice(b * BLOCK_SIZE, b * BLOCK_SIZE + 2));
+    expect(blockStarts.every((two) => two.every((r) => r.cell === "radio"))).toBe(false);
   });
 
   it("has unique opaque codes: the stratum's letter and five characters, nothing from the cell", () => {
@@ -91,18 +107,38 @@ describe("the start page with a participant code", () => {
   it("study: the table's cell and language; the cell never comes from the link", () => {
     expect(startChoiceFromUrl(`?tuotanto&koodi=${fi.code}`)).toEqual({
       kind: "assigned", cell: "reasoning_intent", participantCode: fi.code, language: "fi",
-      assignment: { source: "table", tableSha256: table.rowsSha256, block: fi.block, assignmentSource: "link" },
+      assignment: { source: "table", tableSha256: table.rowsSha256, block: fi.block, assignmentSource: "link", stratum: { profession: fi.profession, leads: fi.leads } },
     });
     expect(startChoiceFromUrl(`?tuotanto&koodi=${en.code}`)).toMatchObject({ kind: "assigned", cell: "radio", language: "en" });
   });
 
-  it("refuses an unknown code, a code with ?solu=, a study link without a code, and ?solu= in the study without ?pilotti", () => {
+  it("refuses an unknown code, a code with ?solu=, and ?solu= in the study without ?pilotti", () => {
     expect(startChoiceFromUrl("?tuotanto&koodi=FXXXXX").kind).toBe("invalid");
     expect(startChoiceFromUrl(`?tuotanto&koodi=${fi.code}&solu=m7`).kind).toBe("invalid");
     expect(startChoiceFromUrl(`?koodi=${fi.code}&solu=m7`).kind).toBe("invalid");
-    expect(startChoiceFromUrl("?tuotanto").kind).toBe("server_assign");
     expect(startChoiceFromUrl("?tuotanto&solu=m7").kind).toBe("invalid");
     expect(startChoiceFromUrl("?tuotanto&solu=m7&pilotti")).toMatchObject({ kind: "assigned", cell: "reasoning_once", assignment: { source: "url_pilot" } });
+  });
+
+  it("revision (bf): the shared link carries the stratum (?osite=); without one, or with an unknown one, it is refused", () => {
+    expect(startChoiceFromUrl("?tuotanto&osite=military.lead")).toEqual({ kind: "server_assign", stratum: { profession: "military", leads: true } });
+    expect(startChoiceFromUrl("?tuotanto&osite=Fire_Rescue.NoLead")).toEqual({ kind: "server_assign", stratum: { profession: "fire_rescue", leads: false } });
+    const missing = startChoiceFromUrl("?tuotanto");
+    expect(missing).toMatchObject({ kind: "invalid" });
+    expect((missing as { message: string }).message).toMatch(/no stratum \(\?osite=/);
+    expect(startChoiceFromUrl("?tuotanto&osite=police.lead")).toMatchObject({ kind: "invalid" });
+    expect(STRATA.map((s) => startChoiceFromUrl(`?tuotanto&osite=${stratumId(s)}`).kind)).toEqual(Array(6).fill("server_assign"));
+  });
+
+  it("revision (bf): a code link may name its stratum and must then name the code's; a pilot or demonstration link logs the one it names", () => {
+    const own = stratumId({ profession: fi.profession, leads: fi.leads });
+    expect(startChoiceFromUrl(`?tuotanto&koodi=${fi.code}&osite=${own}`)).toMatchObject({ kind: "assigned", participantCode: fi.code });
+    const other = STRATA.map(stratumId).find((id) => id !== own)!;
+    expect(startChoiceFromUrl(`?tuotanto&koodi=${fi.code}&osite=${other}`)).toMatchObject({ kind: "invalid" });
+    expect(startChoiceFromUrl("?tuotanto&solu=t2&pilotti&osite=other.nolead")).toMatchObject({ kind: "assigned", assignment: { source: "url_pilot", stratum: { profession: "other", leads: false } } });
+    expect(startChoiceFromUrl("?solu=k4&osite=fire_rescue.lead")).toMatchObject({ kind: "assigned", assignment: { source: "url", stratum: { profession: "fire_rescue", leads: true } } });
+    expect(startChoiceFromUrl("?solu=k4")).toMatchObject({ kind: "assigned", assignment: { source: "url" } });
+    expect((startChoiceFromUrl("?solu=k4") as { assignment: object }).assignment).not.toHaveProperty("stratum");
   });
 
   it("the header logs the code, the cell and the table's hash", async () => {
@@ -113,7 +149,7 @@ describe("the start page with a participant code", () => {
     });
     await o.start();
     const header = (await o.logRecords()).find((r) => r.kind === "session_started")!.detail as LogHeader;
-    expect(header).toMatchObject({ participantCode: fi.code, cell: "reasoning_intent", language: "fi", assignment: { source: "table", tableSha256: table.rowsSha256, block: fi.block } });
+    expect(header).toMatchObject({ participantCode: fi.code, cell: "reasoning_intent", language: "fi", assignment: { source: "table", tableSha256: table.rowsSha256, block: fi.block, stratum: { profession: fi.profession, leads: fi.leads } } });
     expect(sessionHeader(scenario, "directed", "p", "fi", null, true, "radio")).not.toHaveProperty("assignment");
   });
 });

@@ -69,13 +69,23 @@ describe("the suggested-question chip (SPEC/30 §4)", () => {
   it("sits above the Thinker's input, only when the snapshot offers it, and submits through askSuggestedQuestion", () => {
     const panel = src("RightPanel.tsx");
     const chat = panel.slice(panel.indexOf("export function OpenAiChat"), panel.indexOf("function MessageLog"));
-    expect(chat).toMatch(/snapshot\.suggestedQuestion && \(/);
-    expect(chat).toMatch(/data-testid="thinker-chip"/);
+    expect(chat).toMatch(/snapshot\.suggestedQuestion && <SuggestedChip testId="thinker-chip" text=\{t\.consult\.chip\}/);
     expect(chat).toMatch(/q\.askVia\(\(\) => orchestrator\.askSuggestedQuestion\(\)\)/);
-    expect(chat).toMatch(/\{t\.consult\.chip\}/);
     expect(chat.indexOf("thinker-chip")).toBeLessThan(chat.indexOf("<QuestionInput"));
-    const haku = panel.slice(panel.indexOf("export function HakuChat"), panel.indexOf("export function OpenAiChat"));
-    expect(haku).not.toMatch(/suggestedQuestion|thinker-chip/); // not in Haku
+    const haku = panel.slice(panel.indexOf("export function HakuChat"), panel.indexOf("function SuggestedChip"));
+    expect(haku).not.toMatch(/suggestedQuestion|thinker-chip/); // the guide's chip is not in Haku
+  });
+
+  it("revision (bf): the Haku group's chip sits above Haku's input in the same component, and submits through askHakuChip", () => {
+    const panel = src("RightPanel.tsx");
+    const haku = panel.slice(panel.indexOf("export function HakuChat"), panel.indexOf("function SuggestedChip"));
+    expect(haku).toMatch(/snapshot\.hakuChip && <SuggestedChip testId="haku-chip" text=\{t\.consult\.hakuChip\} label=\{t\.consult\.chipLabel\} pending=\{pending\}/);
+    expect(haku).toMatch(/q\.askVia\(\(\) => orchestrator\.askHakuChip\(\)\)/);
+    expect(haku.indexOf("haku-chip")).toBeLessThan(haku.indexOf("<QuestionInput"));
+    // One component for both chips: the same look, place and busy state in both groups.
+    const chip = panel.slice(panel.indexOf("function SuggestedChip"), panel.indexOf("export function OpenAiChat"));
+    expect(chip).toMatch(/disabled=\{pending\}/);
+    expect(panel.match(/<SuggestedChip /g)).toHaveLength(2);
   });
 });
 

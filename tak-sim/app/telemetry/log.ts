@@ -19,6 +19,7 @@
 
 import { asSeq, type Seq, type VirtualTime } from "../engine/primitives.js";
 import type { Cell, ConditionId, Echelon } from "../scenario/types.js";
+import type { Stratum } from "./record-kinds-pilot2.js";
 
 export interface LogHeader {
   readonly formatVersion: string;
@@ -104,11 +105,14 @@ export interface LogHeader {
    * `?solu=` with `?pilotti` in the study configuration; `start_page` — the demonstration's buttons.
    * Absent in logs before 5 Oct 2026. `assignmentSource` (revision (af), 9 Oct 2026): `link` — the
    * code came in the link (`?koodi=`); `server` — the hosted study server issued it when the
-   * participant pressed start on the shared link (`/api/assign`); absent before 9 Oct 2026.
+   * participant pressed start on the shared link (`/api/assign`); absent before 9 Oct 2026. `stratum` (0.16.0, SPEC/30 §2 revision
+   * (bf), 24 Oct 2026): the allocation stratum besides the language — the recruitment screener's profession and whether the
+   * participant leads others — from the code's table row (`table`; `block` is then the block within that stratum), or from the
+   * link's `?osite=` (`url`, `url_pilot`); absent when none reached the session.
    */
   readonly assignment?:
-    | { readonly source: "table"; readonly tableSha256: string; readonly block: number; readonly assignmentSource?: "server" | "link" }
-    | { readonly source: "url" | "url_pilot" | "start_page" };
+    | { readonly source: "table"; readonly tableSha256: string; readonly block: number; readonly assignmentSource?: "server" | "link"; readonly stratum?: Stratum }
+    | { readonly source: "url" | "url_pilot" | "start_page"; readonly stratum?: Stratum };
 }
 
 export interface LogRecord {

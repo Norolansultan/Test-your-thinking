@@ -30,7 +30,7 @@ function stimulus(records: readonly LogRecord[]): string[] {
 describe("a public session (SPEC/35 §3–§5)", () => {
   it("runs the primer before the intro video and VP; with `?profiili=heti` the profile after the results step and before the debrief", async () => {
     const { o, records } = await wholeSession({ audience: "public", immediateProfile: true });
-    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.15.0", immediateProfile: true, mapPretest: true });
+    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: "0.16.0", immediateProfile: true, mapPretest: true });
     const at = {
       pre: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "pre"),
       firstPage: index(records, (r) => r.kind === "primer_page"),

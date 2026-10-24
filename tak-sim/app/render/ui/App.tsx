@@ -39,7 +39,8 @@ export function storedLang(search: string = window.location.search): Lang {
  * The start page (phase B round 2, D1; SPEC/27 §2.2, 5 Oct 2026). In the study (`?tuotanto`) the cell
  * comes from the allocation table by participant code (`?koodi=`), which also fixes the language; a
  * study link without a code is the shared link (revision (af), 9 Oct 2026): pressing start asks the
- * hosted study server for the next code (`auto-assign.ts`), which this browser keeps; `?solu=` is
+ * hosted study server for the next code of the link's stratum (`?osite=`, SPEC/30 §2 revision (bf); a shared
+ * link without one is refused) (`auto-assign.ts`), which this browser keeps; `?solu=` is
  * accepted there only with `?pilotti`. In a
  * demonstration `?solu=k4|m7|t2` (opaque codes, `preview.ts`) assigns the cell, or the page offers the
  * three. An assigned session shows one neutral start button, so the cell is never shown.
@@ -88,7 +89,8 @@ function StartPage() {
   // The shared link's start (on the start page, outside the run loop: SPEC/05 I3).
   const startShared = async () => {
     setPhase("assigning");
-    const got = await obtainAssignment(lang, browserAssignDeps(() => newSessionId(browserEnvironment().randomBytes)));
+    // SPEC/30 §2 revision (bf): the next code of the link's stratum (`?osite=`).
+    const got = await obtainAssignment(lang, browserAssignDeps(() => newSessionId(browserEnvironment().randomBytes)), urlChoice.kind === "server_assign" ? urlChoice.stratum : undefined);
     const assigned = got.ok ? assignedByCode(got.code, "server") : null;
     if (!got.ok || !assigned) { setPhase("inactive"); return; }
     // The same browser and link again: a finished session is not run twice; a discarded one starts afresh under its code.

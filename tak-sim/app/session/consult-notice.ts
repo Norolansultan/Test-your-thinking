@@ -148,3 +148,24 @@ export const SUGGESTED_QUESTION: Readonly<Record<"fi" | "en", string>> = {
 export function suggestedQuestionOffered(cell: Cell, view: number, hingeAfterView: number): boolean {
   return cell === "reasoning_intent" && view > hingeAfterView;
 }
+
+/**
+ * SPEC/30 §4 revision (bf), 24 Oct 2026: the Haku group's own chip, so that both groups get one suggested question in their group's
+ * tool (the tool the consult notice opens, {@link consultToolOf}) under the same conditions and timing. It is content-free (it names
+ * no topic, front or record and asks for nothing the plan task needs), sits above Haku's input exactly where the guide's chip sits
+ * above the Thinker's, and is submitted exactly as shown through Haku's normal path (`askAiChat`), its `ai_chat_query_submitted`
+ * carrying `viaChip: true` with `tool: "haku"`. Finnish DRAFT (native check, SPEC/30 §8). The label is this same text
+ * (`UI_TEXT[lang].consult.hakuChip`).
+ */
+export const HAKU_SUGGESTED_QUESTION: Readonly<Record<"fi" | "en", string>> = {
+  en: "What has been recorded in this period?",
+  fi: "Mitä uutta tällä jaksolla on kirjattu?",
+};
+
+/**
+ * The Haku chip is offered in the Haku group (`radio`) only, in the same views as the guide's chip (from V8; never before, never in
+ * the practice view). The guide group's Haku tab has no chip: each group has one chip, in its own tool.
+ */
+export function hakuChipOffered(cell: Cell, view: number, hingeAfterView: number): boolean {
+  return cell === "radio" && view > hingeAfterView;
+}

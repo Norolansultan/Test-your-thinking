@@ -240,7 +240,7 @@ function ItemField({ item, text, value, onChange, retention, picked }: {
       };
       return <div>{prompt}<CheckButtons options={item.options.map((o) => ({ id: o.id, label: text.options?.[o.id] ?? o.id }))} ticked={ticked} onToggle={toggle} /></div>;
     }
-    case "scale": return <div>{prompt}<ScaleButtons min={item.min} max={item.max} low={text.low} high={text.high} value={single} onChange={onChange} /></div>;
+    case "scale": return <div>{prompt}<ScaleButtons min={item.min} max={item.max} step={item.step} low={text.low} high={text.high} value={single} onChange={onChange} /></div>;
     case "number":
       return (
         <div>{prompt}
@@ -287,12 +287,12 @@ function ChoiceButtons({ options, value, onChange, column = false }: {
   );
 }
 
-/** A rating scale's points as buttons with its two anchors (the questionnaires and the AI literacy questionnaire). */
-function ScaleButtons({ min, max, low, high, value, onChange }: {
-  readonly min: number; readonly max: number; readonly low?: string | undefined; readonly high?: string | undefined;
+/** A rating scale's points as buttons with its two anchors (the questionnaires and the AI literacy questionnaire); `step`: every step-th point (revision (bf): 0–100 in tens). */
+function ScaleButtons({ min, max, step = 1, low, high, value, onChange }: {
+  readonly min: number; readonly max: number; readonly step?: number | undefined; readonly low?: string | undefined; readonly high?: string | undefined;
   readonly value: string | number | null; readonly onChange: (v: number) => void;
 }) {
-  const points = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  const points = Array.from({ length: Math.floor((max - min) / step) + 1 }, (_, i) => min + i * step);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
       {low && <span style={{ fontSize: 12, opacity: 0.7, marginRight: 4 }}>{low}</span>}

@@ -147,11 +147,14 @@ function issuedSection(o: ReturnType<typeof issuedWithStatus>): string {
   const filter = o.cells
     ? `<p class="pilot"><b>Cell filter in force (pilot setting): ${escapeHtml(o.cells.join(", "))}.</b> Only codes of ${o.cells.length === 1 ? "this cell" : "these cells"} are issued, in sequence order; the blocked balance between cells does not hold. Unset ASSIGN_CELLS for the study.</p>`
     : `<p>No cell filter: codes are issued in the allocation sequence's order (the blocked randomisation).</p>`;
-  const rows = o.issued.map((r) => `<tr class="${r.status}">${cell(r.code)}${cell(r.cell)}${cell(r.language)}${cell(r.block)}${cell(r.issuedAtIso)}${cell(r.status)}<td><code>${escapeHtml(r.sessionId)}</code></td></tr>`).join("\n");
+  const rows = o.issued.map((r) => `<tr class="${r.status}">${cell(r.code)}${cell(r.cell)}${cell(r.language)}${cell(r.stratum ?? null)}${cell(r.block)}${cell(r.issuedAtIso)}${cell(r.status)}<td><code>${escapeHtml(r.sessionId)}</code></td></tr>`).join("\n");
+  // SPEC/30 §2 revision (bf): what is left in each stratum's sequence (a stratum near its end needs more blocks before it runs out).
+  const byStratum = Object.entries(o.remainingByStratum ?? {}).map(([k, n]) => `${escapeHtml(k)} ${n}`).join(", ");
   return `<h2>Shared study link: issued codes</h2>
 ${filter}
 <p>${o.issued.length} issued (cap ${o.maxIssued}; at most ${o.ratePerHour} new per address per hour). Codes left: en ${o.remaining.en}, fi ${o.remaining.fi}. <b>not_started</b>: issued, nothing uploaded yet.</p>
-<table><thead><tr><th>Code</th><th>Cell</th><th>Language</th><th>Block</th><th>Issued</th><th>Status</th><th>Session id</th></tr></thead>
+${byStratum ? `<p>Codes left per stratum: ${byStratum}.</p>` : ""}
+<table><thead><tr><th>Code</th><th>Cell</th><th>Language</th><th>Stratum</th><th>Block</th><th>Issued</th><th>Status</th><th>Session id</th></tr></thead>
 <tbody>
 ${rows}
 </tbody></table>

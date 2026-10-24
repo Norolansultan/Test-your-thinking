@@ -36,7 +36,9 @@ describe("the cell from the URL", () => {
   it("decides what the start page offers", () => {
     expect(startChoiceFromUrl("")).toEqual({ kind: "choose" });
     expect(startChoiceFromUrl("?esikatselu=12")).toEqual({ kind: "choose" });
-    expect(startChoiceFromUrl("?tuotanto")).toEqual({ kind: "server_assign" });
+    // SPEC/30 §2 revision (bf), 24 Oct 2026: the shared study link names the screener's stratum (`?osite=`); without one it is refused.
+    expect(startChoiceFromUrl("?tuotanto&osite=fire_rescue.lead")).toEqual({ kind: "server_assign", stratum: { profession: "fire_rescue", leads: true } });
+    expect(startChoiceFromUrl("?tuotanto").kind).toBe("invalid");
     // SPEC/27 §2.2 (5 Oct 2026): `?solu=` in the study only for a pilot (`?pilotti`), logged as such.
     expect(startChoiceFromUrl("?tuotanto&solu=t2").kind).toBe("invalid");
     expect(startChoiceFromUrl("?tuotanto&solu=t2&pilotti")).toEqual({ kind: "assigned", cell: "reasoning_intent", assignment: { source: "url_pilot" }, participantCode: null, language: null });

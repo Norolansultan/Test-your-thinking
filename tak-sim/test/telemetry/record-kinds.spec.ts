@@ -149,6 +149,7 @@ const EXPECTED_KINDS: readonly RecordKind[] = (() => {
       case "map_pretest_answer":
       case "map_pretest_completed":
       case "practice_feedback_shown":
+      case "hinge_fatigue_rated":
         return;
       default:
         assertExhaustive(kind);

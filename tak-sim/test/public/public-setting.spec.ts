@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { lastViewOf, scopedSchedule, sessionSettingFromUrl } from "../../app/session/public-session.js";
-import { EXPERT_BACKGROUND_IDS, PUBLIC_BACKGROUND_ITEMS, questionnaireItems } from "../../app/session/questionnaire.js";
+import { EXPERT_BACKGROUND_IDS, EXPERT_ONLY_IDS, PUBLIC_BACKGROUND_ITEMS, questionnaireItems } from "../../app/session/questionnaire.js";
 import { chapterLabel, chapterOf, projectionHeldIn, PUBLIC_TEXT, studyTextFor } from "../../app/i18n/public-texts.js";
 import { consentTextId, debriefTextId, STUDY_TEXT } from "../../app/i18n/study-texts.js";
 import { LANGUAGES } from "../../app/i18n/lang.js";
@@ -75,7 +75,8 @@ describe("the public questionnaire (SPEC/35 §5)", () => {
       expect(pub.slice(at, at + publicIds.length)).toEqual(publicIds);
       // Every other item is the same, in the same order.
       expect(pub.filter((id) => !publicIds.includes(id))).toEqual(expert.filter((id) => !EXPERT_BACKGROUND_IDS.includes(id)));
-      expect(questionnaireItems("pre", cell, undefined, { audience: "public", scope: "full" })).toEqual(questionnaireItems("pre", cell));
+      // Revision (bf), 24 Oct 2026: the pre-session items are the same but for the professionals' `shift.recent` (EXPERT_ONLY_IDS).
+      expect(questionnaireItems("pre", cell, undefined, { audience: "public", scope: "full" })).toEqual(questionnaireItems("pre", cell).filter((i) => !EXPERT_ONLY_IDS.includes(i.id)));
     }
     const options = (id: string) => { const item = PUBLIC_BACKGROUND_ITEMS.find((i) => i.id === id)!; return item.kind === "choice" ? item.options : []; };
     expect(options("public.management")).toEqual(["none", "team_lead", "manager", "executive"]);

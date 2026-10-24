@@ -1,15 +1,17 @@
 /**
  * Automatic assignment for the shared study link (revision (af), 9 Oct 2026; `app/session/auto-assign.ts`):
  *
- *   POST /api/assign   body {sessionId, language}   200 {code} · 400 · 413 · 410 {error} none left / cap
- *                                                    reached · 429 {error} rate limit
+ *   POST /api/assign   body {sessionId, language, stratum}   200 {code} · 400 · 413 · 410 {error} none left / cap
+ *                                                              reached · 429 {error} rate limit
  *
  * Mounted by `server.ts` only when the production server's config says so (`AUTO_ASSIGN=1`, set by
  * `scripts/host-study.ps1` and the Dockerfile); otherwise the route answers 404 like any unknown one.
  * The Vite dev server never has it, so a researcher running the app locally never consumes a code.
  *
  * Order: the NEXT unused code of the committed allocation table (`content/assignment/allocation.json`),
- * in table order within the language stratum the participant chose, so codes go out exactly as the
+ * in table order within the stratum: the language the participant chose and, in a stratified table
+ * (version 2, SPEC/30 §2 revision (bf), 24 Oct 2026), the link's `stratum` (`fire_rescue.lead`, …; required
+ * there: a request without one, or with an unknown one, is refused with 400), so codes go out exactly as the
  * permuted blocks lay them down and the blocked randomisation stays as balanced as it is by link.
  *
  * The cell filter (`ASSIGN_CELLS`, e.g. `reasoning_intent`) is a PILOT setting: it walks the same
@@ -33,7 +35,8 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { IncomingHttpHeaders } from "node:http";
-import type { AssignmentLanguage, AssignmentRow, AssignmentTable } from "../../app/session/assignment.js";
+import { inStratum, type AssignmentLanguage, type AssignmentRow, type AssignmentTable } from "../../app/session/assignment.js";
+import { parseStratumId, STRATA, stratumId } from "../../app/telemetry/record-kinds-pilot2.js";
 import type { Cell } from "../../app/scenario/types.js";
 import { isValidSessionId } from "../../app/telemetry/session-log-protocol.js";
 
@@ -46,6 +49,8 @@ const HOUR_MS = 60 * 60 * 1000;
 export interface IssuedCode {
   readonly code: string;
   readonly language: AssignmentLanguage;
+  /** Revision (bf): the code's stratum id (`stratumId`); absent for a version-1 table. */
+  readonly stratum?: string;
   readonly block: number;
   readonly cell: Cell;
   readonly sessionId: string;
@@ -90,6 +95,13 @@ export interface AssignmentOverview {
   readonly issued: readonly IssuedCode[];
   /** Unissued codes the filter admits, per language. */
   readonly remaining: Readonly<Record<AssignmentLanguage, number>>;
+  /** Revision (bf): the same per language × stratum (`en.fire_rescue.lead`), in table order; empty for a version-1 table. */
+  readonly remainingByStratum: Readonly<Record<string, number>>;
+}
+
+/** A row's stratum id, or null for a version-1 table's row (no strata). */
+function rowStratumId(row: AssignmentRow): string | null {
+  return row.profession !== undefined && row.leads !== undefined ? stratumId({ profession: row.profession, leads: row.leads }) : null;
 }
 
 export class AutoAssignError extends Error {}
@@ -131,8 +143,16 @@ export class AutoAssigner {
   overview(): AssignmentOverview {
     const issued = new Set(this.issued.map((i) => i.code));
     const remaining = { fi: 0, en: 0 };
-    for (const r of this.options.table.rows) if (this.admits(r) && !issued.has(r.code)) remaining[r.language]++;
-    return { cells: this.options.cells, maxIssued: this.maxIssued, ratePerHour: this.options.ratePerHour, issued: [...this.issued], remaining };
+    const remainingByStratum: Record<string, number> = {};
+    for (const r of this.options.table.rows) {
+      const s = rowStratumId(r);
+      const key = s === null ? null : `${r.language}.${s}`;
+      if (key !== null && remainingByStratum[key] === undefined) remainingByStratum[key] = 0;
+      if (!this.admits(r) || issued.has(r.code)) continue;
+      remaining[r.language]++;
+      if (key !== null) remainingByStratum[key]!++;
+    }
+    return { cells: this.options.cells, maxIssued: this.maxIssued, ratePerHour: this.options.ratePerHour, issued: [...this.issued], remaining, remainingByStratum };
   }
 
   private admits(row: AssignmentRow): boolean {
@@ -147,11 +167,15 @@ export class AutoAssigner {
   }
 
   private async assignNow(body: unknown, client: string): Promise<AssignResponse> {
-    const req = body as { sessionId?: unknown; language?: unknown } | null;
+    const req = body as { sessionId?: unknown; language?: unknown; stratum?: unknown } | null;
     if (typeof req !== "object" || req === null || !isValidSessionId(req.sessionId)) return { status: 400, body: { error: "sessionId required" } };
     if (req.language !== "fi" && req.language !== "en") return { status: 400, body: { error: "language must be fi or en" } };
     const sessionId = req.sessionId;
     const language: AssignmentLanguage = req.language;
+    // Revision (bf): a stratified table issues within the link's stratum only; a request without one (or with an unknown one) is refused.
+    const stratified = this.options.table.rows.some((r) => rowStratumId(r) !== null);
+    const stratum = typeof req.stratum === "string" ? parseStratumId(req.stratum) : null;
+    if (stratified && !stratum) return { status: 400, body: { error: `stratum required (one of ${STRATA.map(stratumId).join(", ")})` } };
 
     const known = this.issued.find((i) => i.sessionId === sessionId);
     if (known) return { status: 200, body: { code: known.code } };
@@ -167,10 +191,13 @@ export class AutoAssigner {
 
     const taken = new Set(this.issued.map((i) => i.code));
     try { for (const c of (await this.options.usedCodes?.()) ?? []) taken.add(c); } catch { /* the listing failed: the issued file alone still prevents a reissue */ }
-    const row = this.options.table.rows.find((r) => r.language === language && this.admits(r) && !taken.has(r.code));
-    if (!row) return { status: 410, body: { error: "no codes left" } };
+    const row = this.options.table.rows.find((r) => r.language === language && (!stratum || inStratum(r, language, stratum)) && this.admits(r) && !taken.has(r.code));
+    if (!row) return { status: 410, body: { error: stratum ? `no codes left in ${language}.${stratumId(stratum)}` : "no codes left" } };
 
-    const entry: IssuedCode = { code: row.code, language: row.language, block: row.block, cell: row.cell, sessionId, issuedAtIso: new Date(nowMs).toISOString() };
+    const rowStratum = rowStratumId(row);
+    const entry: IssuedCode = {
+      code: row.code, language: row.language, ...(rowStratum !== null ? { stratum: rowStratum } : {}), block: row.block, cell: row.cell, sessionId, issuedAtIso: new Date(nowMs).toISOString(),
+    };
     const next = [...this.issued, entry];
     await this.persist(next); // a failed write answers 500 and issues nothing
     this.issued = next;

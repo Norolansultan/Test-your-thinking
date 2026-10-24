@@ -169,6 +169,8 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "map_pretest_answer", detail: { itemId: "pretest.p1.square", choiceId: "B2", position: 1, rtMs: 12_000 } },
   { kind: "map_pretest_completed", detail: { endReason: "completed", answeredCount: 1, missingItemIds: [], durationMs: 12_500 } },
   { kind: "practice_feedback_shown", detail: { itemIds: ["freeze.practice.infra", "freeze.practice.forecast"] } },
+  // Adopted before pilot 2 (0.16.0): the hinge's optional fatigue item
+  { kind: "hinge_fatigue_rated", detail: { itemId: "fatigue.hinge", value: 4 } },
   // The AI literacy test (9 Oct 2026, revision (ac))
   { kind: "ai_literacy_started", detail: { instrumentId: "SNAIL", version: "snail-31.2023.v1", itemIds: ["snail.V01", "snail.V02"], timeLimitMs: 300_000, itemsPerPage: 4, firstPage: 0, remainingMs: 300_000, resumed: false, keptItemIds: [], itemsPending: false } },
   { kind: "ai_literacy_answered", detail: { itemId: "snail.V01", sourceItemId: "V01", position: 1, page: 0, response: 5, timeOnItemMs: 6_000 } },

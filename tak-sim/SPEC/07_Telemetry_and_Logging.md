@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **24 Oct 2026 (bf)** — format **0.16.0** (adopted before pilot 2, `30` (bf)): `hinge_fatigue_rated` (the hinge's optional fatigue item); the header's `assignment.stratum` (profession × leads others); `ai_chat_query_submitted.viaChip` also with `tool: "haku"` (the Haku group's chip); new questionnaire item ids (pre: `sleep.hours`, `shift.recent`; post: `accuracy.perceived`, `influence.plan_views.*`, `influence.answers.*`); the allocation table's version 2. See the revision at the end.
 > - **23 Oct 2026 (be)** — format **0.15.0** (the difficulty audit, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest's `map_pretest_started` / `_answer` / `_completed`, the practice feedback's `practice_feedback_shown`; the header's `mapPretest` and `practiceFeedback`; VP's fifth freeze item and second SPAM item. The "New records" badge is not logged. Main views write the records of 0.14.0. See the revision at the end.
 > - **23 Oct 2026 (bc)** — format **0.14.0** (`36`, personal results after the study): `results_optin { optedIn }` in every session after the post-session questionnaire (never the address); the header's `immediateProfile`; `profile_shown` only with it. See the revision at the end.
 > - **21 Oct 2026 (bb)** — format **0.13.0** (`35`, the public-audience version): header fields `audience` and `scope`; `primer_page`, `primer_check`, `help_card_opened`, `profile_shown`; `glossary_opened` in a new shape. Expert sessions write the records of 0.12.0. See the revision at the end.
@@ -699,3 +700,22 @@ Source: `docs/audits/2026-10-23-difficulty/` (`audit.md`, `proposal.md` (a)–(b
 - **Not logged: the "New records" badge** on the Haku button. It is set at every view's `cycle_start` and `step_boundary_reached` unless the Haku tool is open, and cleared by `tab_selected` "haku": its state is a function of records the log already has, so a record of its own would add nothing. It carries no count.
 - **Never in the log:** the pretest's key (`content/pretest/map-pretest.key.json`, analysis only) and any score; the pretest is a covariate (`09` (be)).
 - **Expert sessions:** the main session (V1 to the end) writes exactly the records of 0.14.0; the stream before VP gains the pretest's records, VP the records above (`test/public/expert-identity.spec.ts`, updated deliberately: segment digests from the 0.12.0-equivalent run, see its note).
+
+## Revision 24 Oct 2026 (bf) — format 0.16.0: adopted before pilot 2
+
+Source: `30` (bf) (the chip in both groups, the strata, the post-session and pre-session items, the hinge's fatigue item); the session side is `15` (bf), the analysis `09` (bf). The new kind lives in `app/telemetry/record-kinds-pilot2.ts`, as the difficulty audit's in `record-kinds-difficulty.ts`.
+
+- **New kind:**
+
+| Kind | Fields | When |
+|---|---|---|
+| `hinge_fatigue_rated` | `itemId` (`"fatigue.hinge"`), `value` (1–7) | a click on the hinge screen's optional fatigue item, shown once the manipulation check is answered; each click logged at once (the screen shows it once durable, I5); the last before `hinge_pause_end` counts; none when the item is skipped |
+
+- **Changed:**
+  - `ai_chat_query_submitted.viaChip: true` may now come with `tool: "haku"`: the Haku group's suggested-question chip (V8–V14, `30` bf.1), submitted exactly as shown. With `tool: "open_thinker"` it is the guide's chip as before.
+  - The header's `assignment` may carry `stratum: {profession: "fire_rescue" | "military" | "other", leads: boolean}`: for `source: "table"` the code's row's (the stratified allocation table, version 2; `block` is the block within the stratum), for `url` / `url_pilot` the link's `?osite=`. Absent: no stratum reached the session (logs before 0.16.0; a demonstration link without one). A resumed session keeps its header's.
+  - **Questionnaire item ids** (no new kind): `questionnaire_presented` / `_submitted` "pre" list `fatigue.start`, `sleep.hours` (0–24) and, in an expert session, `shift.recent` (yes / no); "post" lists, right after the source block, `accuracy.perceived` (0–100), `influence.plan_views.haku` or `.thinker` (0–14; 0–7 in a phase-A session) and `influence.answers.haku` or `.thinker` (0–100 in tens) — the session's own tool only.
+- **Not logged:** the chips' visibility (a function of the cell and the view, both in the log); the screener's answers themselves (only the stratum they map to).
+- **The allocation table** (`content/assignment/allocation.json`) is version 2: rows carry `profession` and `leads`; `rowsSha256` b7da0140…64ec (was 4a4b080b…38f2). The server's `issued-codes.json` entries carry `stratum` (`fire_rescue.lead`, …); `POST /api/assign` takes `stratum` (required by a stratified table).
+- **Expert sessions:** a session that never uses the Haku chip or the hinge's item and has no stratum writes the records of 0.15.0 except the two questionnaires' item lists (`test/public/expert-identity.spec.ts`, updated deliberately: the normalisation removes the new items, the digests and the 515 records stand).
+- **Analysis only, never logged:** the awareness index (`awareness-measures.ts`), the guardrail fidelity report (`tools/review/fidelity-lib.ts`) and the certainty audit (`haku-certainty-audit.ts`), all computed from these records.

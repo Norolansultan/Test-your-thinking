@@ -20,6 +20,11 @@
  * second practice item one tick later; the training's dwell now belongs to the feedback screen). 515 records: 0.12.0's 502,
  * SPEC/36's `results_optin`, the pretest's 8, the feedback's 2 and the second practice item's 2. The text-only changes (the tour's
  * log, Haku and V1 steps; the overlay's larger labels, sector names and settlement labels; the measure step) write no record.
+ *
+ * Updated deliberately for the changes adopted before pilot 2 (24 Oct 2026, format 0.16.0): the questionnaires carry new items (the
+ * pre-session sleep and shift items, the post-session self-estimate and perceived-influence items), which the comparison removes from
+ * the two questionnaires' records (`identity-normalise.ts`); nothing else moves. The Haku chip (Haku group, V8–V14) and the hinge's
+ * fatigue item write records only when used, and this driver uses neither, so the digests and the 515 records stand.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

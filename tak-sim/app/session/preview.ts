@@ -19,7 +19,8 @@
 
 import allocationTable from "../../content/assignment/allocation.json" with { type: "json" };
 import type { Cell } from "../scenario/types.js";
-import { assignmentOf, type AssignmentLanguage, type AssignmentTable } from "./assignment.js";
+import { assignmentOf, stratumOfRow, type AssignmentLanguage, type AssignmentTable } from "./assignment.js";
+import { parseStratumId, STRATA, stratumId, type Stratum } from "../telemetry/record-kinds-pilot2.js";
 import { VIEW_MIN_SECONDS } from "../scenario/views.js";
 
 /** The URL query parameter that sets a single-step view's minimum length to the given whole seconds. */
@@ -98,6 +99,21 @@ export function parseCellParam(search: string): Cell | null {
 export const CODE_PARAM = "koodi";
 /** Marks a pilot session that takes its cell from `?solu=` in the study configuration (SPEC/27 §2.2). */
 export const PILOT_PARAM = "pilotti";
+/**
+ * The allocation stratum from the recruitment screener (SPEC/30 §2 revision (bf), 24 Oct 2026): `?osite=<profession>.<lead|nolead>`,
+ * e.g. `?tuotanto&osite=fire_rescue.lead` (`stratumId`). The shared study link must carry it (the server issues the next code of
+ * that stratum); a `?koodi=` link may (it must then match the code's row); a pilot or demonstration link may (logged as given).
+ */
+export const STRATUM_PARAM = "osite";
+
+/** Reads `?osite=`: the stratum, null when absent; throws on a value that names none, rather than guessing a stratum. */
+export function parseStratumParam(search: string): Stratum | null {
+  const raw = new URLSearchParams(search).get(STRATUM_PARAM);
+  if (raw === null) return null;
+  const s = parseStratumId(raw);
+  if (!s) throw new RangeError(`?${STRATUM_PARAM}= must be one of ${STRATA.map(stratumId).join(", ")}; got "${raw}"`);
+  return s;
+}
 
 /**
  * Where the session's cell came from (logged in the header, `LogHeader.assignment`): the allocation
@@ -114,17 +130,22 @@ export type SessionAssignment =
      * `auto-assign.ts`). Absent in logs before 9 Oct 2026 (all `link`).
      */
     readonly assignmentSource?: "server" | "link";
+    /** SPEC/30 §2 revision (bf): the code's row's stratum (profession × leads others); absent in logs before 0.16.0. */
+    readonly stratum?: Stratum;
   }
-  | { readonly source: "url" }
-  | { readonly source: "url_pilot" }
+  /** `stratum` (revision (bf)): the link's `?osite=`, when it carried one. */
+  | { readonly source: "url"; readonly stratum?: Stratum }
+  | { readonly source: "url_pilot"; readonly stratum?: Stratum }
   | { readonly source: "start_page" };
 
 /**
  * What the start page offers (D1; SPEC/27 §2.2, reconciled 5 Oct 2026):
  * - `?koodi=<code>` (either mode): the allocation table's cell and language for that code, one
- *   neutral start button, the language fixed by the code's stratum; an unknown code is refused;
+ *   neutral start button, the language fixed by the code's stratum; an unknown code is refused; with
+ *   `?osite=` (revision (bf)) the stratum must be the code's;
  * - `?tuotanto` (the study) without a code: the shared study link (revision (af), 9 Oct 2026) — the
- *   start button asks the hosted study server for the next code (`server_assign`, `auto-assign.ts`);
+ *   start button asks the hosted study server for the next code (`server_assign`, `auto-assign.ts`)
+ *   of the link's stratum, so the link must carry `?osite=` (revision (bf), 24 Oct 2026; refused without);
  *   `?solu=` in the study is refused unless the
  *   link also carries `?pilotti` (a pilot session, logged as `url_pilot`); a code and `?solu=`
  *   together are refused (two sources of the cell);
@@ -141,8 +162,8 @@ export type StartChoice =
     readonly language: AssignmentLanguage | null;
   }
   | { readonly kind: "choose" }
-  /** The shared study link: the code comes from `/api/assign` when the participant starts. */
-  | { readonly kind: "server_assign" }
+  /** The shared study link: the code of the link's stratum comes from `/api/assign` when the participant starts. */
+  | { readonly kind: "server_assign"; readonly stratum: Stratum }
   | { readonly kind: "invalid"; readonly message: string };
 
 export const ALLOCATION_TABLE = allocationTable as unknown as AssignmentTable;
@@ -151,31 +172,41 @@ export function startChoiceFromUrl(search: string, table: AssignmentTable = ALLO
   const params = new URLSearchParams(search);
   const study = params.has(STUDY_PARAM);
   let cell: Cell | null;
+  let stratum: Stratum | null;
   try {
     cell = parseCellParam(search);
+    stratum = parseStratumParam(search);
   } catch (e) {
     return { kind: "invalid", message: e instanceof Error ? e.message : String(e) };
   }
+  const linked = stratum ? { stratum } : {};
   const rawCode = params.get(CODE_PARAM);
   if (rawCode !== null) {
     if (cell) return { kind: "invalid", message: `?${CODE_PARAM}= and ?${CELL_PARAM}= together: the cell has one source` };
-    return assignedByCode(rawCode, "link", table) ?? { kind: "invalid", message: `unknown participant code "${rawCode}"` };
+    const byCode = assignedByCode(rawCode, "link", table);
+    if (!byCode) return { kind: "invalid", message: `unknown participant code "${rawCode}"` };
+    // Revision (bf): a link that names a stratum must name the code's (the screener and the code agree, or the link is wrong).
+    const own = byCode.assignment.source === "table" ? byCode.assignment.stratum : undefined;
+    if (stratum && own && stratumId(own) !== stratumId(stratum)) return { kind: "invalid", message: `participant code "${rawCode}" belongs to stratum ${stratumId(own)}, not ${stratumId(stratum)}` };
+    return byCode;
   }
   if (study) {
-    if (!cell) return { kind: "server_assign" };
+    if (!cell) return stratum ? { kind: "server_assign", stratum } : { kind: "invalid", message: `the study link has no stratum (?${STRATUM_PARAM}=…); ask the researcher for the right link` };
     if (!params.has(PILOT_PARAM)) return { kind: "invalid", message: `?${CELL_PARAM}= is not accepted in a study session; use ?${CODE_PARAM}= (or ?${PILOT_PARAM} for a pilot)` };
-    return { kind: "assigned", cell, assignment: { source: "url_pilot" }, participantCode: null, language: null };
+    return { kind: "assigned", cell, assignment: { source: "url_pilot", ...linked }, participantCode: null, language: null };
   }
-  if (cell) return { kind: "assigned", cell, assignment: { source: "url" }, participantCode: null, language: null };
+  if (cell) return { kind: "assigned", cell, assignment: { source: "url", ...linked }, participantCode: null, language: null };
   return { kind: "choose" };
 }
 
-/** A table code's start choice (its cell, language and block), or null for a code the table does not hold. */
+/** A table code's start choice (its cell, language, block and stratum), or null for a code the table does not hold. */
 export function assignedByCode(rawCode: string, assignmentSource: "server" | "link", table: AssignmentTable = ALLOCATION_TABLE): Extract<StartChoice, { kind: "assigned" }> | null {
   const row = assignmentOf(table, rawCode);
   if (!row) return null;
+  // A version-1 table (before revision (bf)) has no strata: no stratum is logged.
+  const stratum = row.profession !== undefined && row.leads !== undefined ? { stratum: stratumOfRow(row) } : {};
   return {
     kind: "assigned", cell: row.cell, participantCode: row.code, language: row.language,
-    assignment: { source: "table", tableSha256: table.rowsSha256, block: row.block, assignmentSource },
+    assignment: { source: "table", tableSha256: table.rowsSha256, block: row.block, assignmentSource, ...stratum },
   };
 }

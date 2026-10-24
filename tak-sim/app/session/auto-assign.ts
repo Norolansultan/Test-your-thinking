@@ -1,9 +1,10 @@
 /**
- * The shared study link (revision (af), 9 Oct 2026): `https://<host>/?tuotanto`, the same for every
- * participant. When the participant presses start on the start page (outside the run loop, SPEC/05
- * I3), the browser asks the hosted study server once for the next unused code of the allocation table
- * (`POST /api/assign`, `server/production/auto-assign.ts`), then runs as a session assigned by that
- * code (`assignmentSource: "server"` in the header).
+ * The shared study link (revision (af), 9 Oct 2026): `https://<host>/?tuotanto&osite=<stratum>`, the same for every
+ * participant of a stratum (SPEC/30 §2 revision (bf), 24 Oct 2026: the recruitment screener's profession × leads others, e.g.
+ * `osite=fire_rescue.lead`). When the participant presses start on the start page (outside the run loop, SPEC/05
+ * I3), the browser asks the hosted study server once for the next unused code of the allocation table in the
+ * chosen language and the link's stratum (`POST /api/assign`, `server/production/auto-assign.ts`), then runs as a
+ * session assigned by that code (`assignmentSource: "server"` and the row's `stratum` in the header).
  *
  * The code and the session id are kept in this browser's localStorage under {@link STORED_ASSIGNMENT_KEY}
  * (per origin: a new tunnel address starts afresh). The session id is stored BEFORE the request, so a
@@ -18,17 +19,22 @@
  */
 
 import type { AssignmentLanguage, AssignmentTable } from "./assignment.js";
-import { assignmentOf } from "./assignment.js";
+import { assignmentOf, inStratum } from "./assignment.js";
+import { stratumId, type Stratum } from "../telemetry/record-kinds-pilot2.js";
 import { ALLOCATION_TABLE } from "./preview.js";
 import { isValidSessionId } from "../telemetry/session-log-protocol.js";
 
 export const ASSIGN_ENDPOINT = "/api/assign";
 export const STORED_ASSIGNMENT_KEY = "study-auto-assignment";
 
-/** The request body (`server/production/auto-assign.ts` validates it). */
+/**
+ * The request body (`server/production/auto-assign.ts` validates it). `stratum` (SPEC/30 §2 revision (bf), 24 Oct 2026): the link's
+ * `?osite=` (`stratumId`), the stratum the next code is drawn from; a stratified table refuses a request without one.
+ */
 export interface AssignRequest {
   readonly sessionId: string;
   readonly language: AssignmentLanguage;
+  readonly stratum?: string;
 }
 
 /** What this browser keeps: the session id always, the code once the server has issued it. */
@@ -79,9 +85,10 @@ export function storedCode(storage: StorageLike | null, table: AssignmentTable =
 
 /**
  * The participant's code: the one this browser already holds, or one requested from the server (once).
- * `language` is the start page's choice; the server issues from that language's stratum.
+ * `language` is the start page's choice and `stratum` the link's (`?osite=`, revision (bf)); the server issues from that language ×
+ * stratum's sequence, and a code of another language or stratum is not accepted.
  */
-export async function obtainAssignment(language: AssignmentLanguage, deps: AssignDeps): Promise<AssignOutcome> {
+export async function obtainAssignment(language: AssignmentLanguage, deps: AssignDeps, stratum?: Stratum): Promise<AssignOutcome> {
   const table = deps.table ?? ALLOCATION_TABLE;
   const held = storedCode(deps.storage, table);
   if (held) return { ok: true, code: held.code, sessionId: held.sessionId };
@@ -89,7 +96,7 @@ export async function obtainAssignment(language: AssignmentLanguage, deps: Assig
   store(deps.storage, { sessionId });
   let res;
   try {
-    const body: AssignRequest = { sessionId, language };
+    const body: AssignRequest = { sessionId, language, ...(stratum ? { stratum: stratumId(stratum) } : {}) };
     // determinism-lint-allow: the one assign request, on the start page when the participant presses start, before the session and its run loop exist (SPEC/05 I3).
     res = await deps.fetch(ASSIGN_ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   } catch {
@@ -101,7 +108,7 @@ export async function obtainAssignment(language: AssignmentLanguage, deps: Assig
   const code = res.ok && typeof (data as { code?: unknown } | null)?.code === "string" ? (data as { code: string }).code : null;
   if (code === null) return { ok: false, reason: res.ok ? "inactive" : "refused" };
   const row = assignmentOf(table, code);
-  if (!row || row.language !== language) return { ok: false, reason: "inactive" };
+  if (!row || row.language !== language || (stratum && !inStratum(row, language, stratum))) return { ok: false, reason: "inactive" };
   store(deps.storage, { sessionId, code: row.code });
   return { ok: true, code: row.code, sessionId };
 }

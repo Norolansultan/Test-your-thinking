@@ -84,6 +84,14 @@ export async function atView(view: number, cell: Cell = "radio", options: Sessio
   return r;
 }
 
+/** A session brought to the hinge screen (V7 completed, the hinge not yet passed; SPEC/15 (bf)'s fatigue item). */
+export async function atHinge(cell: Cell = "radio", options: SessionOptions = {}, s: ScenarioContract = scenario): Promise<Running> {
+  const r = await atView(7, cell, options, s);
+  await runOutMain(r);
+  await allocateAndConfirm(r.o, r.snap);
+  return r;
+}
+
 /** Lets every pending microtask and zero-delay timer run. */
 export const settle = () => vi.advanceTimersByTimeAsync(0);
 

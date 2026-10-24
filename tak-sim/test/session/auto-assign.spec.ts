@@ -12,8 +12,12 @@ import { ALLOCATION_TABLE, assignedByCode, conditionOfCell, startChoiceFromUrl }
 import { SessionOrchestrator } from "../../app/session/orchestrator.js";
 import type { LogHeader } from "../../app/telemetry/log.js";
 import { LINK_INACTIVE_BOTH } from "../../app/i18n/auto-assign-texts.js";
+import { stratumOfRow } from "../../app/session/assignment.js";
+import { stratumId } from "../../app/telemetry/record-kinds-pilot2.js";
 
 const intent = ALLOCATION_TABLE.rows.find((r) => r.language === "en" && r.cell === "reasoning_intent")!;
+/** The code's stratum (revision (bf)): the shared link of that stratum is the one that issues it. */
+const own = stratumOfRow(intent);
 
 function memoryStorage(): StorageLike & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -28,19 +32,20 @@ function deps(fetchImpl: AssignDeps["fetch"], storage = memoryStorage()) {
 const answer = (status: number, body: unknown) => async () => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 
 describe("the shared study link", () => {
-  it("is ?tuotanto without a code; ?koodi= still works as a manual link", () => {
-    expect(startChoiceFromUrl("?tuotanto")).toEqual({ kind: "server_assign" });
-    expect(startChoiceFromUrl(`?tuotanto&koodi=${intent.code}`)).toMatchObject({ kind: "assigned", assignment: { source: "table", assignmentSource: "link" } });
+  it("is ?tuotanto with the stratum (?osite=, revision (bf)) and without a code; ?koodi= still works as a manual link", () => {
+    expect(startChoiceFromUrl(`?tuotanto&osite=${stratumId(own)}`)).toEqual({ kind: "server_assign", stratum: own });
+    expect(startChoiceFromUrl("?tuotanto").kind).toBe("invalid"); // revision (bf): the shared link names its stratum
+    expect(startChoiceFromUrl(`?tuotanto&koodi=${intent.code}`)).toMatchObject({ kind: "assigned", assignment: { source: "table", assignmentSource: "link", stratum: own } });
     expect(startChoiceFromUrl("")).toEqual({ kind: "choose" }); // the demonstration is unchanged
   });
 
-  it("asks once, stores the code with the session id, and resumes from storage without a second draw", async () => {
+  it("asks once with the link's stratum, stores the code with the session id, and resumes from storage without a second draw", async () => {
     const d = deps(answer(200, { code: intent.code }));
-    const first = await obtainAssignment("en", d);
+    const first = await obtainAssignment("en", d, own);
     expect(first).toEqual({ ok: true, code: intent.code, sessionId: "browsersession0001" });
     expect(d.fetch).toHaveBeenCalledTimes(1);
     expect(d.fetch.mock.calls[0]![0]).toBe("/api/assign");
-    expect(JSON.parse(d.fetch.mock.calls[0]![1].body)).toEqual({ sessionId: "browsersession0001", language: "en" });
+    expect(JSON.parse(d.fetch.mock.calls[0]![1].body)).toEqual({ sessionId: "browsersession0001", language: "en", stratum: stratumId(own) });
     expect(readStoredAssignment(d.storage)).toEqual({ sessionId: "browsersession0001", code: intent.code });
 
     const again = await obtainAssignment("en", d); // the same link reopened in the same browser
@@ -66,6 +71,9 @@ describe("the shared study link", () => {
     // A code of the other language stratum is not accepted.
     const fi = ALLOCATION_TABLE.rows.find((r) => r.language === "fi")!;
     expect(await obtainAssignment("en", deps(answer(200, { code: fi.code })))).toEqual({ ok: false, reason: "inactive" });
+    // Revision (bf): nor a code of another stratum than the link's.
+    const otherStratum = ALLOCATION_TABLE.rows.find((r) => r.language === "en" && stratumId(r) !== stratumId(own))!;
+    expect(await obtainAssignment("en", deps(answer(200, { code: otherStratum.code })), own)).toEqual({ ok: false, reason: "inactive" });
     expect(LINK_INACTIVE_BOTH).toEqual(["Tämä linkki ei ole käytössä. Ota yhteyttä tutkijaan.", "This link is not active; please contact the researcher."]);
   });
 
@@ -86,7 +94,7 @@ describe("the shared study link", () => {
       });
       await o.start();
       const header = (await o.logRecords()).find((r) => r.kind === "session_started")!.detail as LogHeader;
-      expect(header).toMatchObject({ participantCode: intent.code, cell: "reasoning_intent", assignment: { source: "table", tableSha256: ALLOCATION_TABLE.rowsSha256, block: intent.block, assignmentSource: source } });
+      expect(header).toMatchObject({ participantCode: intent.code, cell: "reasoning_intent", assignment: { source: "table", tableSha256: ALLOCATION_TABLE.rowsSha256, block: intent.block, assignmentSource: source, stratum: own } });
     }
   });
 });

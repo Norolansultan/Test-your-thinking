@@ -4,6 +4,7 @@ import { draftFromPlan, PlanPanel, planSummary, type PlanDraft } from "./Decisio
 import { Choice, hint, label, Panel, PrimaryButton, SecondaryButton } from "./PanelParts.js";
 import { PlanConfidencePanel } from "./PlanConfidencePanel.js";
 import { PlanReviewPanel } from "./PlanReviewPanel.js";
+import { HingeFatigueItem } from "./HingeFatigueItem.js";
 import { Glossed } from "../explain/Glossed.js";
 
 /**
@@ -108,6 +109,8 @@ export function JudgementPanel({
               {check.phase === "item" && <p style={{ ...hint, margin: "8px 0 0" }}>{t.hingeCheck.note}</p>}
             </div>
           )}
+          {/* SPEC/15 (bf): the optional fatigue item, once the check (if any) is answered; Continue never waits for it. */}
+          <HingeFatigueItem snapshot={snapshot} orchestrator={orchestrator} />
           {(!check || check.phase !== "directive") && (
             <PrimaryButton disabled={check !== null && check.phase !== "answered"} onClick={() => void orchestrator.dismissHinge()}>{t.continue}</PrimaryButton>
           )}

@@ -38,6 +38,7 @@ import type {
 } from "./record-kinds-interaction.js";
 import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
+import type { HingeFatigueRatedDetail } from "./record-kinds-pilot2.js";
 
 // ---------------------------------------------------------------------------
 // §2.1 Session and lifecycle
@@ -211,6 +212,8 @@ export type {
 export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 // The difficulty audit's changes (0.15.0): the map-reading pretest and the practice feedback screen, `record-kinds-difficulty.ts`.
 export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
+// Adopted before pilot 2 (0.16.0): the hinge's fatigue item and the stratum, `record-kinds-pilot2.ts`.
+export type { HingeFatigueRatedDetail, Profession, Stratum } from "./record-kinds-pilot2.js";
 
 // ---------------------------------------------------------------------------
 // §2.6 Probe and decision interaction
@@ -843,7 +846,9 @@ export type TelemetryEvent =
   | { readonly kind: "map_pretest_started"; readonly detail: MapPretestStartedDetail }
   | { readonly kind: "map_pretest_answer"; readonly detail: MapPretestAnswerDetail }
   | { readonly kind: "map_pretest_completed"; readonly detail: MapPretestCompletedDetail }
-  | { readonly kind: "practice_feedback_shown"; readonly detail: PracticeFeedbackShownDetail };
+  | { readonly kind: "practice_feedback_shown"; readonly detail: PracticeFeedbackShownDetail }
+  // Adopted before pilot 2 (24 Oct 2026, 0.16.0)
+  | { readonly kind: "hinge_fatigue_rated"; readonly detail: HingeFatigueRatedDetail };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1062,7 +1067,15 @@ export type RecordKind = TelemetryEvent["kind"];
  * added; `session_resumed.resumedAt` may be `map_pretest` or `practice_feedback`. The practice view gains a fifth freeze item
  * (`freeze.practice.forecast`) and a second SPAM item (`probe.s.practice.b`); every main view's records are unchanged.
  */
-export const TELEMETRY_FORMAT_VERSION = "0.15.0";
+/*
+ * 0.16.0 (adopted before pilot 2, 24 Oct 2026; SPEC/07 revision (bf)): `hinge_fatigue_rated` (the hinge's optional 1–7 fatigue item,
+ * `fatigue.hinge`) is added; the header's `assignment` may carry `stratum` (profession × leads others, from the stratified allocation
+ * table's row or the link's `?osite=`); `ai_chat_query_submitted` may carry `viaChip` with `tool: "haku"` (the Haku group's chip); the
+ * pre-session questionnaire gains `sleep.hours` and (expert sessions) `shift.recent`, the post-session one `accuracy.perceived` and
+ * `influence.plan_views.*` / `influence.answers.*` after the source block. A session that never clicks the hinge item and has no
+ * stratum writes the records of 0.15.0 apart from the questionnaires' item lists.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.16.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1095,4 +1108,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "primer_page", "primer_check", "help_card_opened", "profile_shown",
   "results_optin",
   "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown",
+  "hinge_fatigue_rated",
 ];

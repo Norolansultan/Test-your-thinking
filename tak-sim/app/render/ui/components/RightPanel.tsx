@@ -219,7 +219,26 @@ export function HakuChat({ snapshot, orchestrator, fill = false }: { readonly sn
         ))}
         {pending && <p style={{ opacity: 0.6, fontSize: 12.5 }}>{t.searching}</p>}
       </div>
+      {/* SPEC/30 §4 revision (bf): the Haku group's suggested question (from V8), above the input, as the guide's chip above the Thinker's (`viaChip`). */}
+      {snapshot.hakuChip && <SuggestedChip testId="haku-chip" text={t.consult.hakuChip} label={t.consult.chipLabel} pending={pending} onAsk={() => q.askVia(() => orchestrator.askHakuChip())} />}
       <QuestionInput q={q} placeholder={t.askPlaceholder} field="haku_chat" orchestrator={orchestrator} cycle={snapshot.currentCycle} />
+    </div>
+  );
+}
+
+/**
+ * A suggested-question chip above a chat's input (SPEC/30 §4): the guide's above the Thinker's, the Haku group's above Haku's
+ * (revision (bf)). One component, so both groups' chips look, sit and behave alike: disabled while an answer is pending.
+ */
+function SuggestedChip({ testId, text, label, pending, onAsk }: {
+  readonly testId: string; readonly text: string; readonly label: string; readonly pending: boolean; readonly onAsk: () => void;
+}) {
+  return (
+    <div style={{ padding: "8px 10px 0", borderTop: "1px solid #33383e" }}>
+      <button type="button" data-testid={testId} disabled={pending} aria-label={`${label}: ${text}`} onClick={onAsk}
+        style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid #8ab4f8", background: "#1f2a38", color: "#dbe7fb", fontSize: 12.5, cursor: pending ? "default" : "pointer", textAlign: "left", opacity: pending ? 0.6 : 1 }}>
+        {text}
+      </button>
     </div>
   );
 }
@@ -252,14 +271,7 @@ export function OpenAiChat({ snapshot, orchestrator, fill = false }: { readonly 
         {pending && <p style={{ opacity: 0.6, fontSize: 12.5 }}>{t.searching}</p>}
       </div>
       {/* SPEC/30 §4: the guide's suggested question (from V8), above the input; submitted exactly as shown (`viaChip`). */}
-      {snapshot.suggestedQuestion && (
-        <div style={{ padding: "8px 10px 0", borderTop: "1px solid #33383e" }}>
-          <button type="button" data-testid="thinker-chip" disabled={pending} aria-label={`${t.consult.chipLabel}: ${t.consult.chip}`} onClick={() => q.askVia(() => orchestrator.askSuggestedQuestion())}
-            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid #8ab4f8", background: "#1f2a38", color: "#dbe7fb", fontSize: 12.5, cursor: pending ? "default" : "pointer", textAlign: "left", opacity: pending ? 0.6 : 1 }}>
-            {t.consult.chip}
-          </button>
-        </div>
-      )}
+      {snapshot.suggestedQuestion && <SuggestedChip testId="thinker-chip" text={t.consult.chip} label={t.consult.chipLabel} pending={pending} onAsk={() => q.askVia(() => orchestrator.askSuggestedQuestion())} />}
       <QuestionInput q={q} placeholder={t.openThinkerPlaceholder} field="thinker_chat" orchestrator={orchestrator} cycle={snapshot.currentCycle} />
     </div>
   );

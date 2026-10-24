@@ -7,13 +7,14 @@
 # written to disk), builds the production bundle, generates a fresh ADMIN_TOKEN for this run (printed
 # here only, never written to disk), starts the production server on 127.0.0.1:8080, opens the tunnel
 # (ngrok: https://<name>.ngrok-free.app, fixed between runs with -Domain; cloudflare: a new
-# https://<random>.trycloudflare.com each run), prints ONE study link for everyone
-# (<address>/?tuotanto) and the researcher's data page, and writes the link (not the token) to
-# logs\study-links-<time>.txt. Ctrl+C stops the tunnel and the server.
+# https://<random>.trycloudflare.com each run), prints the study links, one per allocation stratum
+# (<address>/?tuotanto&osite=<profession>.<lead|nolead>, SPEC/30 section 2 revision (bf), 24 Oct 2026) and the
+# researcher's data page, and writes the links (not the token) to logs\study-links-<time>.txt.
+# Ctrl+C stops the tunnel and the server.
 #
 # The shared link (docs/DEPLOYMENT.md section 7.1): the server runs with AUTO_ASSIGN=1, and when a
-# participant presses start it issues the next unused code of content/assignment/allocation.json, in
-# sequence order; the same browser keeps its code. -Cells restricts the codes to some cells: the default,
+# participant presses start it issues the next unused code of content/assignment/allocation.json in the
+# chosen language and the link's stratum, in sequence order; the same browser keeps its code. -Cells restricts the codes to some cells: the default,
 # reasoning_intent (Search + guided Thinker, both tools), is the professors' PILOT setting and breaks the
 # blocked balance between cells on purpose; use -Cells all for the study's full sequence.
 #
@@ -167,24 +168,27 @@ try {
     if (-not $url) { throw "no tunnel address after 60 s; see $log" }
   }
 
-  $shared = "$url/?tuotanto"
+  # SPEC/30 section 2 revision (bf), 24 Oct 2026: one shared link per allocation stratum (the screener's profession x leads others);
+  # recruitment sends each participant the link of the stratum their screener answers put them in (docs/DEPLOYMENT.md section 7.1).
+  $strata = @("fire_rescue.lead", "fire_rescue.nolead", "military.lead", "military.nolead", "other.lead", "other.nolead")
+  $sharedLinks = @($strata | ForEach-Object { "$url/?tuotanto&osite=$_" })
+  $shared = $sharedLinks -join "`n  "
   $links = @($Codes | ForEach-Object { "$url/?tuotanto&koodi=$_" })
   # The participant link (never the token) to logs\ (gitignored), to copy into the e-mails.
   $stamp = Get-Date -Format "yyyyMMdd-HHmm"
   New-Item -ItemType Directory -Force "logs" | Out-Null
   $linksFile = Join-Path "logs" "study-links-$stamp.txt"
   $note = @(
-    "Study link of the run started $(Get-Date -Format 'yyyy-MM-dd HH:mm') (the same for everyone; each person gets a code when they press start).",
-    "Cells issued: $Cells. It works only while that run is up: a new run gives a new address.",
-    "",
-    $shared
-  )
+    "Study links of the run started $(Get-Date -Format 'yyyy-MM-dd HH:mm'): one per stratum (profession.leads), the same for everyone in it; each person gets a code of their stratum when they press start.",
+    "Cells issued: $Cells. They work only while that run is up: a new run gives a new address.",
+    ""
+  ) + $sharedLinks
   if ($Codes.Count -gt 0) { $note += @("", "Manual links (advanced):") }
   for ($i = 0; $i -lt $Codes.Count; $i++) { $note += "$($Codes[$i])  $($links[$i])" }
   Set-Content -Path $linksFile -Value $note -Encoding UTF8
 
   Write-Host ""
-  Write-Host "Study link (send the same link to everyone; each person gets their own code when they press start):" -ForegroundColor Green
+  Write-Host "Study links, one per stratum (send each person the link of their screener stratum; each gets their own code when they press start):" -ForegroundColor Green
   Write-Host "  $shared"
   if ($Cells -ne "all") { Write-Host "  PILOT: only $Cells codes are issued (the blocked balance between cells does not hold). Use -Cells all for the study." -ForegroundColor Yellow }
   if ($Codes.Count -gt 0) {

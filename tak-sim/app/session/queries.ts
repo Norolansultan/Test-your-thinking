@@ -158,11 +158,12 @@ export class SessionQueries {
    * included, with the standard prompt. The question is logged, sent to the proxy, and the answer
    * shown no sooner than the 2.5 s floor (step 5). On a client timeout, network failure or a reply of
    * the wrong shape the deterministic template over locally computed, lexical-only retrieval is shown
-   * instead (step 6). Both records are logged in full, `tool: "haku"`.
+   * instead (step 6). Both records are logged in full, `tool: "haku"`. `viaChip` (SPEC/30 §4 revision (bf), 24 Oct 2026): the
+   * question is the Haku group's suggested-question chip, logged so on its `ai_chat_query_submitted`, as the guide's chip is.
    */
-  async askAiChat(query: string): Promise<TemplateAnswer> {
+  async askAiChat(query: string, viaChip = false): Promise<TemplateAnswer> {
     if (query.length > THINKER_MAX_QUESTION_CHARS) throw new RangeError(`A Haku question is at most ${THINKER_MAX_QUESTION_CHARS} characters`);
-    const asked = await this.logQuestion(query, "haku");
+    const asked = await this.logQuestion(query, "haku", viaChip);
     const cell = this.ctx.cell?.() ?? "reasoning_once";
     const floor = this.wait(THINKER_LATENCY_FLOOR_MS);
     let response: ThinkerResponse;

@@ -214,6 +214,13 @@ export interface SessionSnapshot {
   readonly consultPrompt: ConsultPromptView | null;
   /** SPEC/30 §4: the guide's suggested-question chip above the Thinker's input (`reasoning_intent`, from V8), else false. */
   readonly suggestedQuestion: boolean;
+  /** SPEC/30 §4 revision (bf): the Haku group's suggested-question chip above Haku's input (`radio`, from V8), else false. */
+  readonly hakuChip: boolean;
+  /**
+   * SPEC/15 revision (bf), 24 Oct 2026: the optional fatigue item on the hinge screen (once the manipulation check, if any, is answered),
+   * else null: the 1–7 rating last given (null before one), one click, logged at once (`hinge_fatigue_rated`).
+   */
+  readonly hingeFatigue: { readonly value: number | null } | null;
   /** SPEC/30 §5.4: the plan-confidence item on screen (step `plan_confidence`, once its record is durable), else null. */
   readonly planConfidence: PlanConfidenceView | null;
   /** SPEC/32 §3: the plan review on screen (step `plan_review`, once `plan_review_shown` is durable), else null. Carries no key. */

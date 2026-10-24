@@ -14,7 +14,7 @@ import {
 import type { TourStepId } from "../render/ui/tour.js";
 import type { TakOverlayLayer, TakPaneId } from "../telemetry/record-kinds.js";
 import { ALL_CHAT_ROOMS_LABEL, CHAT_ROOM_LABEL, type ChatRoom } from "../tak/geochat.js";
-import { SUGGESTED_QUESTION } from "../session/consult-notice.js";
+import { HAKU_SUGGESTED_QUESTION, SUGGESTED_QUESTION } from "../session/consult-notice.js";
 
 /**
  * The TAK shell's interface (SPEC/28 §5, 13 Oct 2026): the toolbar, the side panes, the info card and the coordinate
@@ -324,9 +324,10 @@ export interface UiText {
   /**
    * SPEC/30 (19 Oct 2026): the consult notification (both groups, V1–V14; it carries no content), its two buttons, the guide's
    * suggested-question chip (its text is exactly the question submitted, `SUGGESTED_QUESTION`) and the plan-confidence item.
+   * `hakuChip` (revision (bf), 24 Oct 2026): the Haku group's chip, exactly `HAKU_SUGGESTED_QUESTION`; both chips share `chipLabel`.
    * Finnish DRAFT (native check, SPEC/30 §8).
    */
-  readonly consult: { readonly notice: string; readonly openHaku: string; readonly openThinker: string; readonly close: string; readonly chip: string; readonly chipLabel: string };
+  readonly consult: { readonly notice: string; readonly openHaku: string; readonly openThinker: string; readonly close: string; readonly chip: string; readonly hakuChip: string; readonly chipLabel: string };
   readonly planConfidence: { readonly prompt: string; readonly note: string };
   /**
    * SPEC/32 §3 (20 Oct 2026): the plan review at commitment (phase B, both groups; `PlanReviewPanel`). The guide group also sees
@@ -336,8 +337,11 @@ export interface UiText {
     readonly title: string; readonly note: string; readonly planLabel: string; readonly keep: string; readonly revise: string;
     readonly premisesLabel: string; readonly citedLabel: string; readonly openRecord: string; readonly loading: string; readonly notInLog: string;
   };
-  /** The manipulation check on the hinge screen (brief D3): the directive's acknowledgement and the note under the question. */
-  readonly hingeCheck: { readonly read: string; readonly note: string };
+  /**
+   * The manipulation check on the hinge screen (brief D3): the directive's acknowledgement and the note under the question.
+   * `fatigueOptional` (SPEC/15 (bf), 24 Oct 2026): the line under the hinge's optional fatigue item (its question is the questionnaire's).
+   */
+  readonly hingeCheck: { readonly read: string; readonly note: string; readonly fatigueOptional: string };
   /** D1 (8 Oct 2026): the label of the persistent command-directive line at the top of the right panel, from V8 on; identical in every cell. */
   readonly directiveBanner: string;
   /** M1 (8 Oct 2026): the Open Thinker's answer when the model did not answer; shown as an unavailable state, never a record excerpt. */
@@ -541,7 +545,7 @@ const FI: UiText = {
   },
   consult: {
     notice: "Uusia ilmoituksia edellisen suunnitelmasi jälkeen", openHaku: "Avaa Haku", openThinker: "Avaa Thinker", close: "Sulje ilmoitus",
-    chip: SUGGESTED_QUESTION.fi, chipLabel: "Ehdotettu kysymys",
+    chip: SUGGESTED_QUESTION.fi, hakuChip: HAKU_SUGGESTED_QUESTION.fi, chipLabel: "Ehdotettu kysymys",
   },
   planConfidence: { prompt: "Kuinka varma olet, että suunnitelmasi sopii tilanteeseen?", note: "Jakso on päättynyt. Valitse varmuutesi ja vahvista." },
   // DRAFT (SPEC/32 §3, 20 Oct 2026): native and domain review.
@@ -550,7 +554,7 @@ const FI: UiText = {
     keep: "Vahvista kohdennus", revise: "Muuta kohdennusta", premisesLabel: "Thinker — linjauksen oletukset", citedLabel: "Viitatut ilmoitukset:",
     openRecord: "Näytä viestilokissa", loading: "Ladataan…", notInLog: "Ilmoitus ei ole viestilokissa; se näkyy tässä.",
   },
-  hingeCheck: { read: "Olen lukenut linjauksen", note: "Vastaa kysymykseen, niin voit jatkaa." },
+  hingeCheck: { read: "Olen lukenut linjauksen", note: "Vastaa kysymykseen, niin voit jatkaa.", fatigueOptional: "Vapaaehtoinen: voit jatkaa vastaamatta." },
   // DRAFT (8 Oct 2026): native review.
   directiveBanner: "Johdon linjaus",
   thinkerUnavailable: "Thinker ei ole nyt käytettävissä — kysy uudelleen tai käytä Hakua.",
@@ -728,7 +732,7 @@ const EN: UiText = {
   },
   consult: {
     notice: "New reports since your last plan", openHaku: "Open Search", openThinker: "Open Thinker", close: "Close the notice",
-    chip: SUGGESTED_QUESTION.en, chipLabel: "Suggested question",
+    chip: SUGGESTED_QUESTION.en, hakuChip: HAKU_SUGGESTED_QUESTION.en, chipLabel: "Suggested question",
   },
   planConfidence: { prompt: "How confident are you that your plan fits the situation?", note: "The period has ended. Choose your confidence and confirm." },
   // DRAFT (SPEC/32 §3, 20 Oct 2026): native and domain review.
@@ -737,7 +741,7 @@ const EN: UiText = {
     keep: "Confirm the plan", revise: "Change the plan", premisesLabel: "Thinker — the directive's premises", citedLabel: "Records cited:",
     openRecord: "Show in the message log", loading: "Loading…", notInLog: "This record is not in the message log; it is shown here.",
   },
-  hingeCheck: { read: "I have read the directive", note: "Answer the question to continue." },
+  hingeCheck: { read: "I have read the directive", note: "Answer the question to continue.", fatigueOptional: "Optional: you can continue without answering." },
   directiveBanner: "Command directive",
   thinkerUnavailable: "Thinker is unavailable right now — ask again or use Search.",
   questionTooLong: (max, n) => `The question is too long (${n}/${max} characters). Please shorten it and ask again.`,

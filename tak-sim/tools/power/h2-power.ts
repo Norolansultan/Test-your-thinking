@@ -2,6 +2,7 @@
  * H2 power by Monte Carlo — SPEC/09 Amendment 2 Oct 2026; re-cut for SPEC/30 §6 and §11 (19 Oct 2026).
  *
  *   npx tsx tools/power/h2-power.ts [--reps 1000] [--seed 20261002]
+ *   npm run power:h2-items   # 24 Oct 2026: the difficulty audit's item classes (`--items <items.csv>`, `h2-items.ts`)
  *
  * What changed on 19 Oct 2026 (SPEC/30, two groups, 100 participants) and why:
  *   - groups: Haku (`radio`) against the guide (`reasoning_intent`) only, 50 / 50, and 40 / 40 after
@@ -56,7 +57,10 @@
  * Deterministic: a seeded xoshiro128** stream per grid cell; no Math.random, no clock.
  */
 
+import { readFileSync } from "node:fs";
+import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { Rng, argValue, cellSeed, clusteredLogitP, logistic, logit, pct, signed, welchP } from "./power-lib.js";
+import { DEFAULT_MODEL, DEFAULT_OPTIONS, h2ItemClasses, itemPowerReport } from "./h2-items.js";
 
 // ---------------------------------------------------------------------------
 // Assumptions
@@ -380,4 +384,22 @@ function main(): void {
   });
 }
 
-main();
+/**
+ * `--items <items.csv>` (24 Oct 2026, SPEC/09 (bf)): the re-run with the difficulty audit's item classes — item-specific difficulty and
+ * an effect on the seek-dependent items only (`h2-items.ts`), power and the minimum detectable effect at n = 100, 120 and 150. Lure
+ * items are the CSV's `lure` column, else the built scenario's items with `lureStatements`.
+ */
+function itemsMain(): void {
+  const path = process.argv[process.argv.indexOf("--items") + 1];
+  if (!path || path.startsWith("--")) throw new Error("--items takes the audit's items.csv");
+  const lureIds = new Set(buildDemoScenario().freezes.flatMap((f) => f.items).filter((it) => (it.lureStatements?.length ?? 0) > 0).map((it) => it.id));
+  const items = h2ItemClasses(readFileSync(path, "utf8"), lureIds);
+  const m = DEFAULT_MODEL;
+  const model = {
+    bYes: argValue("--b-yes", m.bYes), bPartly: argValue("--b-partly", m.bPartly), bNo: argValue("--b-no", m.bNo), bLate: argValue("--b-late", m.bLate),
+    partlyWeight: argValue("--partly-weight", m.partlyWeight), lateWeight: argValue("--late-weight", m.lateWeight),
+  };
+  console.log(itemPowerReport(items, { ...DEFAULT_OPTIONS, reps: argValue("--reps", DEFAULT_OPTIONS.reps), seed: argValue("--seed", DEFAULT_OPTIONS.seed), model }));
+}
+
+if (process.argv.includes("--items")) itemsMain(); else main();

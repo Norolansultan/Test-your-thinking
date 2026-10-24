@@ -25,7 +25,7 @@ import { noticed, PlayError, VIEW_STEPS, type PlaySession } from "./session.js";
 import { freezePointAt } from "./freeze-grid.js";
 import { gl, logRow, lookText, optionByArg, optionLetter } from "./screen.js";
 import { glossaryText, helpText } from "./help.js";
-import { MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
+import { MAP_MOVE_ALIASES, MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
 import { contactsCommand, measureCommand } from "./tak-tools.js";
 
 export interface CommandContext { readonly runDir: string; readonly withMap: boolean }
@@ -81,7 +81,7 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
         await session.spend(COST_S.mapMove);
         return look(session, ctx);
       }
-      const move = args.find((a) => (MAP_MOVES as readonly string[]).includes(a)) as (typeof MAP_MOVES)[number] | undefined;
+      const move = args.map((a) => MAP_MOVE_ALIASES[a] ?? a).find((a) => (MAP_MOVES as readonly string[]).includes(a)) as (typeof MAP_MOVES)[number] | undefined;
       const centre = args.find((a) => a.startsWith("center="))?.slice("center=".length).split(",").map(Number);
       need(move !== undefined || centre !== undefined, `map ${MAP_MOVES.join("|")} [center=<x>,<y> of the last map image] | map legend`);
       need(centre === undefined || (centre.length === 2 && centre.every((v) => Number.isFinite(v))), "center=<x>,<y> (pixels of the last map image)");
@@ -417,6 +417,7 @@ function changeLines(before: SessionSnapshot, logBefore: number, now: SessionSna
   const out: string[] = [];
   if (now.currentCycle !== before.currentCycle) out.push(`Period ended. Now: ${now.practice ? t.practiceLabel : t.viewLabel(now.currentCycle, 14)}, ${t.clock} ${now.clockLabel}.`);
   if (now.step !== before.step) out.push(`Screen: ${now.step}${now.step === "freeze" ? ` (${t.freezeTitle})` : ""}.`);
+  if (now.step === "practice_feedback" && before.step !== "practice_feedback") out.push(H("The practice feedback is on screen, with a map of the head and your mark: `look` shows both."));
   const fresh = now.radioLog.length - Math.max(seenAtStart, logBefore);
   if (fresh > 0 && now.step !== "freeze") out.push(`${fresh} new message(s) in the log: ${now.radioLog.slice(-fresh).map((e) => `${e.clockLabel} ${sourceName(lang, e.from)}`).join(", ")} (\`look\`).`);
   // A freeze blanks the log, so the messages that came in before it are shown whole: a participant watching saw them arrive.

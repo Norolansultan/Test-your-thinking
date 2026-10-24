@@ -144,6 +144,22 @@ describe("a forced situation question covers all of the map's chrome, in both sh
   });
 });
 
+describe("the wind reading (play-test D8, 24 Oct 2026)", () => {
+  it("names the direction in full Finnish words beside the degrees (\"etelä 165°\", never \"E 165°\"), the English unchanged, and still fits the TAK info card", () => {
+    expect(UI_TEXT.fi.compass).toEqual(["pohjoinen", "koillinen", "itä", "kaakko", "etelä", "lounas", "länsi", "luode"]);
+    expect(UI_TEXT.en.compass).toEqual(["N", "NE", "E", "SE", "S", "SW", "W", "NW"]);
+    const w = code("app/render/ui/components/WindIndicator.tsx");
+    // The one place a direction is shown with degrees (both shells: the classic map's corner and the TAK info card).
+    expect(w).toMatch(/const compass = t\.compass\[Math\.round\(\(\(\(wind\.fromDeg % 360\) \+ 360\) % 360\) \/ 45\) % 8\]!;/);
+    expect(w).toMatch(/\{compass\} \{String\(wind\.fromDeg\)\.padStart\(3, "0"\)\}° · \{wind\.meanMs\} m\/s/);
+    expect(UI_TEXT.fi.compass[Math.round(165 / 45) % 8]).toBe("etelä");
+    // The longest reading in 12 px monospace (≈ 0.6 em a character) beside the 36 px rose fits the card (max 330 px, 10 px padding).
+    const longest = Math.max(...UI_TEXT.fi.compass.map((c) => `${c} 045° · 12 m/s`.length));
+    expect(36 + 6 + longest * 12 * 0.6).toBeLessThanOrEqual(330 - 2 * 10 - 2);
+    expect(code("app/render/ui/tak/TakMapChrome.tsx")).toMatch(/maxWidth: 330/);
+  });
+});
+
 describe("the classic message log is unchanged", () => {
   it("the classic log draws the shared row without the TAK shell's wrapping; the row wraps only when asked", () => {
     const rp = code("app/render/ui/components/RightPanel.tsx");

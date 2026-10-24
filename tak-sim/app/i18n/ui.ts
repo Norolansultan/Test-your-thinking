@@ -318,6 +318,8 @@ export interface UiText {
     readonly forcedTitle: string; readonly forcedNote: string; readonly confidencePrompt: string; readonly toolsLocked: string;
     /** SPEC/30 §5.2: "Question 1 of 2" in a delivery with a second item. */
     readonly itemOf: (index: number, count: number) => string;
+    /** The item's answer window left, on the card (24 Oct 2026; the window stays 60 s). DRAFT (native review). */
+    readonly timeLeft: (seconds: number) => string;
   };
   /**
    * SPEC/30 (19 Oct 2026): the consult notification (both groups, V1–V14; it carries no content), its two buttons, the guide's
@@ -452,8 +454,8 @@ const FI: UiText = {
       projection: { title: "Leviämisennuste", body: "Värivyöhykkeet näyttävät, mihin ennuste arvioi palon leviävän: lähin vyöhyke 0–10 minuutissa, uloimmat myöhemmin. " + PROJECTION_CAVEAT_FI },
       legend: { title: "Selite", body: "Selite kertoo karttamerkinnät: palon reunat, palaneen alueen, pistepalot, droonien lämpöhavainnot ja ennusteen vyöhykkeet." },
       wind: { title: "Tuuli", body: "Tuulen suunta ja keskinopeus säähavaintoasemalta." },
-      // Revision (al), 10 Oct 2026 (wording by `map-overlay`; the "Lohko" button is now "2 km").
-      zoom: { title: "Kartan mittakaava", body: "Alue, Palo ja 2 km vaihtavat kartan mittakaavaa; voit myös lähentää hiiren rullalla tai kosketuslevyllä. Lähennä karttaa nähdäksesi palon ja yksiköt tarkemmin." },
+      // Revision (al), 10 Oct 2026 (wording by `map-overlay`; the "Lohko" button is now "2 km"); play-test, 24 Oct 2026: "Palo" is now "7 km".
+      zoom: { title: "Kartan mittakaava", body: "Alue, 7 km ja 2 km vaihtavat kartan mittakaavaa; voit myös lähentää hiiren rullalla tai kosketuslevyllä. Lähennä karttaa nähdäksesi palon ja yksiköt tarkemmin." },
       // Difficulty audit (23 Oct 2026, `proposal-map.md` d5): the measure tool, which no step named. DRAFT.
       measure: { title: "Mittaa", body: "Mittaa-työkalulla näet etäisyyden ja suunnan: valitse oikean reunan työkaluista Mittaa ja napauta kartalta kahta kohtaa. Viiva jää kartalle, kunnes tyhjennät sen. Myös kartan mittakaavajana kertoo matkan." },
       // Revision (al): the four sectors by their terrain (`briefing.ts` SECTORS_FI, wording by `map-tiles`).
@@ -462,9 +464,11 @@ const FI: UiText = {
       // Difficulty audit (23 Oct 2026, `proposal.md` (a.2)): the log is only part of the traffic (was "… ilmoitukset tulevat viestilokiin …").
       log: { title: "Viestiloki: vain osa liikenteestä", body: TOUR_LOG_FI },
       haku: { title: "Haku", body: `Avaa Haku tästä. ${TOUR_HAKU_ASK_FI} ${HAKU_CHAT_FI}` },
-      decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy.\n" + SECONDARY_TASK_DEFINITIONS_FI.join("\n") },
+      // Play-test D11 (24 Oct 2026): what is addressed to command is context; the plan sets the main effort, posture, secondary task, drones. DRAFT.
+      decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy. Johdolle osoitetut viestit, kuten pyynnöt ja ehdotukset, ovat taustatietoa: yksiköt toimivat pysyvien ohjeiden ja oman harkintansa mukaan, ja suunnitelmasi määrää painopisteen ja sen toimintatavan, toissijaisen tehtävän ja droonien tehtävän.\n" + SECONDARY_TASK_DEFINITIONS_FI.join("\n") },
       freeze: { title: "Muistikatko", body: "Välillä kuva piilotetaan ja saat kysymyksiä tilanteesta. Vastaa muistin varassa (joskus napauttamalla kohtaa tyhjältä kartalta), ja arvioi varmuutesi. Kello on pysähdyksissä katkon ajan, ja jatkat siitä, mihin jäit." },
-      spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kysymys \"Valmis vastaamaan?\". Paina Valmis, kun ehdit; vasta silloin näet kysymyksen ja sen neljä vaihtoehtoa. Kysymys odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole vastannut jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Harjoituksessa saat kokeilla yhtä." },
+      // Play-test finding 3 (24 Oct 2026): the ready prompt waits; each question, once shown, has its 60 s window, shown on the card. DRAFT.
+      spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kehote \"Valmis vastaamaan?\". Kehote odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole painanut Valmis jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Kun painat Valmis, näet kysymyksen ja sen neljä vaihtoehtoa, ja kuhunkin kysymykseen on aikaa 60 sekuntia; jäljellä oleva aika näkyy kysymyskortissa. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Harjoituksessa saat kokeilla yhtä." },
       ready: { title: "Valmis", body: "Harjoitus alkaa, kun painat Aloita. Kokeile rauhassa karttaa, viestilokia ja hakua." },
       toolsHaku: { title: "Haku", body: TOOLS_HAKU_FI }, // difficulty audit (a.2): with the rule's reminder
       // Revision (am): the AI group's practice step (both Thinker cells), and V1's short Thinker reminders after it.
@@ -518,9 +522,10 @@ const FI: UiText = {
   messageLog: "VIESTILOKI",
   noMessages: "Ei viestejä vielä.",
   wind: "Tuuli",
-  compass: ["P", "KO", "I", "KA", "E", "LOU", "L", "LU"],
+  // Play-test D8 (24 Oct 2026): the full words, since "E 165°" read as east (E = etelä, south). DRAFT.
+  compass: ["pohjoinen", "koillinen", "itä", "kaakko", "etelä", "lounas", "länsi", "luode"],
   windAria: (c, d, ms) => `Tuuli ${c}, ${d} astetta, ${ms} metriä sekunnissa`,
-  zoom: { alue: "Alue", palo: "Palo", lohko: "2 km" }, // revision (al): "Lohko" named no sector; the id stays
+  zoom: { alue: "Alue", palo: "7 km", lohko: "2 km" }, // revision (al): "Lohko" named no sector; 24 Oct 2026: "Palo" did not frame the fire. The ids stay
   conditionIntent: "Haku + ohjattu Thinker",
   startAssigned: "Aloita",
   cellMissing: "Tutkimusistunnon linkistä puuttuu osallistujakoodi (?koodi=…). Pyydä tutkijalta oikea linkki.",
@@ -532,6 +537,7 @@ const FI: UiText = {
     forcedNote: "Kello on pysäytetty. Viestiloki ja hakutyökalut ovat käytössä. Jakso päättyy, kun olet vastannut.",
     confidencePrompt: "Kuinka varma olet vastauksestasi?", toolsLocked: "Pois käytöstä kysymyksen ajan.",
     itemOf: (i, n) => `Kysymys ${i}/${n}`,
+    timeLeft: (s) => `Vastausaikaa ${s} s`,
   },
   consult: {
     notice: "Uusia ilmoituksia edellisen suunnitelmasi jälkeen", openHaku: "Avaa Haku", openThinker: "Avaa Thinker", close: "Sulje ilmoitus",
@@ -645,15 +651,15 @@ const EN: UiText = {
       projection: { title: "Spread projection", body: "The coloured bands show where the projection expects the fire to spread: the nearest band within 0–10 minutes, the outer ones later. " + PROJECTION_CAVEAT_EN },
       legend: { title: "Legend", body: "The legend explains the map symbols: the fire edges, the burnt area, spot fires, the drones' heat detections and the projection's bands." },
       wind: { title: "Wind", body: "The wind direction and mean speed from the weather station." },
-      zoom: { title: "Map scale", body: "Area, Fire and 2 km change the map's scale; you can also zoom with the mouse wheel or touchpad. Zoom in to see the fire and the units in detail." },
+      zoom: { title: "Map scale", body: "Area, 7 km and 2 km change the map's scale; you can also zoom with the mouse wheel or touchpad. Zoom in to see the fire and the units in detail." },
       measure: { title: "Measure (R&B)", body: "The R&B tool gives a distance and a bearing: choose R&B among the tools on the right edge and tap two points on the map. The line stays on the map until you clear it. The map's scale bar tells distances too." },
       sectors: { title: "Sectors", body: SECTORS_EN.join("\n") },
       units: { title: "Units", body: "The unit symbols show each unit's last reported position and work. For the drones, their imaging area is shown too." },
       log: { title: "Message log: only part of the traffic", body: TOUR_LOG_EN },
       haku: { title: "Search", body: `Open Search here. ${TOUR_HAKU_ASK_EN} ${HAKU_CHAT_EN}` },
-      decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends.\n" + SECONDARY_TASK_DEFINITIONS_EN.join("\n") },
+      decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends. Messages addressed to command, such as requests and proposals, are context: the units act on standing orders and their own judgement, and your plan sets the main effort and its posture, the secondary task and the drones' task.\n" + SECONDARY_TASK_DEFINITIONS_EN.join("\n") },
       freeze: { title: "Memory check", body: "Now and then the picture is hidden and you get questions about the situation. Answer from memory (sometimes by tapping a point on a blank map), and rate your confidence. The clock stands still during the check, and you continue where you left off." },
-      spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. Press Ready when you can; only then do you see the question and its four options. The question waits for you: you can minimise it, and it does not go away. If you have not answered by the end of the period, it appears before the period ends. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in the practice." },
+      spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. The prompt waits for you: you can minimise it, and it does not go away. If you have not pressed Ready by the end of the period, the question appears before the period ends. Once you press Ready, you see the question and its four options, and each question has 60 seconds; the time left shows on the question card. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in the practice." },
       ready: { title: "Ready", body: "The practice starts when you press Start. Try out the map, the message log and the search at your own pace." },
       toolsHaku: { title: "Search", body: TOOLS_HAKU_EN },
       practiceThinker: { title: "Thinker", body: PRACTICE_THINKER_EN },
@@ -707,7 +713,7 @@ const EN: UiText = {
   wind: "Wind",
   compass: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
   windAria: (c, d, ms) => `Wind ${c}, ${d} degrees, ${ms} metres per second`,
-  zoom: { alue: "Area", palo: "Fire", lohko: "2 km" }, // revision (al): "Sector" named no sector; the id stays
+  zoom: { alue: "Area", palo: "7 km", lohko: "2 km" }, // revision (al): "Sector" named no sector; 24 Oct 2026: "Fire" did not frame the fire. The ids stay
   conditionIntent: "Search + guided Thinker",
   startAssigned: "Start",
   cellMissing: "The study link has no participant code (?koodi=…). Ask the researcher for the right link.",
@@ -718,6 +724,7 @@ const EN: UiText = {
     forcedNote: "The clock is paused. The message log and the search tools stay available. The period ends once you have answered.",
     confidencePrompt: "How sure are you of your answer?", toolsLocked: "Off during the question.",
     itemOf: (i, n) => `Question ${i} of ${n}`,
+    timeLeft: (s) => `Time to answer ${s} s`,
   },
   consult: {
     notice: "New reports since your last plan", openHaku: "Open Search", openThinker: "Open Thinker", close: "Close the notice",

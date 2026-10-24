@@ -99,6 +99,33 @@ describe("the play harness's player-facing output", () => {
   });
 });
 
+describe("the play harness's cosmetics (play-test, 24 Oct 2026)", () => {
+  it("an English run prints English only, shows the SPAM card's time left and the feedback map's whereabouts, and its period readout never runs backwards", async () => {
+    const { outputs } = await playToV4();
+    const all = outputs.join("\n");
+    // (a) The screen descriptions the app has no string for are in the session language only.
+    for (const fi of ["Esittely", "Työkalumuistutus", "lukittu", "Päätösosio"]) expect(all).not.toContain(fi);
+    expect(all).toMatch(/^-- Guided tour \(\d+\) --$/m);
+    expect(all).toMatch(/^-- Tool reminder \(\d+\) --$/m);
+    // Finding 3: the open SPAM item shows its answer window's time left, as the card does.
+    expect(all).toMatch(/^-- Situation question(?: · Question \d of \d)? --  Time to answer \d+ s$/m);
+    // (b) The practice feedback names its head map, even when no image is drawn (`--no-map`).
+    expect(all).toContain("an image, not drawn with --no-map; `look` without --no-map draws it.");
+    expect(all).toContain("The practice feedback is on screen, with a map of the head and your mark");
+    // (c) Within a period the readout only grows: after a freeze, the plan's confidence reads the period's end, not the freeze.
+    const last = new Map<string, number>();
+    const readouts = [...all.matchAll(/^» \[(Practice|Period \d+ \/ 14) · [^\]]* · period (\d+) s\]$/gm)];
+    expect(readouts.some((m) => m[0].includes("plan_confidence"))).toBe(true);
+    for (const m of readouts) {
+      const v = Number(m[2]);
+      expect(v, m[0]).toBeGreaterThanOrEqual(last.get(m[1]!) ?? 0);
+      last.set(m[1]!, v);
+    }
+    // (d) The roster row keeps the help card's colon ("From: …").
+    expect(readFileSync("tools/play/help.ts", "utf8")).toContain("` · ${T.from}: ${r.from}`");
+  });
+});
+
 describe("a play run on disk", () => {
   it("records each command with its costs, replays to the same screen, and records no refused command", async () => {
     const dir = mkdtempSync(join(tmpdir(), "play-spec-"));

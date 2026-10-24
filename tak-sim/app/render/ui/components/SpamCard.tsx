@@ -1,3 +1,4 @@
+import { useEffect, useState } from "preact/hooks";
 import type { SessionOrchestrator, SpamView } from "../../../session/orchestrator.js";
 import { useLang } from "../i18n.js";
 import { ConfidencePicker, hint, label } from "./PanelParts.js";
@@ -23,10 +24,16 @@ import { Glossed } from "../explain/Glossed.js";
  * the first's confidence at once (`spam-delivery.ts`). §5.4's records: an option the pointer rests on for the dwell is
  * logged `probe_option_hovered` (`hover-dwell.ts`), and the choice `probe_answer_changed` (`from` the item's earlier
  * choice — always none, the choice being final — `to` the option), before the session's `spam_answered`.
+ *
+ * Researcher, 24 Oct 2026 (play-test finding 3): the answer window stays 60 s, and the item shows what is left of it
+ * (`AnswerTimeLeft`): a quiet countdown beside the title, amber in the last 15 s, polled from the session
+ * (`spamSecondsLeft`) as the pretest's countdown is. Display only: nothing is logged.
  */
 
 const AMBER = "#f4a261";
 const INK = "#1c1b19";
+/** The countdown turns amber this many seconds before the answer window ends. */
+export const SPAM_TIME_AMBER_S = 15;
 
 /** The glow, as a class (inline styles cannot carry keyframes or a media query); reduced motion: none. */
 const SPAM_CSS = `
@@ -79,7 +86,10 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
   const item = (
     <div data-testid={spam.forced ? "spam-forced" : "spam-item"} style={{ padding: "12px 16px", borderTop: `3px solid ${AMBER}`, background: "#262a30", flexShrink: 0 }}>
       {spam.forced && <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: AMBER }}>{t.spam.forcedTitle}</p>}
-      <div style={label}>{t.spam.title}{spam.itemCount > 1 && <span data-testid="spam-item-of"> · {t.spam.itemOf(spam.itemIndex, spam.itemCount)}</span>}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+        <div style={label}>{t.spam.title}{spam.itemCount > 1 && <span data-testid="spam-item-of"> · {t.spam.itemOf(spam.itemIndex, spam.itemCount)}</span>}</div>
+        <AnswerTimeLeft key={spam.probeId} orchestrator={orchestrator} />
+      </div>
       <p style={{ margin: "2px 0 8px", fontSize: 14 }}><Glossed text={tr(spam.promptFi)} surface="spam" /></p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
         {spam.options.map((o) => (
@@ -117,5 +127,23 @@ export function SpamCard({ spam, orchestrator }: { readonly spam: SpamView; read
     <div role="dialog" aria-modal="true" aria-label={t.spam.title} style={{ position: "absolute", inset: 0, zIndex: 25, background: "rgba(15,17,20,0.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ width: "min(640px, 100%)", border: `1px solid ${AMBER}`, borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>{item}</div>
     </div>
+  );
+}
+
+/** The open item's answer window left (whole seconds, `spamSecondsLeft`), quiet until its last 15 s; not announced (aria-live off). */
+function AnswerTimeLeft({ orchestrator }: { readonly orchestrator: SessionOrchestrator }) {
+  const { t } = useLang();
+  const [left, setLeft] = useState(() => orchestrator.spamSecondsLeft());
+  useEffect(() => {
+    const id = setInterval(() => setLeft(orchestrator.spamSecondsLeft()), 250);
+    return () => clearInterval(id);
+  }, [orchestrator]);
+  if (left === null) return null;
+  const late = left <= SPAM_TIME_AMBER_S;
+  return (
+    <span data-testid="spam-time-left" role="timer" aria-live="off"
+      style={{ marginLeft: "auto", fontSize: 12, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: late ? AMBER : "#aeb4ba", fontWeight: late ? 700 : 400 }}>
+      {t.spam.timeLeft(left)}
+    </span>
   );
 }

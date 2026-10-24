@@ -47,6 +47,10 @@
  * and the tools stay usable throughout both. Forced at the view's end, both items are forced (modal). The second
  * item's display moment is the first item's last record (its confidence, or its timed-out answer), or — when only the
  * first item's confidence ran out, which logs nothing — the end of the first item's answer window.
+ *
+ * Researcher, 24 Oct 2026 (play-test finding 3): the 60 s answer window stays, but the card shows it. `secondsLeft` is
+ * the open item's window left, read on the same real clock the window's timer runs on (`SpamCard` polls it, as the
+ * pretest's countdown does). Display only: no record, and nothing about the window changes.
  */
 
 import type { CycleIndex } from "../engine/primitives.js";
@@ -60,6 +64,8 @@ export interface SpamHost {
   readonly notify: () => void;
   /** Called once the probe has closed (after `spam_closed` is logged): anything held for it runs now. */
   readonly closed: () => Promise<void>;
+  /** The session's monotonic real clock (ms), for the answer window's countdown on the card. */
+  readonly realMs: () => number;
 }
 
 type Phase = "ready" | "item" | "confidence";
@@ -90,6 +96,8 @@ export class SpamDelivery {
   /** The item was forced at the view's end (revision (ag)). */
   private forced = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** When the open item's answer window ends, on `host.realMs` (null while no window runs). */
+  private deadlineMs: number | null = null;
   private busy = false; // set synchronously so a double click is refused while the log write is awaited
 
   constructor(private readonly host: SpamHost) {}
@@ -102,6 +110,12 @@ export class SpamDelivery {
 
   /** The item (or its confidence) is open: the decision panel is held (the tools are not, revision (ag)). */
   get itemOpen(): boolean { return this.phase === "item" || this.phase === "confidence"; }
+
+  /** Whole seconds left in the item's answer window (the card's countdown, 24 Oct 2026); null while no item is on screen. */
+  secondsLeft(): number | null {
+    if (this.deadlineMs === null || (this.shown !== "item" && this.shown !== "confidence")) return null;
+    return Math.max(0, Math.ceil((this.deadlineMs - this.host.realMs()) / 1000));
+  }
 
   view(): SpamView | null {
     const p = this.probe;
@@ -279,11 +293,13 @@ export class SpamDelivery {
 
   private arm(ms: number, fire: () => Promise<void>): void {
     this.disarm();
+    this.deadlineMs = this.host.realMs() + ms;
     this.timer = setTimeout(() => { this.timer = null; void fire(); }, ms);
   }
 
   private disarm(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
+    this.deadlineMs = null;
   }
 }

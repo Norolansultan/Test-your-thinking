@@ -84,15 +84,19 @@ const TOPO_TILES = siteMeta.tiles.map((t) => ({ url: t.url, corners: t.corners a
 /**
  * Fixed zoom levels — SPEC/06 §4.5 ("change between fixed zoom levels"), SPEC/23 §8, SPEC/12 revision (aj). Each
  * preset is content-independent: Area and Sector set a ground width across the map about the participant's own
- * centre, and "Fire" (`widthM: null`) returns to the whole study area (`extentCamera`; revision (am): no longer the
+ * centre, and "7 km" (`palo`, `widthM: null`) returns to the whole study area (`extentCamera`; revision (am): no longer the
  * opening frame, which is the closer 5 km box, `openingCamera`) — never
  * the fire's own bounds, a spot fire or the active front, which would tell the participant where to look. The
  * widest level exists because later scenarios add other groups working the same fire (neighbouring sectors, other
  * formations), not only the participant's own; it is also where a second fire in the region would be seen.
+ *
+ * Play-test, 24 Oct 2026: both players expected "Palo" / "Fire" to zoom to the fire. Revision (aj) rules that out (no
+ * preset frames the fire), so the button is named for what it shows, the ~7 × 7 km study area: "7 km", as the closest
+ * reads "2 km" ("Alue", the 20 km region, is a different frame). The level id stays `palo`, so the records are unchanged.
  */
 export const ZOOM_LEVELS = [
   { id: "alue", labelFi: "Alue", widthM: 20_000 },
-  { id: "palo", labelFi: "Palo", widthM: null },
+  { id: "palo", labelFi: "7 km", widthM: null }, // the whole study area (`extentCamera`); "Palo" until 24 Oct 2026
   { id: "lohko", labelFi: "2 km", widthM: 2_000 }, // the button reads "2 km" (revision (al); was "Lohko", which named no sector)
 ] as const;
 export type ZoomLevelId = (typeof ZOOM_LEVELS)[number]["id"];
@@ -170,7 +174,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
   const logViewport = (map: MapLibreMap, cause: NonNullable<ViewportChangedDetail["cause"]>) =>
     log({ kind: "viewport_changed", detail: viewportDetail(map, snapshotRef.current.currentCycle, cause, cause === "move" || cause === "settle" ? moveInputRef.current : undefined) });
 
-  /** A preset: "Fire" shows the whole study area; Area and Sector set a width about the participant's own centre. */
+  /** A preset: "7 km" (id `palo`) shows the whole study area; Area and "2 km" set a width about the participant's own centre. */
   const applyLevel = (map: MapLibreMap, id: ZoomLevelId) => {
     const widthM = ZOOM_LEVELS.find((z) => z.id === id)!.widthM;
     if (widthM === null) { frameWhole(map); return; }
@@ -329,7 +333,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
   // The camera never moves by itself (SPEC/12 revision (aj), 9 Oct 2026; researcher: the participant must notice
   // the important things and go there themselves). The map opens on one neutral frame — revision (am): a fixed 5 × 5 km
   // box about the extent's centre, a little closer than the whole study area, fitted inside the map (`openingCamera`) —
-  // and every new view returns to it; the "Fire" button shows the whole study area (`extentCamera`).
+  // and every new view returns to it; the "7 km" button (id `palo`) shows the whole study area (`extentCamera`).
   // It reads nothing else from the snapshot. Before (revision (ah)), each
   // view framed the uncontained edge and the forecast, which in V13 put the north-edge flare-up — the planted
   // contradiction — in the frame. The frame depends only on the map's size, so it is identical for every participant
@@ -342,7 +346,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
     map.jumpTo({ center: [...center], zoom });
     onDefaultRef.current = true;
   };
-  /** The "Fire" (Palo) preset: the whole study area, fitted inside the map. */
+  /** The "7 km" preset (id `palo`, "Palo" / "Fire" until 24 Oct 2026): the whole study area, fitted inside the map. */
   const frameWhole = (map: MapLibreMap) => {
     const el = map.getContainer();
     const { center, zoom } = extentCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);

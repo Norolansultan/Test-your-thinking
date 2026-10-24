@@ -148,10 +148,15 @@ export class PlaySession {
 
   snap(): SessionSnapshot { return this.current!; }
 
-  /** The view's own seconds so far (the orchestrator's `ViewClock`; read, never written): what the participant's own sense of time gives. */
+  /**
+   * The view's own seconds so far (the orchestrator's `ViewClock`; read, never written): what the participant's own sense of time gives.
+   * Once the view has ended (the plan's confidence, an end freeze, the after-view probes) it is the end's moment: the stopped clock
+   * keeps its last pause, so the readout fell back to a mid-view freeze's moment, or to 0 s (24 Oct 2026: "period 107 s" → "105 s").
+   */
   viewSeconds(): number {
-    const clock = (this.o as unknown as { viewClock?: { elapsedSeconds(): number } }).viewClock;
-    return clock ? clock.elapsedSeconds() : 0;
+    const o = this.o as unknown as { viewClock?: { elapsedSeconds(): number }; viewEnd?: { readonly view: number; readonly viewSeconds: number } | null };
+    if (o.viewEnd && o.viewEnd.view === this.snap().currentCycle) return o.viewEnd.viewSeconds;
+    return o.viewClock ? o.viewClock.elapsedSeconds() : 0;
   }
 
   /** Starts a command: live (its costs recorded) or replayed (its recorded costs used, its start time checked). */

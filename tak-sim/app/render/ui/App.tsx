@@ -150,7 +150,7 @@ function StartPage() {
       scenario={getDemoScenario()} condition={conditionOfCell(cell)} cell={cell} previewOverride={sessionOverrideFromUrl(search)} language={lang}
       showProbeLevels={!study} allowTourSkip={!study}
       participantCode={assigned?.participantCode ?? undefined} assignment={assigned ? assigned.assignment : { source: "start_page" }}
-      studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={!study} minWindowGuard={study} sessionId={issued?.sessionId}
+      studyShell allowPreflightOverride={!study} allowViewSkip={!study} indexedSearch={false} minWindowGuard={study} sessionId={issued?.sessionId}
       uiShell={uiShellFromSearch(search)} {...("invalid" in setting ? {} : setting)} {...demoAudience(publicVersion, study)}
       immediateProfile={immediateProfileFromUrl(search)}
     />

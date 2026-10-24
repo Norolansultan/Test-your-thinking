@@ -9,11 +9,12 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
-import { CP_OFFSET_PX, OVERLAY, OVERLAY_FONT_PX, overlayLabels, regionFiresVisible, sectorLabelPoint } from "../../app/render/ui/map-overlay.js";
+import { BROOK_LABEL_GAP_PX, CP_OFFSET_PX, OVERLAY, OVERLAY_FONT_PX, overlayAnchor, overlayLabels, regionFiresVisible, sectorLabelPoint } from "../../app/render/ui/map-overlay.js";
 import { extentCamera, mercatorProjector, openingCamera, zoomForWidth } from "../../app/render/map-frame.js";
 import { COMPACT_FRAME } from "../../app/render/unit-declutter.js";
 import { finnishNamesIn } from "../../app/i18n/place-names.js";
-import { wgs84ToTm35 } from "../../tools/fire-ca/tm35.js";
+import { tm35ToWgs84, wgs84ToTm35 } from "../../tools/fire-ca/tm35.js";
+import { IGN_TM35 } from "../../tools/topo-map/geom.js";
 
 const scenario = buildDemoScenario();
 const v13 = scenario.cycles.find((c) => c.index === 13)!;
@@ -75,6 +76,32 @@ describe("the reference overlay (revision (al))", () => {
     for (const l of en) expect(finnishNamesIn(l.html.replace(/<[^>]+>/g, " ")), l.key).toEqual([]);
     // "20 kV" only: never the line's state.
     expect(fi.find((l) => l.key === "power")!.html.replace(/<[^>]+>/g, "")).toBe("20 kV");
+  });
+
+  it("labels Korpioja a second time, on the drawn brook east of the crown run's crossing, above its line and clear of the L2 code (play-test D8, 24 Oct 2026)", () => {
+    const fi = overlayLabels("fi").find((l) => l.key === "brook:korpioja")!, en = overlayLabels("en").find((l) => l.key === "brook:korpioja")!;
+    expect(fi.html.replace(/<[^>]+>/g, "")).toBe("Korpioja");
+    expect(en.html.replace(/<[^>]+>/g, "")).toBe("Alder Creek");
+    expect(overlayAnchor("brook")).toEqual({ anchor: "bottom", offset: [0, -BROOK_LABEL_GAP_PX] });
+    // On the brook: within 15 m of the site contract's (simplified) Korpioja line, east of the crossing (~1500, 1480 site metres).
+    const contract = JSON.parse(readFileSync("content/site/contract.json", "utf8")) as { features: { id: string; geometry: { coordinates: [number, number][] } }[] };
+    const line = contract.features.find((f) => f.id === "KORPIOJA")!.geometry.coordinates.map(([x, y]) => tm35ToWgs84(IGN_TM35.eastM + x, IGN_TM35.northM + y));
+    type Ll = { lat: number; lon: number };
+    const toSegment = (p: Ll, a: Ll, b: Ll) => Math.min(...Array.from({ length: 51 }, (_, i) => metres(p, { lat: a.lat + ((b.lat - a.lat) * i) / 50, lon: a.lon + ((b.lon - a.lon) * i) / 50 })));
+    expect(Math.min(...line.slice(1).map((b, i) => toSegment(fi.at, line[i]!, b)))).toBeLessThan(15);
+    const site = wgs84ToTm35(fi.at);
+    expect(site.eastM - IGN_TM35.eastM).toBeGreaterThan(2_000);
+    expect(site.eastM - IGN_TM35.eastM).toBeLessThan(2_400); // as near the crossing as the distances above allow
+    // Its text sits above the line, so it never covers the "L2 Koillinen" code ~60 m south of it, at any of the presets' zooms.
+    const l2 = overlayLabels("fi").find((l) => l.key === "sector:L2")!;
+    const e = scenario.extent;
+    for (const [w, h] of [[920, 420], [920, 300], [1280, 720], [1000, 680]] as const) {
+      for (const cam of [openingCamera(e, w, h, 16), extentCamera(e, w, h, 16)]) {
+        const p = mercatorProjector(cam, w, h);
+        const textBottom = p(fi.at).y - BROOK_LABEL_GAP_PX, codeTop = p(l2.at).y - (OVERLAY_FONT_PX + 1) / 2;
+        expect(textBottom, `${w}×${h}`).toBeLessThanOrEqual(codeTop);
+      }
+    }
   });
 
   it("the command post's flag sits up and left of its point, clear of the R1 label and of a unit staged on the point (revision (am))", () => {

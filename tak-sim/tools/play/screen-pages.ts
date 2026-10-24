@@ -90,7 +90,9 @@ function feedbackText(session: PlaySession, s: SessionSnapshot, path: string | n
     out.push("", `${t.question}: ${tr(lang, it.promptFi)}`, where, ...(it.exampleQuestion ? [t.example(it.exampleQuestion[lang])] : []));
   }
   out.push("", `# ${t.headTitle}`, v.head.mark ? t.head : t.headNoMark);
-  if (path) out.push(H(`Map (red ● ${t.legendHead}${v.head.mark ? `, blue ● ${t.legendMark}` : ""}): ${path}`));
+  // The head map is an image (24 Oct 2026: a player on `--no-map` read "shown in blue" and saw no picture): its path, or how to get it.
+  const legend = `red ● ${t.legendHead}${v.head.mark ? `, blue ● ${t.legendMark}` : ""}`;
+  out.push(H(path ? `Map (${legend}): ${path}` : `Map (${legend}): an image, not drawn with --no-map; \`look\` without --no-map draws it.`));
   out.push("", `# ${t.measureTitle}`, t.measure(v.measure.km, lang === "en" ? v.measure.directionEn : v.measure.directionFi), "", s.aiAvailable ? t.closingThinker : t.closingHaku, `[${t.continue}] → \`continue\``);
   return { text: out.join("\n"), images: path ? [{ kind: "head", path, lang, head: v.head }] : [] };
 }

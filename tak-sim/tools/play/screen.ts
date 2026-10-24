@@ -6,7 +6,9 @@
  * recorded, the plan's confidence, the plan review) and the whole message log (GeoChat, "All Chat Rooms", the TAK shell's default
  * pane), the rows that arrived since the last `look` marked; then the live map's PNG. During a freeze only the freeze screen (the
  * app blanks the map and the log): its current item, and for a map item the basemap with a pixel grid. The full-screen pages are
- * `screen-pages.ts`. Harness lines (how to answer, the period's elapsed seconds) are in English and marked `»`.
+ * `screen-pages.ts`. Harness lines (how to answer, the period's elapsed seconds) are in English and marked `»`; the few screen
+ * descriptions the app has no string for (the tour's name, the held decision strip) are in the session language only
+ * (`SCREEN_WORDS`, 24 Oct 2026: the English output printed "Esittely / guided tour").
  *
  * It reads the snapshot (renderable data, no truth, I4) and the harness's own UI state; never the scenario's keys: a freeze item
  * as `screenFreezeItem` gives it, SPAM's view (`SpamView`) and the visible probe's view, which carry none.
@@ -59,6 +61,12 @@ export function logRow(session: PlaySession, e: RadioLogEntry): string {
 const scale = CONFIDENCE_SCALE.join(" | ");
 const H = (s: string) => `» ${s}`;
 
+/** What the screen shows without an app string of its own, in the session language (the locked tools use the app's `toolsLocked`). */
+const SCREEN_WORDS: Readonly<Record<Lang, { readonly practiceTour: string; readonly toolsTour: string; readonly held: string }>> = {
+  fi: { practiceTour: "Esittely", toolsTour: "Työkalumuistutus", held: "(Päätösosio odottaa kysymyksen ajan.)" },
+  en: { practiceTour: "Guided tour", toolsTour: "Tool reminder", held: "(The decision strip is held while the question is open.)" },
+};
+
 /** The screen on show, its image requests (paths under `runDir/screens/`, numbered by `n`). Marks the log's rows as seen. */
 export function lookText(session: PlaySession, runDir: string, n: number, withMap: boolean): { readonly text: string; readonly images: ImageRequest[] } {
   const s = session.snap();
@@ -70,7 +78,7 @@ export function lookText(session: PlaySession, runDir: string, n: number, withMa
   const images: ImageRequest[] = withMap ? [{ kind: "live", path: name("map"), data: liveMapData(s, session.scenario.extent, session.config.audience, camera, session.legendOpen, session.rb && session.rb.view === s.currentCycle ? { from: session.rb.from, to: session.rb.to } : null) }] : [];
   const lines = [...statusLines(session, s), ...interactionLines(session, s), "", ...logLines(session, s)];
   const frame = camera ? `your own frame, about ${widthMetres(camera)} m across` : `the app's opening frame, about ${widthMetres(openingOf(session.scenario.extent))} m across`;
-  if (withMap) lines.push("", H(`Map (TAK, north up, ${frame}; \`map alue|palo|2km|in|out|reset [center=x,y]\` moves it, \`map legend\` shows or hides the legend): ${images[0]!.path}`));
+  if (withMap) lines.push("", H(`Map (TAK, north up, ${frame}; \`map alue|7km|2km|in|out|reset [center=x,y]\` moves it, \`map legend\` shows or hides the legend): ${images[0]!.path}`));
   session.seenLog = s.radioLog.length;
   return { text: lines.join("\n"), images };
 }
@@ -96,12 +104,13 @@ function interactionLines(session: PlaySession, s: SessionSnapshot): string[] {
   const out: string[] = [];
   if (s.tour !== null) {
     const steps = tourSteps(s.tour, s.conditionLabel, "radio");
-    out.push("", `-- ${s.tour === "practice" ? "Esittely / guided tour" : "Työkalumuistutus / tool reminder"} (${steps.length}) --`);
+    const w = SCREEN_WORDS[session.config.lang];
+    out.push("", `-- ${s.tour === "practice" ? w.practiceTour : w.toolsTour} (${steps.length}) --`);
     steps.forEach((step, i) => { const st = t.tour.steps[step.id]; out.push(`[${t.tour.progress(i + 1, steps.length)}] ${st.title}`, st.body); });
     out.push(H(`The period's time waits until the tour is finished: \`continue\` ("${s.tour === "practice" ? t.tour.startPractice : t.tour.startView}").`));
     return out;
   }
-  out.push("", `${t.tak.toolbar.haku}${s.recordsBadge ? ` [${t.recordsBadge}]` : ""}${s.toolsLocked ? " (lukittu / locked)" : ""}  ·  ${t.tak.paneTitle.geochat}`);
+  out.push("", `${t.tak.toolbar.haku}${s.recordsBadge ? ` [${t.recordsBadge}]` : ""}${s.toolsLocked ? ` (${t.spam.toolsLocked})` : ""}  ·  ${t.tak.paneTitle.geochat}`);
   if (session.config.audience === "public") out.push(H("Glossary & help (public): `glossary <term>` for a ‹marked› word, `help [glossary|roster|legend]`."));
   if (s.consultPrompt) out.push(`[${t.consult.notice}]  ${t.consult.openHaku} → \`consult open\` · ${t.consult.close} → \`consult dismiss\``);
   if (s.spam) out.push("", ...spamLines(session, s));
@@ -116,9 +125,10 @@ function spamLines(session: PlaySession, s: SessionSnapshot): string[] {
   if (spam.phase === "ready") {
     return spam.collapsed
       ? [`● ${t.spam.waiting}`, H("`spam-expand` shows the prompt again; `spam-ready` answers.")]
-      : [`${t.spam.readyPrompt}  [${t.spam.ready}] [${t.spam.collapse}]`, H("`spam-ready` shows the question (the tools stay usable); `spam-collapse` hides the prompt. It waits for you, but is forced before the period ends.")];
+      : [`${t.spam.readyPrompt}  [${t.spam.ready}] [${t.spam.collapse}]`, H("`spam-ready` shows the question (the tools stay usable); `spam-collapse` hides the prompt. It waits for you, but is forced before the period ends. Once shown, each question has its answer window; the card shows the time left.")];
   }
-  const out = [`-- ${t.spam.title}${spam.itemCount > 1 ? ` · ${t.spam.itemOf(spam.itemIndex, spam.itemCount)}` : ""} --`];
+  const left = session.o.spamSecondsLeft(); // the card's countdown (24 Oct 2026)
+  const out = [`-- ${t.spam.title}${spam.itemCount > 1 ? ` · ${t.spam.itemOf(spam.itemIndex, spam.itemCount)}` : ""} --${left !== null ? `  ${t.spam.timeLeft(left)}` : ""}`];
   if (spam.forced) out.unshift(t.spam.forcedTitle);
   out.push(gl(session, tr(lang, spam.promptFi)));
   spam.options.forEach((o, i) => out.push(`  ${optionLetter(i)}) ${gl(session, tr(lang, o.fi))}${spam.chosen === o.id ? "  ◀" : ""}`));
@@ -149,7 +159,7 @@ function decisionLines(session: PlaySession, s: SessionSnapshot): string[] {
   const t = UI_TEXT[session.config.lang], lang = session.config.lang;
   const trl = (fi: string) => tr(lang, fi);
   const hasDrones = s.allocation.droneTeams.length > 0;
-  const held = s.decisionHeld ? ["(Päätösosio odottaa kysymyksen ajan / the decision strip is held while the question is open.)"] : [];
+  const held = s.decisionHeld ? [SCREEN_WORDS[lang].held] : [];
   switch (s.step) {
     case "exploration":
       return [...(s.previousViewTimedOutWithoutPlan ? [t.timeUpNoPlan] : []), `${s.practice ? t.practiceNotScored : ""}${t.explorationHint(s.aiAvailable)}`];

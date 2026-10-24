@@ -40,7 +40,7 @@ prompt, the period's end). Use `look` after any command to see the whole screen.
 | `wait [seconds]` | lets time run (default 10, at most 300); stops early when something changes (a freeze, the SPAM prompt, new messages, the decision panel, the minimum, the period's end) | as waited |
 | `haku "<question>"` | Haku's chat: opens the pane, types (the records gate at the moment it is sent), shows the answer, back to GeoChat | 15 + 15 |
 | `haku-history` | Haku's earlier answers | 5 |
-| `map alue\|palo\|2km\|in\|out\|reset [center=x,y]`, `map legend` | moves the live map as the zoom buttons, the wheel and a drag do (x,y: pixels of the last map image); shows or hides the legend | 3 |
+| `map alue\|7km\|2km\|in\|out\|reset [center=x,y]`, `map legend` | moves the live map as the zoom buttons, the wheel and a drag do (x,y: pixels of the last map image; `7km` is the whole study area, the button read "Palo" until 24 Oct 2026 and `palo` still replays); shows or hides the legend | 3 |
 | `contacts [call sign]` | the TAK Contacts pane (type, task, water, last message); with a call sign the map centres on it | 8 |
 | `measure x1,y1 x2,y2` | Range & Bearing between two pixels of the last map image; the line stays on the map | 8 |
 | `consult open\|dismiss` | the consult notification's buttons | 2 |
@@ -49,7 +49,7 @@ prompt, the period's end). Use `look` after any command to see the whole screen.
 | `plan-confidence 25\|50\|75\|100` | the plan's confidence after a main view | 4 |
 | `review keep\|change` | the plan review (phase B) | 4 |
 | `spam-ready`, `spam-collapse`, `spam-expand` | the SPAM ready prompt | 2, 1, 1 |
-| `spam-answer <letter> <confidence>` (`spam-answer <confidence>` for the confidence alone) | the SPAM question; the choice is final | 10 |
+| `spam-answer <letter> <confidence>` (`spam-answer <confidence>` for the confidence alone) | the SPAM question; the choice is final; its answer window's time left is on the card, as in the app | 10 |
 | `freeze-answer <letter\|x,y> <confidence>` / `freeze-submit` | the freeze, one item at a time (the one on screen), no going back; a map item is answered in the freeze map PNG's pixel coordinates. Options are lettered a, b, c … and no item or option id is shown, as in the app (some ids name the key); runs played before 24 Oct 2026, which named the item and the option id, still replay | 10 / 2 |
 | `probe-answer no` · `probe-answer yes a,b` · `probe-answer <letter> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
 | `hinge-answer <letter>` | the hinge's question | 10 |
@@ -66,7 +66,7 @@ the questionnaire ("Personal results after the study") is answered no, neutrally
 
 The live map PNG is the app's own `MapView` in the TAK shell's mode (`map-page.ts`, bundled with esbuild, drawn by MapLibre in
 headless Chromium through Playwright): the basemap tiles, the reference overlay (sector outlines and names, roads, the bridge, the
-power line, the command post, the settlements), the fire as reported (burnt area, burning zone, edges, head, spot fires, drone
+power line, the command post, the settlements, Korpioja's second label), the fire as reported (burnt area, burning zone, edges, head, spot fires, drone
 detections, earlier perimeters with their times), the projection with its labels, the units with their call signs and stacks,
 the TAK info card (clock, wind), the coordinate readout with the scale bar, and the legend (open: the harness's default, as the
 tour opens it; `map legend` collapses it). North is up; the app draws no north arrow. The camera is the app's opening frame at a

@@ -1,8 +1,8 @@
 /**
  * Writes `app/render/ui/map-overlay.json`: the live map's static reference overlay (SPEC/12 revision (al)) — the
  * 1 km ETRS-TM35FIN grid, the anchor points of the road labels R1/R2/R3, the R3 bridge, the 20 kV power line's
- * label and the command post. Build-time only: every coordinate conversion stays at the bundle-build boundary
- * (SPEC/03 §1.1); the browser reads the JSON. Deterministic (no randomness, fixed rounding).
+ * label, the command post and (24 Oct 2026) a second Korpioja label. Build-time only: every coordinate conversion stays at
+ * the bundle-build boundary (SPEC/03 §1.1); the browser reads the JSON. Deterministic (no randomness, fixed rounding).
  *
  * Water points W1–W3, the sectors and the region's other fires are not here: the map reads them from the scenario
  * export (`site-scenario.json` `features`, `sectors`, `regionFires`), which their owners regenerate.
@@ -13,7 +13,7 @@
 import { writeFileSync } from "node:fs";
 import { tm35ToWgs84 } from "../tools/fire-ca/tm35.js";
 import { IGN_TM35 } from "../tools/topo-map/terrain-base.js";
-import { BRIDGE, POWER_LINE } from "../tools/topo-map/terrain.js";
+import { BRIDGE, BROOKS, POWER_LINE } from "../tools/topo-map/terrain.js";
 import { COMMAND_POINT, FIXED_ROADS } from "../tools/topo-map/roads.js";
 
 interface P { readonly x: number; readonly y: number }
@@ -55,6 +55,12 @@ const [pa, pb] = [POWER_LINE[0]!, POWER_LINE[1]!];
 const along = (d: number): P => { const L = Math.hypot(pb.x - pa.x, pb.y - pa.y); const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2; return { x: mx + ((pb.x - pa.x) / L) * d, y: my + ((pb.y - pa.y) / L) * d }; };
 const powerLine = { label: "20 kV", at: ll(along(-3000)), towards: ll(along(-2900)) };
 
+// Korpioja's second label (play-test D8, 24 Oct 2026): the basemap names the brook only by Mökkiranta, ~2.8 km west of where
+// the crown run crosses it (~1500, 1480). The nearest stretch east of the crossing that keeps the overlay's distances — over
+// 400 m from V13's old north edge, which runs across the brook at the crossing, and over 600 m from US2 — is ~2270, 1460.
+const KORPIOJA = dense(BROOKS.find((b) => b.name === "Korpioja")!.line);
+const brook = { fi: "Korpioja", at: ll(onLine(KORPIOJA, { x: 2270, y: 1460 })) };
+
 // The 1 km grid: TM35 easting and northing lines at whole kilometres, ±13 km about IGN (the pan limit is 12 km), each
 // sampled every 2 km (the lines are straight in TM35; the chord error over 2 km is far below a pixel).
 const R = 13_000, STEP = 2_000;
@@ -71,6 +77,7 @@ const out = {
   bridge: { fi: "R3:n silta (Kotkanjoki)", at: ll(BRIDGE) },
   commandPost: ll(COMMAND_POINT),
   powerLine,
+  brook,
   grid,
 };
 writeFileSync("app/render/ui/map-overlay.json", `${JSON.stringify(out)}\n`);

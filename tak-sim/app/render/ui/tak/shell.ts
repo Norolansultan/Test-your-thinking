@@ -40,7 +40,7 @@ export const TAK_PANE_ORDER: readonly TakPaneId[] = ["overlays", "contacts", "ge
 /**
  * The panes a session's toolbar offers. Haku in every cell; the Thinker only where the capability matrix gives the AI
  * tool (`aiDrawerPresent`, the `substitutive` condition — never the Haku group: SPEC/28 §5); the index-based search only
- * in a demonstration (`indexedSearch`, never under `?tuotanto`).
+ * when asked (`indexedSearch`: since 24 Oct 2026 never, in any session, SPEC/28 §5; was a demonstration only).
  */
 export function takToolbarPanes(condition: "directed" | "substitutive", opts: { readonly indexedSearch: boolean }): TakPaneId[] {
   const thinker = CAPABILITY_MATRIX[condition].aiDrawerPresent && condition === "substitutive";

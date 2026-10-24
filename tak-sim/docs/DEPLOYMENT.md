@@ -56,7 +56,7 @@ resume) are the requirements; this file is the procedure. Written 5 Oct 2026.
    the `Host` header (`proxy_set_header Host $host;` in nginx) or list the public origin in
    `ALLOWED_ORIGINS`. Allow request bodies up to 2 MB (`client_max_body_size 3m;`) for the upload
    chunks. Add a modest rate limit on `/api/`.
-8. **Check.** Open `https://<host>/` (demonstration) and `https://<host>/?tuotanto` (the shared link; pressing start issues a code, so do it once and note it, or use `?tuotanto&koodi=<code>`);
+8. **Check.** Open `https://<host>/` (demonstration) and `https://<host>/?tuotanto&osite=other.nolead` (a shared link of one stratum, §7.1; pressing start issues a code of that stratum, so do it once and note it, or use `?tuotanto&koodi=<code>`; `?tuotanto` alone must say the link has no stratum);
    run one demonstration session to the end and confirm `<SESSION_LOG_DIR>/<sessionId>.jsonl`
    appears with its manifest line; `npm run thinker:live-check` for the model. With the gate on
    (§2.1) `https://<host>/` must instead answer 404 with the "not available" page, and the session
@@ -77,7 +77,7 @@ switch the gate on in the server:
   HTML page, `/about.html` included) gets a neutral bilingual 404 page ("not available; open your study
   link as you received it"), uncached — never the demonstration's start page with its condition buttons
   and its professional/public version switch (SPEC/35 §2). Study links (`?tuotanto`, with or without
-  `koodi`, `pilotti`, `solu`, `yleiso`), their assets, the map and every `/api` route are unchanged.
+  `koodi`, `osite`, `pilotti`, `solu`, `yleiso`), their assets, the map and every `/api` route are unchanged.
 - **The build** is the ordinary `npm run build:prod`: a gated deployment is a normal build served with
   the gate. (Until 21 Oct 2026 the build also had to leave game mode out; game mode has been removed,
   SPEC/29 status line.)
@@ -269,22 +269,61 @@ the participant clicks through. `-Tunnel cloudflare` uses the Cloudflare quick t
 
 It asks for the Gemini key in the window (or takes `$env:GEMINI_API_KEY`; never written to disk),
 runs `build:prod`, makes a new `ADMIN_TOKEN` for this run (shown in the window only), starts the
-server with `AUTO_ASSIGN=1`, opens the tunnel and prints **one participant link**,
-`https://<name>.ngrok-free.app/?tuotanto`, the same for everyone (also written to
+server with `AUTO_ASSIGN=1`, opens the tunnel and prints **the participant links, one per stratum** (§7.1),
+`https://<name>.ngrok-free.app/?tuotanto&osite=<stratum>`, each the same for everyone in its stratum (also written to
 `logs/study-links-<time>.txt`, without the token), and the data page `…/admin?token=…`. Advanced:
 `-Codes A,B,C` additionally prints one manual `?koodi=` link per code (a code given out by hand is
 skipped by the shared link once its session has uploaded a checkpoint; to be safe, do not mix the
 two in one run).
 
-### 7.1 The shared study link and automatic assignment (revision (af), 9 Oct 2026)
+### 7.1 The shared study links and automatic assignment (revision (af), 9 Oct 2026; stratified 24 Oct 2026)
 
-Every participant gets the same link, `https://<host>/?tuotanto`. On the start page they choose the
-language and press start; only then does the browser call `POST /api/assign` once, and the server
-answers with the **next unused code of the allocation table** (`content/assignment/allocation.json`)
-in table order within the chosen language's stratum, so codes go out exactly as the permuted blocks
-of 40 lay them down and the blocked randomisation stays balanced. The code fixes the cell; the
+**The links (SPEC/30 §2 revision (bf), 24 Oct 2026).** The allocation is stratified by the session
+language and by two screener answers — the participant's profession and whether they lead others —
+so there is **one shared link per stratum**, the same for everyone in it:
+
+    https://<host>/?tuotanto&osite=<profession>.<lead|nolead>
+
+| `osite` | Screener answers |
+|---|---|
+| `fire_rescue.lead` | S1 fire and rescue service; S2 leads others |
+| `fire_rescue.nolead` | S1 fire and rescue service; S2 does not |
+| `military.lead` | S1 armed forces or defence; S2 leads others |
+| `military.nolead` | S1 armed forces or defence; S2 does not |
+| `other.lead` | S1 other; S2 leads others |
+| `other.nolead` | S1 other; S2 does not |
+
+The two screener questions (DRAFT, native check; SPEC/30 bf.2 has the full wording): **S1** "Which
+best describes your main current work?" / "Mikä kuvaa parhaiten nykyistä päätyötäsi?" — fire and
+rescue service (career, part-time or volunteer firefighter, rescue officer) / armed forces or defence
+(including reservists in service) / other; **S2** "In your work, do you lead others — for example
+command a crew, a unit or a team?" / "Johdatko työssäsi muita, esimerkiksi miehistöä, yksikköä tai
+ryhmää?" — yes / no. They are asked by the recruitment platform, never in the session: on Prolific
+either one study per stratum with its own custom screener and its own link, or one screener survey
+that redirects each respondent to their stratum's link; for a course sample, the sign-up form's two
+questions decide which link the participant receives. The language is chosen on the start page
+(or fixed by a code). `scripts/host-study.ps1` prints the six links.
+
+**What happens.** On the start page the participant chooses the language and presses start; only then
+does the browser call `POST /api/assign` once (`{sessionId, language, stratum}`), and the server
+answers with the **next unused code of the allocation table** (`content/assignment/allocation.json`,
+version 2) in table order within that language × stratum, so codes go out exactly as the stratum's
+permuted blocks of 4 lay them down and each stratum stays balanced. The code fixes the cell; the
 session header logs it as usual (`participantCode`, `assignment.source: "table"`, its block) plus
-`assignment.assignmentSource: "server"` (`"link"` for a `?koodi=` link).
+`assignment.assignmentSource: "server"` (`"link"` for a `?koodi=` link) and `assignment.stratum`
+(`{profession, leads}`, from the code's row).
+
+- **No stratum, no session.** A shared link without `?osite=` (or with an unknown value) is refused
+  on the start page ("the study link has no stratum"), and the server answers a request without one
+  with 400: a participant is never assigned outside their stratum. A manual link
+  `?tuotanto&koodi=<code>` needs no stratum (the code's row has it); if it also names one, it must be
+  the code's. Pilots: `?tuotanto&pilotti&solu=t2&osite=fire_rescue.lead` logs the stratum given.
+- **Codes per stratum** (DRAFT, researcher to confirm): English 40 / 24 / 32 / 20 / 12 / 12 and
+  Finnish 16 / 16 / 12 / 16 / 4 / 4 in the table's order above (208 codes). The admin page shows the
+  codes left in each stratum; a stratum that runs out answers 410 for that stratum only. Adding blocks
+  to one stratum (`ASSIGNMENT_PLAN` in `app/session/assignment.ts`, then `npm run assignment:generate`)
+  leaves every other stratum's codes and cells unchanged (one seeded stream per stratum), but it is a
+  new table: move `issued-codes.json` aside and record the new `rowsSha256`.
 
 - **Persistence.** The server records each issue (code, cell, language, block, session id, time) in
   `<SESSION_LOG_DIR>/issued-codes.json`, written atomically before it answers; a restart reads it
@@ -295,9 +334,9 @@ session header logs it as usual (`participantCode`, `assignment.source: "table"`
   code; it never draws a second one. A finished session is not run again from that browser.
 - **Guard.** At most `ASSIGN_RATE_PER_HOUR` (default 20) new codes per client address per hour (the
   tunnel's `cf-connecting-ip`), and at most `ASSIGN_MAX` codes in all
-  (default: the table's length, 280). A retry with the same session id gets the same code.
+  (default: the table's length, 208). A retry with the same session id gets the same code.
 - **When it is off.** Without `AUTO_ASSIGN=1` (a plain `npm run serve`) and always in `npm run dev`,
-  `/api/assign` answers 404 and the start page of `?tuotanto` says, in Finnish and English, that the
+  `/api/assign` answers 404 and the start page of a shared link (`?tuotanto&osite=…`) says, in Finnish and English, that the
   link is not active and to contact the researcher. It never falls back to a random or demonstration
   cell, and a researcher running the app locally never consumes or creates a code. `?tuotanto&koodi=X`
   works as before everywhere.
@@ -306,7 +345,7 @@ session header logs it as usual (`participantCode`, `assignment.source: "table"`
   issues only codes of the listed cells, in sequence order; the others stay unissued. This
   **deliberately breaks the blocked balance between cells** — fine for a pilot, and it **must be off
   (unset) for the study**. The server's start lines and the admin page show the filter in force. The
-  English stratum holds 84 `reasoning_intent` codes (14 per block, six blocks) and the Finnish one 14,
+  English strata hold 70 `reasoning_intent` codes (2 per block of 4) and the Finnish ones 34,
   plenty for a pilot. Pilot sessions use codes of the real table: before the study, move
   `issued-codes.json` aside only if those codes should be issued again, and analyse pilot sessions
   apart.

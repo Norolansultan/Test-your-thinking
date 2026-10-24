@@ -1,0 +1,63 @@
+item,view,level,key,k1fi_answer,k1fi_right,k1fi_conf,l1en_answer,l1en_right,l1en_conf,k1en_answer,k1en_right,k1en_conf,k2fi_answer,k2fi_right,k2fi_conf,l2en_answer,l2en_right,l2en_conf,old_right,new_right,verdict_24oct,action
+freeze.practice.infra,0,L1,available: Available; tankers can fill up there,available,yes,75,available,yes,75,available,yes,75,available,yes,75,available,yes,75,3/3,2/2,OK,—
+freeze.practice.forecast,0,L1,"sw_gusts: South-west 4–6 m/s, gusts 8–10 m/s",sw_gusts,yes,100,sw_gusts,yes,100,sw_gusts,yes,100,sw_gusts,yes,100,sw_gusts,yes,25,3/3,2/2,OK (search lesson works),—
+freeze.practice.first_target,0,L2,r1: Road R1,r1,yes,100,r1,yes,100,r1,yes,100,r1,yes,100,r1,yes,100,3/3,2/2,OK,—
+freeze.practice.r1_arrival,0,L3,gt60: In more than an hour,gt60,yes,75,gt60,yes,75,gt60,yes,75,m30_60,no,50,gt60,yes,50,3/3,1/2,BOUNDARY: from the header span end (12.20) the pushed figures give 61 min and the CA truth exactly 60 min; key gt60 computed from 12.00 (97 min drawn),ask for the clock time (bands before 12.50 / 12.50–13.10 / 13.10–13.40 / after 13.40; key 13.10–13.40)
+freeze.practice.head_now,0,L1,map point,25 m,yes,50,99 m,yes,50,76 m,yes,75,43 m,yes,50,67 m,yes,50,3/3,2/2,OK,—
+freeze.2.infra,2,L1,"unsafe: Not safe to drive, flames at the roadside",unsafe,yes,25,cut,no,50,unsafe,yes,25,with_care,no,25,with_care,no,25,2/3,0/2,"retrieval-dependent with no cue: 2/5 right, every answer a conf-25 guess","keep as a retrieval measure and report it separately, or push one road line"
+freeze.2.ek11_between,2,L2,between: EK11 can be caught between the head and the new fire,between,yes,75,between,yes,50,between,yes,100,between,yes,100,between,yes,75,3/3,2/2,"stem cue gone (D3); 5/5 right, new runs from the 14:01 burst; the key is still the only safety-concern option",keep
+freeze.2.south_flank,2,L2,"held_low: The edge is kept low, but the head gets past",held_low,yes,50,held_low,yes,50,held_low,yes,75,held_low,yes,75,held_low,yes,50,3/3,2/2,OK,—
+freeze.2.area_40,2,L3,m20_35: 20–35 hectares,m20_35,yes,50,m20_35,yes,25,m35_50,no,25,m35_50,no,50,m20_35,yes,25,2/3,1/2,hard but fair (3/5),keep
+freeze.2.spruce_behaviour,2,L3,crown: It climbs into the crowns and throws embers ahead,crown,yes,75,crown,yes,75,crown,yes,75,crown,yes,75,crown,yes,50,3/3,2/2,OK (5/5); the round-1 panel question stands,panel
+freeze.2.junction_hour,2,L3,m400_700: 400–700 metres away,m700_1000,no,50,m700_1000,no,25,m400_700,yes,25,m400_700,yes,50,m400_700,yes,25,1/3,2/2,hard but fair (3/5; new 2/2 at conf 25–50),keep
+freeze.2.ek11_point,2,L1,map point,352 m,no,50,352 m,no,50,44 m,yes,50,18 m,yes,50,128 m,yes,50,1/3,2/2,"fixed by the harness message fix (old 1/3, new 2/2)",—
+freeze.2.head_later,2,L3,map point,68 m,yes,25,183 m,yes,25,91 m,yes,25,85 m,yes,25,91 m,yes,25,3/3,2/2,"OK (5/5, every answer at conf 25)",keep
+freeze.4.infra,4,L1,available: Available; tankers can fill up there,available,yes,100,available,yes,75,available,yes,75,available,yes,100,available,yes,75,3/3,2/2,OK,—
+freeze.4.ek12_where,4,L1,black: On road R1 in the burned area,black,yes,100,spruce,no,75,spruce,no,100,black,yes,100,black,yes,100,1/3,2/2,"fixed by D1 (old 1/3, new 2/2 at conf 100)",—
+freeze.4.fastest_spread,4,L2,L2: In the north-east (sector L2),L2,yes,100,L2,yes,100,L2,yes,100,L2,yes,100,L2,yes,100,3/3,2/2,OK,—
+freeze.4.head_unattended,4,L2,free: No one is attacking the head; it spreads freely,free,yes,100,free,yes,75,free,yes,50,free,yes,100,free,yes,75,3/3,2/2,"stem cue gone (D3); 5/5 right, new runs from the log",—
+freeze.4.return_danger,4,L3,spots: Spot fires starting behind them,spots,yes,75,spots,yes,50,spots,yes,50,spots,yes,50,head_back,no,50,3/3,1/2,hard but fair (4/5); experts rate a (water) and b (spots) both doctrine-valid,panel (as in round 1)
+freeze.4.crown_drops,4,L3,birch: In the broadleaf strip along Birch Creek,birch,yes,50,birch,yes,25,birch,yes,50,birch,yes,50,birch,yes,50,3/3,2/2,fixed by D3 (pushed DR1 14:27 now cited by both new players),—
+freeze.4.korpioja_spot,4,L3,"jumps: No, embers start fires across the creek",jumps,yes,75,jumps,yes,50,jumps,yes,50,jumps,yes,50,jumps,yes,50,3/3,2/2,OK (5/5); Korpioja/Koivuoja name confusion (lead f),rename (decision)
+freeze.4.head_later,4,L3,map point,518 m,no,50,792 m,no,50,614 m,no,50,378 m,no,50,447 m,no,25,0/3,0/2,"STILL 0/5 (378–792 m short, all to the SW): the key needs ~38 m/min against the pushed 14.1; under the D1 header 15.20 is the span end",recast (see §10.4)
+freeze.5.infra,5,L1,"with_care: Passable with care, low fire at the roadside",with_care,yes,75,with_care,yes,50,with_care,yes,75,with_care,yes,75,with_care,yes,25,3/3,2/2,OK (5/5),—
+freeze.5.lines_breached,5,L2,no_barrier: A new fire is burning beyond Alder Creek with no one fighting it,no_barrier,yes,100,no_barrier,yes,75,no_barrier,yes,100,no_barrier,yes,100,no_barrier,yes,100,3/3,2/2,OK,—
+freeze.5.hose_short,5,L2,hose: Too little hose to keep up with the head,hose,yes,75,hose,yes,75,hose,yes,75,hose,yes,75,hose,yes,75,3/3,2/2,OK,—
+freeze.5.ek14_shelter,5,L3,shelter: Move to safety in the burned area,shelter,yes,50,hold,no,50,shelter,yes,50,shelter,yes,50,shelter,yes,50,2/3,2/2,"fixed by D7 (both new players reasoned from the pushed 15.05 headline); ""carry on"" named as defensible",keep
+freeze.5.wind_shift,5,L3,north: The north edge,north,yes,100,north,yes,75,north,yes,100,north,yes,100,north,yes,75,3/3,2/2,OK (5/5),—
+freeze.5.area_hour,5,L3,m140_190: 140–190 hectares,m90_140,no,50,m140_190,yes,50,m90_140,no,50,m90_140,no,50,m90_140,no,25,1/3,0/2,4/5 wrong; experts choose 90–140 with a defensible slowdown; truth 148 ha is 8 ha above the edge,panel; re-band
+freeze.5.road_jump,5,L3,"again: No, embers will fly across the brook and start a new fire",again,yes,75,again,yes,50,again,yes,50,again,yes,75,again,yes,50,3/3,2/2,OK (5/5); the stem joins surface stop and ember crossing (lead f),keep
+freeze.5.head_now,5,L1,map point,152 m,yes,50,214 m,no,50,194 m,yes,75,175 m,yes,50,243 m,no,25,2/3,1/2,hard but fair map item (3/5; 152–243 m),keep
+freeze.7.infra,7,L1,available: Available; tankers can fill up there,available,yes,100,available,yes,75,available,yes,100,available,yes,100,available,yes,75,3/3,2/2,ceiling,—
+freeze.7.ky21_where,7,L1,north: Moving to the north edge (sector L1),north,yes,100,north,yes,100,north,yes,100,north,yes,100,north,yes,100,3/3,2/2,ceiling,—
+freeze.7.lull_meaning,7,L2,not_out: The edges calm for now; the fire is not over,not_out,yes,100,not_out,yes,75,not_out,yes,100,not_out,yes,100,not_out,yes,75,3/3,2/2,ceiling,—
+freeze.7.north_help,7,L2,help: EK14 gets more crews on the north edge,help,yes,100,help,yes,75,help,yes,100,help,yes,100,help,yes,100,3/3,2/2,ceiling,—
+freeze.7.rekindle_sector,7,L3,L3: L3 South,L3,yes,75,L3,yes,50,L3,yes,75,L3,yes,50,L3,yes,50,3/3,2/2,"ceiling; ""next hour"" leaves open which wind (lead e)",keep
+freeze.7.cabins_reach,7,L3,"no: No, it is too far at the present rate of spread",no,yes,75,no,yes,50,no,yes,100,no,yes,75,no,yes,75,3/3,2/2,ceiling,—
+freeze.7.cp_safe,7,L3,"stays: No, the fire and smoke stay far from it",stays,yes,75,stays,yes,50,stays,yes,75,stays,yes,50,stays,yes,50,3/3,2/2,"ceiling; still answered by the safe default (""guess-ish"" in both new journals)",keep; low information
+freeze.7.relief_next,7,L3,VPK: VOL1's crew,VPK,yes,75,VPK,yes,50,VPK,yes,75,VPK,yes,75,VPK,yes,50,3/3,2/2,ceiling,—
+freeze.10.infra,10,L1,open: Passable; the fire is not near the road,threatened,no,75,threatened,no,50,threatened,no,75,threatened,no,75,threatened,no,50,0/3,0/2,"STILL 0/5 ""threatened"": the pushed DR2 17:21 says ""vielä ajettavissa"" (still passable), which option c paraphrases",ambiguous: reword (see §10.4)
+freeze.10.ek12_water,10,L2,brought: EK12 stays on the line; more water is brought to it,brought,yes,75,brought,yes,75,brought,yes,75,brought,yes,75,brought,yes,75,3/3,2/2,OK,—
+freeze.10.cabins_distance,10,L2,"m1500_2500: 1,500–2,500 metres away",m1500_2500,yes,100,m1500_2500,yes,75,m1500_2500,yes,100,m1500_2500,yes,100,m1500_2500,yes,75,3/3,2/2,OK,—
+freeze.10.area_total_hour,10,L3,m155_167: 155–167 hectares,m155_167,yes,25,m143_155,no,25,m143_155,no,25,,,,,,,1/3,,replaced by area_growth_hour (D5),—
+freeze.10.front_r2_80,10,L3,m650_950: 650–950 metres away,m650_950,yes,50,m350_650,no,25,m650_950,yes,25,m650_950,yes,50,m650_950,yes,50,2/3,2/2,hard but fair (4/5),keep
+freeze.10.south_front_point,10,L1,map point,112 m,no,50,199 m,no,50,203 m,no,50,38 m,yes,50,28 m,yes,50,0/3,2/2,"fixed by D8 (old 0/3 at the 100 m key; under the new key and 200 m all five pass, 28–131 m)",—
+freeze.12.longest_shift,12,L1,EK11: Unit EK11,EK11,yes,100,EK11,yes,100,EK11,yes,75,EK11,yes,75,EK11,yes,50,3/3,2/2,"OK (5/5); the ""rest"" reading does not change the key (EK11 6.8 h vs EK14 5.3 h)","optional: ""in total"""
+freeze.12.f7,12,L2,live: The line is live; safety distances apply and no water is directed at the conductors,live,yes,50,live,yes,50,live,yes,75,live,yes,50,live,yes,25,3/3,2/2,5/5 by the safe default; H9 only (D6),—
+freeze.12.front_toward,12,L2,village: Bay Village,village,yes,100,village,yes,100,village,yes,100,village,yes,100,village,yes,100,3/3,2/2,OK,—
+freeze.12.village_distance,12,L3,"m1600_2100: 1,600–2,100 metres away",m1600_2100,yes,75,m1600_2100,yes,50,m1600_2100,yes,50,m1600_2100,yes,50,m1600_2100,yes,50,3/3,2/2,OK,—
+freeze.12.head_now,12,L1,map point,327 m,no,50,268 m,no,50,278 m,no,50,91 m,yes,50,344 m,no,25,0/3,1/2,fixed by D1 for report-based answers (all three old marks pass the new key at 81–136 m; K2 91 m); L2 marked the drawn 18.20 head (82 m from it) and missed by 344 m,keep; the map lag is now the trap
+freeze.12.head_later,12,L3,map point,136 m,yes,25,69 m,yes,25,170 m,yes,25,62 m,yes,25,316 m,no,25,3/3,1/2,4/5; L2 carried her head_now error forward,keep
+freeze.14.infra,14,L1,no_heavy: No; the bridge does not carry a heavy tanker,no_heavy,yes,100,no_heavy,yes,100,no_heavy,yes,100,no_heavy,yes,100,no_heavy,yes,75,3/3,2/2,ceiling,—
+freeze.14.shift_change,14,L1,ek11_vpk: EK11 and VOL1,ek11_vpk,yes,100,ek11_vpk,yes,75,ek11_vpk,yes,100,ek11_vpk,yes,100,ek11_vpk,yes,100,3/3,2/2,ceiling,—
+freeze.14.road_crossed,14,L2,r2_next: The next barrier ahead of the head is road R2 with its lines,r2_next,yes,100,r2_next,yes,100,r2_next,yes,100,r2_next,yes,100,r2_next,yes,100,3/3,2/2,ceiling,—
+freeze.14.residents,14,L2,"people: People are still in the village, so the lines must hold",people,yes,100,people,yes,100,people,yes,100,people,yes,100,people,yes,100,3/3,2/2,ceiling,—
+freeze.14.se_front_r2,14,L3,"not_yet: No, the front will still be hundreds of metres from the road then",not_yet,yes,75,not_yet,yes,75,not_yet,yes,75,not_yet,yes,50,not_yet,yes,75,3/3,2/2,"ceiling; key robust (CA truth 450 m from R2 at 20.00, closing ~2–6 m/min); the basis text misquotes OUT1 (900 m, not 500 m)",fix basis text
+freeze.14.flare_next,14,L3,spreads_se: It spreads south-east with the wind,spreads_se,yes,75,spreads_se,yes,75,spreads_se,yes,100,spreads_se,yes,75,spreads_se,yes,75,3/3,2/2,ceiling,—
+probe.s.cycle_3,3,L1,b: About 24 ha,b,yes,100,b,yes,100,b,yes,100,b,yes,100,b,yes,100,3/3,2/2,OK,—
+probe.s.cycle_3.b,3,L2,c: Sped up: about a third more new area,timed out,no,,timed out,no,,timed out,no,,c,yes,75,c,yes,50,0/3,2/2,"timeout fixed (old 0/3 lost, new 2/2 answered); key record never shown as text (label only); ""sped up"" is the only increase option, so the pushed ROS trend answers it",make the options discriminate magnitude if the record is meant to be needed
+probe.s.cycle_6,6,L1,"d: The fire has crossed the ditch, the line is broken",d,yes,100,d,yes,75,d,yes,75,d,yes,100,d,yes,75,3/3,2/2,"OK; English options say ""ditch"" where every record says ""brook""/""Birch Creek""",fix English labels
+probe.s.cycle_6.b,6,L2,"d: No change: low fire at the roadside, passable with care",d,yes,50,b,no,75,b,no,50,c,no,50,d,yes,50,1/3,1/2,"2/5: the place-name split (""by Dry Heath"" vs ""south of Dry Heath"", D8) sent K2 to the wrong stretch; L2 found the key record with ""latest""",see §10.4
+probe.s.cycle_8,8,L1,a: Not known: the police have been asked to check,a,yes,100,a,yes,75,a,yes,75,a,yes,100,a,yes,75,3/3,2/2,OK,—
+probe.s.cycle_11,11,L1,c: To move to another fire in the region,c,yes,100,c,yes,100,c,yes,100,c,yes,100,c,yes,100,3/3,2/2,OK,—
+freeze.10.area_growth_hour,10,L3,m2_15: 2–15 hectares,,,,,,,,,,m2_15,yes,50,m2_15,yes,50,,2/2,new: 2/2 from the pushed 17.05 picture and the new fire; the reports reading (2.9 ha) is only 0.9 ha above the 2-ha edge,keep; watch the lower edge

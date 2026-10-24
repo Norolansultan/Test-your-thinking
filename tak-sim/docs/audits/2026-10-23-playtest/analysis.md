@@ -252,3 +252,167 @@ A third run, `commander-en` ("Kari", expert version, **English**, 32 Haku questi
 **The id hints were not what carried the cued items.** Without ids, `ek11_between` (confidence 100), `head_unattended` and `cp_safe` were still answered right. The cue is in the stems and in the safety-sounding defaults (finding 5, D3), not only in the ids. `area_total_hour` was wrong at confidence 25 without the id, which fits "no basis in the log" (finding 5, D5). `ek14_shelter` was right at confidence 50 after Kari found the 15.00 forecast with Haku (V4), which is the intended route.
 
 **Haku in English:** 9 of 32 questions fully hit what was needed, 6 partly, 17 missed. Questions about "now" returned records hours old, still marked certain: the 12:10 weather station reading at 15:20; DR2 17:21 "a good kilometre from R2" at 19:20. Air-support and reinforcement arrival times were never answered (D9). The workaround again was to quote a record's own words or the basis line's source and time (D10). As in Finnish, the planted power-line record and VOL1's smouldering objection never reached the player.
+
+---
+
+## 10. Replay on the fixed version (24 Oct 2026)
+
+**Runs** (D1–D11 implemented, merge `47212d8`; harness fixed: no ids, lettered options, new messages announced, `wait` stops at them):
+- `playtest2/commander-fi`: Kari, expert, Finnish. 61 items, 23 Haku questions.
+- `playtest2/business-en`: Laura, public, English. 61 items, 20 Haku questions.
+
+They are compared with the three runs of §1 and §9. `items-replay.csv` has every item across the five runs. `haku-replay.csv` has the 43 new Haku questions, in `haku.csv`'s layout, as a held-out set for D10 (36 cases with an identifiable record).
+
+**Caveats:**
+- One LLM run per cell: differences of one or two items are noise; the three round-1 runs differed by six.
+- Retrieval figures are lexical only (no e5 model offline).
+- The harness never showed the Haku chip or the new questionnaire items (B1, B2).
+
+### 10.1 Summary
+
+| # | Finding | Action |
+|---|---|---|
+| 1 | **Most targeted fixes worked.** SPAM 3.b is answered 2/2 (was lost 3/3). V10 `south_front_point` is 2/2 (was 0/3). V12 `head_now` passes for answers based on the reports. V4 `ek12_where` is 2/2 at confidence 100. `crown_drops` and `ek14_shelter` now rest on pushed text both players cited. The stem cues of `ek11_between` and `head_unattended` are gone. | Keep. |
+| 2 | **Two items still fail in every run:** V4 `head_later` (0/5, every mark short to the SW) and V10 `infra` (0/5, all chose "threatened"). | R2, R3. |
+| 3 | **"Now" is consistent for L1/L2 but not for L3.** Every phase-A L3 stem counts its minutes from the start of the header's span; every phase-B stem from its end. | R1: clock-only stems, no key changes. |
+| 4 | **D10 helps a little on held-out questions**, through the clock rule and some "latest" cues: top-1 11 → 15 of 36; top-8 31 → 31. Only 3 of 10 "latest"-cued questions put the newest relevant record first. The topic-free rule never fired, because "What new reports have come in?" is not a cue. | B5; pilot the study model. |
+| 5 | **Answer-level Haku hit rates barely moved** (Kari 4/31 → 6/23; Laura 7/25 → 6/20). The right record was in the study model's input for 34 of 36 questions. The "varma"/certain label on 2-hour-old records comes from the template fallback, not the model. | B6. |
+| 6 | **The harness never showed the Haku chip (V8–V14)**, so the chip fix is untested. | B1. |
+| 7 | **The H9 and H10 records are still unseen (0/5 runs).** Exposure needs the right topical question at the right time, and nothing on screen prompts it. | R10; pilot 2 logs exposure. |
+
+### 10.2 Did the fixes work?
+
+| Item | Round 1 (K-fi · L-en · K-en) | Replay (K-fi · L-en) | Verdict |
+|---|---|---|---|
+| SPAM `cycle_3.b` | lost ×3 | ✓ · ✓ | Timeout fixed: the card shows its countdown; one search each (40 s, 30 s). |
+| V12 `head_now` | ✗ 327 · 268 · 278 m | ✓ 91 · ✗ 344 m | The re-key works for answers based on the reports. Laura marked the head the V12 map draws (18.20); the map's lag is now the trap (§10.3 h). |
+| V10 `south_front_point` | ✗ 112 · 199 · 203 m | ✓ 38 · ✓ 28 m | Fixed. |
+| V4 `head_later` | ✗ 518 · 792 · 614 m | ✗ 378 · 447 m | **Not fixed.** The key (truth at 15.20) implies ~38 m/min against a pushed 14.1 m/min; only an "active crown ≈ 30 m/min" assumption gets within 300 m. |
+| V10 `infra` | "threatened" ×3 | "threatened" ×2 | **Not fixed.** The pushed DR2 17:21 says R2 is "*vielä* ajettavissa" (still passable), and option c paraphrases it. |
+| V2 `ek11_between` | ✓ ×3 (cued) | ✓ 100 · ✓ 75 | The stem cue is gone; the key is still the only alarm option. |
+| V4 `head_unattended` | ✓ ×3 (cued) | ✓ · ✓ | Fixed: answered from the pushed 15:01 withdrawals. |
+| V7 `cp_safe` | ✓ ×3 | ✓ 50 · ✓ 50 | Unchanged: no record gives the distance; the safe default wins. |
+| V10 `area_growth_hour` (new) | — | ✓ · ✓ | Works, from the pushed 17.05 picture. Watch point: the reading from the reports (~2.9 ha) is 0.9 ha above a band edge. |
+| V4 `crown_drops` | ✓ ×3 | ✓ · ✓ | The basis is now on screen (DR1 14:27). |
+| V5 `ek14_shelter` | ✓ (id hint) · ✗ · ✓ | ✓ · ✓ | Fixed by D7 (the pushed 15:05 headline). |
+| V4 `ek12_where` | ✓ · ✗ · ✗ 100 | ✓ 100 · ✓ 100 | Fixed by the D1 stem. |
+| V2 `ek11_point` | ✗ 352 · ✗ 352 · ✓ 44 | ✓ 18 · ✓ 128 | Fixed by the harness's message announcement. |
+| SPAM `cycle_6.b` | ✓ (default) · ✗ · ✗ | ✗ · ✓ | Laura's "latest road report" put 15:47 first (D10 worked). Kari asked about "Kuivakankaan kohdalla" and got D8's separate stretch (R7). |
+| V5 `area_hour` | ✗ · ✓ · ✗ | ✗ · ✗ | Unchanged: 4/5 wrong with expert reasoning; the truth is 8 ha over the band edge (R8). |
+
+**Scores, main session** (55 items; practice and F7 excluded):
+
+| Run | All | L1 | L2 | L3 |
+|---|---|---|---|---|
+| K-fi, 23 Oct | 47 | 14 | 14 | 19 |
+| L-en, 23 Oct | 41 | 11 | 13 | 17 |
+| K-en, 24 Oct | 45 | 14 | 13 | 18 |
+| **K-fi, replay** | **49** | **16** | **14** | **19** |
+| **L-en, replay** | **47** | **14** | **15** | **18** |
+
+The gain is mostly L1 (+2 per run). L1 is still not above L2. Wrong at confidence ≥ 75: Kari `10.infra` only; Laura none.
+
+**Haku:**
+
+| Run | Questions | Hit | Partial | Miss | Gap |
+|---|---|---|---|---|---|
+| K-fi, 23 Oct | 31 | 4 | 7 | 13 | 6 (+1) |
+| L-en, 23 Oct | 25 | 7 | 3 | 12 | 2 (+1) |
+| K-en, 24 Oct | 32 | 9 | 6 | 17 | — |
+| K-fi, replay | 23 | 6 | 4 | 9 | 4 |
+| L-en, replay | 20 | 6 | 2 | 9 | 3 |
+
+- The gaps are timing, not content: players asked before the record existed (CO, cottage occupancy, the detour, ETAs). D9's helicopter and reinforcement ETAs were pushed and used by both.
+- Of the recorded-only key records of scored items, Kari saw 0 as text (2 as a label) and Laura 2 as text (3 as a label). The right answers on those items came from pushed proxies, inference or defaults.
+
+### 10.3 Leads, verified
+
+**a. "Now" against L3 horizons: confirmed.** `nowStepOf` (`freeze-bank-core.ts`) counts phase-A freezes from the last step's start and view-end freezes (V10, V12, V14) from the step after. `freezeNowClock` names the last step's span in both cases. So phase A counts from the start of the header's span and phase B from its end:
+- V2: `area_40` "40 min (14.40)" under 14.00–14.20;
+- V4: `head_later` "20 min (15.20)" under 15.00–15.20, which is 0 minutes from the span's end;
+- V5 and V7: likewise;
+- V10, V12, V14: from the end.
+
+Both players answered by the clock in brackets, so no score was lost; the cost is confusion and an expert's doubt.
+
+Minimal fix (R1): keep only "klo X" / "klo X mennessä" (`horizonFi`, `withinHorizonFi` and the English labels), and update `freeze-rules.spec.ts` to assert the clock. **No key changes.** Side effect: phase-A projections are 20 minutes shorter from "now" than the item slugs suggest, which goes into the audit's horizon field.
+
+**b. Practice `r1_arrival`: confirmed on the 60-minute edge.**
+- The pushed figures give arrival at 13:21, 61 minutes after the header's 12.20; the truth is 13.20.
+- Fix (R4): ask for a time of day, with bands before 12.50 / 12.50–13.10 / 13.10–13.40 / after 13.40, key 13.10–13.40. The readings from the reports, the truth and the drawn fire all fall in the key band.
+
+**c. The consult notice opens an empty Haku: intended** (SPEC/30 §4, content-free), with three gaps:
+1. The harness never showed the V8–V14 Haku chip (B1).
+2. Typing the notice's own words is not a recency cue (B5).
+3. The notice's claim is often false. In merged views it fires at 60 s, 5 s before the 65 s burst, and after a plan confirmed early there is nothing new to announce (R6).
+
+**d. Echoed questions and old records marked "varma":** both retrieval and template.
+- Retrieval: units' own questions are the closest lexical match. With a cue, the graded boost (at most 0.3) loses to a better lexical match.
+- Template: `buildTemplateAnswer` shows the rank-1 record's own certainty with no age.
+- The study model's rules (prompt rules 2 and 6) forbid "varma" on records over 30 minutes old, so that part is the fallback's (B6).
+
+**e. Ambiguous items:**
+- V4 `return_danger`: hard but fair.
+- V5 `ek14_shelter`: fair now.
+- V7 `rekindle_sector`: fair, but rests on recorded-only forecasts.
+- V12 `longest_shift`: not ambiguous on the figures (EK11 6.8 h against EK14 5.3 h).
+- V14 `se_front_r2`: key robust, but the basis text misquotes OUT1 (B4).
+- V14 contradiction probe: the prompt is plural with a single answer (B9).
+- SPAM 6 "ditch": an English label bug (B3).
+- "Holding the line" against "Defensive line": a novice cannot tell them apart (R12).
+
+**f. Korpioja and Koivuoja:** confirmed confusable in both languages (Alder/Birch). Both players read the two Korpioja labels as two brooks (R5).
+
+**g. Forty-minute views: confirmed.** 9 of 12 first plan confirmations in two-step views came before the 65 s burst; only 2 were revised. Decisive content arrives in the second step: the crown fire 15:01, the forecast 15:05, the wind turn 16:01, the burnout request 18:06, the V12 evacuation. Phase A has no plan review at commitment (R6).
+
+**h. The drawn fire and the projection cone lag the reports:** by design (SPEC/26 §2: a view draws its first step's map; the cone is wrong on purpose in the breach views). But the tour's "the fire's latest mapped edge" is untrue after a merged view's boundary (B7).
+
+**i. H10's objection and H9's planted record: unseen in 0/5 runs.**
+- Topical questions rank the objection 1st–3rd ("Onko syttymäkohdassa vielä kytöä?", "Is anything still smouldering at the point of origin?"). The questions players actually ask do not reach it ("Is sector L3 under control?": rank 36).
+- H9 needs a line question between 15:46 and the V12 freeze, and nothing pushed mentions the line.
+- Expected exposure is low (a judgement: well under a quarter of participants). Pilot 2 must log the retrieved and recent ids for both records (R10).
+
+### 10.4 Remaining fixes
+
+**Bugs (no research decision):**
+- **B1.** Harness: draw the Haku chip in V8–V14 and add a command for it (`tools/play/screen.ts`, `commands.ts`).
+- **B2.** Harness: present the new pre/post questionnaire items.
+- **B3.** `content/i18n/labels.en.json` `probe.s.cycle_6.option.a/b/d`: "ditch" → "brook".
+- **B4.** V14 `se_front_r2` basis text: OUT1 said 900 m; 500 m was KY21 19.52.
+- **B5.** Recency cues: "uusia/uudet + ilmoitu*/raport*/kirjau*/tieto*", "new report(s)/record(s)", "what new". Treat "edellisen suunnitelman jälkeen" / "since my last plan" as relative, not previous. Needs a dated SPEC/14 amendment; re-run `eval-playtest` with `haku-replay.csv` held out.
+- **B6.** Template fallback: a record more than 30 minutes older than the period end gets "epävarma (tieto klo hh.mm)" / "uncertain (record from hh.mm)", and a record whose text is a question is never shown as the answer.
+- **B7.** Tour step `fire`: "the edge as mapped at the start of the period; reports in the log can be newer".
+- **B8.** Debrief: say that VOL1's warning was in the records, not the message log (ethics review of the text).
+- **B9.** Contradiction probe: make the prompt singular.
+- **B10.** Harness cosmetics: `look` reprints the whole log.
+
+**Researcher decisions:**
+- **R1.** L3 stems: clock only.
+- **R2.** V4 `head_later`: panel question; score it outside H2 until decided.
+- **R3.** V10 `infra`: drop "vielä" from DR2 17:21, change option c, or re-key it.
+- **R4.** Practice `r1_arrival`: time-of-day bands.
+- **R5.** Rename one of Korpioja / Koivuoja (at least the English "Alder Creek").
+- **R6.** Two-step views: a plan-before-boundary covariate; the plan review or a step-boundary banner in V2/V4/V6; the consult notice at about 70 s or neutral wording.
+- **R7.** Label the two R1 stretches.
+- **R8.** V5 `area_hour`: re-band (panel).
+- **R9.** SPAM 3.b: options differing in magnitude.
+- **R10.** H9/H10 exposure: accept the low rate or change the design.
+- **R11.** The repeated R1 items (V2 `infra`, V5 `infra`, SPAM 6.b) cue each other across freezes: analyse conditionally or rotate.
+- **R12.** Harmonise the two line postures, or add glossary entries.
+
+### 10.5 The LLM players and the limits of this replay
+
+**More diligent than people:**
+- clock arithmetic on every L3 item;
+- re-reading after each burst;
+- mining the basis line for record clocks, which the clock rule now rewards.
+
+**Test-wise:**
+- the only increasing option, the only alarm option, the safe default;
+- Laura learned what to search from the freezes themselves (R11).
+
+**Like people:** neither asked about smouldering or the line at the right time.
+
+**Faster than people:** 9/12 plans confirmed before the burst probably overstates the stale-plan rate.
+
+**Limits:** one run per cell; template Haku over lexical retrieval; DRAFT harness costs. The verdicts in `items-replay.csv` and `haku-replay.csv` are DRAFT.

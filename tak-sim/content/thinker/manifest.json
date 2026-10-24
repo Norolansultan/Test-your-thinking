@@ -105,6 +105,55 @@
     },
     "topK": 8,
     "maxPerSource": null,
+    "recencyBoost": {
+      "source": 0.05,
+      "sector": 0.03,
+      "rule": "after fusion (0-1 scale), the newest candidate of each source gets +source and the newest naming each sector code (L1-L4) +sector, once each; only candidates the question matched (base score above 0, or a clock match)",
+      "latest": {
+        "relevance": 0.5,
+        "graded": 0.3,
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged",
+        "recencyCues": {
+          "fi": [
+            "viimeisin, viimeinen, viime, viimeksi (all inflections)",
+            "uusin (uusimman, uusinta, uusimpia …)",
+            "tuore, tuorein (all inflections)",
+            "uutta",
+            "nyt (nytkin, nythän …)",
+            "nykyinen, nykytilanne (nyky-)",
+            "tämänhetkinen",
+            "tällä hetkellä"
+          ],
+          "en": [
+            "latest",
+            "newest",
+            "most recent, recent, recently",
+            "current, currently, presently",
+            "last",
+            "now (not 'now that')",
+            "at the moment, at present",
+            "any new, anything new, what's new"
+          ]
+        },
+        "previousCues": {
+          "fi": [
+            "edellinen (all inflections)",
+            "aiempi, aiemmin, aikaisempi"
+          ],
+          "en": [
+            "previous, previously, earlier, prior"
+          ]
+        }
+      }
+    },
+    "clockMatch": {
+      "nearMinutes": 2,
+      "near": 0.5,
+      "namedSource": 0.5,
+      "farMinutes": 10,
+      "far": 0.15,
+      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+    },
     "tieBreak": "newer observation first, then atom id",
     "neutralEval": {
       "file": "content/thinker/neutral-eval.json",
@@ -183,6 +232,55 @@
     },
     "topK": 8,
     "maxPerSource": null,
+    "recencyBoost": {
+      "source": 0.05,
+      "sector": 0.03,
+      "rule": "after fusion (0-1 scale), the newest candidate of each source gets +source and the newest naming each sector code (L1-L4) +sector, once each; only candidates the question matched (base score above 0, or a clock match)",
+      "latest": {
+        "relevance": 0.5,
+        "graded": 0.3,
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged",
+        "recencyCues": {
+          "fi": [
+            "viimeisin, viimeinen, viime, viimeksi (all inflections)",
+            "uusin (uusimman, uusinta, uusimpia …)",
+            "tuore, tuorein (all inflections)",
+            "uutta",
+            "nyt (nytkin, nythän …)",
+            "nykyinen, nykytilanne (nyky-)",
+            "tämänhetkinen",
+            "tällä hetkellä"
+          ],
+          "en": [
+            "latest",
+            "newest",
+            "most recent, recent, recently",
+            "current, currently, presently",
+            "last",
+            "now (not 'now that')",
+            "at the moment, at present",
+            "any new, anything new, what's new"
+          ]
+        },
+        "previousCues": {
+          "fi": [
+            "edellinen (all inflections)",
+            "aiempi, aiemmin, aikaisempi"
+          ],
+          "en": [
+            "previous, previously, earlier, prior"
+          ]
+        }
+      }
+    },
+    "clockMatch": {
+      "nearMinutes": 2,
+      "near": 0.5,
+      "namedSource": 0.5,
+      "farMinutes": 10,
+      "far": 0.15,
+      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+    },
     "tieBreak": "newer observation first, then atom id",
     "index": "content/thinker/index.en.json",
     "status": "provisional (THINKER_RETRIEVAL_CONFIG_EN) until neutralEval.status is frozen",

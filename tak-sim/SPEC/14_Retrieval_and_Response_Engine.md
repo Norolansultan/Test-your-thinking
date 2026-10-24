@@ -3,6 +3,7 @@
 **Version 0.2 · 17 September 2026 · Status: governing for the AI group's engine.** Answers forks F2 and F3 in `11` §7 as far as Kalle has decided them. Where this document conflicts with `02` or `05`, those remain governing until they are amended to match.
 
 > **Changelog**
+> - **24 Oct 2026 (D10)** — query-aware recency and clock-aware matching (researcher decision D10, after the play-test of 23 Oct 2026). A question asking for the latest state ("viimeisin", "uutta", "nyt", "latest", "now" …) adds up to +0.3 by recency among its relevant records. A clock it names ("klo 17.24", "at 17:24") is matched against each record's clock (±2 min +0.5, +0.5 more when it names the record's source as shown, ±10 min +0.15), leaves the lexical query, and exempts that minute's records from the routine collapse. The embedded passage and the vectors are unchanged. Play-test questions (lexical): MRR@8 0.388 → 0.567. Neutral evaluation (lexical only; the model is not available here): Finnish 0.5049 / 0.4653 → 0.5196 / 0.4996, English MRR 0.3552 → 0.3699. The authored questions (hybrid) are unchanged. See the revision at the end.
 > - **19 Oct 2026 (ay)** — `31` §3.6: the digest (ab.4) and the recent matches (ah.2) are now returned to the client as atom ids and logged in the browser (`07` 0.11.0), so ah.2's "the browser's exposure measures … do not count these records" no longer holds; the premise table's V14 P2 and P1's wording change (`30` (ay)); prompts and retrieval unchanged. See the revision at the end.
 > - **10 Oct 2026 (an)** — am→an (researcher approved).
 >
@@ -929,3 +930,113 @@ Another treatment revision of `reasoning_intent` (not pooled with earlier sessio
 ## Revision 19 Oct 2026 (ay) — the digest counted as exposure (`31` §3.6)
 
 The parity audit computed the guide's guaranteed digest per step with `latestDigest` (retrieval passed as empty): 137 recorded facts reach the model on any guide question without a search — among them `evt.wx.03` (the key of V5 `wind_shift` and `ek14_shelter` and of SPAM V6.b), both F7 records and `rekindle.in_hand.log` — while the Haku group reaches them only by searching. Between-group availability parity is 0 problems by construction (one time gate, `reachableAtoms`); the asymmetry is what arrives without a search, and it is part of the guide package (`27` ab.3) — but it was unlogged in the browser. **Change:** the server's response carries the digest's and the recent matches' atom ids (both already in the server log line) and the client logs them (`07` 0.11.0); ah.2's sentence "do not count these records, as they do not count the digest" is superseded — exposure now counts them (`09` (ay)). Retrieval, its declared configurations, the prompts and their hashes are unchanged; the methods text describes the digest as part of the guide. The premise table changes of `30` (ay) (V14 P2 not contradicted; P1 re-worded) alter `content/thinker/*.json` and the manifest's hashes only; `premise-check.ts` is unchanged.
+
+## Revision 24 Oct 2026 (D10) — query-aware recency and clock-aware matching
+
+Researcher decision D10 (24 Oct 2026), after the play-test of 23 Oct 2026 (`docs/audits/2026-10-23-playtest/analysis.md` §4, `haku.csv`). Two failure classes: (1) a question asking for the latest state ("Onko uutta sääennustetta?", "latest road report road R1", "Latest DR3 perimeter mapping") got the oldest matching record, the right one at ranks 2–8; (2) a clock in the question matched clock-like numbers in a record's TEXT, not the record's time ("Mitä VPK ilmoitti klo 17.24?" returned VD1's battery log "vaihto klo 17.24"; "VPK 17.58" returned the 12:00 alarm, whose text names VPK). **Amends pipeline step 2 of revision (q) and the recency boost of ab.5; nothing else.** Built in `app/retrieval/query-cues.ts` (new) and `app/retrieval/hybrid.ts`; declared in `THINKER_RETRIEVAL_CONFIG` (`recencyBoost.latest`, `clockMatch`; `THINKER_RETRIEVAL_CONFIG_EN` is the same object) and in the manifest's `retrieval` / `retrievalEn` blocks (`recencyBoost`, `clockMatch`, with the rules and cue lists). Evaluation: `tools/thinker/eval-playtest.ts` (report-only, no model) over `tools/thinker/playtest-cases.ts`. Tests: `test/retrieval/query-cues.spec.ts`, `test/retrieval/d10-retrieval.spec.ts`, `test/retrieval/recency-boost.spec.ts`.
+
+### D10.1 What a question says about time (`query-cues.ts`)
+
+- **Recency cues** (whole words or fixed phrases, lowercased). Finnish: *viimeisin, viimeinen, viime, viimeksi* (all inflections: *viimeisimmän, viimeisintä, viimeisessä …*), *uusin* (*uusimman, uusinta, uusimpia …*), *tuore / tuorein* (all inflections), *uutta*, *nyt* (*nytkin, nythän …*), *nykyinen, nykytilanne* (*nyky-*), *tämänhetkinen*, *tällä hetkellä*. English: *latest, newest, recent / most recent / recently / lately, current / currently / presently, last, now* (not *now that*), *at the moment, at present, any new / anything new / what's new / what is new*.
+- **Not cues** (tested): *viimeistään* ("at the latest", a deadline), *viimeistely*, *uusi / uusia* ("uusi palo" is a new fire, not the newest record), *nytkähtää*; English *now that*, *new* alone ("the new reports"), *lastly*, *known*, *snow*. *uusi, uusia, uuden, uudet* were tried as cues: no gain on the play-test questions (MRR@8 0.5656 against 0.5669; K29 7th → 3rd but K20 2nd → 4th), the neutral evaluation unchanged. **Decided: *nykyinen* is a cue**, as the Finnish of "current" (the English list has "current"); the two lists are parallel.
+- **Previous cues cancel** the recency cue: *edellinen* (all inflections), *aiempi / aiemmin / aikaisempi*; *previous, previously, earlier, prior*. The question then asks for an older record ("Paljonko uutta palanutta alaa oli edellisessä DR3:n kehäkartoituksessa?"): no latest-state preference is applied, and its cue word stays in the lexical query.
+- **Clocks:** hh.mm or hh:mm (hours 00–23, two-digit minutes), optionally after *klo*, *kello* or *at*. A number before a unit (*ha, m, km, %, m/s, m/min, kV, °, metriä, hehtaaria …*) is a quantity, not a clock; "7.6", "24,3", "EK11.20", "25.30" and hour-only "klo 17" are not clocks. A clock after *before, after, since, until, till, by* or *ennen*, or before *jälkeen, lähtien, alkaen, asti, saakka, mennessä*, is **relative**: it names no record time.
+- **The lexical query** is the question with its cue words removed (only when it asks for the latest state) and every clock expression removed (relative ones too, with their *klo* / *at*). A clock in the question therefore no longer meets "17.24" inside an unrelated record's text. If nothing is left and the question names no clock, the question is kept as it was. **The query vector is unchanged:** the vector half embeds the whole question, as before.
+
+### D10.2 The latest-state preference (`recencyBoost.latest`: relevance 0.5, graded 0.3)
+
+When the question asks for the latest state, every **relevant** candidate gets up to **+0.3** by its observation time, linearly from 0 (the oldest relevant candidate) to 0.3 (the newest). A candidate is relevant when its base score (the fused lexical/vector score, before any boost) is at least 0.5 × the best base score. The preference is added to the ordinary boost of ab.5 (+0.05 for the newest of each source, +0.03 for the newest naming each sector), which still applies to every question. Like that boost, it reorders the candidates the question matched and adds none. The time gate is applied before it, so it can never reach a later step. It is deterministic, and the tie-break (newer first, then atom id) is unchanged.
+
+### D10.3 The clock match (`clockMatch`: ±2 min +0.5, +0.5 for a named source, ±10 min +0.15)
+
+- **The record's clock** is its observation time as Haku and the model show it (`clockAt(observedAt)`, floored to the minute). In the current corpus the delivery minute equals it for every pushed record (246 of 246).
+- A candidate within **±2 min** of a clock the question names gets **+0.5**. It gets **+0.5 more** when the question also **names its source** as Haku shows it in the session language (`sourceName`): every word of the shown name, or a code in it. Examples: "VPK", "Sääasema", "Water supply", and "VOL1" or "volunteer fire brigade" for VPK in English. The rule uses the shown name, not the id, so the Finnish verb *saa* does not name the weather station SAA (whose Finnish shown name is "Sääasema"). Within **±10 min** a candidate gets **+0.15**. The nearest of the question's clocks decides.
+- A clock-matched candidate counts as **matched**, so the records at the named minute come back even when the question shares no word with them ("klo 17.24" alone returns the 17.24 records).
+- **Routine collapse:** gated records within ±2 min of a named clock are **exempt** from the routine-line collapse (1 Oct 2026 amendment). "Näytä tilannekuva klo 18.35" asked for a picture that the collapse had reduced to the 18:55 one. A question without a clock is collapsed exactly as before.
+
+### D10.4 Source and clock in the lexical half only; the embedded passage unchanged
+
+The source's shown name and the record's clock are **fields of the lexical half**, matched by the clock rule. **`passageText` (the embedded passage) is unchanged.** Every `passageHash` in `content/thinker/index.json` and `index.en.json` therefore still matches (998 of 998 atoms in each; `eval-playtest.ts` part 4), and no vector was touched.
+
+The source's shown name is **not** added to the BM25 text. That was tried, and it cost the English neutral evaluation (lexical) recall@8 0.5147 → 0.4853 and MRR@8 0.3552 → 0.3331: the shown names' words ("fire" in "Volunteer fire brigade VOL1", "water" and "supply" in "Water supply") crowd ordinary questions. So the name is matched as a field, not as words.
+
+### D10.5 How the parameters were chosen
+
+The **development set** is the 45 play-test questions with an identifiable right record (`playtest-cases.ts`):
+- the right record is the top record of a hit, else `should_have_returned` (either of "a / b"); gaps without a record are not cases;
+- each question is gated at the step its screen clock falls in, in the run's language;
+- retrieval is lexical, as the play harness and the demo bridge run Haku.
+
+A small grid was run on it: graded 0.2 / 0.3 / 0.4; relevance 0.4 / 0.5 / 0.6; an extra latest-state boost for the newest relevant record of each source, 0 / 0.1 / 0.15 / 0.2; clock near 0.5 / 1.0. **Chosen:** graded 0.3, relevance 0.5, near 0.5 plus named source 0.5, far 0.15, and **no** per-source latest boost: it helped no play-test question beyond the graded term and cost the neutral evaluation's MRR in both languages. The neutral evaluation and the authored questions were **checks**; nothing was tuned on them, and the designed events took no part.
+
+### D10.6 Evaluation (24 Oct 2026, the corpus of `d142b58`, 998 records)
+
+**Play-test questions, lexical** (`npx tsx tools/thinker/eval-playtest.ts`; rank of the right record, – = not ranked). The changed cases:
+
+| Case | Question | Before | After |
+|---|---|---|---|
+| K9 | Missä EK12 on **nyt** kärkeen nähden … | 12 | 8 |
+| K16 | Mitä johtopaikka kirjasi **klo 16.20**? | 22 | 1 |
+| K18 | Mitä Ilmatieteen laitoksen **klo 16.01** ennuste sanoo … | 3 | 1 |
+| K19 | Mikä on **viimeisin** sääennuste? | 8 | 6 |
+| K23 | Mitä VPK ilmoitti **klo 17.24**? | 63 | 1 |
+| K24 | Kuinka nopeasti uusi palo etenee **nyt** … | 176 | 166 |
+| K25 | Mitä VPK ilmoitti **klo 17.58**? | 4 | 2 |
+| K27 | Mitä VPK ilmoitti **klo 18.38** metsäautotieltä? | 8 | 2 |
+| K28 | Näytä tilannekuva **klo 18.35**. | – | 1 |
+| L6 | What do the **latest** drone reports say? | 7 | 5 |
+| L8 | What did the previous perimeter mapping **before 14.35** say … | 2 | 3 |
+| L10 | … how much water do EK11 and EK12 have **now**? | 3 | 4 |
+| L15 | **latest** road report road R1 south of Dry Heath | 4 | 1 |
+| L17 | What is the **latest** weather forecast for this evening? | 3 | 1 |
+| L18 | Weather forecast **at 16.01** | 6 | 1 |
+| L20 | **Latest** DR3 perimeter mapping: how many hectares burned now? | 3 | 1 |
+| L24 | Distribution company **at 19.18** | 8 | 1 |
+| L25 | How far is the south-east front from road R2 **now**? | 36 | 14 |
+
+| All 45 | top-1 | top-3 | top-8 | MRR@8 |
+|---|---|---|---|---|
+| before | 11 | 23 | 33 | 0.3878 |
+| after | **20** | **30** | **37** | **0.5669** |
+
+- **16 better, 2 worse, 27 unchanged.** The two worse are L8 and L10, one place each, both still in top-8.
+- **Unchanged cue or clock questions:** K8, K21, L9, L11 and L21 (already 1st), K14 (10th) and K17 (3rd).
+- **K25 and K27:** a VPK record at the named minute is first (its vehicle-location line, restored from the collapse), and the asked-for status is second.
+- **Residuals:** K14 and K19 lose to question words: "mikä on" and "kohdalla" match short radio lines better than the topic word matches the long forecast and road records. That is a lexical (stop-word) limit, not a recency one. K17 also asks when the wind turns, which the 12:00 forecast and the 16:21 objection ("Jos tuuli kääntyy …") match word for word. L8 asks for the survey *before* 14.35, which no rule here expresses.
+
+**Neutral evaluation** (`npm run thinker:eval`, both languages). **It needs the model:** the neutral questions have no stored query vectors (only the authored questions do), and the e5 model cannot be loaded in this build environment (no Hugging Face access). The run is therefore **lexical-only** and says so. Recall@8 / MRR@8 at the declared `collapse3`:
+
+| | before (lexical) | after (lexical) |
+|---|---|---|
+| Finnish | 0.5049 / 0.4653 | **0.5196 / 0.4996** |
+| English | 0.5147 / 0.3552 | 0.5147 / **0.3699** |
+
+- **Per question:** Finnish n03 "Missä EK16 on nyt …" recall 0.5 → 1.0; n04 "… tällä hetkellä" RR 0.5 → 1.0; n09 "Missä latvapalo on nyt?" RR 0.33 → 1.0. English n09 RR 0.5 → 1.0. No question got worse in either language.
+- **The other candidates** move alike. Finnish after: baseline 0.5049 / 0.4849, cap2 0.4853 / 0.4789, cap3 0.5000 / 0.4792, collapse3+cap2 0.5000 / 0.4985, collapse3+cap3 0.5147 / 0.5013. English after: baseline, cap2 and cap3 unchanged; collapse3+cap2 0.5000 / 0.3706; collapse3+cap3 0.5000 / 0.3699.
+- **Selection:** in this lexical run the declared rule now selects the declared `collapse3` in Finnish (before D10 it selected `collapse3+cap3`), and still `collapse3` in English.
+- **The manifest's `neutralEval` blocks are not rewritten:** they record the frozen hybrid runs, and a lexical run is not the declared treatment.
+
+**Authored questions, hybrid,** with their stored query vectors (`content/thinker/authored-queries*.json`), every view V1–V14 at its start gate: **0 of 112 top-8 lists change in Finnish, and 0 of 112 in English.** None of the 16 authored questions has a recency cue or a clock, so D10 does not act on them. Every documented rank in `rekindle.spec` and `planted.spec` is unchanged: the objection 229th / 15th / 8th at V7; F7 first for "20 kV linja" and the natural question, and 2nd / 3rd / 4th for "sähkölinja". The authored results are not worse.
+
+**Report-only, hybrid with a cue.** Each authored question was run with "nyt" / "now" appended, using the plain question's stored vector. The cue leaves the lexical query, so the lexical half is exact; only the vector is approximate.
+- 107 of 112 Finnish and 100 of 112 English top-8 lists differ from the plain question's. In hybrid nearly every candidate has a base score above 0, and the relevant set (≥ 0.5 × the best) is wider than in a lexical run, so the preference reorders more.
+- Designed records: at V7 the objection rises from 15th to 9th for "VPK syttymäkohta nyt" and from 8th to 4th for "kyteekö syttymäkohta nyt" (the objection, 16:21, is among the newest relevant records then); the broad question is unchanged (229th). F7 is unchanged in Finnish; for English "power line now" at V12, F7 moves from 3rd to 4th.
+- Lexical probes: "Mitä VPK sanoi klo 16.21?" at V7 ranks the objection 3rd (was 65th; VPK's 16:20–16:22 records come first); "What did VOL1 say at 16.21?" 3rd (was 146th). "Mikä on sähkölinjan viimeisin tilanne?" ranks the step-18 grid record (`f7.grid_at_line`, 19:18) 1st at V13 (was 5th) and the step-6 grid record 2nd at V12 (was 4th).
+- These are results, not tuned.
+
+### D10.7 Unchanged
+
+- The time gate (`reachableAtoms`). Tested: no record from a later step, whatever clock the question names.
+- The routine-line collapse for questions without a clock; top-k 8; the fusion weights; the ordinary recency boost; the tie-break.
+- The per-source cap (none; a declared cap still holds, tested).
+- The vector half and the embedded passage.
+- **What the model sees:** the question and the retrieved records with source and time (revision (q) step 3). Only which records rank where changes.
+- The prompts and their hashes, the proxy's log line and the telemetry format. The cue analysis is a deterministic function of the logged question and can be reproduced offline.
+- Haku's `closure.ts` (dormant, y.2).
+- A question with neither a recency cue nor a clock ranks exactly as before (tested on ids and scores).
+
+### D10.8 Declared, and before sessions
+
+- **Declared:** `npm run thinker:index -- --manifest-only` now also rewrites the manifest's `retrieval` and `retrievalEn` blocks from the declared configuration, keeping their `neutralEval` (no embedder needed). It was run for this revision. The index files and the authored query vectors are untouched.
+- **Before sessions:** the real index must still be rebuilt with the model (`npm run thinker:index`, both languages). This was already required, because both indexes are carried (PROVISIONAL, SPEC/31 §7 WP-1). Then re-run `npm run thinker:eval -- --write` and `-- --lang en --write` in **hybrid** mode. That run measures D10 in hybrid on the neutral questions with a cue (n03, n04, n09, n21 and n33 in both languages), which this build could not. If the rule's selection moves, the researcher decides as in ab.6.
+- **Open:** "the previous one" (the second newest) and relative clocks as filters ("since 17.00", "before 14.35"); "what is new in the last ten minutes" (D10's third point: check it with the model); hour-only clocks ("klo 17"); stop words for the lexical half (K14, K19). Pilot 2 reruns the `haku.csv` questions through the real Haku (analysis §4).

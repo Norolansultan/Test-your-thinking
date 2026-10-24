@@ -3,6 +3,7 @@
 **Version 1.0 · 25 September 2026 · Status: governing for the session's cycle structure and for the rekindle arc.** Decided by the researcher on 25 Sep 2026 (revision (p)). Where this document conflicts with `03` §4, `08` §5.3, `15` §3–§4, `18` §8.2 or earlier revisions, **this document wins**. Those documents carry a revision (p) pointing here.
 
 > **Changelog**
+> - **24 Oct 2026 (D10)** — `14` revision D10 (query-aware recency, clock match): the objection's documented ranks are unchanged (229th / 15th / 8th at V7, no cue or clock in the authored questions); with "nyt" the narrow questions rank it 9th and 4th, and "Mitä VPK sanoi klo 16.21?" 3rd (report-only, not tuned). See the note at the end.
 > - **19 Oct 2026 (ay)** — `31` §3.8: V12's freeze also runs after the plan (`FREEZE_AT_VIEW_END` = {10, 12, 14}); for these freezes "now" is the view's end, stated in the header; V14's `se_front_r2` and `head_later` are replaced. See the revision at the end.
 > - **19 Oct 2026 (ax)** — `30` §5.1: V10's and V14's blanked freeze runs after the view's plan is final (and the plan-confidence item), not at a pre-planned moment inside the view; the other freeze views are unchanged. See the revision at the end.
 > - **10 Oct 2026 (am)** — D3 amended for the Thinker cells: the practice view has the Open Thinker there (the Thinker practice, without any order block); the radio cell's VP is unchanged (no AI). See `15` revision (am).
@@ -414,3 +415,11 @@ Researcher's approval of the map review panel, 10 Oct 2026 (`18` revision (al), 
 ## Revision 19 Oct 2026 (ay) — V12 joins the view-end freezes (`31` §3.8)
 
 The (ax) rule now covers **V12** as well: its freeze items (`front_toward`, keyed Lahdenkylä; `village_distance`; the head items) point at the aligned cell in a fit view (coa F10, H14/H15), so the freeze runs after the plan is final and the plan-confidence item. `FREEZE_AT_VIEW_END` = {10, 12, 14}; `freezeAtSeconds` is null for them. F7's key records (steps 6–8) and V13's contradiction are untouched; the cost is a possible cue from V12's items into V13 (fit, H14). For a view-end freeze **"now" is the view's end** (V10 17:40, V12 19:00, V14 20:00: the screen's clock, `08` y.1) and the header states it; their L3 items are re-horizoned from it. V14's `se_front_r2` (its band was stated by pushed step-20 records) and `head_later` (its key lay 168 m from the head at now, inside the 300 m tolerance) are replaced (`08` (ay)). §4's freeze row otherwise stands.
+
+## Note 24 Oct 2026 (D10) — the objection under query-aware recency and the clock match (`14` revision D10)
+
+Retrieval now prefers newer records when a question asks for the latest state, and matches a clock the question names against each record's clock (`14` revision D10). Neither rule names a designed event, and the objection was not used to choose them. What they do to the rekindle arc is reported here, not tuned.
+
+- **The authored questions** (§5; `rekindle.spec`) carry no recency cue and no clock, so their ranks are unchanged: at V7 the objection is 229th for the broad question, 15th for "VPK syttymäkohta" and 8th for "kyteekö syttymäkohta" (hybrid, the stored vectors).
+- **With a cue** (report-only; the plain question's stored vector): "VPK syttymäkohta nyt" ranks the objection 9th and "kyteekö syttymäkohta nyt" 4th. The objection (16:21) is among the newest relevant records at V7. The broad question with "nyt" still ranks it 229th.
+- **With a clock** (report-only, lexical): "Mitä VPK sanoi klo 16.21?" ranks it 3rd at V7 (was 65th); VPK's other records at 16:20–16:22 come first. A participant who saw the objection in the log and asks for it by source and time now gets it. That is the purpose of the rule, and it applies to every record alike.

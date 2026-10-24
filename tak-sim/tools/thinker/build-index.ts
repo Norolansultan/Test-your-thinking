@@ -14,7 +14,7 @@
  *
  *   npm run thinker:index                 # both languages
  *   npm run thinker:index -- --lang en    # English only: the Finnish files and manifest blocks are kept as they are
- *   npm run thinker:index -- --manifest-only   # prompt, premise and model blocks re-hashed; indexes kept
+ *   npm run thinker:index -- --manifest-only   # prompt, premise, model and retrieval blocks rewritten; indexes kept
  *   npm run thinker:index -- --carry      # no model: a PROVISIONAL index carried from the previous one (`carry-index.ts`)
  *
  * Downloads the embedding model into `.cache/thinker-models` on first run.
@@ -93,12 +93,15 @@ function promptBlocks() {
 }
 
 async function main(): Promise<void> {
-  // Revision (aq): `--manifest-only` re-hashes the prompts and rewrites the model block; the indexes and retrieval blocks are kept (no embedder needed).
+  // Revision (aq): `--manifest-only` re-hashes the prompts and rewrites the model block; the indexes are kept (no embedder needed).
+  // D10 (24 Oct 2026): it also rewrites the retrieval blocks from the declared configuration, keeping their neutral evaluations,
+  // so a retrieval-rule change that leaves the passages (and so the vectors) as they are is declared without the model.
   if (process.argv.includes("--manifest-only")) {
     const previous = readManifest();
     if (!previous) throw new Error("no manifest; run `npm run thinker:index` (both languages) first");
-    write(MANIFEST_FILE, `${JSON.stringify({ ...previous, model: modelBlock(), ...promptBlocks() }, null, 2)}\n`);
-    console.log("thinker:index --manifest-only — prompt hashes and model block rewritten (indexes kept)");
+    const retrieval = { retrieval: declaredRetrievalBlock(recordedNeutralEval()), retrievalEn: englishRetrievalBlock(recordedNeutralEvalEn()) };
+    write(MANIFEST_FILE, `${JSON.stringify({ ...previous, model: modelBlock(), ...promptBlocks(), ...retrieval }, null, 2)}\n`);
+    console.log("thinker:index --manifest-only — prompt hashes, model and retrieval blocks rewritten (indexes and neutral evaluations kept)");
     return;
   }
   // SPEC/31 §7 WP-1: `--carry` writes a PROVISIONAL index without the embedder (`carry-index.ts`); run it before `npm run corpus:export`.

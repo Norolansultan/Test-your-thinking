@@ -20,6 +20,14 @@
  *   newest candidate of each source and of each sector (a `L1`–`L4` code in its text), so the newest
  *   status of a unit outranks its older ones. Applied only to candidates the question already
  *   matched (a base score above 0); the tie-break below is unchanged.
+ * - **Query-aware recency and the clock** (24 Oct 2026, the researcher's decision D10, SPEC/14
+ *   revision D10; `query-cues.ts`): a question that asks for the latest state ("viimeisin", "uutta",
+ *   "nyt", "latest", "now" …) adds a graded recency score among its relevant records
+ *   ({@link LatestRecencyConfig}); a clock it names ("klo 17.24", "at 17:24") is matched against each
+ *   record's clock ({@link ClockMatchConfig}), more strongly for a record of a source the question
+ *   names, and exempts that minute's records from the routine collapse. The cue words and clocks used
+ *   leave the LEXICAL query, so "17.24" no longer meets "17.24" in an unrelated record's text. The
+ *   vector half and the embedded passage are unchanged.
  * - **Diversity** (optional, {@link HybridConfig.maxPerSource}): at most N records per source in
  *   top-k, taken in rank order. No other re-ranking.
  *
@@ -37,9 +45,10 @@
 
 import { compareStrings } from "../engine/deterministic-object.js";
 import { hashString64 } from "../engine/prng.js";
-import { recordIn } from "../i18n/text.js";
+import { recordIn, sourceName } from "../i18n/text.js";
 import type { InfoAtom } from "../scenario/types.js";
-import { recordText } from "../session/template-answer.js";
+import { clockAt, recordText } from "../session/template-answer.js";
+import { queryCues } from "./query-cues.js";
 import { collapseRoutine, type RoutineCollapseConfig } from "./routine-collapse.js";
 
 /** The declared retrieval parameters (mirrored in `content/thinker/manifest.json`). */
@@ -57,11 +66,38 @@ export interface HybridConfig {
    * mentions (`sector`); null or absent: none. A candidate gets each boost at most once.
    */
   readonly recencyBoost?: RecencyBoostConfig | null;
+  /** D10 (24 Oct 2026): the clock a question names matched against the record's clock; null or absent: none. */
+  readonly clockMatch?: ClockMatchConfig | null;
 }
 
 export interface RecencyBoostConfig {
   readonly source: number;
   readonly sector: number;
+  /** D10 (24 Oct 2026): the stronger preference when the question asks for the latest state; null or absent: none. */
+  readonly latest?: LatestRecencyConfig | null;
+}
+
+/**
+ * The latest-state preference (`query-cues.ts` decides when a question asks for it): every RELEVANT
+ * candidate — a base score of at least `relevance` × the best base score — gets up to `graded` by its
+ * observation time, linearly from 0 (the oldest relevant record) to `graded` (the newest). Added to
+ * the ordinary boost, which still applies.
+ */
+export interface LatestRecencyConfig {
+  readonly relevance: number;
+  readonly graded: number;
+}
+
+/**
+ * A record whose clock is within `nearMinutes` of a clock the question names gets `near`, and `namedSource`
+ * more when the question also names its source ({@link namesSource}); within `farMinutes`, `far`.
+ */
+export interface ClockMatchConfig {
+  readonly nearMinutes: number;
+  readonly near: number;
+  readonly namedSource: number;
+  readonly farMinutes: number;
+  readonly far: number;
 }
 
 /**
@@ -78,7 +114,10 @@ export const THINKER_RETRIEVAL_CONFIG: HybridConfig = {
   routineCollapse: { minDistinctSteps: 3 },
   maxPerSource: null,
   // 8 Oct 2026 (D2(a)): the newest record per source and per sector gets a small boost (fusion is on a 0-1 scale).
-  recencyBoost: { source: 0.05, sector: 0.03 },
+  // 24 Oct 2026 (D10): a question asking for the latest state adds up to 0.3 by recency among its relevant records.
+  recencyBoost: { source: 0.05, sector: 0.03, latest: { relevance: 0.5, graded: 0.3 } },
+  // 24 Oct 2026 (D10): a record at a clock the question names (±2 min; ±10 min weaker), more when it also names the source.
+  clockMatch: { nearMinutes: 2, near: 0.5, namedSource: 0.5, farMinutes: 10, far: 0.15 },
 };
 
 /**
@@ -142,6 +181,9 @@ export class StaleIndexError extends Error {
 /**
  * What is embedded and lexically indexed: the source, then the text — the Finnish record, or in
  * English the record's English text (`app/i18n/text.ts`; the Finnish where a record has none).
+ * Unchanged by D10 (24 Oct 2026), so the frozen vectors' passage hashes stay valid: the lexical half's
+ * two further fields, the record's clock ({@link recordClockMinutes}) and its source's shown name
+ * ({@link namesSource}), are matched by the clock rule only and are not part of the passage.
  */
 export function passageText(atom: InfoAtom, lang: RetrievalLang = "fi"): string {
   const fi = recordText(atom.record);
@@ -179,6 +221,50 @@ export function recencyBoosts(candidates: readonly InfoAtom[], boost: RecencyBoo
   for (const i of newestOfSector.values()) sectorWinners.add(i);
   for (const i of sectorWinners) out[i]! += boost.sector;
   return out;
+}
+
+/** The latest-state preference ({@link LatestRecencyConfig}) of each candidate (by position), from the base scores. */
+export function latestBoosts(candidates: readonly InfoAtom[], base: readonly number[], latest: LatestRecencyConfig): number[] {
+  const top = Math.max(0, ...base);
+  const relevant = base.map((b) => top > 0 && b > 0 && b >= latest.relevance * top);
+  const times = candidates.filter((_, i) => relevant[i]).map((a) => a.provenance.observedAt);
+  const lo = Math.min(...times);
+  const hi = Math.max(...times);
+  return candidates.map((a, i) => (relevant[i] && hi > lo ? (latest.graded * (a.provenance.observedAt - lo)) / (hi - lo) : 0));
+}
+
+/** A record's clock as Haku and the model show it (`clockAt`, floored to the minute), in minutes after midnight. */
+export function recordClockMinutes(atom: InfoAtom): number {
+  const [h, m] = clockAt(atom.provenance.observedAt).split(".").map(Number) as [number, number];
+  return h * 60 + m;
+}
+
+/**
+ * Whether the question's lexical tokens name the record's source as Haku shows it in the session
+ * language (`sourceName`: "VPK", "Sääasema", "Water supply", "Volunteer fire brigade VOL1"):
+ * every word of the shown name, or a code in it ("VOL1", "EK11"). The shown name, not the id, so the
+ * Finnish verb "saa" does not name the weather station (SAA).
+ */
+export function namesSource(queryTokens: ReadonlySet<string>, sourceId: string, lang: RetrievalLang): boolean {
+  const shown = tokenise(sourceName(lang, sourceId), lang);
+  const words = shown.filter((t) => !/\p{N}/u.test(t));
+  return (words.length > 0 && words.every((t) => queryTokens.has(t))) || shown.some((t) => /\p{N}/u.test(t) && queryTokens.has(t));
+}
+
+/** The clock match of each candidate: the nearest of the question's clocks decides ({@link ClockMatchConfig}). */
+export function clockBoosts(candidates: readonly InfoAtom[], clocks: readonly number[], match: ClockMatchConfig, lexicalQuery: string, lang: RetrievalLang): number[] {
+  const queryTokens = new Set(tokenise(lexicalQuery, lang));
+  const named = new Map<string, boolean>();
+  return candidates.map((a) => {
+    if (clocks.length === 0) return 0;
+    const t = recordClockMinutes(a);
+    const d = Math.min(...clocks.map((c) => Math.abs(t - c)));
+    if (d > match.farMinutes) return 0;
+    if (d > match.nearMinutes) return match.far;
+    const id = a.provenance.sourceId;
+    if (!named.has(id)) named.set(id, namesSource(queryTokens, id, lang));
+    return match.near + (named.get(id) ? match.namedSource : 0);
+  });
 }
 
 export function roundTo(x: number, decimals: number): number {
@@ -346,13 +432,23 @@ export function hybridRetrieve(
   if (vector && vector.index.language !== lang) {
     throw new RangeError(`a ${vector.index.language} vector index cannot serve ${lang} retrieval (no mixing; SPEC/14 revision (v))`);
   }
-  const candidates = cfg.routineCollapse ? collapseRoutine(gated, cfg.routineCollapse) : gated;
-  const lexical = minMax(bm25Scores(query, candidates.map((a) => passageText(a, lang)), cfg.bm25, lang));
+  // D10: what the question says about time; a rule the configuration does not declare changes nothing.
+  const cues = queryCues(query, lang, { latest: Boolean(cfg.recencyBoost?.latest), clocks: Boolean(cfg.clockMatch) });
+  const clocks = cfg.clockMatch ? cues.clocks : [];
+  const collapsed = cfg.routineCollapse ? collapseRoutine(gated, cfg.routineCollapse) : gated;
+  // A record at a clock the question names is exempt from the routine collapse: it was asked for by its time.
+  const candidates = clocks.length > 0 && collapsed !== gated ? withRecordsAtClock(gated, collapsed, clocks, cfg.clockMatch!.nearMinutes) : collapsed;
+  const lexical = minMax(bm25Scores(cues.lexicalQuery, candidates.map((a) => passageText(a, lang)), cfg.bm25, lang));
   const dense = vector ? minMax(candidates.map((a) => cosine(vector.queryVector, vector.index.vectorOf(a)))) : null;
+  const base = candidates.map((_, i) => (dense ? cfg.lexicalWeight * lexical[i]! + cfg.vectorWeight * dense[i]! : lexical[i]!));
+  const clockScore = cfg.clockMatch && clocks.length > 0 ? clockBoosts(candidates, clocks, cfg.clockMatch, cues.lexicalQuery, lang) : null;
+  // A record the question matched: by its words or meaning (a base score above 0), or by its clock.
+  const matched = base.map((b, i) => b > 0 || (clockScore !== null && clockScore[i]! > 0));
   const boosts = cfg.recencyBoost ? recencyBoosts(candidates, cfg.recencyBoost) : null;
+  const latest = cfg.recencyBoost?.latest && cues.latest ? latestBoosts(candidates, base, cfg.recencyBoost.latest) : null;
   const scored = candidates.map((atom, i) => {
-    const base = dense ? cfg.lexicalWeight * lexical[i]! + cfg.vectorWeight * dense[i]! : lexical[i]!;
-    return { atom, score: roundTo(base > 0 && boosts ? base + boosts[i]! : base, SCORE_DECIMALS) };
+    const extra = matched[i] ? (boosts?.[i] ?? 0) + (latest?.[i] ?? 0) + (clockScore?.[i] ?? 0) : 0;
+    return { atom, score: roundTo(base[i]! + extra, SCORE_DECIMALS) };
   });
   const ranked = scored
     .filter((s) => s.score > 0)
@@ -364,6 +460,12 @@ export function hybridRetrieve(
           : compareStrings(a.atom.id, b.atom.id),
     );
   return cfg.maxPerSource === null ? ranked.slice(0, cfg.topK) : capPerSource(ranked, cfg.maxPerSource, cfg.topK);
+}
+
+/** The collapsed candidates plus every gated record within `minutes` of a named clock, in the gated order. */
+function withRecordsAtClock(gated: readonly InfoAtom[], collapsed: readonly InfoAtom[], clocks: readonly number[], minutes: number): InfoAtom[] {
+  const kept = new Set(collapsed);
+  return gated.filter((a) => kept.has(a) || clocks.some((c) => Math.abs(recordClockMinutes(a) - c) <= minutes));
 }
 
 /** The first `topK` of `ranked`, skipping any record whose source already has `max` in the list. */

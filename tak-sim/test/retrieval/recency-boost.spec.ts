@@ -62,7 +62,7 @@ describe("hybridRetrieve with the boost", () => {
   });
 
   it("is declared in the frozen configuration", () => {
-    expect(THINKER_RETRIEVAL_CONFIG.recencyBoost).toEqual(BOOST);
+    expect(THINKER_RETRIEVAL_CONFIG.recencyBoost).toEqual({ ...BOOST, latest: { relevance: 0.5, graded: 0.3 } }); // D10 (24 Oct 2026): the latest-state preference
     expect(THINKER_RETRIEVAL_CONFIG.routineCollapse).toEqual({ minDistinctSteps: 3 });
   });
 });

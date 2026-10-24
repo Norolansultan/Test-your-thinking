@@ -239,8 +239,10 @@ export const UNIT_PLAN: Readonly<Record<string, UnitPlan>> = {
         "VPK: lohkonjohtaja KY21:n käskystä siirrymme nyt pohjoisreunalle (L1), lohko 3 hallinnassa. Tiedoksi johdolle.",
         "VPK: on the order of KY21, the sector leader, we are moving to the north edge (L1) now, sector 3 under control. For command's information."),
       m(14, "at:FR_MID", "return", "linja metsäautotielle uuden palon eteläpuolelle", "road_line"),
-      // Rescue Act §36 (researcher decision 6 Oct 2026, D1): the incident commander decides the evacuation, the police carry it out.
-      m(17, "at:VILLAGE", "evacuation", "johdon evakuointipäätös, poliisi toteuttaa"),
+      // Rescue Act §36 (researcher decision 6 Oct 2026, D1): the evacuation is decided above the line crews, the police carry it out.
+      // Play-test D11 (researcher, 24 Oct 2026): P2's decision, the strategic level (was "johdon evakuointipäätös", command's, which
+      // took the decision on the participant's behalf: both play-test players read it so). DRAFT Finnish, native check.
+      m(17, "at:VILLAGE", "evacuation", "P2:n evakuointipäätös, poliisi toteuttaa"),
       // Fix pass 3 (decision): VPK's question about the two households that stay is answered (the police go on alone,
       // EXTRA_RADIO) and VPK returns to the line on R2; its next shift came out with the vehicle.
       m(19, "at:R2_S", "return", "poliisi jatkaa kahden talon kanssa yksin; vuoro vaihdettu", "road_line"),
@@ -603,7 +605,7 @@ const WHY_EN: Readonly<Record<string, string>> = {
   "syttymäkohdan eteläreunan jälkisammutus": "mop-up on the south edge by the point of origin",
   "KY21:n käskystä, lohko 3 hallinnassa": "on KY21's order, sector 3 under control",
   "avotulta syttymäkohdan eteläpuolella": "open fire south of the point of origin",
-  "johdon evakuointipäätös, poliisi toteuttaa": "command's evacuation decision, carried out by the police", // EN-04 (SPEC/31): "johdon" is command's, not the participant's own role
+  "P2:n evakuointipäätös, poliisi toteuttaa": "P2's evacuation decision, carried out by the police", // play-test D11 (24 Oct 2026): P2's, the strategic level (was "command's", EN-04)
   "vuoronvaihto": "change of shift",
   "poliisi jatkaa kahden talon kanssa yksin; vuoro vaihdettu": "the police carry on with the two households alone; the shift has changed",
   "vesi oli loppumassa; säiliöauto ajoi itse, EK13 oli kiinni EK12:n linjalla": "the water was running out; the tanker drove itself, EK13 was busy at EK12's line",

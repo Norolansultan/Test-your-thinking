@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
-import { bandsAscending, inMinutesFi, isOrdinal, minutesAhead, nowStepOf, withinMinutesFi, type ItemDef } from "../../app/scenario/freeze-bank-core.js";
+import { bandsAscending, inMinutesFi, isOrdinal, minutesAhead, nowStepOf, stepEndClockFi, withinMinutesFi, type ItemDef } from "../../app/scenario/freeze-bank-core.js";
 import { distanceM, drawnSteps, headNow } from "../../app/scenario/freeze-keys.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
@@ -28,7 +28,7 @@ const built = (view: number, d: ItemDef): FreezeItem =>
 describe("`31` rule (1): a report-keyed basis is delivered by the freeze", () => {
   it("each basis step is drawn on a map up to the freeze's view, or stated by a pushed basis record of that step", () => {
     const withSteps = mainDefs.filter(({ d }) => d.basisSteps !== undefined);
-    expect(withSteps.map(({ view, d }) => `${view}.${d.slug}`)).toEqual(expect.arrayContaining(["2.area_40", "2.junction_hour", "5.area_hour", "10.area_total_hour", "10.front_r2_80", "12.village_distance"]));
+    expect(withSteps.map(({ view, d }) => `${view}.${d.slug}`)).toEqual(expect.arrayContaining(["2.area_40", "2.junction_hour", "5.area_hour", "10.area_growth_hour", "10.front_r2_80", "12.village_distance"]));
     for (const { view, d } of withSteps) {
       const drawn = new Set(drawnSteps(view));
       for (const s of d.basisSteps!) {
@@ -70,6 +70,8 @@ describe("`31` rule (3), F08, §3.8: every L3 stem names its horizon from now", 
       expect(d.keySteps![0], `V${view} ${d.slug}`).toBe(nowStepOf(view));
       const m = minutesAhead(view, d.keySteps![1]);
       expect([inMinutesFi(m), withinMinutesFi(m)].some((h) => d.promptFi.includes(h)), `V${view} ${d.slug}: "${d.promptFi}" lacks ${m} min`).toBe(true);
+      // Play-test D1 (24 Oct 2026): and the clock it ends at, from the same base the key reads (the end of its last step).
+      expect(d.promptFi, `V${view} ${d.slug}`).toMatch(new RegExp(`\\(klo ${stepEndClockFi(d.keySteps![1]).replace(".", "\\.")}(?: mennessä)?\\)`));
     }
   });
 });

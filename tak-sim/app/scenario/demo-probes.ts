@@ -114,12 +114,20 @@ export const INFRA_SCHEDULE: Readonly<Record<number, InfraSlot>> = {
   14: { topic: "bridge", correct: "no_heavy" },
 };
 
+/**
+ * Play-test D1 (24 Oct 2026): the phase-A slots (VP, V2, V4, V5, V7) ask by the period's latest reports ("viimeisimpien tietojen mukaan",
+ * was "tällä hetkellä"): their keys are records stamped after the clock on screen (DR1 14.06, VPK 15.01, DR2 15.27, EK12 16.3x). Phase B's
+ * freezes come at the view's end, where the clock and the latest reports agree, so R2 keeps "tällä hetkellä".
+ */
 const WATER_PROMPT_FI = {
-  W1: "Onko vesipiste W1 (Haukilampi) tällä hetkellä käytettävissä säiliöautojen täyttöön?",
-  W3: "Onko vesipiste W3 (Kotkanjoki) tällä hetkellä käytettävissä säiliöautojen täyttöön?", // (al): no "sillan" before V12 (the bridge limit is first on record at step 16)
+  W1: "Onko vesipiste W1 (Haukilampi) viimeisimpien tietojen mukaan käytettävissä säiliöautojen täyttöön?",
+  W3: "Onko vesipiste W3 (Kotkanjoki) viimeisimpien tietojen mukaan käytettävissä säiliöautojen täyttöön?", // (al): no "sillan" before V12 (the bridge limit is first on record at step 16)
 } as const;
-/** `31` F18 (19 Oct 2026): the stretch named — the drone road reports describe R1 south of Kuivakangas, while other stretches differ. */
-const R1_PROMPT_FI = "Mikä on tien R1 tila Kuivakankaan eteläpuolella tällä hetkellä?";
+/**
+ * `31` F18 (19 Oct 2026): the stretch named — the drone road reports describe R1 south of Kuivakangas, while other stretches differ (play-test
+ * D8, 24 Oct 2026: the esker's foot, where the flank met R1 at 14.46–14.48, is its own stretch now, "Kuivakankaan kohdalla").
+ */
+const R1_PROMPT_FI = "Mikä on tien R1 tila Kuivakankaan eteläpuolella viimeisimpien tietojen mukaan?";
 const R2_PROMPT_FI = "Mikä on tien R2 tila vesiajon reittinä tällä hetkellä?";
 const BRIDGE_PROMPT_FI = "Pääseekö raskas säiliöauto R3:n sillan yli?";
 
@@ -176,7 +184,8 @@ export function infrastructureItem(view: number): FreezeItem | null {
   if (!slot) return null;
   const keyAtomIds = INFRA_KEY_ATOMS[view]!;
   // `31` proposal (a): F7 is a verification item (only the raw records tell the planted value from the line's true state).
-  if (slot.topic === "f7") return withRetrievalFlag({ id: `freeze.${view}.f7`, ...F7_ITEM, goal: "safety", keyAtomIds, family: "verification" });
+  // Play-test D6 (researcher, 24 Oct 2026): scored for H9 only, never in an SA accuracy or calibration composite (`scoredFor`).
+  if (slot.topic === "f7") return withRetrievalFlag({ id: `freeze.${view}.f7`, ...F7_ITEM, goal: "safety", keyAtomIds, family: "verification", scoredFor: "h9_only" });
   const promptFi = slot.topic === "water" ? WATER_PROMPT_FI[slot.point!] : slot.topic === "r1" ? R1_PROMPT_FI : slot.topic === "r2" ? R2_PROMPT_FI : BRIDGE_PROMPT_FI;
   return withRetrievalFlag({
     id: view === PRACTICE_VIEW_INDEX ? "freeze.practice.infra" : `freeze.${view}.infra`,

@@ -11,7 +11,7 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
 import { distanceToTruthM, reportedPointDistanceAt, siteStep } from "../../app/scenario/freeze-keys.js";
-import { FREEZE_BANK, V2_JUNCTION, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
+import { BIRCH_STRIP, FORECAST_HEADLINE, FREEZE_BANK, V2_JUNCTION, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
 
@@ -59,7 +59,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(firstStep(/latva/i)).toBeGreaterThan(3);
   });
 
-  it("V4 crown_drops and korpioja_spot: the crown fire drops into the Koivuoja birch at 15:20; embers cross Korpioja; neither brook is named on record before step 7, both are map labels", () => {
+  it("V4 crown_drops and korpioja_spot: the crown fire drops into the Koivuoja birch at 15:20; embers cross Korpioja; Korpioja is first named at step 7, Koivuoja's birch strip at step 4 (play-test D3); both are map labels", () => {
     expect(CYCLE_STORY[7 as CycleIndex].bubbles[0]!.text).toMatch(/^Latvapalo laskeutunut Koivuojan koivikkoon/);
     expect(distanceToTruthM(6, F["BIRCH"]!)).toBeLessThan(50); // the CA head is at the birch strip at the end of step 6
     expect(siteStep(8).wind.fromDeg).toBeLessThan(200); // the wind turns only after it (the "not before the wind turns" lure)
@@ -67,7 +67,14 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(radio(7).some((t) => /^Kipinät lensivät Korpiojan yli, uusi palo toisella puolella/.test(t))).toBe(true);
     expect(key(4, "crown_drops")).toBe("birch");
     expect(key(4, "korpioja_spot")).toBe("jumps");
+    // Play-test D3 (24 Oct 2026): no generated record names Koivuoja before step 7, but DR1's pushed 14.27 terrain line (V3, a story beat)
+    // states the birch strip along it, so crown_drops has a basis.
     expect(firstStep(/Koivuoj/)).toBe(7);
+    expect(Math.min(...Object.entries(CYCLE_STORY).filter(([, v]) => v.bubbles.some((b) => /Koivuoj/.test(b.text))).map(([st]) => Number(st)))).toBe(4);
+    const strip = scenario.atoms.find((a) => a.id === BIRCH_STRIP)!;
+    expect(strip.tier).toBe("T1_pushed");
+    expect(Number(strip.cycle)).toBe(4);
+    expect(item(4, "crown_drops").basisAtomIds).toEqual([BIRCH_STRIP]);
     expect(firstStep(/Korpioj/)).toBe(7);
     const labels = JSON.parse(readFileSync("content/site/build/topo-features.json", "utf8")) as { labels: { text: string }[] };
     for (const name of ["Koivuoja", "Korpioja", "Kotkanjoki"]) expect(labels.labels.some((l) => l.text === name), name).toBe(true);
@@ -76,7 +83,12 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
   it("V5 ek14_shelter: the forecast turn is on record by the freeze; EK14 withdraws to the burned area at step 8 because the north flank goes downwind", () => {
     const wx = scenario.atoms.find((a) => a.id === "evt.wx.03")!;
     expect(Number(wx.cycle)).toBeLessThanOrEqual(7);
-    expect(item(5, "ek14_shelter").keyAtomIds).toEqual(["evt.wx.03"]);
+    // Play-test D7 (24 Oct 2026): P2 pushes the forecast's headline at 15.05 (V4's second step); the full forecast stays recorded.
+    expect(item(5, "ek14_shelter").keyAtomIds).toEqual(["evt.wx.03", FORECAST_HEADLINE]);
+    const headline = scenario.atoms.find((a) => a.id === FORECAST_HEADLINE)!;
+    expect(headline.tier).toBe("T1_pushed");
+    expect(Number(headline.cycle)).toBe(6);
+    expect(item(5, "ek14_shelter").retrievalDependent).toBeUndefined();
     expect(radio(8).some((t) => /^EK14: vetäydymme tielle R1 palaneen alueen keskelle, turva-alueelle; .*alatuuleen/.test(t))).toBe(true); // radio ST-07: speech
     expect(key(5, "ek14_shelter")).toBe("shelter");
   });

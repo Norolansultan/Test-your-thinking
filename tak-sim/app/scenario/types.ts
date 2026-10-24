@@ -851,6 +851,13 @@ export interface FreezeItem {
   readonly family?: "verification";
   /** Analysis only (`31` F18, F30): every key record is recorded-only (none pushed): the item measures retrieval as well as perception. */
   readonly retrievalDependent?: true;
+  /**
+   * Analysis only (play-test D6, researcher 24 Oct 2026; SPEC/09 (bf)): `h9_only` — the item is scored for its own hypothesis (V12's F7
+   * item, H9) and never enters an SA accuracy or calibration composite (`calibrationPairs` drops it; `FreezeItemScore.inSaComposites`).
+   * F7's key, "the line is live", is the safety default an unexposed participant gives, so in a composite it adds credit without SA.
+   * Never sent to the screen.
+   */
+  readonly scoredFor?: "h9_only";
 }
 
 export interface FreezeSpec {

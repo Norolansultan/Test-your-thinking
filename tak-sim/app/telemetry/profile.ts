@@ -5,7 +5,8 @@
  * leaves this function, so the profile cannot leak answers to later participants.
  *
  * Dimensions and band rules:
- * - **Calibration.** Every first answer of the main-view freezes (V1–V14, all levels; the practice freeze is not scored here),
+ * - **Calibration.** Every first answer of the main-view freezes (V1–V14, all levels; the practice freeze is not scored here; V12's F7
+ *   item, scored for H9 only, is left out by `calibrationPairs`: play-test D6, 24 Oct 2026),
  *   scored by `freezeItemScores` and folded by `calibrationPairs`. `gapPoints` = mean confidence − percent correct (0–100 scale).
  *   Band: |gap| ≤ 10 points → well calibrated; gap > 10 → overconfident; gap < −10 → underconfident. At least
  *   `MIN_CALIBRATION_ANSWERS` answers, else "not enough answers". **Resolution** (a rough, individual indication only: SPEC/32 §7

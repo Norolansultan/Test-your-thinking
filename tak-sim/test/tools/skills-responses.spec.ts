@@ -25,6 +25,7 @@ import { h2tSplit } from "../../app/telemetry/teaming-measures.js";
 import { MAP_POINT_OPTION_ID } from "../../app/session/freeze-answers.js";
 import type { OpenThinkerTransport } from "../../app/session/thinker-transport.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
+import { FORECAST_HEADLINE } from "../../app/scenario/freeze-bank.js";
 import { runScriptedSession } from "../telemetry/scripted-session.js";
 import { completeView, scenario, startSession, type Running } from "../session/spec30-helpers.js";
 import { convertSessions, parseSessionFile, recordCycles } from "../../tools/skills/responses.js";
@@ -67,6 +68,16 @@ const GUIDE_CONTEXT: ReadonlyMap<number, { readonly digest: readonly string[]; r
 ]);
 /** V5's items the context reaches: the key by the digest, the key by the recent matches, and one with only one of its two key records. */
 const DIGEST_ITEM = "freeze.5.ek14_shelter", RECENT_ITEM = "freeze.5.infra", HALF_ITEM = "freeze.5.wind_shift";
+/**
+ * Play-test D7 (24 Oct 2026): V5's two forecast items also rest on P2's pushed 15.05 headline of the forecast now (`FORECAST_HEADLINE`), so in
+ * the built bank no V5 L3 item's key reaches a participant only by the digest. The folds take the freeze content as a parameter, so this
+ * fixture scores against the two items as the bank had them before (their keys the recorded forecasts alone): the case under test — a key
+ * reached only by the model's context — stays exact, and the built bank's own key records are asserted beside it.
+ */
+const DIGEST_ONLY_FREEZES = scenario.freezes.map((f) => (f.cycle !== 5 ? f : {
+  ...f, items: f.items.map((it) => (it.id === DIGEST_ITEM ? { ...it, keyAtomIds: ["evt.wx.03"], basisAtomIds: ["evt.wx.03"] }
+    : it.id === HALF_ITEM ? { ...it, keyAtomIds: ["evt.wx.03", "evt.wx.02"], basisAtomIds: ["evt.wx.03", "evt.wx.02"] } : it)),
+}));
 /** An answer that states no freeze key (the driver's question is not about one). */
 const GUIDE_ANSWER = "Tarkista tilannekuva ennen päätöstä.";
 
@@ -248,11 +259,13 @@ describe("a driven guide-group session whose answers carry the model's context (
     expect(atomExposure(s.records, all, Number.MAX_SAFE_INTEGER, RETRIEVED_ONLY).filter((e) => e.reached)).toEqual([]);
     // The digest's record is the key of a phase-A L3 item in H2's window (and score_freezes.py's fact for it); the recent one is
     // the key of V5's retrieval-only L1 item; the half item needs the earlier forecast too.
-    expect(v5Item(DIGEST_ITEM)).toMatchObject({ level: "L3", keyAtomIds: ["evt.wx.03"], basisKind: "record", basisAtomIds: ["evt.wx.03"] });
+    // The built bank (play-test D7): the recorded forecast and P2's pushed headline; the fixture's content has the forecast alone.
+    expect(v5Item(DIGEST_ITEM)).toMatchObject({ level: "L3", keyAtomIds: ["evt.wx.03", FORECAST_HEADLINE], basisKind: "record", basisAtomIds: ["evt.wx.03", FORECAST_HEADLINE] });
+    expect(DIGEST_ONLY_FREEZES.find((f) => f.cycle === 5)!.items.find((it) => it.id === DIGEST_ITEM)).toMatchObject({ keyAtomIds: ["evt.wx.03"] });
     expect(H2_PRIMARY_WINDOW.views).toContain(5);
-    expect(items.find((i) => i.id === DIGEST_ITEM)!.fact_ids).toEqual(["evt.wx.03"]);
+    expect(items.find((i) => i.id === DIGEST_ITEM)!.fact_ids).toEqual(["evt.wx.03", FORECAST_HEADLINE]);
     expect(v5Item(RECENT_ITEM)).toMatchObject({ level: "L1", keyAtomIds: ["evt.c07.016"] });
-    expect(v5Item(HALF_ITEM).keyAtomIds).toEqual(["evt.wx.03", "evt.wx.02"]);
+    expect(v5Item(HALF_ITEM).keyAtomIds).toEqual(["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE]);
   });
 
   it("the export writes the digest and recent rows into exposure.csv, and none into exposure_retrieved_only.csv", async () => {
@@ -278,20 +291,20 @@ describe("a driven guide-group session whose answers carry the model's context (
 
   it("V5's L3 item reached only by the digest: EXPOSED_WRONG by the pre-registered definition, NOT_EXPOSED retrieved-only; told neither", () => {
     const rs = records();
-    const row = (id: string, opts: ExposureOptions = {}) => errorClasses(rs, scenario.freezes, opts).find((r) => r.itemId === id)!;
+    const row = (id: string, opts: ExposureOptions = {}) => errorClasses(rs, DIGEST_ONLY_FREEZES, opts).find((r) => r.itemId === id)!;
     expect(row(DIGEST_ITEM)).toMatchObject({ view: 5, level: "L3", correct: false, errorClass: "EXPOSED_WRONG", exposed: true, routes: ["digest"], stated: false });
     expect(row(DIGEST_ITEM, RETRIEVED_ONLY)).toMatchObject({ errorClass: "NOT_EXPOSED", exposed: false, routes: [] });
     // One of two key records in the digest is not exposure under either definition.
     expect(row(HALF_ITEM)).toMatchObject({ errorClass: "NOT_EXPOSED", exposed: false, routes: ["digest"] });
     expect(row(HALF_ITEM, RETRIEVED_ONLY)).toMatchObject({ errorClass: "NOT_EXPOSED", exposed: false, routes: [] });
-    const key = (opts: ExposureOptions = {}) => freezeItemExposure(rs, scenario.freezes, opts).find((e) => e.itemId === DIGEST_ITEM)!;
+    const key = (opts: ExposureOptions = {}) => freezeItemExposure(rs, DIGEST_ONLY_FREEZES, opts).find((e) => e.itemId === DIGEST_ITEM)!;
     expect(key()).toMatchObject({ view: 5, allReached: true, keyAtoms: [{ atomId: "evt.wx.03", reached: true, route: "digest", routes: ["digest"] }] });
     expect(key(RETRIEVED_ONLY)).toMatchObject({ allReached: false, keyAtoms: [{ atomId: "evt.wx.03", reached: false, route: null, routes: [] }] });
     // The told class reads the stream and the answers' text, not the model's context: the digest pushed nothing to the participant
     // and the answer stated no key, so the item stays in H2t's "neither" stratum under both exposure definitions.
-    const stated = aiStatedKey(rs, scenario.freezes);
+    const stated = aiStatedKey(rs, DIGEST_ONLY_FREEZES);
     expect(stated.find((s) => s.itemId === DIGEST_ITEM)).toMatchObject({ view: 5, stated: false, keyPushed: false, toldClass: "neither" });
-    const split = h2tSplit(freezeItemScores(rs, scenario.freezes), stated);
+    const split = h2tSplit(freezeItemScores(rs, DIGEST_ONLY_FREEZES), stated);
     expect(split.neither.pairs.map((p) => p.itemId)).toContain(DIGEST_ITEM);
     expect([...split.streamTold.pairs, ...split.aiTold.pairs].map((p) => p.itemId)).not.toContain(DIGEST_ITEM);
   });

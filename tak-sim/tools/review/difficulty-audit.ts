@@ -191,7 +191,7 @@ export const FINDABILITY_QUERIES: Readonly<Record<string, { readonly fi: readonl
   "freeze.5.wind_shift": { fi: ["Mikä on sääennuste?"], en: ["What is the weather forecast?"] },
   "freeze.7.infra": { fi: ["Voiko Kotkanjoelta täyttää säiliöitä?"], en: ["Can tankers fill up at Eagle River?"] },
   "freeze.10.ek12_water": { fi: ["Saako EK12 lisää vettä?"], en: ["Is EK12 getting more water?"] },
-  "freeze.10.area_total_hour": { fi: ["Kuinka suuri palanut ala on?"], en: ["How large is the burnt area?"], records: ["evt.c13.034"] },
+  "freeze.10.area_growth_hour": { fi: ["Kuinka nopeasti uusi palo kasvaa?"], en: ["How fast is the new fire growing?"], records: ["atom.demo.12.1", "evt.c13.010", "evt.c13.034"] }, // play-test D5: the growth (was area_total_hour)
   "freeze.10.cabins_distance": { fi: ["Kuinka kaukana palo on Mökkirannasta?"], en: ["How far is the fire from the Lakeside Cottages?"] },
   "freeze.12.longest_shift": { fi: ["Kuinka kauan miehistöt ovat olleet kentällä?"], en: ["How long have the crews been in the field?"] },
   "freeze.12.f7": { fi: ["Onko sähkölinja jännitteinen?"], en: ["Is the power line live?"] },

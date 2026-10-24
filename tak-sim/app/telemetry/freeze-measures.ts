@@ -78,6 +78,11 @@ export interface FreezeItemScore {
   readonly confidence: number;
   /** Self-reported source (L2/L3 only since 2 Oct 2026); null when not asked. */
   readonly source: string | null;
+  /**
+   * Play-test D6 (24 Oct 2026; SPEC/09 (bf)): false for an item scored for its own hypothesis only (`FreezeItem.scoredFor`, V12's F7: H9),
+   * which no SA accuracy or calibration composite counts (`calibrationPairs` drops it). Absent in scores built elsewhere: counted.
+   */
+  readonly inSaComposites?: false;
 }
 
 const EARTH_RADIUS_M = 6_371_008.8; // IUGG mean radius
@@ -178,6 +183,7 @@ export function freezeItemScores(records: readonly LogRecord[], freezes: readonl
     scores.push({
       view, itemId: item.id, level: item.level, goal: item.goal ?? null, kind, correct, distanceM,
       confidence: answer.confidence, source: answer.source ?? null,
+      ...(item.scoredFor === "h9_only" ? { inSaComposites: false as const } : {}),
     });
   }
   return scores;
@@ -583,10 +589,13 @@ export interface CalibrationSummary {
 /**
  * The confidence–accuracy pairs of a window, with a Brier score and the over/under-confidence gap. One pair per (view, item), the first
  * score listed (`freezeItemScores` already keeps the first answer and drops replayed views; scores assembled elsewhere are held to it too).
+ * Play-test D6 (24 Oct 2026; SPEC/09 (bf)): an item scored for its own hypothesis only (`inSaComposites: false`, V12's F7) is never a pair,
+ * whatever the window: every SA composite (H2, H2t, H-T, the personal profile's calibration) folds through here.
  */
 export function calibrationPairs(scores: readonly FreezeItemScore[], filter: CalibrationFilter = H2_PRIMARY_WINDOW): CalibrationSummary {
   const seen = new Set<string>();
   const pairs: CalibrationPair[] = scores
+    .filter((s) => s.inSaComposites !== false)
     .filter((s) => { const k = `${s.view}::${s.itemId}`; if (seen.has(k)) return false; seen.add(k); return true; })
     .filter((s) => (!filter.levels || filter.levels.includes(s.level)) && (!filter.views || filter.views.includes(s.view)))
     .map((s) => ({ view: s.view, itemId: s.itemId, level: s.level, confidence: s.confidence, correct: s.correct }));

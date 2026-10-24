@@ -278,24 +278,24 @@
   },
   "index": {
     "file": "content/thinker/index.json",
-    "sha256": "b204453d141397d2d531a41d8e2fb5908b708ee7b86018fda2fa15f6e6091c8b",
-    "atomCount": 998,
+    "sha256": "503ac9f7a14824d5bad18e70364fbe9528364ac1867373351aa1e1d4a97d2826",
+    "atomCount": 1004,
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
-    "carriedVectors": 575,
-    "carriedFromIndexSha256": "894606e7b1acbe0e3f2d25f1d1566f441e1e6fe10ae5a0dd213479131c626be8",
+    "carriedVectors": 582,
+    "carriedFromIndexSha256": "b204453d141397d2d531a41d8e2fb5908b708ee7b86018fda2fa15f6e6091c8b",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "indexEn": {
     "file": "content/thinker/index.en.json",
-    "sha256": "0addfe1adc5f324e1266cf302721c43b025ce0a06b70eca1ffa08386daa3d9a5",
-    "atomCount": 998,
+    "sha256": "c9184c025274904e07c0d283d78f00ee67ec2611cd7fc008f48c3fe7d9169ae8",
+    "atomCount": 1004,
     "language": "en",
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
     "authoredQueries": "content/thinker/authored-queries.en.json",
-    "carriedVectors": 638,
-    "carriedFromIndexSha256": "84ead41aebdb6a414e620b69df348b247bfddbdddfb1e5d21ace2d10229f4980",
+    "carriedVectors": 645,
+    "carriedFromIndexSha256": "0addfe1adc5f324e1266cf302721c43b025ce0a06b70eca1ffa08386daa3d9a5",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "directivePremises": {

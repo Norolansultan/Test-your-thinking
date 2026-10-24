@@ -29,8 +29,8 @@ const scenario = buildDemoScenario();
 const byId = new Map(SITE_SCENARIO.traffic.map((e) => [e.id, e]));
 const { sectorOf, placeNear } = siteTrafficHelpers();
 const ign = wgs84ToTm35(SITE_SCENARIO.ignition);
-/** Sources that are not units or aircraft: register data, the grid operator, the command-post operator. */
-const NON_UNIT_SOURCES = new Set(["register", GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE]);
+/** Sources that are not units or aircraft: register data, the grid operator, the command-post operator, its situation picture. */
+const NON_UNIT_SOURCES = new Set(["register", GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE, "TILANNEKUVA"]);
 
 function authored(a: InfoAtom): InteractionEvent {
   const actor = a.provenance.sourceId;
@@ -45,14 +45,16 @@ function authored(a: InfoAtom): InteractionEvent {
   const lateral = r.kind === "lateral_traffic";
   // Radio to command stays radio to command when a view records it rather than pushing it (SPEC/26 §6):
   // a merged view's routine first-step radio, and the routine story beats of over-full views.
-  const toCommand = a.tier === "T1_pushed" || /^atom\.(radio\.|demo\.\d)/.test(a.id);
+  // A crew's answer when asked (T3, the play-test CO readings of 24 Oct 2026) is logged as the generated ones are: to JOHTO, `ask_unit`.
+  const asked = a.tier === "T3_person";
+  const toCommand = !asked && (a.tier === "T1_pushed" || /^atom\.(radio\.|demo\.\d)/.test(a.id));
   const content = "text" in r ? r.text : "content" in r && typeof r.content === "string" ? r.content : r.kind === "reference" ? `${r.surface}: ${JSON.stringify(r.fields)}` : `(${r.kind})`;
   return {
     id: a.id, cycle: a.cycle, session_view: viewOfStep(a.cycle)?.index ?? null, sim_time_s: a.provenance.observedAt, timestamp: clockAt(a.provenance.observedAt),
     actor, actor_type: NON_UNIT_SOURCES.has(actor) ? "command" : actorTypeOf(actor, AIR_KIND[actor] ?? null),
-    addressee: designed ? designed.addressee : lateral ? r.addresseeUnitId : toCommand ? "JOHTO" : null,
+    addressee: designed ? designed.addressee : lateral ? r.addresseeUnitId : toCommand || asked ? "JOHTO" : null,
     location: deployed?.sector ?? (site ? sectorOf(site) : null), place: deployed?.place ?? (site ? placeNear(site) : null), lat: pos?.lat ?? null, lon: pos?.lon ?? null,
-    event_type: designed ? designed.event_type : r.kind === "reference" ? "status" : lateral ? "coordination" : a.origin === "sensor" ? "detection" : "report",
+    event_type: designed ? designed.event_type : r.kind === "reference" || asked ? "status" : lateral ? "coordination" : a.origin === "sensor" ? "detection" : "report",
     task: null, content, tier: a.tier,
     channel: designed ? designed.channel : lateral ? "radio_lateral" : toCommand ? "radio_command" : a.tier === "T3_person" ? "ask_unit" : "system_log",
     nav: a.navCategory, lang: "fi",

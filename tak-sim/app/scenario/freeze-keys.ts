@@ -18,7 +18,8 @@
  * - nearest settlement, distance bands, growth trends and the first-detached sector: below.
  */
 
-import type { LatLon, Polygon } from "../engine/primitives.js";
+import type { CycleIndex, LatLon, Polygon } from "../engine/primitives.js";
+import { CYCLE_STORY } from "./demo-story.js";
 import { SITE_SCENARIO, type SiteStep } from "./site-scenario.js";
 
 const LAT0 = 60.85;
@@ -102,6 +103,17 @@ export function radioId(step: number, re: RegExp): string {
   const k = SITE_SCENARIO.radio.filter((r) => r.cycle === step).findIndex((r) => re.test(r.text));
   if (k < 0) throw new Error(`freeze key: no step-${step} radio record matches ${re}`);
   return `atom.radio.${step}.${k}`;
+}
+
+/**
+ * TRUTH: the id of the one story beat of `step` (`atom.demo.<step>.<k>`, `demo-story.ts`) whose text matches `re` — the play-test records of
+ * 24 Oct 2026 are story beats, appended so no other beat's index moves; found by content all the same, so a re-authored beat fails the build
+ * rather than moving a key to another message. None or several throws.
+ */
+export function storyId(step: number, re: RegExp): string {
+  const ids = (CYCLE_STORY[step as CycleIndex]?.bubbles ?? []).flatMap((b, k) => (re.test(b.text) ? [`atom.demo.${step}.${k}`] : []));
+  if (ids.length !== 1) throw new Error(`freeze key: step-${step} story pattern ${re} matches ${ids.length} beats`);
+  return ids[0]!;
 }
 
 /**

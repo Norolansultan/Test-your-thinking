@@ -8,6 +8,12 @@
  *   (`probe.s.practice.b`'s answer and confidence) are removed; the practice freeze's `missing` list loses the new
  *   `freeze.practice.forecast`; the header loses `mapPretest` and `practiceFeedback`.
  * - The header's 0.13.0 fields (`audience`, `scope`) and its `formatVersion` are dropped.
+ * - The play-test decisions (24 Oct 2026, a STIMULUS change, format unchanged; SPEC/18 (bf)): the four new pushed records' deliveries
+ *   (`bubble_available` of `PLAYTEST_PUSHED`: DR1's birch-strip line in V3, P2's 15.00 forecast headline in V4, the reinforcements'
+ *   ETAs in V5, the 17.05 situation picture in V9) are removed; their sources leave the views' `navSources` before the view in which
+ *   the 0.12.0 run first listed them (P2 V9, TILANNEKUVA V11); V10's `missing` list names `area_growth_hour` as `area_total_hour`
+ *   (the recast item, SPEC/08 (bf) bf.3). The two new T3 answers (EK11 14.08, EK16 18.45) are delivered only when asked and the
+ *   driver asks no unit, so they write nothing here; the header's new text and the re-worded stems are not logged.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -20,6 +26,9 @@ import type { LogRecord } from "../../app/telemetry/log.js";
 import { sha256Hex } from "../../app/telemetry/sha256.js";
 
 const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown"]);
+/** The play-test's new pushed story beats (24 Oct 2026; `demo-story.ts`), and the view from which 0.12.0 listed each new nav source. */
+export const PLAYTEST_PUSHED: ReadonlySet<string> = new Set(["atom.demo.4.1", "atom.demo.6.2", "atom.demo.7.1", "atom.demo.12.2"]);
+const PLAYTEST_SOURCE_FROM: Readonly<Record<string, number>> = { P2: 9, TILANNEKUVA: 11 };
 
 type Rec = { readonly seq: number; readonly tVirtual: unknown; readonly tWallOffsetMs: number; readonly kind: string; readonly detail: unknown };
 
@@ -30,6 +39,16 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     if (ADDED_KINDS.has(r.kind)) continue;
     if (r.kind === "briefing_advanced" && d.screenId === "practice.feedback") continue;
     if (d.probeId === "probe.s.practice.b") continue;
+    if (r.kind === "bubble_available" && PLAYTEST_PUSHED.has(d.atomId as string)) continue;
+    if (r.kind === "cycle_start" && Array.isArray(d.navSources)) {
+      const cycle = d.cycle as number;
+      kept.push({ ...r, detail: { ...d, navSources: (d.navSources as string[]).filter((s) => !(cycle < (PLAYTEST_SOURCE_FROM[s] ?? 0))) } });
+      continue;
+    }
+    if (r.kind === "freeze_submitted" && d.cycle === 10 && Array.isArray(d.missing)) {
+      kept.push({ ...r, detail: { ...d, missing: (d.missing as string[]).map((m) => (m === "freeze.10.area_growth_hour" ? "freeze.10.area_total_hour" : m)) } });
+      continue;
+    }
     if (r.kind === "session_started") {
       const { formatVersion: _v, audience: _a, scope: _s, mapPretest: _m, practiceFeedback: _p, ...rest } = d;
       kept.push({ ...r, detail: rest });

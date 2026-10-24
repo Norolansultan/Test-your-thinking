@@ -19,7 +19,7 @@
 import type { SiteRadio } from "../../app/scenario/site-scenario.js";
 import { LOAD_BEARING_T4_IDS, type InteractionEvent } from "../../app/scenario/types.js";
 import { MAIN_VIEWS, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
-import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
+import { CYCLE_STORY, isPushedBeat } from "../../app/scenario/demo-story.js";
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import type { MoveReason } from "./deployment.js";
 
@@ -89,9 +89,9 @@ export const PUSH_CAP_PER_VIEW = 18;
 /** Which generated pushed items are recorded first when a view is over the cap: routine status and feeds before warnings and size-ups. */
 const DEMOTE_ORDER: readonly InteractionEvent["event_type"][] = ["status", "water_drop", "detection", "observation", "report", "request", "coordination", "weather", "task_update", "warning", "size_up"];
 
-/** Story beats a view pushes (`demo-story.ts`: every beat not marked `recorded`). */
+/** Story beats a view pushes (`demo-story.ts` `isPushedBeat`: every beat neither `recorded` nor a crew's answer when `asked`). */
 function storyPushed(view: number): number {
-  return MAIN_VIEWS.find((v) => v.index === view)?.steps.reduce((s, st) => s + (CYCLE_STORY[st as CycleIndex]?.bubbles.filter((b) => !b.recorded).length ?? 0), 0) ?? 0;
+  return MAIN_VIEWS.find((v) => v.index === view)?.steps.reduce((s, st) => s + (CYCLE_STORY[st as CycleIndex]?.bubbles.filter(isPushedBeat).length ?? 0), 0) ?? 0;
 }
 
 /**

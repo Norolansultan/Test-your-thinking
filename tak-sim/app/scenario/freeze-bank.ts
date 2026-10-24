@@ -22,12 +22,13 @@
 
 import { SITE_SCENARIO } from "./site-scenario.js";
 import { sortedEntries } from "../engine/deterministic-object.js";
-import { choice, headLaterFi, inMinutesFi, minutesAhead, point, withinMinutesFi, type ItemDef } from "./freeze-bank-core.js";
+import { choice, HEAD_NOW_LATEST_FI, headLaterFi, horizonFi, point, withinHorizonFi, type ItemDef } from "./freeze-bank-core.js";
 import { PHASE_B_BANK } from "./freeze-bank-b.js";
 import {
   deliveredAreaAt, deliveredPointDistanceAt, distanceM, distanceToLineM, distanceToTruthM, firstDetachedFrontAfter, headNow, keyBand, projectionHeadAtEndOf, R1_LINE, radioId, siteStep,
-  trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
+  storyId, trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
 } from "./freeze-keys.js";
+import { CYCLE_STORY } from "./demo-story.js";
 
 const F = SITE_SCENARIO.features;
 
@@ -54,6 +55,21 @@ const RADIO = {
 };
 
 const HEAD_NOW_FI = "Merkitse kartalle palon kärki.";
+
+/** Play-test D3 (24 Oct 2026): DR1's pushed 14.27 terrain line (V3), the birch–aspen strip along Koivuoja beyond Kuusimäki's spruce. */
+export const BIRCH_STRIP = storyId(4, /^Kärjen edessä alkaa pian Kuusimäen kuusikko, .*Koivuojan varressa on kapea koivikko ja haavikko/);
+/**
+ * Play-test D7 (24 Oct 2026): P2's pushed 15.05 headline of the 15.00 forecast (V4's second step). The build checks it says what the
+ * recorded forecast says (`evt.wx.03`): the turn through the south to the south-east at 15.30–16.00, easing to 4–5 m/s.
+ */
+export const FORECAST_HEADLINE = storyId(6, /^Sääennusteen päivitys klo 15\.00: /);
+{
+  const wx = SITE_SCENARIO.traffic.find((t) => t.id === "evt.wx.03");
+  const headline = CYCLE_STORY[6]!.bubbles.find((b) => b.text.startsWith("Sääennusteen päivitys klo 15.00: "))!.text;
+  for (const fact of ["lounaasta etelän kautta kaakkoon", "15.30–16.00", "4–5 m/s"]) {
+    if (!wx?.content.includes(fact) || !headline.includes(fact)) throw new Error(`forecast headline: "${fact}" is not in both the 15.00 forecast (evt.wx.03) and P2's headline`);
+  }
+}
 const f1 = (n: number) => n.toFixed(1);
 const f0 = (n: number) => n.toFixed(0);
 /** A report-keyed key's figures for its basis text (F22): the delivered value, its margin, and the truth's value and band. */
@@ -196,20 +212,26 @@ export const PRACTICE_BANK: readonly ItemDef[] = [
 export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
   2: [
     point({
-      slug: "ek11_point", level: "L1", goal: "safety", promptFi: "Merkitse kartalle, missä EK11 työskentelee nyt.", point: siteStep(3).units["EK11"]!,
+      // Play-test D1 (24 Oct 2026): "viimeisimpien tietojen mukaan" (was "nyt"): the key is EK11's 14.01 move, after the 14.00 clock.
+      slug: "ek11_point", level: "L1", goal: "safety", promptFi: "Merkitse kartalle, missä EK11 työskentelee viimeisimpien tietojen mukaan.", point: siteStep(3).units["EK11"]!,
       keyAtomIds: [RADIO.ek11Ridge], rule: "computed", basis: "EK11's step-3 position (UNIT_PLAN: edge:RIDGE, the new ignition on the esker)",
     }),
     choice({
       // `31` F10: replaces nearest_head (EK11 nearest the head, one record recalled); comprehension: EK11's place against the new ignition.
-      slug: "ek11_between", level: "L2", goal: "safety", promptFi: "Mitä harjun uusi palo merkitsee siellä työskentelevälle EK11:lle?",
+      // Play-test D3 (researcher, 24 Oct 2026; sagat_rules: no item reveals another's answer or unseen information; DRAFT, native and domain
+      // review): the stem said there was a new fire on the esker and that EK11 worked there — the premise the 65 s burst gives, and the key
+      // of `ek11_point` — so both players answered it from the stem. Re-worded, not moved: map items come last in every freeze (2 Oct
+      // 2026), and moving `ek11_point` first would still leave this stem stating the unseen premise. It names the esker (a place on the
+      // map) but neither the new fire nor a unit; two options speak of a fire on the esker, two of the esker itself, all false but the key.
+      slug: "ek11_between", level: "L2", goal: "safety", promptFi: "Mitä harjun tilanne merkitsee viimeisimpien tietojen mukaan kärjen lähellä työskenteleville miehistöille?",
       options: [
-        ["between", "EK11 voi jäädä kärjen ja uuden palon väliin"], ["head", "EK11 pääsee nyt sammuttamaan kärkeä edestä"],
-        ["south", "EK11 joutuu siirtymään eteläsivustalle"], ["out", "Uusi palo on sammunut, EK11 palaa kärkeen"],
+        ["between", "Lähin miehistö voi jäädä kärjen ja harjun uuden palon väliin"], ["head", "Harju hidastaa kärkeä, miehistöt voivat hyökätä sen edestä"],
+        ["escape", "Harju antaa miehistöille turvallisen perääntymistien"], ["out", "Harjun palo on sammunut, miehistöt palaavat kärkeen"],
       ], key: "between",
       // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): on the new esker EK11 works the head's right (south-east) flank, so its 14.03 report
       // says "oikealla sivustalla" (was "vasemmalla"); the new ignition is ~100 m ahead of the head (was ~150 m).
       keyAtomIds: [RADIO.ek11Ridge, "atom.demo.3.0", trafficId(3, /^EK11, Kuivakangas: olemme kärjen oikealla sivustalla/)], rule: "cited",
-      basis: "integrates EK11's move to the new ignition on the esker (radio 3.0, pushed), the new smoke ~100 m from the head (story 3.0, pushed) and EK11's own place ~50 m from the head on its right flank (14.03, pushed): a crew between the head and a fire ahead of it can be cut off (EK11's recorded 14.05 radio: it will not go between them)",
+      basis: "integrates EK11's move to the new ignition on the esker (radio 3.0, pushed), the new smoke ~100 m from the head (story 3.0, pushed) and EK11's own place ~50 m from the head on its right flank (14.03, pushed): the crew nearest the head, between the head and a fire ahead of it, can be cut off (EK11's recorded 14.05 radio: it will not go between them). The distractors: the esker's dry pine heath speeds the head (10.8 m/min at 14.00–14.20, DR1), its new fire burns (no escape route there; EK11's is to the burned area), and nothing reports it out",
     }),
     choice({
       // `31` F10: replaces fuel_ahead (DR1's 'tiheä kuusikko' recalled, and a cue to spruce_behaviour); two EK12 reports integrated.
@@ -229,7 +251,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       basis: "integrates EK12's two pushed reports: the head some 300 m north of its stretch, running past it to the north-east (13.20), and its own stretch a surface fire in dry pine heath, flames 1–2 m, the 680 m line with pressure enough (14.08): the flank is held low while the head runs on past it; recorded: 'kärki etenee koilliseen meidän ohi, omalla pätkällämme matalaa paloa' (13.51); EK13 refilled EK12's basin at 14.01 (recorded; gate R: 13.54 before the shuttle drove on the road graph, and the re-seeded step 2 no longer has the 13.48 'lipsuu paikoin' line)",
     }),
     choice({
-      slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(2, 4))}?`,
+      slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${horizonFi(2, 4)}?`,
       options: [["lt20", "Alle 20 hehtaaria"], ["m20_35", "20–35 hehtaaria"], ["m35_50", "35–50 hehtaaria"], ["gt50", "Yli 50 hehtaaria"]], key: V2_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [1, 2],
       basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 4 (14.40) through the reported fire the maps of V1 and V2 draw (steps 1, 2), ${figures(V2_AREA, "ha")}; the map now ~13.7 ha and DR3's recorded 14.15 survey 18.3 ha (the lures, under 20)`,
@@ -237,7 +259,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // SPEC/30 §5.1 (19 Oct 2026): two more L3 items in each phase-A freeze (2×L1, 2×L2, 4×L3). DRAFT, domain review (SPEC/30 §8).
     choice({
       // A consequence the envelope does not draw: the fire's type when the head meets the spruce DR1 reported ahead. `31` F08: the horizon.
-      slug: "spruce_behaviour", level: "L3", goal: "containment", keySteps: [3, 6], promptFi: `Miten palo todennäköisesti käyttäytyy ${withinMinutesFi(minutesAhead(2, 6))}, kun kärki saavuttaa Kuusimäen kuusikon?`,
+      slug: "spruce_behaviour", level: "L3", goal: "containment", keySteps: [3, 6], promptFi: `Miten palo todennäköisesti käyttäytyy ${withinHorizonFi(2, 6)}, kun kärki saavuttaa Kuusimäen kuusikon?`,
       options: [
         ["crown", "Nousee latvoihin ja heittää kipinöitä eteen"], ["slows", "Hidastuu, koska kuusikon pohja on kosteaa"],
         ["same", "Jatkuu matalana pintapalona samaa vauhtia"], ["stops", "Pysähtyy kuusikon reunaan, tiheikkö ei syty"],
@@ -247,7 +269,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // A route at risk: the R1/R2 junction, where the water-shuttle road R2 meets R1 east of the fire.
-      slug: "junction_hour", level: "L3", goal: "resources", keySteps: [3, 5], promptFi: `Kuinka kaukana palon reuna on teiden R1 ja R2 risteyksestä ${inMinutesFi(minutesAhead(2, 5))}?`,
+      slug: "junction_hour", level: "L3", goal: "resources", keySteps: [3, 5], promptFi: `Kuinka kaukana palon reuna on teiden R1 ja R2 risteyksestä ${horizonFi(2, 5)}?`,
       options: JUNCTION_BANDS, key: V2_JUNCTION.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [1, 2],
       basis: `SPEC/30 §5.1 (DRAFT); REPORT-keyed (D4; \`31\` rule (1)): the reported fire's distance to the R1/R2 junction at the end of step 5 (15.00) through the maps of V1 and V2 (steps 1, 2), ${figures(V2_JUNCTION, "m", f0)}; the map now ~950 m (the lure, 700–1000 m)`,
@@ -260,23 +282,28 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
   ],
   4: [
     choice({
-      slug: "ek12_where", level: "L1", goal: "safety", promptFi: "Missä EK12 on nyt?",
+      // Play-test D1 (24 Oct 2026): "viimeisimpien tietojen mukaan" (was "nyt"): the key is EK12's 15.01 withdrawal, after the 15.00 clock;
+      // at 15.00 itself it stood at the spruce edge, which a play-test player chose at confidence 100.
+      slug: "ek12_where", level: "L1", goal: "safety", promptFi: "Missä EK12 on viimeisimpien tietojen mukaan?",
       options: [["head_s", "Kärjen eteläsivustalla"], ["spruce", "Kuusimäen kuusikon reunassa"], ["black", "Tiellä R1 palaneella alueella"], ["water", "Täyttämässä säiliötä Haukilammella"]],
       key: distanceM(siteStep(6).units["EK12"]!, F["R1_BLACK"]!) < 200 ? "black" : "head_s",
       keyAtomIds: [RADIO.ek12Withdraws], rule: "computed", basis: "EK12's step-6 position, on R1 in the burned area, the safety zone (withdrawn after the crown-fire near miss; review fixes (ah): was the R1/R2 junction, ~1 km out in unburned forest)",
     }),
     choice({
-      slug: "fastest_spread", level: "L2", goal: "containment", promptFi: "Missä palo leviää nyt nopeimmin?",
+      slug: "fastest_spread", level: "L2", goal: "containment", promptFi: "Missä palo leviää viimeisimpien tietojen mukaan nopeimmin?", // play-test D1 (was "nyt"): the 15.0x records
       options: [["L1", "Pohjoisreunalla (lohko L1)"], ["L2", "Koillisessa (lohko L2)"], ["L3", "Eteläreunalla (lohko L3)"], ["L4", "Syttymäkohdan takana (lohko L4)"]], key: "L2",
       keyAtomIds: ["atom.demo.6.0", trafficId(6, /^DR3 lämpökuva, Kuusimäki/), trafficId(6, /^DR3 mittaus: Kuusimäen/)], rule: "cited",
       basis: "DR3: the Kuusimäki edge 14.1 m/min, flames over the crowns; the step-5 and step-6 CA growth is in L2 (checked in freeze-bank.spec.ts)",
     }),
     choice({
       // `31` F10: replaces work_danger (EK12's crown-fire report recalled); comprehension of the two withdrawals for the head.
-      slug: "head_unattended", level: "L2", goal: "containment", promptFi: "Mitä EK11:n ja EK12:n vetäytyminen tielle R1 merkitsee kärjelle nyt?",
+      // Play-test D3 (researcher, 24 Oct 2026; DRAFT, native and domain review): the stem stated the withdrawal (the key's premise, and
+      // `ek12_where`'s key), and a play-test player answered from its wording. It asks the state of the attack on the head instead; the
+      // options name no withdrawal, and the stale state before the 15.00 burst (EK11 and EK12 on the head's flanks) is a distractor.
+      slug: "head_unattended", level: "L2", goal: "containment", promptFi: "Mikä on viimeisimpien tietojen mukaan kärjen sammutuksen tilanne?",
       options: [
-        ["free", "Kärkeä ei sammuteta, se etenee vapaasti"], ["others", "EK14 ja VPK sammuttavat kärkeä niiden tilalla"],
-        ["stops", "Kärki pysähtyy tiehen R1 palaneella alueella"], ["calm", "Kärki on rauhoittunut, ja työ jatkuu sivustoilla"],
+        ["free", "Kärkeä ei sammuteta, se etenee vapaasti"], ["flanks", "EK11 ja EK12 hyökkäävät kärkeen sivustoilta"],
+        ["others", "EK14 ja VPK sammuttavat kärkeä edestä"], ["calm", "Kärki on rauhoittunut, ja työ jatkuu sivustoilla"],
       ], key: "free",
       keyAtomIds: [RADIO.ek11Withdraws, RADIO.ek12Withdraws, trafficId(6, /^EK11, tie R1, palanut alue: .*Odotamme tiellä, kunnes kärki rauhoittuu/)], rule: "cited",
       basis: "integrates the two pushed withdrawals to R1 in the black (radio 6.0, 6.1: the crown fire, the near miss) and EK11's pushed 15.03 'we wait on the road until the head calms': no crew works the head during the crown run (EK14 holds the north edge, VPK is refilling at W1 and back on the origin at 15.15 — gate R: was on the origin from 15.00 —, KY21 the south flank with 4 % water)",
@@ -284,7 +311,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // `31` F01 (RC): replaces growth_next, keyed on a report series V4's map never drew (step 6), whose report band (~9.5 ha) and the CA's
     // crown run (~23.5 ha) could not share a band under any band set. A consequence of the crown run with a delivered basis instead.
     choice({
-      slug: "return_danger", level: "L3", goal: "safety", keySteps: [6, 7], promptFi: `Mikä vaarantaa kärjen sivustoille palaavat miehistöt todennäköisimmin ${withinMinutesFi(minutesAhead(4, 7))}?`,
+      slug: "return_danger", level: "L3", goal: "safety", keySteps: [6, 7], promptFi: `Mikä vaarantaa kärjen sivustoille palaavat miehistöt todennäköisimmin ${withinHorizonFi(4, 7)}?`,
       options: [
         ["spots", "Pistepalot, jotka syttyvät niiden taakse"], ["water", "Veden loppuminen, kun vesiajo ei ehdi"],
         ["head_back", "Kärki, joka kääntyy takaisin tielle R1"], ["fatigue", "Uupumus, kun työvuoro on venynyt pitkäksi"],
@@ -292,20 +319,23 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: ["atom.demo.6.0"],
       basis: "`31` F01 (DRAFT, RC; domain review): spotting 200–400 m ahead is on record (story 6.0, pushed); when the crown fire drops at Koivuoja (15.20) EK11 returns to the line and spot fire PP1 starts behind it beside its route to the vehicle, so it pulls its men out (step 7: DR1 15.31, EK11 15.30, pushed in V5). No record to step 6 names a spot fire behind a crew",
     }),
-    // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Koivuoja and Korpioja are map names; no record names either before step 7.
+    // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Korpioja is a map name, on record from step 7; Koivuoja (the brook and its birch
+    // strip) is on record from step 4 since the play-test decisions (DR1 14.27, pushed in V3: D3).
     choice({
       // A consequence the envelope does not draw: where the crown run leaves the spruce (the broadleaf strip along the brook).
-      slug: "crown_drops", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Missä kärjen latvapalo todennäköisesti laskeutuu takaisin pintapaloksi ${withinMinutesFi(minutesAhead(4, 7))}?`,
+      // Play-test D3 (24 Oct 2026): the strip is stated before V4 (`BIRCH_STRIP`), so the key has a basis on a surface; the record gives the
+      // fuel, the projection that the crown fire drops in it is the item's (knowledge applied to the record).
+      slug: "crown_drops", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Missä kärjen latvapalo todennäköisesti laskeutuu takaisin pintapaloksi ${withinHorizonFi(4, 7)}?`,
       options: [
         ["birch", "Koivuojan varren lehtimetsässä"], ["wind", "Kuusikossa, kun tuuli heikkenee"],
         ["river", "Kotkanjoen rannassa"], ["late", "Ei laskeudu ennen tuulen kääntymistä"],
       ], key: "birch",
-      keyAtomIds: [], rule: "cited", basisKind: "knowledge",
-      basis: "SPEC/30 §5.1 (DRAFT): CYCLE_STORY 7 (15:20) 'Latvapalo laskeutunut Koivuojan koivikkoon, pintapalo jatkuu'; the CA head is at BIRCH (the birch–aspen strip along Koivuoja) at the end of step 6; the wind turns only at step 8 (165°). Koivuoja is a map name, on record from step 7",
+      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [BIRCH_STRIP],
+      basis: "SPEC/30 §5.1 (DRAFT): DR1's pushed 14.27 terrain line (V3; play-test D3): beyond Kuusimäki's spruce a narrow strip of birch and aspen along Koivuoja (no figure; ~200 m on the fuel grids); CYCLE_STORY 7 (15:20) 'Latvapalo laskeutunut Koivuojan koivikkoon, pintapalo jatkuu'; the CA head is at BIRCH (the birch–aspen strip along Koivuoja) at the end of step 6; the wind turns only at step 8 (165°)",
     }),
     choice({
       // A barrier that fails: the brook between the head and the north, crossed by spotting during the crown run. `31` F15: two per polarity.
-      slug: "korpioja_spot", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Pysäyttääkö Korpioja palon kärjen etenemisen ${withinMinutesFi(minutesAhead(4, 7))}?`,
+      slug: "korpioja_spot", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Pysäyttääkö Korpioja palon kärjen etenemisen ${withinHorizonFi(4, 7)}?`,
       options: [
         ["jumps", "Ei, kipinät sytyttävät paloja ojan yli"], ["around", "Ei, kärki kiertää ojan latvan kautta"],
         ["stops", "Kyllä, kärki pysähtyy ojan rantaan"], ["wind", "Kyllä, kun tuuli kääntyy ennen ojaa"],
@@ -322,15 +352,19 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
   ],
   5: [
     point({
-      slug: "head_now", level: "L1", goal: "containment", promptFi: HEAD_NOW_FI, point: headNow(7),
-      keyAtomIds: [], rule: "computed", basis: "the observed head step 7 draws (observedHead.anchor)",
+      // Play-test D1 (24 Oct 2026), checked against the header's "now" (the 15.20–15.40 reports): the key stays the head the 15.20 map draws,
+      // ~50 m from the Koivuoja point, where the period's latest head reports put it (EK11 15.24 at Koivuoja: "kärki menee ohitsemme
+      // koilliseen"; KY21: stopped at Koivuoja 15.00–15.20). The fire model's 15.40 head (`truthHeadAtEndOf(7)`, ~430 m on: the ember crossing
+      // of Koivuoja) is first reported in V6, so keying it would ask for unseen information.
+      slug: "head_now", level: "L1", goal: "containment", promptFi: HEAD_NOW_LATEST_FI, point: headNow(7),
+      keyAtomIds: [], rule: "computed", basis: "the observed head step 7 draws (observedHead.anchor), at Koivuoja as EK11's pushed 15.24 report puts it",
     }),
     choice({
       // `31` F10, F25: replaces spot_cause (the crossing mechanism, EK12's record recalled, and stated by V4 korpioja_spot's key);
       // comprehension of the crossing for containment. SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review):
       // the forest-road crossing at Kuusimäki is gone, so the item relates the one crossing (Korpioja) to where the crews are; it states
       // nothing about Koivuoja, which `road_jump` asks about.
-      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä Korpiojan ylitys merkitsee palon rajaamiselle nyt?",
+      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä Korpiojan ylitys merkitsee viimeisimpien tietojen mukaan palon rajaamiselle?", // play-test D1 (was "nyt")
       options: [
         ["no_barrier", "Korpiojan takana palaa uusi palo, jota kukaan ei sammuta"], ["put_out", "Ylityskohta on jo sammutettu, ja Korpioja rajaa palon"],
         ["ek11", "EK11 pitää ylityskohdan Koivuojan linjaltaan käsin"], ["dies", "Uusi palo sammuu itsestään ojan kosteaan rantaan"],
@@ -340,7 +374,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // `31` F10: replaces units_enough (EK11's request for more units recalled); two EK11 reports related to keeping up with the head.
-      slug: "hose_short", level: "L2", goal: "resources", promptFi: "Mikä rajoittaa EK11:n työtä Koivuojan linjalla nyt eniten?",
+      slug: "hose_short", level: "L2", goal: "resources", promptFi: "Mikä rajoittaa viimeisimpien tietojen mukaan eniten EK11:n työtä Koivuojan linjalla?", // play-test D1 (was "nyt"): the 15.35 report
       options: [
         ["hose", "Letkua on liian vähän kärjen perässä pysymiseen"], ["water", "Vesi loppuu, koska vesiajo ei ehdi linjalle"],
         ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
@@ -351,23 +385,24 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // SPEC/30 §5.1 (DRAFT, domain review). `31` F07: before wind_shift, and the stem no longer names the forecast turn (it told everyone of
       // the recorded-only forecast, evt.wx.03, and pre-exposed a source-memory fact); the key is the crew's safety when the wind backs.
-      slug: "ek14_shelter", level: "L3", goal: "safety", keySteps: [7, 8], promptFi: `Mitä pohjoisreunalla työskentelevän EK14:n on todennäköisesti tehtävä ${withinMinutesFi(minutesAhead(5, 8))}?`,
+      slug: "ek14_shelter", level: "L3", goal: "safety", keySteps: [7, 8], promptFi: `Mitä pohjoisreunalla työskentelevän EK14:n on todennäköisesti tehtävä ${withinHorizonFi(5, 8)}?`,
       options: [
         ["shelter", "Siirryttävä turvaan palaneelle alueelle"], ["hold", "Jatkettava työtä samalla linjalla"],
         ["head", "Siirryttävä Koivuojalle kärjen avuksi"], ["refill", "Lähdettävä täyttämään säiliötä Haukilammelle"],
       ], key: "shelter",
-      keyAtomIds: ["evt.wx.03"], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03"],
-      basis: "SPEC/30 §5.1 (DRAFT): the forecast (evt.wx.03, recorded 15.03: SW → S → SE at 15.30–16.00); EK14's step-8 radio (pushed in V6): it withdraws to R1 in the middle of the burned area, the safety zone, because the turned wind leaves the north flank downwind. No record to step 7 says EK14 withdraws",
+      // Play-test D7 (24 Oct 2026): the forecast's headline is pushed now (P2 15.05, V4's second step), the full forecast still recorded.
+      keyAtomIds: ["evt.wx.03", FORECAST_HEADLINE], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03", FORECAST_HEADLINE],
+      basis: "SPEC/30 §5.1 (DRAFT): the forecast (evt.wx.03, recorded 15.03: SW → S → SE at 15.30–16.00; its headline pushed by P2 at 15.05 in V4, play-test D7); EK14's step-8 radio (pushed in V6): it withdraws to R1 in the middle of the burned area, the safety zone, because the turned wind leaves the north flank downwind. No record to step 7 says EK14 withdraws",
     }),
     choice({
-      slug: "wind_shift", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Mikä palon reuna aktivoituu ${withinMinutesFi(minutesAhead(5, 9))}, jos tuuli alkaa puhaltaa etelästä?`,
+      slug: "wind_shift", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Mikä palon reuna aktivoituu ${withinHorizonFi(5, 9)}, jos tuuli alkaa puhaltaa etelästä?`,
       options: [["north", "Pohjoisreuna"], ["south", "Eteläreuna"], ["west", "Syttymäkohdan puoleinen länsiosa"], ["none", "Ei mikään, vain kärki etenee"]], key: "north",
-      keyAtomIds: ["evt.wx.03", "evt.wx.02"], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03", "evt.wx.02"],
-      basis: "the forecast (evt.wx.03, V4: SW -> S at 15.30-16.00; evt.wx.02 the front) and CA step 9 (wind from 140°): the new growth outside the head is in L1, north; CYCLE_STORY 9 'pohjoisreuna aktivoitunut'",
+      keyAtomIds: ["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE],
+      basis: "the forecast (evt.wx.03, V4: SW -> S at 15.30-16.00, its headline pushed by P2 at 15.05, play-test D7; evt.wx.02 the front) and CA step 9 (wind from 140°): the new growth outside the head is in L1, north; CYCLE_STORY 9 'pohjoisreuna aktivoitunut'",
     }),
     // Fix pass 5 (8 Oct 2026, researcher decision): replaces rate_next. The area NOW is on record (the map, DR3's 15:35 survey); the hour's growth is the projection.
     choice({
-      slug: "area_hour", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(5, 9))}?`,
+      slug: "area_hour", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Kuinka suuri koko palanut ala on ${horizonFi(5, 9)}?`,
       options: [["lt90", "Alle 90 hehtaaria"], ["m90_140", "90–140 hehtaaria"], ["m140_190", "140–190 hehtaaria"], ["gt190", "Yli 190 hehtaaria"]], key: V5_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: [V5_SURVEY.area.id], basisSteps: [7],
       basis: `REPORT-keyed (D4; \`31\` rule (1)): the pushed 15.35 survey (DR3: ${V5_SURVEY.area.value} ha, ${V5_SURVEY.added.value} ha new in 20 minutes; the map draws step 7) carried on to the end of step 9 (16.20), ${figures(V5_AREA, "ha")}; ~77 ha now`,
@@ -378,7 +413,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // the surface fire stopped at it at 15.00–15.20 (radio 7.3 since gate R, pushed: the lure), and embers cross it at 15.20–15.40 (radio 8, pushed
     // in V6). The slug is kept (a shared id).
     choice({
-      slug: "road_jump", level: "L3", goal: "containment", keySteps: [7, 8], promptFi: `Pysäyttääkö Koivuoja palon etenemisen ${withinMinutesFi(minutesAhead(5, 8))}?`,
+      slug: "road_jump", level: "L3", goal: "containment", keySteps: [7, 8], promptFi: `Pysäyttääkö Koivuoja palon etenemisen ${withinHorizonFi(5, 8)}?`,
       options: [
         ["again", "Ei, kipinät lentävät ojan yli ja sytyttävät uuden palon"], ["creep", "Ei, palo ryömii ojan yli matalana pintapalona"],
         ["once", "Kyllä, kosteat rannat pysäyttävät palon ojaan"], ["crews", "Kyllä, EK11:n linja ojan varressa pitää palon"],
@@ -391,7 +426,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // Fix pass 3 (7 Oct 2026): a choice item: KY21's radio says it is moving to the north edge now, while the step-10 map symbol still
       // shows it on the south edge by design (UNIT_PLAN stale: [10]). `31` F24: the south-edge option is gone (it cued H10's sector).
-      slug: "ky21_where", level: "L1", goal: "safety", promptFi: "Missä KY21 on nyt?",
+      slug: "ky21_where", level: "L1", goal: "safety", promptFi: "Missä KY21 on viimeisimpien tietojen mukaan?", // play-test D1 (was "nyt"): its 16.2x radio
       options: [
         ["north", "Siirtymässä pohjoisreunalle (lohko L1)"], ["cp", "Johtopaikalla odottamassa uutta tehtävää"],
         ["head", "Kärjessä Koivuojan linjalla"], ["w1", "Täyttämässä säiliötä Haukilammella"],
@@ -402,7 +437,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // Fix pass 2 (7 Oct 2026, P1-1/2): the key does not state the smoulder-and-flare-up mechanism (H10). `31` F06: the distractor that
       // the records supported ("the fire picks up on a new edge as the wind turns") is replaced by a clearly false state.
-      slug: "lull_meaning", level: "L2", goal: "containment", promptFi: "Mitä tuulen heikkeneminen merkitsee palon hallinnalle nyt?",
+      slug: "lull_meaning", level: "L2", goal: "containment", promptFi: "Mitä tuulen heikkeneminen merkitsee viimeisimpien tietojen mukaan palon hallinnalle?", // play-test D1 (was "nyt")
       options: [
         ["not_out", "Reunat rauhoittuvat hetkeksi, palo ei ole ohi"], ["out", "Palo hidastuu, ja linjoja voidaan harventaa"],
         ["release", "Osa lisäyksiköistä voidaan kotiuttaa illaksi"], ["stopped", "Palo on pysähtynyt, ja reunat ovat jo kylmiä"],
@@ -421,14 +456,14 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       basis: "integrates KY21's and VPK's pushed moves to the north edge (radio 10.3, 10.4) with EK14's pushed move along it towards Karhujärvi (radio 10.1): the north edge, held by EK14 alone since 13.41, gets two more crews",
     }),
     choice({
-      slug: "rekindle_sector", level: "L3", goal: "containment", keySteps: [10, 12], promptFi: `Missä lohkossa uudelleensyttymisen riski on suurin ${withinMinutesFi(minutesAhead(7, 12))}?`,
+      slug: "rekindle_sector", level: "L3", goal: "containment", keySteps: [10, 12], promptFi: `Missä lohkossa uudelleensyttymisen riski on suurin ${withinHorizonFi(7, 12)}?`,
       options: [["L1", "L1 Pohjoinen"], ["L2", "L2 Koillinen"], ["L3", "L3 Etelä"], ["L4", "L4 Länsi"]], key: firstDetachedFrontAfter(9)!.sector!, // fix pass 4: from the freeze's now (step 10 on)
       keyAtomIds: [], rule: "computed", basisKind: "ca_truth", family: "verification",
       basis: "the first CA detached front after step 10: step 12, ~120 m SE of the point of origin (6 Oct 2026: anchored to the burned edge, was ~200 m ESE), L3 (the old south edge flaring up; reported in V9) — the H10 anticipation key; `31` (a): a verification item (only VPK's recorded objection, ranked low for broad questions, warns of it)",
     }),
     choice({
       // `31` F15, F26: two options per polarity, each with its own reason (two near-duplicate yes options and "already" are gone).
-      slug: "cabins_reach", level: "L3", goal: "values", keySteps: [10, 12], promptFi: `Saavuttaako palo Mökkirannan mökit ${withinMinutesFi(minutesAhead(7, 12))}?`,
+      slug: "cabins_reach", level: "L3", goal: "values", keySteps: [10, 12], promptFi: `Saavuttaako palo Mökkirannan mökit ${withinHorizonFi(7, 12)}?`,
       options: [
         ["no", "Ei, matkaa on liikaa nykyisellä nopeudella"], ["sprinklers", "Ei, mökit on jo suojattu sadettimilla"],
         ["wind", "Kyllä, kaakkoistuuli painaa palon sinne"], ["sparks", "Kyllä, kipinät kantautuvat mökeille asti"],
@@ -439,7 +474,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Neither item names the old south edge, the south-east or the north edge's state.
     choice({
       // A value at risk being reached (or not): the command post, ~800 m west of the fire. `31` F15: two options per polarity.
-      slug: "cp_safe", level: "L3", goal: "safety", keySteps: [10, 12], promptFi: `Joutuuko johtopaikka siirtymään palon tai savun takia ${withinMinutesFi(minutesAhead(7, 12))}?`,
+      slug: "cp_safe", level: "L3", goal: "safety", keySteps: [10, 12], promptFi: `Joutuuko johtopaikka siirtymään palon tai savun takia ${withinHorizonFi(7, 12)}?`,
       options: [
         ["stays", "Ei, palo ja savu pysyvät siitä kaukana"], ["moved", "Ei, johtopaikka on jo siirretty kauemmas"],
         ["road", "Kyllä, palo etenee tietä R1 pitkin sinne"], ["smoke", "Kyllä, savu peittää sen tuulen kääntyessä"],
@@ -449,7 +484,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // A formation needing relief. `31` F19: keyed on pushed records (time on scene), and asked as who asks next (VPK's request is pushed in V8).
-      slug: "relief_next", level: "L3", goal: "safety", keySteps: [10, 11], promptFi: `Kenen miehistö pyytää EK11:n jälkeen seuraavana vuoronvaihtoa tai korvaavaa yksikköä ${withinMinutesFi(minutesAhead(7, 11))}?`,
+      slug: "relief_next", level: "L3", goal: "safety", keySteps: [10, 11], promptFi: `Kenen miehistö pyytää EK11:n jälkeen seuraavana vuoronvaihtoa tai korvaavaa yksikköä ${withinHorizonFi(7, 11)}?`,
       options: [["VPK", "VPK:n miehistö"], ["EK12", "EK12:n miehistö"], ["EK14", "EK14:n miehistö"], ["KY21", "KY21:n miehistö"]], key: RELIEF.key,
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [...RELIEF.ids, RADIO.ek14Arrives, RADIO.ky21Arrives, trafficId(10, /^EK11, Koivuoja: miehistö ollut kentällä \d+,\d h\. Pyydämme vuoronvaihtoa/)],
       basis: `SPEC/30 §5.1 (DRAFT; \`31\` F19): time on scene at 16.20 from pushed records only (VPK and EK12 'olemme olleet täällä' at 13.2x, EK14's and KY21's arrival radios): ${Object.entries(RELIEF.hours).map(([u, h]) => `${u} ${h.toFixed(1)} h`).join(", ")}; EK11 asks for relief at 4.5 h (${RELIEF.ek11At}, pushed); VPK asks for relief at ${RELIEF.vpkAt} (pushed in V8)`,

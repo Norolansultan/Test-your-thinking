@@ -1,8 +1,9 @@
 /**
  * `31` §3.8, §3.9, F12, F13 (19 Oct 2026): what the screen gets at a freeze. The items reach it through a whitelist (`screenFreezeItem`): no
- * key, key record, key statement, element pattern, lure statement, basis, family, retrieval flag or fire-model band — analysis metadata
- * stays in the scenario. The header states "now", the screen's clock at the freeze (`freezeNowLabel`; V10 17.40, V12 19.00, V14 20.00 at
- * the view's end). An 8-item freeze closes at 240 s, a shorter one at 180 s (`freezeMaxSecondsFor`).
+ * key, key record, key statement, element pattern, lure statement, basis, family, retrieval flag, scoring flag or fire-model band —
+ * analysis metadata stays in the scenario. The header states "now" (play-test D1, 24 Oct 2026: the span of the period's latest reports, the
+ * view's last step — V2 14.00–14.20, V12 18.40–19.00 — and "now" as the situation they give; was the screen's clock, `31` F13). An 8-item
+ * freeze closes at 240 s, a shorter one at 180 s (`freezeMaxSecondsFor`).
  */
 
 import { readFileSync } from "node:fs";
@@ -20,7 +21,7 @@ afterEach(() => vi.useRealTimers());
 
 const SCREEN_KEYS = new Set(["id", "level", "promptFi", "kind", "options"]);
 /** An analysis-only or TRUTH field as a JSON property name (the snapshot's own `correction` is not one). */
-const ANALYSIS_ONLY = /"(?:keyStatements|elementPatterns|lureStatements|basisKind|basisAtomIds|basisSteps|truthOptionId|family|retrievalDependent|keyAtomIds|mapKey|correct|projectionOption)":/;
+const ANALYSIS_ONLY = /"(?:keyStatements|elementPatterns|lureStatements|basisKind|basisAtomIds|basisSteps|truthOptionId|family|retrievalDependent|scoredFor|keyAtomIds|mapKey|correct|projectionOption)":/;
 const clock = (min: number) => `${Math.floor(min / 60)}.${String(min % 60).padStart(2, "0")}`;
 
 describe("the screen's freeze items (`31` §3.9): a whitelist", () => {
@@ -33,7 +34,7 @@ describe("the screen's freeze items (`31` §3.9): a whitelist", () => {
     }
     // The bank does carry the metadata the whitelist keeps out (else this test would be vacuous).
     const all = scenario.freezes.flatMap((f) => f.items);
-    for (const field of ["keyStatements", "elementPatterns", "lureStatements", "basisKind", "basisAtomIds", "family", "retrievalDependent"] as const) {
+    for (const field of ["keyStatements", "elementPatterns", "lureStatements", "basisKind", "basisAtomIds", "family", "retrievalDependent", "scoredFor"] as const) {
       expect(all.some((it) => it[field] !== undefined), field).toBe(true);
     }
   });
@@ -47,24 +48,27 @@ describe("the screen's freeze items (`31` §3.9): a whitelist", () => {
     expect(items).toHaveLength(8);
     expect(JSON.stringify(snap())).not.toMatch(ANALYSIS_ONLY);
     for (const it of items) for (const k of Object.keys(it)) expect(SCREEN_KEYS.has(k), `${it.id}: ${k}`).toBe(true);
-    expect(o.freezeNowLabel()).toBe(clock(stepStartMin(nowStepOf(5)))); // F13: the header's "now"
+    expect(o.freezeNowLabel()).toBe(`${clock(stepStartMin(7))}–${clock(stepStartMin(8))}`); // play-test D1: the header's "now", 15.20–15.40
   });
 });
 
-describe("the freeze header's now (`31` F13, §3.8)", () => {
-  it("is the start of the view's last step, or the view's end for V10, V12 and V14 — the clock the L3 horizons count from", () => {
+describe("the freeze header's now (`31` F13, §3.8; play-test D1, 24 Oct 2026)", () => {
+  it("is the span of the view's last step, the period's latest reports — beginning at the screen's clock inside the view, ending at it for V10, V12 and V14", () => {
     const labels = Object.fromEntries([...FREEZE_VIEWS].sort((a, b) => a - b).map((v) => {
       const view = MAIN_VIEWS.find((x) => x.index === v)!;
       const label = freezeNowClock(stepStartMin(view.steps[0]!), view.steps.length, FREEZE_AT_VIEW_END.has(v));
-      expect(label, `V${v}`).toBe(clock(stepStartMin(nowStepOf(v))));
+      const last = view.steps.at(-1)!;
+      expect(label, `V${v}`).toBe(`${clock(stepStartMin(last))}–${clock(stepStartMin(last + 1))}`);
+      // The screen's clock (`nowStepOf`, the L3 horizons' base) is one end of the span: its start inside the view, its end at the view's end.
+      expect(label.split("–")[FREEZE_AT_VIEW_END.has(v) ? 1 : 0], `V${v}`).toBe(clock(stepStartMin(nowStepOf(v))));
       return [v, label];
     }));
-    expect(labels).toMatchObject({ 10: "17.40", 12: "19.00", 14: "20.00" });
+    expect(labels).toMatchObject({ 2: "14.00–14.20", 4: "15.00–15.20", 5: "15.20–15.40", 10: "17.20–17.40", 12: "18.40–19.00", 14: "19.40–20.00" });
   });
 
   it("is stated in both languages, and the screen shows it (source)", () => {
-    expect(UI_TEXT.fi.freezeNow("19.00")).toMatch(/19\.00/);
-    expect(UI_TEXT.en.freezeNow("19.00")).toMatch(/19\.00/);
+    expect(UI_TEXT.fi.freezeNow("18.40–19.00")).toBe("Jakson viimeisimmät tiedot kattavat klo 18.40–19.00. Kysymysten ”nyt” on tilanne niiden mukaan.");
+    expect(UI_TEXT.en.freezeNow("18.40–19.00")).toBe("The period's latest reports cover 18.40–19.00. In the questions, “now” is the situation they give.");
     const src = readFileSync(new URL("../../app/render/ui/components/FreezeScreen.tsx", import.meta.url), "utf8");
     expect(src).toMatch(/freezeNowLabel\(\)/);
     expect(src).toMatch(/data-testid="freeze-now"/);

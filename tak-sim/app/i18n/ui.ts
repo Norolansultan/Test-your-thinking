@@ -254,8 +254,12 @@ export interface UiText {
   readonly done: string;
   readonly freezeTitle: string;
   readonly freezeNote: string;
-  /** `31` F13 (19 Oct 2026): the freeze's "now", the clock on screen when it opened (the view's end for a view-end freeze). DRAFT, native check. */
-  readonly freezeNow: (clock: string) => string;
+  /**
+   * The freeze's "now" (`31` F13, 19 Oct 2026; play-test D1, 24 Oct 2026, option (a)): the span of the period's latest reports, "14.00–14.20"
+   * (`freezeNowClock`), and "now" defined as the situation they give (was the clock on screen, "this moment", which the L1/L2 keys' later
+   * stamped records contradicted). DRAFT, native check.
+   */
+  readonly freezeNow: (span: string) => string;
   readonly freezeSubmit: string;
   /** A map item (SPEC/15 r.12): the blank map's hint, the note once a point is marked, and the answered count by the submit. */
   readonly freezeMapHint: string;
@@ -486,7 +490,7 @@ const FI: UiText = {
   done: "Istunto valmis — kaikki 14 jaksoa suoritettu. Älä kerro istunnon kulusta kollegoillesi ennen kuin tutkimus on päättynyt.",
   freezeTitle: "MUISTIKATKO — kuva piilotettu",
   freezeNote: "Vastaa muistin varassa. Kello on pysähtynyt.",
-  freezeNow: (clock) => `Kello pysähtyi klo ${clock}. ”Nyt” tarkoittaa tätä hetkeä.`,
+  freezeNow: (span) => `Jakson viimeisimmät tiedot kattavat klo ${span}. Kysymysten ”nyt” on tilanne niiden mukaan.`,
   freezeSubmit: "LÄHETÄ JA JATKA",
   freezeMapHint: "Napauta kartalta kohta. Voit siirtää merkkiä napauttamalla uudelleen.",
   freezeMapMarked: "Kohta merkitty. Napauta uudelleen siirtääksesi.",
@@ -673,7 +677,7 @@ const EN: UiText = {
   done: "Session complete — all 14 periods done. Please do not describe the session to colleagues until the study has ended.",
   freezeTitle: "MEMORY CHECK — picture hidden",
   freezeNote: "Answer from memory. The clock has stopped.",
-  freezeNow: (clock) => `The clock stopped at ${clock}. “Now” means this moment.`,
+  freezeNow: (span) => `The period's latest reports cover ${span}. In the questions, “now” is the situation they give.`,
   freezeSubmit: "SUBMIT AND CONTINUE",
   freezeMapHint: "Tap a point on the map. You can move the marker by tapping again.",
   freezeMapMarked: "Point marked. Tap again to move it.",

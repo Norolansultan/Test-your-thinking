@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { DECISION_PROMPT_FI } from "../../app/scenario/demo-decisions.js";
 import { FREEZE_VIEWS, INFRA_SCHEDULE, SPAM_VIEWS, infrastructureItem } from "../../app/scenario/demo-probes.js";
-import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { FORECAST_HEADLINE, FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
 import { isOrdinal } from "../../app/scenario/freeze-bank-core.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
@@ -61,8 +61,9 @@ describe("the goal-based bank's structure", () => {
     expect(mains.find((f) => f.cycle === 14)!.items.some((it) => it.kind === "map_point")).toBe(false);
     for (const f of [...mains, scenario.practice.freeze]) for (const it of f.items.filter((x) => x.kind === "map_point")) {
       expect(it.options, it.id).toEqual([]);
-      // V10's small front: 100 m (fix pass 6); V12's head an hour after 19.00 lies ~570 m from the head drawn at "now", so 250 m keeps `31` F03's 2× rule
-      const tolerance = it.id === "freeze.10.south_front_point" ? 100 : it.id === "freeze.12.head_later" ? 250 : it.level === "L3" ? 300 : 200;
+      // V12's head an hour after 19.00 lies ~570 m from the head drawn at "now", so 250 m keeps `31` F03's 2× rule; V10's small front takes
+      // the L1 200 m since the play-test decisions (D8, 24 Oct 2026; was 100 m, fix pass 6)
+      const tolerance = it.id === "freeze.12.head_later" ? 250 : it.level === "L3" ? 300 : 200;
       expect(it.mapKey!.toleranceM, it.id).toBe(tolerance);
       expect(it.level, it.id).not.toBe("L2");
     }
@@ -100,10 +101,12 @@ describe("the goal-based bank's structure", () => {
     // 2 Oct 2026: an L3 key may rest on a record available at the freeze (the wind forecast, evt.wx.*), checked by the next test for every level.
     // SPEC/31 (az) phase 4, finding 5 (20 Oct 2026): or, for a REPORT-keyed item on records (`basisKind` "record"), on exactly the records
     // its basis cites (V14 flare_next: the pushed 19.23 and 19.42 lines), so that its told class is computed (stream-told).
+    // Play-test D7 (24 Oct 2026): a forecast is a recorded `evt.wx.*` or P2's pushed headline of the 15.00 one (`FORECAST_HEADLINE`).
+    const forecast = (id: string) => /^evt\.wx\./.test(id) || id === FORECAST_HEADLINE;
     for (const { d } of defs.filter((x) => x.d.level === "L3")) {
-      const cited = d.basisKind === "record" && d.keyAtomIds.length > 0 && d.keyAtomIds.every((id) => !/^evt\.wx\./.test(id));
+      const cited = d.basisKind === "record" && d.keyAtomIds.length > 0 && d.keyAtomIds.every((id) => !forecast(id));
       if (cited) expect(d.keyAtomIds, d.slug).toEqual(d.basisAtomIds);
-      else for (const id of d.keyAtomIds) expect(id, d.slug).toMatch(/^evt\.wx\./);
+      else for (const id of d.keyAtomIds) expect(forecast(id), `${d.slug}: ${id}`).toBe(true);
     }
   });
 

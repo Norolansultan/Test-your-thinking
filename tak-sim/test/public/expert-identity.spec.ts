@@ -23,14 +23,19 @@
  *
  * Updated deliberately for the changes adopted before pilot 2 (24 Oct 2026, format 0.16.0): the questionnaires carry new items (the
  * pre-session sleep and shift items, the post-session self-estimate and perceived-influence items), which the comparison removes from
- * the two questionnaires' records (`identity-normalise.ts`); nothing else moves. The Haku chip (Haku group, V8–V14) and the hinge's
- * fatigue item write records only when used, and this driver uses neither, so the digests and the 515 records stand.
+ * the two questionnaires' records (`identity-normalise.ts`). The Haku chip (Haku group, V8–V14) and the hinge's fatigue item write
+ * records only when used, and this driver uses neither.
+ * Updated deliberately for the play-test decisions (24 Oct 2026, a STIMULUS change; SPEC/08 (bg), SPEC/18 (bg)): four new pushed
+ * records (V3, V4, V5, V9) write four `bubble_available` records more (519), their sources (P2, TILANNEKUVA) are listed in earlier
+ * views' `navSources`, and V10's recast item has a new id. The normaliser maps exactly those back (`identity-normalise.ts`), and every
+ * other record is still the 0.12.0 run's byte for byte: the same three segment digests. The re-worded stems and options, the freeze
+ * header's text and the two new answers given only when a unit is asked write no record here.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TELEMETRY_FORMAT_VERSION } from "../../app/telemetry/record-kinds.js";
 import { driveSession, newStudySession, wholeSession } from "./public-run.js";
-import { segmentDigests } from "./identity-normalise.js";
+import { PLAYTEST_PUSHED, segmentDigests } from "./identity-normalise.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -55,7 +60,7 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
   for (const cell of ["radio", "reasoning_once", "reasoning_intent"] as const) {
     it(`${cell}: the records are those of 0.12.0 except the header's new fields and the difficulty audit's deliberate additions`, async () => {
       const { o, records } = await wholeSession({ cell });
-      expect(records).toHaveLength(515); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12 (see the note above)
+      expect(records).toHaveLength(519); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12, the play-test's 4 pushed records (see the notes above)
       const optIn = records.findIndex((r) => r.kind === "results_optin");
       expect(records[optIn]!.detail).toEqual({ optedIn: false });
       expect(records[optIn - 1]).toMatchObject({ kind: "questionnaire_submitted", detail: { questionnaireId: "post" } });
@@ -70,6 +75,8 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       expect(records[shown - 2]).toMatchObject({ kind: "cycle_end", detail: { cycle: 0 } });
       expect(records[shown + 1]).toMatchObject({ kind: "briefing_advanced", detail: { screenId: "practice.feedback" } });
       expect(records.filter((r) => (r.detail as { probeId?: string }).probeId === "probe.s.practice.b").map((r) => r.kind)).toEqual(["spam_answered", "recall_confidence_submitted"]);
+      // The play-test's four pushed records, once each (SPEC/18 (bg)).
+      expect(records.filter((r) => r.kind === "bubble_available" && PLAYTEST_PUSHED.has((r.detail as { atomId: string }).atomId)).map((r) => (r.detail as { atomId: string }).atomId).sort()).toEqual([...PLAYTEST_PUSHED].sort());
       const digests = segmentDigests(records);
       expect(digests.count).toBe(502);
       expect({ preVp: digests.preVp, vp: digests.vp, main: digests.main }).toEqual(SEGMENTS[cell]);

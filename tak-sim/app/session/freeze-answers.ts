@@ -38,7 +38,7 @@ export interface ScreenFreezeItem {
 /**
  * The screen's copy of a freeze item, built field by field (`31` §3.9, 19 Oct 2026): no TRUTH and no analysis metadata reaches
  * the render layer — not the keys (`mapKey`, each option's `correct`, `projectionPoint`, `projectionOptionId`, `truthOptionId`),
- * not `keyAtomIds`, `keyStatements`, `elementPatterns`, `lureStatements`, `basisAtomIds`, `basisKind`, `family` or `retrievalDependent` (a whitelist, so a field added later is
+ * not `keyAtomIds`, `keyStatements`, `elementPatterns`, `lureStatements`, `basisAtomIds`, `basisKind`, `family`, `retrievalDependent` or `scoredFor` (a whitelist, so a field added later is
  * left out unless it is named here). Checked in `test/session/freeze-screen-items.spec.ts`.
  */
 export function screenFreezeItem(item: FreezeItem): ScreenFreezeItem {
@@ -50,14 +50,21 @@ export function screenFreezeItem(item: FreezeItem): ScreenFreezeItem {
 }
 
 /**
- * `31` §3.8, F13 (19 Oct 2026): the clock the freeze's header states as "now" ("Kello pysähtyi klo …"), the study's dotted form
- * ("19.00"). `08` y.1: the clock on screen when the freeze opens — the start of the view's last step (a merged view's freeze falls
- * after its step boundary); for a freeze at the view's end (`FREEZE_AT_VIEW_END`) the view's end. `firstStepStartMin` is the
- * clock of the view's first step's start in minutes after midnight; `steps` the view's step count (1 or 2).
+ * The span the freeze's header names as "now" (`ui.ts` `freezeNow`), in the study's dotted form ("14.00–14.20").
+ *
+ * Play-test D1 (researcher, 24 Oct 2026, option (a): one definition of "now"): the header names the span of the period's latest reports —
+ * the view's last step, from its start to its end — and defines "now" as the situation those reports give. It replaces `31` F13's single
+ * clock ("Kello pysähtyi klo 14.00. ”Nyt” tarkoittaa tätä hetkeä."), which contradicted the L1/L2 keys: they rest on that step's records,
+ * stamped up to 17 minutes later, all delivered by the freeze. The span is the same for a freeze inside the view (the screen's clock is its
+ * start, V2 14.00) and one at the view's end (the clock is its end, V12 19.00). The L3 horizons are still counted from `nowStepOf`'s start,
+ * and each L3 stem names its clock (`horizonFi`). `firstStepStartMin` is the clock of the view's first step's start in minutes after
+ * midnight; `steps` the view's step count (1 or 2); the third parameter (the freeze at the view's end) is kept for the callers and no
+ * longer moves the span.
  */
-export function freezeNowClock(firstStepStartMin: number, steps: number, atViewEnd: boolean): string {
-  const minutes = firstStepStartMin + 20 * (atViewEnd ? steps : steps - 1);
-  return `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
+export function freezeNowClock(firstStepStartMin: number, steps: number, _atViewEnd: boolean): string {
+  const start = firstStepStartMin + 20 * (steps - 1);
+  const clock = (minutes: number) => `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
+  return `${clock(start)}–${clock(start + 20)}`;
 }
 
 /*

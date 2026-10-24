@@ -324,6 +324,18 @@ describe("plantedFalseValueHeld (F7, V12)", () => {
     ]);
     expect(plantedFalseValueHeld(replayed)).toBeNull();
   });
+
+  it("is scored for H9 only (play-test D6, 24 Oct 2026): marked out of the SA composites, which calibrationPairs drops; H9 still reads it", async () => {
+    const f7 = choice("freeze.12.f7", "L2", "live", { scoredFor: "h9_only" });
+    const freezes: readonly FreezeContentLike[] = [{ cycle: 12, items: [{ ...f7, options: ["live", "de_energised"].map((o) => ({ id: o, labelFi: o, correct: o === "live" })) }, choice("v12.l2", "L2", "a")] }];
+    const records = await buildLog([[1_000, { kind: "freeze_submitted", detail: { cycle: 12, responses: [answer("freeze.12.f7", "live", 100), answer("v12.l2", "b", 50)] } }]]);
+    const scores = freezeItemScores(records, freezes);
+    expect(scores.map((s) => [s.itemId, s.correct, s.inSaComposites])).toEqual([["freeze.12.f7", true, false], ["v12.l2", false, undefined]]);
+    const all = calibrationPairs(scores, {});
+    expect(all.pairs.map((p) => p.itemId)).toEqual(["v12.l2"]);
+    expect(all.proportionCorrect).toBe(0);
+    expect(plantedFalseValueHeld(records)).toMatchObject({ itemId: "freeze.12.f7", held: false, confidence: 100 });
+  });
 });
 
 describe("plantedExposure (fix pass 6, H9): the planted record, and the grid operator's contradicting record, met before the V12 freeze", () => {

@@ -11,14 +11,18 @@
  * `shift_meaning` (F28) a values item (`residents`), and `road_crossed` (F14) asks a consequence its stem does not contain.
  */
 
+import type { CycleIndex } from "../engine/primitives.js";
 import { SITE_SCENARIO } from "./site-scenario.js";
-import { choice, headLaterFi, inMinutesFi, minutesAhead, point, withinMinutesFi, type ItemDef } from "./freeze-bank-core.js";
+import { CYCLE_STORY } from "./demo-story.js";
+import { choice, HEAD_NOW_LATEST_FI, headLaterFi, horizonFi, minutesAhead, point, withinHorizonFi, type ItemDef } from "./freeze-bank-core.js";
 import {
-  bandOf, centroid, deliveredAreaAt, deliveredPointDistanceAt, detachedFrontToLineM, distanceToReportedM, distanceToTruthM, headNow, keyBand, projectedLineDistanceAt, projectionOptionFor, R2_LINE,
-  radioId, reportedDetachedClosingAt, reportedDetachedToLineM, reportedLineDistanceAt, siteStep, trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
+  bandOf, centroid, deliveredAreaAt, deliveredPointDistanceAt, detachedFrontToLineM, distanceM, distanceToReportedM, distanceToTruthM, headNow, keyBand, projectedLineDistanceAt, projectionOptionFor,
+  R2_LINE, radioId, reportedDetachedClosingAt, reportedDetachedToLineM, reportedLineDistanceAt, siteStep, storyId, trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
 } from "./freeze-keys.js";
 
 const F = SITE_SCENARIO.features;
+/** Play-test D1 (24 Oct 2026): V10's south front at the header's "now", the view's end (17.40): the centroid of step 13's truth front. */
+const SOUTH_FRONT_1740 = centroid(siteStep(13).truthDetached[0]!);
 
 /** Crew radio key atoms, found by content (`radioId`): their indices shift whenever the radio is regenerated. */
 const RADIO = {
@@ -30,6 +34,7 @@ const RADIO = {
   roadCrossed: radioId(19, /^Palon kärki ylitti metsäautotien \(Honkaharju\)/),
   ek16ToR2: radioId(19, /^EK16: vetäydymme tielle R2/),
   policeVillage: radioId(18, /^Poliisi Lahdenkylästä: kaksi taloa kieltäytyy lähtemästä/),
+  ek16HeadNearsRoad: radioId(17, /^Kärki lähestyy metsäautotietä luoteesta, etenee kaakkoon/), // EK16's pushed 18.41 hold (V12 `head_now`, play-test D1)
 };
 
 const f1 = (n: number) => n.toFixed(1);
@@ -56,12 +61,37 @@ export function settlementKey(step: number): string {
 }
 
 /**
- * V10 (now 17.40, the view's end; REPORT-keyed, D4; `31` rule (1), §3.8): the whole burnt area an hour on (18.40, the end of step 16)
- * through the reported fire the maps of V9 and V10 draw (steps 12, 13). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 143/155/167
- * (were 129/138/148, where both the reports' ~158 ha and the truth's ~164 ha fell in the open top band); both now in 155–167; the map now
- * (~154 ha) and DR3's recorded 17.35 survey (153.6 ha) are the lures, in 143–155.
+ * Play-test D5 (24 Oct 2026): the area V9's pushed situation picture states at 17.05 — the 17.00 map's, the fire model's area at the end of
+ * step 11 (the old fire; the rekindle is not yet on that map). Read from the story beat and checked against the bundle, so a regenerated
+ * fire that moves the area fails the build until the beat is re-authored.
  */
-export const V10_AREA = keyBand(deliveredAreaAt(12, 13, 16), [143, 155, 167], ["lt143", "m143_155", "m155_167", "gt167"], 2.5, "V10 area_total_hour", { value: siteStep(16).areaHa, minMargin: 2.5 });
+export const V9_PICTURE = (() => {
+  const id = storyId(12, /^Tilannekuva klo 17\.05: /);
+  const text = CYCLE_STORY[12 as CycleIndex]!.bubbles[Number(id.split(".").at(-1))]!.text;
+  const ha = Number(/Palanut ala noin (\d+,\d) ha/.exec(text)![1]!.replace(",", "."));
+  if (Math.abs(ha - siteStep(11).areaHa) > 0.05) throw new Error(`V9 situation picture: it states ${ha} ha, the 17.00 fire is ${siteStep(11).areaHa} ha; re-author the beat`);
+  return { id, ha };
+})();
+
+/**
+ * V10 `area_growth_hour` (play-test D5, researcher 24 Oct 2026; replaces `area_total_hour`): how much the burnt area grows over the next
+ * hour from the view's end (17.40 → 18.40, the ends of steps 13 and 16). TRUTH-keyed with a stated tolerance: the fire model's growth
+ * must lie ≥ 2.5 ha from every band edge, else the build fails (re-author). The old item asked the TOTAL in 12-ha bands (143/155/167),
+ * whose scale revealed ~150 ha to anyone whose last pushed figure was 76.4 ha (15.35); growth bands of 2/15/40 ha reveal no magnitude, and
+ * V9 now pushes the area (`V9_PICTURE`). The reports' reading — the line through the areas the maps of V9 and V10 draw (steps 12, 13) — is
+ * computed beside it and must fall in the same band (`31` §3.5 rule (5): no dual key). The lures: no growth (DR3's recorded 17.35 survey,
+ * "reuna ei ole liikkunut missään") under 2 ha, and phase A's pace carried on over 40 ha.
+ */
+const V10_GROWTH_EDGES = [2, 15, 40] as const;
+const V10_GROWTH_IDS = ["lt2", "m2_15", "m15_40", "gt40"] as const;
+export const V10_GROWTH = (() => {
+  const truth = siteStep(16).areaHa - siteStep(13).areaHa;
+  const reported = deliveredAreaAt(12, 13, 16) - deliveredAreaAt(12, 13, 13);
+  const key = bandOf(truth, V10_GROWTH_EDGES, V10_GROWTH_IDS, 2.5, "V10 area_growth_hour (truth)");
+  const rep = bandOf(reported, V10_GROWTH_EDGES, V10_GROWTH_IDS, 0.5, "V10 area_growth_hour (reports)");
+  if (rep.id !== key.id) throw new Error(`V10 area_growth_hour: the reports' band ${rep.id} is not the truth's ${key.id}; re-author the bands`);
+  return { id: key.id, margin: key.margin, value: truth, reported, reportedMargin: rep.margin };
+})();
 
 /**
  * V10 (REPORT-keyed, D4; `31` §3.8): the south front's distance to service road R2 an hour and 20 minutes on from the view's end (19.00,
@@ -126,10 +156,15 @@ export const V14_SPRINKLERS = (() => {
 export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
   10: [
     point({
-      slug: "south_front_point", level: "L1", goal: "containment", promptFi: "Merkitse kartalle eteläinen palorintama syttymäkohdan eteläpuolella.", point: centroid(siteStep(13).reportedDetached[0]!), toleranceM: 100, // fix pass 6: a 0.8 ha front, so the 200 m of an L1 item would take in the old south edge
+      // Play-test D8 (researcher, 24 Oct 2026): the L1 200 m like the other map items (was 100 m, fix pass 6, for a 0.8 ha front; on the blank
+      // basemap all three play-test players missed it, at 112, 199 and 203 m). Play-test D1, the header's "now" (the view's end, 17.40): the
+      // key is the front as the fire model has it then — the centroid of step 13's truth front — not the 17.20 front the map draws, 84 m
+      // west of it (a mark on the drawn front still scores).
+      slug: "south_front_point", level: "L1", goal: "containment", promptFi: "Merkitse kartalle eteläinen palorintama syttymäkohdan eteläpuolella.", point: SOUTH_FRONT_1740,
       // Round 2 (5 Oct 2026): was "… Rahkasuolla" (the rekindle left the bog on 2 Oct 2026), and cited KY21's step-13 move,
       // which is now at step 14; DR2's step-13 line places the front instead.
-      keyAtomIds: ["atom.demo.12.0", "atom.demo.13.0"], rule: "computed", basis: "the centroid of the detached front step 13 draws (reportedDetached)",
+      keyAtomIds: ["atom.demo.12.0", "atom.demo.13.0"], rule: "computed",
+      basis: `the centroid of the CA's detached front at the end of step 13 (17.40, the view's end): ${f0(distanceM(SOUTH_FRONT_1740, centroid(siteStep(13).reportedDetached[0]!)))} m from the front step 13 draws (17.20), which SPOT (17.01, 120 m SE of the origin) and DR2 (17.21, spreading east) place`,
     }),
     // Fix pass 2 (7 Oct 2026, P2-4): replaces why_rekindle ("no crew in the sector"), which cued V10's no-fit decision (crew
     // the new front); an L2 item away from the new front. Since the regen (FF3) the water shuttle brings a basin to the line.
@@ -145,14 +180,15 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       rule: "cited", basis: "EK12 (step 13, on the south-east flank by R1): water running low (25 %), it asked EK13 for a water run to a basin, due 17.41 (the road route from VPK's line, 1.5 km; was 17.43 on the north spur before gate R R1/R3); EK13 confirms it brings the basin to the end of EK12's line: the crew stays on the flank",
     }),
     choice({
-      // `31` F27: "palanut ala" as V2 and V5 say, the new front's inclusion stated.
-      slug: "area_total_hour", level: "L3", goal: "containment", keySteps: [14, 16], promptFi: `Kuinka suuri koko palanut ala on ${inMinutesFi(minutesAhead(10, 16))}, uusi rintama mukaan lukien?`,
-      options: [["lt143", "Alle 143 hehtaaria"], ["m143_155", "143–155 hehtaaria"], ["m155_167", "155–167 hehtaaria"], ["gt167", "Yli 167 hehtaaria"]], key: V10_AREA.id,
-      keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [12, 13],
-      basis: `REPORT-keyed (D4; \`31\` rule (1)): the area at the end of step 16 (18.40, an hour from the view's end) through the reported fire the maps of V9 and V10 draw (steps 12, 13), ${figures(V10_AREA, "ha")}; the map now ~154 ha and DR3's recorded 17.35 survey 153.6 ha (the lures, 143–155)`,
+      // Play-test D5 (researcher, 24 Oct 2026; DRAFT, native and domain review): replaces `area_total_hour` (the total, whose 12-ha bands
+      // revealed the magnitude): the growth over the hour, the new fire included ("uusi palo", as DR2's pushed 17.21 line calls it).
+      slug: "area_growth_hour", level: "L3", goal: "containment", keySteps: [14, 16], promptFi: `Kuinka paljon palanut ala kasvaa ${withinHorizonFi(10, 16)}, uusi palo mukaan lukien?`,
+      options: [["lt2", "Alle 2 hehtaaria"], ["m2_15", "2–15 hehtaaria"], ["m15_40", "15–40 hehtaaria"], ["gt40", "Yli 40 hehtaaria"]], key: V10_GROWTH.id,
+      keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: [V9_PICTURE.id], basisSteps: [12, 13],
+      basis: `TRUTH-keyed with a stated tolerance (play-test D5): the CA's growth 17.40 → 18.40 (the ends of steps 13 and 16) ~${f1(V10_GROWTH.value)} ha, ${f1(V10_GROWTH.margin)} ha from the nearest band edge (≥ 2.5 ha required); the reports' line through the areas V9's and V10's maps draw (steps 12, 13) gives ~${f1(V10_GROWTH.reported)} ha, the same band; the base: V9's pushed situation picture (${f1(V9_PICTURE.ha)} ha at 17.05) and the new fire on V10's map (DR2's recorded 17.25 thermal ~1.0 ha); the lures: no growth (DR3's recorded 17.35 'no edge moved', under 2 ha) and phase A's pace carried on (over 40 ha)`,
     }),
     choice({
-      slug: "front_r2_80", level: "L3", goal: "containment", keySteps: [14, 17], promptFi: `Kuinka kaukana eteläinen palorintama on huoltotiestä R2 ${inMinutesFi(minutesAhead(10, 17))}?`,
+      slug: "front_r2_80", level: "L3", goal: "containment", keySteps: [14, 17], promptFi: `Kuinka kaukana eteläinen palorintama on huoltotiestä R2 ${horizonFi(10, 17)}?`,
       options: [["lt350", "Alle 350 metrin päässä"], ["m350_650", "350–650 metrin päässä"], ["m650_950", "650–950 metrin päässä"], ["gt950", "Yli 950 metrin päässä"]], key: V10_R2.id,
       keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [13],
       basis: `REPORT-keyed (D4; \`31\` §3.8): the south front's reported distance to R2 at 17.20 (~${f0(reportedDetachedToLineM(13, R2_LINE))} m, the front step 13 draws; 'runsaan kilometrin', DR2 pushed: the lure, over 950 m) less its drawn rate (${siteStep(13).observedHead.rateMpm} m/min) × 100 min to 19.00, ${figures(V10_R2, "m", f0)}`,
@@ -175,8 +211,14 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       basis: "crew hours reported by step 17: EK11 6.8 h, EK14 5.3 h, KY21 4.7 h, EK15 2.3 h (checked against the corpus in freeze-bank.spec.ts)",
     }),
     point({
-      slug: "head_now", level: "L1", goal: "containment", promptFi: "Merkitse kartalle palon kärki.", point: headNow(16),
-      keyAtomIds: [], rule: "computed", basis: "the observed head step 16 draws (observedHead.anchor)",
+      // Play-test D1 (researcher, 24 Oct 2026; open item `11` §7.18 closed): the header's "now" is the view's end (19.00), so the key is the
+      // head the fire model gives then (`truthHeadAtEndOf(17)`, at the Honkaharju forest road), no longer the head the merged view's map
+      // draws at 18.20 (step 16), ~370 m behind it — both play-test players were marked wrong there (327 and 268 m off; 278 m in the
+      // replication), all three displaced towards this key by the 40 minutes of spread the period's reports describe. The basis is pushed:
+      // EK16's 18.41 radio (the head nears the forest road from the north-west at ~10 m/min); DR2's 18.47 road report (80 m) is recorded.
+      slug: "head_now", level: "L1", goal: "containment", promptFi: HEAD_NOW_LATEST_FI, point: truthHeadAtEndOf(17),
+      keyAtomIds: [RADIO.ek16HeadNearsRoad, trafficId(17, /^DR2 tiehavainto: metsäautotie \(Honkaharju\).*palo noin \d+ m tiestä/)], rule: "computed",
+      basis: `the CA truth head at the end of step 17 (19.00, the view's end), ${f0(distanceM(truthHeadAtEndOf(17), F["FR_MID"]!))} m from the Honkaharju forest road's mid point and ${f0(distanceM(truthHeadAtEndOf(17), headNow(16)))} m from the head step 16 draws; EK16's pushed 18.41 radio puts the head near the road, closing from the north-west at ~10 m/min`,
     }),
     choice({
       // 2 Oct 2026: replaces "nearest settlement". `31` F26: "Johtopaikan" (not a settlement) gave way to a plausible wrong state.
@@ -185,7 +227,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: ["atom.demo.17.1"], rule: "cited", basis: "SPOT (step 17): the head spreads south-east towards Lahdenkylä; the CA distance to VILLAGE falls 2.1 → 1.9 km over steps 16–17",
     }),
     choice({
-      slug: "village_distance", level: "L3", goal: "values", keySteps: [18, 19], promptFi: `Kuinka kaukana palon reuna on Lahdenkylästä ${inMinutesFi(minutesAhead(12, 19))}?`,
+      slug: "village_distance", level: "L3", goal: "values", keySteps: [18, 19], promptFi: `Kuinka kaukana palon reuna on Lahdenkylästä ${horizonFi(12, 19)}?`,
       options: [["lt1200", "Alle 1200 metrin päässä"], ["m1200_1600", "1200–1600 metrin päässä"], ["m1600_2100", "1600–2100 metrin päässä"], ["gt2100", "Yli 2100 metrin päässä"]],
       key: V12_VILLAGE.id,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: [V12_DR1.id], basisSteps: [16, 17],
@@ -229,7 +271,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // `31` F02: a consequence at a stated horizon from the view's end (20.00), report-keyed on the pushed lines; the id is kept (it is the
       // south-east front at R2) so the retired band's projection check reads on.
-      slug: "se_front_r2", level: "L3", goal: "containment", keySteps: [21, 21], promptFi: `Joudutaanko tien R2 sadetinlinjojen vesi kytkemään päälle ${withinMinutesFi(minutesAhead(14, 21))}?`,
+      slug: "se_front_r2", level: "L3", goal: "containment", keySteps: [21, 21], promptFi: `Joudutaanko tien R2 sadetinlinjojen vesi kytkemään päälle ${withinHorizonFi(14, 21)}?`,
       options: [
         ["not_yet", "Ei, rintama on silloin vielä satojen metrien päässä tiestä"], ["turned", "Ei, rintama on kääntynyt pois tieltä pohjoiseen"],
         ["near", "Kyllä, rintama on silloin alle 100 metrin päässä tiestä"], ["sparks", "Kyllä, kipinät ylittävät tien ennen rintamaa"],
@@ -245,7 +287,7 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       // guard (`test/scenario/freeze-bank.spec.ts`, smoke-direction wording): the pushed 19.42 line "Savu painuu kaakkoon Rahkasuon
       // suuntaan" (story 20.1) and the recorded 19.30 pass "Savu painuu kaakkoon" (story 19.3) nearly state the key "spreads south-east".
       // Kept, not deleted: the reviewer decides whether it stays (classed stream-told in H2t) or is re-authored.
-      slug: "flare_next", level: "L3", goal: "containment", keySteps: [21, 23], promptFi: `Mitä syttymäkohdan länsipuolen uudelleensyttymälle todennäköisesti tapahtuu ${withinMinutesFi(minutesAhead(14, 23))}, jos sitä ei sammuteta?`,
+      slug: "flare_next", level: "L3", goal: "containment", keySteps: [21, 23], promptFi: `Mitä syttymäkohdan länsipuolen uudelleensyttymälle todennäköisesti tapahtuu ${withinHorizonFi(14, 23)}, jos sitä ei sammuteta?`,
       options: [
         ["spreads_se", "Se laajenee kaakkoon tuulen mukana"], ["spreads_nw", "Se leviää luoteeseen kohti Karhujärveä"],
         ["dies", "Se sammuu itsestään, liekit ovat matalia"], ["smoulders", "Se jää kytemään paikoilleen ilman liekkejä"],

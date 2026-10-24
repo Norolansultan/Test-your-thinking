@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `01_Experiment_Design_v2.md` in full. **8 Oct 2026 (aa): there is no no-LLM control; the groups, H1, H2, H9 and Paper 2's hypotheses read as in the revision (aa) at the end.**
 
 > **Changelog**
+> - **24 Oct 2026 (bg)** — H9's freeze item (V12 F7) is scored for H9 only and counts in no SA accuracy or calibration composite (H1, H2 and their secondaries, H-T): its key is the safety default (`09` (bg) §1).
 > - **19 Oct 2026 (ax)** — two groups of 50 (`30` §2): Haku against the guide. H2's primary test is the overconfidence gap on 24 phase-A L2/L3 items; resolution is secondary (H2r); H2t (borrowed vs own), H-T (hand-over) and H18 (plan-confidence calibration) are added; Paper 2's H13 is the guide against Haku, H16 withdrawn. See the revision at the end.
 > - **8 Oct 2026 (aa)** — the groups after the Haku / Open Thinker redesign: no no-LLM control; H1, H2 and H9 are an Open Thinker increment over a structured LLM chat; Paper 2 resolved in `27` (aa). See the revision at the end.
 > - **4 Oct 2026 (u)** — Paper 2's hypotheses H13–H17 added (`27` §5.7); H11 and H12 kept as descriptive levels; revision (t)'s "Group (exploratory)" clause superseded; Paper 1's phase-B tests nest the Thinker cell. See the revision at the end.

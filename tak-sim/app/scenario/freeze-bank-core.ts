@@ -14,6 +14,12 @@
  * for a freeze at the view's end (`FREEZE_AT_VIEW_END`: V10, V12, V14), the view's end (`nowStepOf`); every L3 stem names its horizon
  * from it (`inMinutesFi`, `withinMinutesFi`); ordinal bands are shown in ascending order and left out of the position balance
  * (`isOrdinal`); L3 items carry `basisKind` and `basisAtomIds` (analysis only, never on screen).
+ *
+ * Play-test D1 (researcher, 24 Oct 2026, option (a): one definition of "now"): the freeze header names the span of the period's latest
+ * reports (the view's last step, `freezeNowClock`) and defines "now" as the situation they give; a phase-A L1/L2 stem whose key rests on
+ * that step's later-stamped records says "viimeisimpien tietojen mukaan" for "nyt"; the L3 horizons stay counted from `nowStepOf`, and
+ * each stem states its target clock next to the horizon (`horizonFi`, `withinHorizonFi`: "40 minuutin kuluttua (klo 14.40)"), the clock the
+ * key is read at (`stepEndClockFi`), so no horizon is ambiguous.
  */
 
 import type { LatLon } from "../engine/primitives.js";
@@ -81,7 +87,8 @@ export type ItemDef = ChoiceDef | PointDef;
  * map_point tolerance rule: 200 m for an L1 item (where something is NOW: the map symbol plus
  * recall error at the session map's scale, about 3 % of the 7 km map width), 300 m for an L3 item
  * (where the head WILL BE: about 30 minutes of head travel at phase A's typical 7–10 m/min). An item may set its own
- * `toleranceM` where its target is small: V10's south front (fix pass 6, ≤ 100 m: a 0.8 ha patch, so 200 m would take the whole sector).
+ * `toleranceM` (V12's `head_later`, 250 m). Play-test D8 (24 Oct 2026): V10's south front takes the L1 200 m like the others (it set
+ * 100 m in fix pass 6, for a 0.8 ha patch; on the blank basemap all three play-test players missed it at 112–203 m).
  * `31` rule (2): an L3 map key lies at least 2 × its tolerance from the head drawn at "now" (`freeze-rules.spec.ts`).
  */
 export const MAP_TOLERANCE_M: Readonly<Record<"L1" | "L3", number>> = { L1: 200, L3: 300 };
@@ -125,14 +132,25 @@ export function withinMinutesFi(minutes: number): string {
   return h === 0 ? `seuraavan ${m} minuutin aikana` : m === 0 ? `seuraavan ${hoursFi(h)} aikana` : `seuraavan ${hoursFi(h)} ja ${m} minuutin aikana`;
 }
 
-/** The head-later map prompt (fix pass 3: relative to the freeze's now, was "klo 14.40" etc.). */
-export const headLaterFi = (view: number, step: number) => `Merkitse kartalle, missä palon kärki on ${inMinutesFi(minutesAhead(view, step))}.`;
-
 /** The clock at the END of a step ("14.40"), as a Finnish prompt writes it: step 1 starts at 13:20. */
 export function stepEndClockFi(step: number): string {
   const minutes = 13 * 60 + 20 + step * 20;
   return `${Math.floor(minutes / 60)}.${String(minutes % 60).padStart(2, "0")}`;
 }
+
+/**
+ * Play-test D1 (24 Oct 2026): an L3 horizon with the clock it ends at, from the base the key uses (the freeze's now, `minutesAhead`, to the
+ * END of `step`, `stepEndClockFi`): "40 minuutin kuluttua (klo 14.40)".
+ */
+export const horizonFi = (view: number, step: number): string => `${inMinutesFi(minutesAhead(view, step))} (klo ${stepEndClockFi(step)})`;
+/** Play-test D1: "seuraavan tunnin aikana (klo 15.00 mennessä)". */
+export const withinHorizonFi = (view: number, step: number): string => `${withinMinutesFi(minutesAhead(view, step))} (klo ${stepEndClockFi(step)} mennessä)`;
+
+/** Play-test D1 (24 Oct 2026): the head "now" as the header defines it, the period's latest reports (V5 and V12; VP keeps the plain stem). */
+export const HEAD_NOW_LATEST_FI = "Merkitse kartalle palon kärki viimeisimpien tietojen mukaan.";
+
+/** The head-later map prompt (fix pass 3: relative to the freeze's now; play-test D1: with the clock, "… tunnin kuluttua (klo 15.00)."). */
+export const headLaterFi = (view: number, step: number) => `Merkitse kartalle, missä palon kärki on ${horizonFi(view, step)}.`;
 
 /** An ordinal band id: `lt<n>`, `m<lo>_<hi>` or `gt<n>`. */
 const BAND_ID = /^(?:lt\d+|m\d+_\d+|gt\d+)$/;

@@ -72,6 +72,11 @@ const STRETCHES: readonly { readonly road: string; readonly at: P; readonly fi: 
   { road: "tie R1", at: { x: -1000, y: 400 }, fi: "johtopaikan kohdalla", en: "at the command post" },
   { road: "tie R1", at: { x: -300, y: 400 }, fi: "syttymäkohdan pohjoispuolella", en: "north of the point of origin" },
   { road: "tie R1", at: { x: 450, y: 410 }, fi: "Kuivakankaan eteläpuolella", en: "south of Kuivakangas" },
+  // Play-test D8 (24 Oct 2026): where R1 runs along the esker's foot (≈ x 520–800, within 350 m of RIDGE). At 14.46–14.48 DR1 and
+  // DR3 saw the flank on R1 here (3–4 m flames, unsafe) while DR2 saw R1 ~310 m further west (low fire, with care), and all three
+  // named "Kuivakankaan eteläpuolella": one stretch reading unsafe and passable in the same two minutes. Only those two step-5 reports
+  // move here; the DR2 series V5 `infra` and SPAM V6.b read (15.07 the designed stale lure, 15.27, 15.47) keeps its name.
+  { road: "tie R1", at: { x: 660, y: 450 }, fi: "Kuivakankaan kohdalla", en: "by Kuivakangas" },
   { road: "tie R1", at: { x: 1150, y: 415 }, fi: "Kuusimäen kohdalla", en: "by Kuusimäki" },
   { road: "tie R1", at: { x: 1500, y: 420 }, fi: "R2:n risteyksessä", en: "at the R2 junction" },
   { road: "tie R1", at: { x: 2100, y: 410 }, fi: "R2:n risteyksen itäpuolella", en: "east of the R2 junction" },

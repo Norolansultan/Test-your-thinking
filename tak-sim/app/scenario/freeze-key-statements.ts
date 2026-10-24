@@ -81,7 +81,10 @@ export function bandStatements(lo: number, hi: number, spec: BandSpec): KeyState
     const km = spec.band === "m" ? `${NOT_NUMBER_BEFORE}(?:${kmAlternatives(lo, hi)})(?![\\d])\\s*${KM[l][0]!}` : null;
     const numbers = [inside, ...(km ? [km] : [])];
     const ctx = spec.context?.[l] ?? [];
-    const stated = ctx.length === 0 ? numbers : numbers.flatMap((n) => ctx.flatMap((c) => [`${c}[^.]{0,80}${n}`, `${n}[^.]{0,80}${c}`]));
+    // One sentence: anything but a full stop, which may still stand inside a clock or a number ("klo 15.00", "2.1 km"; play-test D1, 24 Oct
+    // 2026: the L3 stems name their clock, as AI answers do), as the source-memory facts' windows read it.
+    const win = "(?:[^.]|\\.(?=\\d)){0,80}";
+    const stated = ctx.length === 0 ? numbers : numbers.flatMap((n) => ctx.flatMap((c) => [`${c}${win}${n}`, `${n}${win}${c}`]));
     return [`${NOT_NUMBER_BEFORE}${int(lo)}\\s*[–—-]\\s*${int(hi)}\\s*${unit}`, ...stated, ...(spec.also?.[l] ?? [])];
   };
   return { fi: lang("fi"), en: lang("en") };
@@ -96,9 +99,14 @@ const R2_CTX: KeyStatements = { fi: ["R2", "huoltotie"], en: ["R2", "service roa
 const SPECS: Readonly<Record<string, Spec>> = {
   // ---- V2 ----
   // `31` F10: ek11_between and south_flank replace nearest_head and fuel_ahead (F16: fuel_ahead's "kuusik\w*" matched the place name).
+  // Play-test D3 (24 Oct 2026): the item no longer names EK11 (the crew nearest the head, on the esker), so the statements accept the crew
+  // by its call sign or as the crew nearest the head.
   "freeze.2.ek11_between": {
-    fi: ["EK11[^.]{0,80}(?:kärjen ja (?:uuden|harjun) palon väli|väliin)", "(?:kärjen ja (?:uuden|harjun) palon|kahden palon) väli\\w*[^.]{0,60}EK11", "(?:saarr|eristy)[^.]{0,60}EK11", "EK11[^.]{0,60}(?:saarr|eristy)"],
-    en: ["EK11[^.]{0,80}(?:between the head and the (?:new|second) fire|caught between|cut off|trapped)", "between the head and the (?:new|second) fire[^.]{0,60}EK11"],
+    fi: [
+      "(?:EK11|miehistö)[^.]{0,80}(?:kärjen ja (?:harjun )?(?:uuden |toisen )?palon väli|kahden palon väli|väliin)", "(?:kärjen ja (?:harjun )?(?:uuden |toisen )?palon|kahden palon) väli\\w*[^.]{0,60}(?:EK11|miehistö)",
+      "(?:saarr|eristy)[^.]{0,60}(?:EK11|miehistö)", "(?:EK11|miehistö)[^.]{0,60}(?:saarr|eristy)",
+    ],
+    en: ["(?:EK11|crew)[^.]{0,80}(?:between the head and the (?:new|second) fire|caught between|cut off|trapped)", "between the head and the (?:new|second) fire[^.]{0,60}(?:EK11|crew)"],
   },
   "freeze.2.south_flank": {
     fi: ["(?:eteläsivust\\w*|EK12)[^.]{0,80}(?:matala\\w*|pidetään|pitää|kiinni)[^.]{0,80}kär(?:ki|jen)[^.]{0,40}ohi", "kärki\\w*[^.]{0,40}(?:pääsee|menee|etenee)[^.]{0,30}ohi[^.]{0,80}(?:eteläsivust|EK12)", "reuna pysyy matalana"],
@@ -189,7 +197,8 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["EK12[^.]{0,80}(?:stays|remains) on (?:the|its) line", "water[^.]{0,60}(?:brought|delivered)[^.]{0,40}(?:to )?EK12", "more water is brought"],
   },
   "freeze.10.cabins_distance": { band: "m", context: { fi: ["Mökkiran"], en: ["Lakeside Cottages", "cottages", "cabins"] } },
-  "freeze.10.area_total_hour": { band: "ha" },
+  // Play-test D5 (24 Oct 2026): the growth, not the total (was `area_total_hour`); its band statements are the key band's numbers in hectares.
+  "freeze.10.area_growth_hour": { band: "ha" },
   "freeze.10.front_r2_80": { band: "m", context: R2_CTX },
   // ---- V12 ----
   "freeze.12.f7": {
@@ -265,7 +274,7 @@ export function lureStatementsFor(item: FreezeItem): readonly LureStatements[] |
  * prompt (`freeze-key-statements.spec.ts`).
  */
 const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
-  "freeze.2.ek11_between": { fi: ["EK11"], en: ["EK11"] },
+  "freeze.2.ek11_between": { fi: ["EK11", "harju", "miehist"], en: ["EK11", "esker", "crew"] }, // play-test D3: the stem names the esker and the crews
   "freeze.2.south_flank": { fi: ["eteläsivust", "EK12"], en: ["south flank", "EK12"] },
   "freeze.2.area_40": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
   "freeze.2.spruce_behaviour": { fi: ["kuusik", "Kuusimä", "latv"], en: ["spruce", "crown"] },
@@ -291,7 +300,7 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.7.relief_next": { fi: ["lepo", "vuoronvaih", "korvaav", "huolto"], en: ["\\brest\\b", "relief", "shift change", "replacement"] },
   "freeze.10.ek12_water": { fi: ["EK12"], en: ["EK12"] },
   "freeze.10.cabins_distance": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
-  "freeze.10.area_total_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
+  "freeze.10.area_growth_hour": { fi: ["palanut ala", "pinta-ala", "kasv", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "grow", "\\bha\\b|hectare"] },
   "freeze.10.front_r2_80": { fi: ["\\bR2\\b", "huoltotie"], en: ["\\bR2\\b", "service road"] },
   "freeze.12.f7": { fi: ["20 kV", "sähkölinj", "voimajoh", "johdo?n?\\b"], en: ["20 kV", "power line"] }, // SPEC/33 (bc): a 20 kV line (was 110 kV)
   "freeze.12.front_toward": { fi: ["kaakkoisrintam", "asutu", "Lahdenkyl"], en: ["south-?east(?:ern)? front", "settlement", "Bay Village"] },

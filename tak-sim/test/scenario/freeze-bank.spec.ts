@@ -11,12 +11,12 @@ import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
 import { UNIT_PLAN } from "../../tools/fire-ca/deployment.js";
 import {
-  cardinalOf, deliveredAreaAt, detachedFrontToLineM, distanceM, distanceToLineM, firstDetachedFrontAfter, headNow, inPolygon, liveFrontToLineM, R1_LINE, R2_LINE, reportedAreaAt, reportedAreaHa,
+  cardinalOf, centroid, deliveredAreaAt, detachedFrontToLineM, distanceM, distanceToLineM, firstDetachedFrontAfter, headNow, inPolygon, liveFrontToLineM, R1_LINE, R2_LINE, reportedAreaAt, reportedAreaHa,
   reportedDetachedClosingAt, reportedDetachedToLineM, reportedGrowthHa, sectorOf, siteStep, trafficId, truthHeadAtEndOf, unitsByDistanceToHead,
 } from "../../app/scenario/freeze-keys.js";
-import { arrangeOptions, minutesAhead, nowStepOf } from "../../app/scenario/freeze-bank-core.js";
+import { arrangeOptions, minutesAhead, nowStepOf, stepEndClockFi } from "../../app/scenario/freeze-bank-core.js";
 import { FREEZE_BANK, PRACTICE_BANK, V2_AREA, V2_JUNCTION, V5_AREA, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
-import { V10_AREA, V10_R2, V12_VILLAGE, V14_R2, V14_SPRINKLERS } from "../../app/scenario/freeze-bank-b.js";
+import { V10_GROWTH, V10_R2, V12_VILLAGE, V14_R2, V14_SPRINKLERS } from "../../app/scenario/freeze-bank-b.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { CycleIndex, LatLon } from "../../app/engine/primitives.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
@@ -56,10 +56,18 @@ describe("the computed rules", () => {
     for (const st of [16, 17, 18, 19]) expect(distanceM(truthHeadAtEndOf(st), siteStep(st + 1).observedHead.anchor), `step ${st}`).toBeLessThan(50);
   });
 
-  it("map keys: 'now' is the head or unit the map shows; 'at clock' is the CA head at that step's end, worded from the freeze's now", () => {
+  it("map keys: 'now' is the head or unit the latest reports give; 'at clock' is the CA head at that step's end, worded from the freeze's now", () => {
     expect(item(0, "head_now").mapKey!.point).toEqual(headNow(-3));
-    expect(item(5, "head_now").mapKey!.point).toEqual(headNow(7));
-    expect(item(12, "head_now").mapKey!.point).toEqual(headNow(16)); // a merged view draws its first step's fire
+    expect(item(5, "head_now").mapKey!.point).toEqual(headNow(7)); // play-test D1: the latest reports (EK11 15.24 at Koivuoja) put it where the map draws it
+    expect(distanceM(headNow(7), F["BIRCH"]!)).toBeLessThan(100);
+    // Play-test D1 (24 Oct 2026, open item `11` §7.18 closed): V12's "now" is its end, 19.00, so the key is the CA head then — no longer the
+    // head the merged view's map draws at 18.20 (step 16), which lies more than the 200 m tolerance behind it.
+    expect(item(12, "head_now").mapKey!.point).toEqual(truthHeadAtEndOf(17));
+    expect(distanceM(truthHeadAtEndOf(17), headNow(16))).toBeGreaterThan(item(12, "head_now").mapKey!.toleranceM);
+    expect(distanceM(truthHeadAtEndOf(17), F["FR_MID"]!)).toBeLessThan(100); // at the Honkaharju forest road, as EK16's pushed 18.41 radio has it closing
+    // V10's front at its end (17.40): the CA's front then, within the 200 m tolerance of the 17.20 front the map draws (play-test D1, D8).
+    expect(item(10, "south_front_point").mapKey!.toleranceM).toBe(200);
+    expect(distanceM(item(10, "south_front_point").mapKey!.point, centroid(siteStep(13).reportedDetached[0]!))).toBeLessThan(200);
     expect(item(2, "ek11_point").mapKey!.point).toEqual(siteStep(3).units["EK11"]); // and its second step's units
     expect(item(2, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(5)); // `31` F03: an hour on (15.00), was 14.40
     expect(item(4, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(6));
@@ -68,7 +76,15 @@ describe("the computed rules", () => {
     expect(item(4, "head_later").promptFi).toMatch(/20 minuutin kuluttua/); // 15:20, the end of the crown run, from 15:00
     expect(item(12, "head_later").promptFi).toMatch(/ tunnin kuluttua/); // 20:00 from 19:00
     expect(scenario.freezes.find((f) => f.cycle === 14)!.items.some((it) => it.kind === "map_point")).toBe(false); // `31` F03: no truth after 20.00
-    for (const f of scenario.freezes) for (const it of f.items) expect(it.promptFi, it.id).not.toMatch(/klo \d/);
+    // Play-test D1 (24 Oct 2026; was "no stem names a clock", y.2): every L3 stem states the clock its horizon ends at, from the key's own
+    // base; no L1 or L2 stem names one.
+    for (const f of scenario.freezes) for (const it of f.items) {
+      if (it.level !== "L3") { expect(it.promptFi, it.id).not.toMatch(/klo \d/); continue; }
+      const def = FREEZE_BANK[f.cycle]!.find((d) => it.id === `freeze.${f.cycle}.${d.slug}`)!;
+      expect(it.promptFi, it.id).toContain(`(klo ${stepEndClockFi(def.keySteps![1])}`);
+    }
+    expect(item(2, "head_later").promptFi).toBe("Merkitse kartalle, missä palon kärki on tunnin kuluttua (klo 15.00).");
+    expect(item(2, "area_40").promptFi).toBe("Kuinka suuri koko palanut ala on 40 minuutin kuluttua (klo 14.40)?");
     // "Now" is the last step's start for a freeze inside the view: every merged view's freeze falls after its step boundary.
     for (const c of scenario.cycles.filter((x) => x.stepBoundary && x.freezeAtSeconds !== null)) expect(c.freezeAtSeconds!, `V${c.index}`).toBeGreaterThan(c.minViewSeconds / 2);
   });
@@ -210,7 +226,8 @@ const CHECKS: Readonly<Record<string, Check>> = {
   r1_arrival: { subject: /R1/i },
   area_hour: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
   area_40: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
-  area_total_hour: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
+  // Play-test D5 (24 Oct 2026; was area_total_hour): the hour's growth — no record states what the area grows by over an hour from 17.40.
+  area_growth_hour: { states: /(?:kasva|kasvaa|uutta alaa)\w*[^.]*(?:tunnin|seuraavan|klo 18)[^.]*\d+(?:,\d+)?\s*ha/i },
   wind_shift: { states: /pohjoisreuna\w* (aktivoi|kiihty)/i },
   rekindle_sector: { states: /syttyi uudelleen|syttynyt uudelleen|uudelleensyttymä/i },
   cabins_reach: { states: /mökeill|mökit palav|palo (on )?mökeillä/i },
@@ -219,7 +236,9 @@ const CHECKS: Readonly<Record<string, Check>> = {
   spruce_behaviour: { states: /latva/i }, // no record to step 3 names a crown fire
   junction_hour: { subject: /risteyk|risteys/i },
   return_danger: { states: /pistepalo\w*[^.]*(takana|taakse)|\bPP1\b/i }, // no record to step 6 names a spot fire behind a crew
-  crown_drops: { states: /latvapalo laskeutu|Koivuoj|koivik|lehtimets/i }, // Koivuoja is first on record at step 7 ("savu laskeutuu" is smoke)
+  // Play-test D3 (24 Oct 2026): DR1's pushed 14.27 line states the birch strip along Koivuoja (V3), the basis; what would state the key is
+  // the crown fire dropping there (CYCLE_STORY 7.0, step 7), so the check reads the drop, no longer any mention of the brook or its birch.
+  crown_drops: { states: /latvapalo\w* (?:on )?laskeutu|(?:laskeutu|pintapaloksi)\w*[^.]*(?:Koivuoj|koivik|lehtimets)/i },
   korpioja_spot: { states: /Korpioj/i },
   ek14_shelter: { states: /EK14[^.]*(?:vetäyty|turva-alue|turvaan)/i },
   road_jump: { states: /toisessa kohdassa|toisessakin kohdassa/i },
@@ -295,12 +314,20 @@ describe("no L3 key is stated by a record on hand before the freeze (fix pass 5,
   it("the report-keyed projections key with a margin from every band edge, and the fire model's truth falls in the same band (`31` §3.5 rule (5))", () => {
     for (const [name, k, id, margin] of [
       ["V2 area_40", V2_AREA, "m20_35", 2], ["V2 junction_hour", V2_JUNCTION, "m400_700", 50], ["V5 area_hour", V5_AREA, "m140_190", 5], // SPEC/33 stage 9: re-keyed
-      ["V10 area_total_hour", V10_AREA, "m155_167", 2.5], ["V10 front_r2_80", V10_R2, "m650_950", 50], ["V12 village_distance", V12_VILLAGE, "m1600_2100", 100],
+      ["V10 front_r2_80", V10_R2, "m650_950", 50], ["V12 village_distance", V12_VILLAGE, "m1600_2100", 100],
     ] as const) {
       expect(k.id, name).toBe(id);
       expect(k.margin, name).toBeGreaterThanOrEqual(margin);
       expect(k.truthId, name).toBe(k.id);
     }
+    // Play-test D5 (24 Oct 2026): V10's growth item is TRUTH-keyed with a stated tolerance (≥ 2.5 ha from every edge); the reports' reading
+    // falls in the same band (it replaces the report-keyed total, `area_total_hour`, whose 12-ha bands revealed the magnitude).
+    expect(V10_GROWTH.id).toBe("m2_15");
+    expect(V10_GROWTH.value).toBeCloseTo(siteStep(16).areaHa - siteStep(13).areaHa, 6);
+    expect(V10_GROWTH.margin).toBeGreaterThanOrEqual(2.5);
+    expect(V10_GROWTH.reported).toBeGreaterThanOrEqual(2);
+    expect(V10_GROWTH.reported).toBeLessThan(15);
+    expect(key(10, "area_growth_hour")).toBe(V10_GROWTH.id);
     for (const f of scenario.freezes) for (const it of f.items) expect(it.truthOptionId, it.id).toBeUndefined(); // no dual key needed
     for (const [v, slug] of [[5, "area_hour"], [10, "front_r2_80"], [12, "village_distance"]] as const) expect(item(v, slug).level).toBe("L3");
   });

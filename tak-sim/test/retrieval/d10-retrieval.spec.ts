@@ -229,3 +229,19 @@ describe("the manifest declares D10 (`npm run thinker:index -- --manifest-only`)
     expect(manifest[block].clockMatch).toMatchObject(cfg.clockMatch!);
   });
 });
+
+describe("the chips' content-free question (D10 addendum, 24 Oct 2026)", () => {
+  const s = buildDemoScenario();
+  it.each([["Mitä uutta tällä jaksolla on kirjattu?", "fi"], ["What is new in this period's records?", "en"]] as const)(
+    "%s returns the newest records of the period, newest first, at V8, V11 and V14",
+    (q, lang) => {
+      for (const step of [11, 15, 20]) {
+        const got = hybridRetrieve(q, reachableAtoms(s.atoms, step), null, undefined, lang);
+        expect(got.length).toBeGreaterThan(0);
+        for (const r of got) expect(r.atom.cycle).toBe(step);
+        const times = got.map((r) => r.atom.provenance.observedAt);
+        expect([...times].sort((a, b) => b - a)).toEqual(times);
+      }
+    },
+  );
+});

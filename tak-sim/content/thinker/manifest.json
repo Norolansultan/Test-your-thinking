@@ -112,7 +112,7 @@
       "latest": {
         "relevance": 0.5,
         "graded": 0.3,
-        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged",
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first",
         "recencyCues": {
           "fi": [
             "viimeisin, viimeinen, viime, viimeksi (all inflections)",
@@ -143,6 +143,10 @@
           "en": [
             "previous, previously, earlier, prior"
           ]
+        },
+        "topicFreeWords": {
+          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tapahtunut|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|information|update|updates|news|happened|happening)$"
         }
       }
     },
@@ -239,7 +243,7 @@
       "latest": {
         "relevance": 0.5,
         "graded": 0.3,
-        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged",
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first",
         "recencyCues": {
           "fi": [
             "viimeisin, viimeinen, viime, viimeksi (all inflections)",
@@ -270,6 +274,10 @@
           "en": [
             "previous, previously, earlier, prior"
           ]
+        },
+        "topicFreeWords": {
+          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tapahtunut|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|information|update|updates|news|happened|happening)$"
         }
       }
     },

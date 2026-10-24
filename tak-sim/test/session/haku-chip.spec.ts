@@ -35,7 +35,7 @@ describe("the Haku chip (SPEC/30 §4 revision (bf))", () => {
   });
 
   it("is content-free, and its label is the question itself", () => {
-    expect(HAKU_SUGGESTED_QUESTION.en).toBe("What has been recorded in this period?");
+    expect(HAKU_SUGGESTED_QUESTION.en).toBe("What is new in this period's records?");
     expect(HAKU_SUGGESTED_QUESTION.fi).toBe("Mitä uutta tällä jaksolla on kirjattu?");
     expect(UI_TEXT.en.consult.hakuChip).toBe(HAKU_SUGGESTED_QUESTION.en);
     expect(UI_TEXT.fi.consult.hakuChip).toBe(HAKU_SUGGESTED_QUESTION.fi);

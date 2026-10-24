@@ -173,3 +173,27 @@ describe("the lexical query", () => {
     expect(queryCues(q)).toEqual(queryCues(q));
   });
 });
+
+describe("a latest-state question that names no topic (D10 addendum, 24 Oct 2026)", () => {
+  const topicFree = (q: string, lang: "fi" | "en" = "fi") => queryCues(q, lang).topicFree;
+  it.each([
+    ["Mitä uutta tällä jaksolla on kirjattu?", "fi"],
+    ["Onko uutta?", "fi"],
+    ["Mitä uutta?", "fi"],
+    ["Uusimmat ilmoitukset?", "fi"],
+    ["What is new in this period's records?", "en"],
+    ["Any new reports?", "en"],
+    ["Anything new?", "en"],
+    ["What are the latest reports?", "en"],
+  ] as const)("%s → newest records", (q, lang) => expect(topicFree(q, lang)).toBe(true));
+  it.each([
+    ["Onko uutta sääennustetta?", "fi"],
+    ["Mitä uutta EK12:sta?", "fi"],
+    ["Mitä VPK ilmoitti klo 17.24?", "fi"],
+    ["Mitä uutta klo 16.40 jälkeen?", "fi"],
+    ["Mitä jaksolla on kirjattu?", "fi"],
+    ["latest road report road R1", "en"],
+    ["Any new reports from DR3?", "en"],
+    ["What has been recorded in this period?", "en"],
+  ] as const)("%s → not topic-free", (q, lang) => expect(topicFree(q, lang)).toBe(false));
+});

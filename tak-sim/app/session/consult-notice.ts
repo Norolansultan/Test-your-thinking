@@ -158,7 +158,7 @@ export function suggestedQuestionOffered(cell: Cell, view: number, hingeAfterVie
  * (`UI_TEXT[lang].consult.hakuChip`).
  */
 export const HAKU_SUGGESTED_QUESTION: Readonly<Record<"fi" | "en", string>> = {
-  en: "What has been recorded in this period?",
+  en: "What is new in this period's records?",
   fi: "Mitä uutta tällä jaksolla on kirjattu?",
 };
 

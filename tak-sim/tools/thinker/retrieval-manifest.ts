@@ -9,7 +9,7 @@ import { readFileSync, existsSync } from "node:fs";
 import {
   EN_TOKENISER_ID, EN_TOKENISER_RULE, PREFIX_STEM_LENGTH, SCORE_DECIMALS, THINKER_RETRIEVAL_CONFIG, THINKER_RETRIEVAL_CONFIG_EN, VECTOR_DECIMALS, type HybridConfig,
 } from "../../app/retrieval/hybrid.js";
-import { PREVIOUS_CUES_EN, PREVIOUS_CUES_FI, RECENCY_CUES_EN, RECENCY_CUES_FI } from "../../app/retrieval/query-cues.js";
+import { PREVIOUS_CUES_EN, PREVIOUS_CUES_FI, RECENCY_CUES_EN, RECENCY_CUES_FI, TOPIC_FREE_EN, TOPIC_FREE_FI } from "../../app/retrieval/query-cues.js";
 import { MAX_HEADER_LENGTH } from "../../app/retrieval/routine-collapse.js";
 import { INDEX_FILE_EN, MANIFEST_FILE, repoPath } from "../../server/thinker/config.js";
 
@@ -25,7 +25,8 @@ export const RECENCY_BOOST_RULE =
 export const LATEST_RULE =
   "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): " +
   "every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; " +
-  "added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged";
+  "added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; " +
+  "addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first";
 
 export const CLOCK_RULE =
   "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; " +
@@ -54,6 +55,7 @@ export function retrievalBlock(config: HybridConfig, neutralEval: unknown): Reco
                 ...config.recencyBoost.latest, rule: LATEST_RULE,
                 recencyCues: { fi: RECENCY_CUES_FI.map((c) => c.cue), en: RECENCY_CUES_EN.map((c) => c.cue) },
                 previousCues: { fi: PREVIOUS_CUES_FI.map((c) => c.cue), en: PREVIOUS_CUES_EN.map((c) => c.cue) },
+                topicFreeWords: { fi: TOPIC_FREE_FI.source, en: TOPIC_FREE_EN.source },
               }
             : null,
         }

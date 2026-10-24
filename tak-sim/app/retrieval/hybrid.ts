@@ -438,6 +438,8 @@ export function hybridRetrieve(
   const collapsed = cfg.routineCollapse ? collapseRoutine(gated, cfg.routineCollapse) : gated;
   // A record at a clock the question names is exempt from the routine collapse: it was asked for by its time.
   const candidates = clocks.length > 0 && collapsed !== gated ? withRecordsAtClock(gated, collapsed, clocks, cfg.clockMatch!.nearMinutes) : collapsed;
+  // D10 addendum (24 Oct 2026): a latest-state question naming no topic ("Mitä uutta?", "Any new reports?") gets the newest records.
+  if (cfg.recencyBoost?.latest && cues.topicFree) return topK(newestFirst(candidates), cfg);
   const lexical = minMax(bm25Scores(cues.lexicalQuery, candidates.map((a) => passageText(a, lang)), cfg.bm25, lang));
   const dense = vector ? minMax(candidates.map((a) => cosine(vector.queryVector, vector.index.vectorOf(a)))) : null;
   const base = candidates.map((_, i) => (dense ? cfg.lexicalWeight * lexical[i]! + cfg.vectorWeight * dense[i]! : lexical[i]!));
@@ -459,7 +461,17 @@ export function hybridRetrieve(
           ? b.atom.provenance.observedAt - a.atom.provenance.observedAt
           : compareStrings(a.atom.id, b.atom.id),
     );
+  return topK(ranked, cfg);
+}
+
+function topK(ranked: readonly RetrievedRecord[], cfg: HybridConfig): RetrievedRecord[] {
   return cfg.maxPerSource === null ? ranked.slice(0, cfg.topK) : capPerSource(ranked, cfg.maxPerSource, cfg.topK);
+}
+
+/** The candidates newest first (then by id, I1), scored from 1 down so every one stays above 0. */
+function newestFirst(candidates: readonly InfoAtom[]): RetrievedRecord[] {
+  const sorted = [...candidates].sort((a, b) => b.provenance.observedAt - a.provenance.observedAt || compareStrings(a.id, b.id));
+  return sorted.map((atom, i) => ({ atom, score: roundTo(1 - i / (sorted.length + 1), SCORE_DECIMALS) }));
 }
 
 /** The collapsed candidates plus every gated record within `minutes` of a named clock, in the gated order. */

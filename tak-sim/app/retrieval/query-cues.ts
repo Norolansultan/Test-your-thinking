@@ -63,6 +63,14 @@ export const PREVIOUS_CUES_FI: readonly CuePattern[] = [
 ];
 export const PREVIOUS_CUES_EN: readonly CuePattern[] = [{ cue: "previous, previously, earlier, prior", pattern: /^(?:previous|previously|earlier|prior)$/u }];
 
+/**
+ * Words that name no topic (24 Oct 2026, D10 addendum): question words, the period, records, reports and news in general. A
+ * latest-state question made only of these and its cue words ("Mitä uutta tällä jaksolla on kirjattu?", "Any new reports?")
+ * asks for the newest records, whatever they are about; its words would only match records at random.
+ */
+export const TOPIC_FREE_FI = /^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tapahtunut|kuuluu|tällä|tämän|jakso\p{L}*|kirja\p{L}*|ilmoitu\p{L}*|raport\p{L}*|tieto|tiedot|tietoja|uutisi\p{L}*|mitään|jotain)$/u;
+export const TOPIC_FREE_EN = /^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|information|update|updates|news|happened|happening)$/u;
+
 const RELATIVE_BEFORE: Readonly<Record<RetrievalLang, RegExp>> = {
   fi: /^ennen$/u,
   en: /^(?:before|after|since|until|till|by)$/u,
@@ -84,6 +92,8 @@ export interface QueryCues {
   readonly lexicalQuery: string;
   /** The cue words and phrases found (lowercased; for tests and the evaluation's report). */
   readonly cueWords: readonly string[];
+  /** A latest-state question that names no topic (only cue words and {@link TOPIC_FREE_FI} / {@link TOPIC_FREE_EN} words, no clock). */
+  readonly topicFree: boolean;
 }
 
 interface Span {
@@ -171,5 +181,7 @@ export function queryCues(query: string, lang: RetrievalLang = "fi", use: CueUse
   const spans = [...(latest ? recency.spans : []), ...(use.clocks ? clock.spans : [])];
   const stripped = without(query, spans);
   const nothingLeft = words(stripped).length === 0 && clocks.length === 0;
-  return { latest, clocks, lexicalQuery: spans.length === 0 || nothingLeft ? query : stripped, cueWords: recency.found };
+  const topicWords = lang === "en" ? TOPIC_FREE_EN : TOPIC_FREE_FI;
+  const topicFree = latest && clock.clocks.length === 0 && words(stripped).every((x) => topicWords.test(x.w));
+  return { latest, clocks, lexicalQuery: spans.length === 0 || nothingLeft ? query : stripped, cueWords: recency.found, topicFree };
 }

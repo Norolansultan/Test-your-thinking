@@ -9,12 +9,20 @@
  *       never for the coders.
  *   --coded <sheet.csv>
  *       Reads a coded sheet and prints the AUROC of stated certainty (unhedged = 1) against correctness, with the counts.
+ *   --logs <session.jsonl …> --report <certainty.md> [--haku <answers.csv>] [--out …] (24 Oct 2026, SPEC/09 revision (bf))
+ *       Also audits Haku's `varmuus`: per answer of either tool, its stated certainty (Haku's level; the Thinker's hedging) against the
+ *       certainty of the records it cites (`Certainty`, the built scenario's) and against what it touched — the planted record (H9),
+ *       the spread projection, a scripted AI error (the projection named in a view whose projection is wrong) — and writes the report
+ *       by group (`app/telemetry/haku-certainty-audit.ts`); `--haku` writes the per-answer rows. `--out` (the blind sheet) is optional
+ *       when `--report` is given.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { blindSheetCsv, certaintyAuroc, parseCodedSheet, thinkerAnswers, type ThinkerAnswerRow } from "../../app/telemetry/uncertainty-audit.js";
+import { blindSheetCsv, certaintyAuroc, parseCodedSheet, statedCertainty, thinkerAnswers, type ThinkerAnswerRow } from "../../app/telemetry/uncertainty-audit.js";
+import { certaintyAuditRows, certaintyReport, certaintyRowsCsv, type AuditAtom, type CertaintyAuditRow } from "../../app/telemetry/haku-certainty-audit.js";
+import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { parseSessionFile } from "../skills/responses.js";
 
 export interface AuditedSession {
@@ -60,21 +68,42 @@ function argsAfter(argv: readonly string[], flag: string): string[] {
   return out;
 }
 
+/** SPEC/09 revision (bf): every session's Haku and Thinker answers audited for certainty (`atoms`: the built scenario's by default). */
+export function certaintyAudit(texts: readonly string[], opts: { readonly includePractice?: boolean; readonly atoms?: readonly AuditAtom[] } = {}): CertaintyAuditRow[] {
+  const atoms = new Map((opts.atoms ?? (buildDemoScenario().atoms as unknown as readonly AuditAtom[])).map((a) => [a.id, a]));
+  const hedged = (text: string) => statedCertainty(text) === "hedged";
+  return texts.flatMap((text) => {
+    const { header, records } = parseSessionFile(text);
+    return certaintyAuditRows(records, { sessionId: header.sessionId, participant: header.participantCode || header.sessionId, cell: header.cell }, atoms, hedged, opts);
+  });
+}
+
 export function main(argv: readonly string[]): void {
   const coded = argsAfter(argv, "--coded")[0];
   if (coded) { process.stdout.write(`${aurocReport(readFileSync(resolve(coded), "utf8"))}\n`); return; }
   const logs = argsAfter(argv, "--logs"), out = argsAfter(argv, "--out")[0], key = argsAfter(argv, "--key")[0];
-  if (logs.length === 0 || !out) {
-    process.stderr.write("usage: --logs <session.jsonl …> --out <sheet.csv> [--key <key.csv>] [--include-practice] | --coded <sheet.csv>\n");
+  const report = argsAfter(argv, "--report")[0], haku = argsAfter(argv, "--haku")[0];
+  if (logs.length === 0 || (!out && !report)) {
+    process.stderr.write("usage: --logs <session.jsonl …> (--out <sheet.csv> [--key <key.csv>] | --report <certainty.md> [--haku <answers.csv>]) [--include-practice] | --coded <sheet.csv>\n");
     process.exitCode = 2;
     return;
   }
-  const sessions = auditSessions(logs.map((p) => readFileSync(resolve(p), "utf8")), { includePractice: argv.includes("--include-practice") });
-  const rows = sessions.flatMap((s) => s.rows);
-  writeFileSync(resolve(out), blindSheetCsv(rows));
-  if (key) writeFileSync(resolve(key), keyCsv(sessions));
-  const hedged = rows.filter((r) => r.statedCertainty === "hedged").length;
-  process.stdout.write(`${sessions.length} sessions, ${rows.length} Thinker answers (${hedged} hedged) -> ${out}\n`);
+  const texts = logs.map((p) => readFileSync(resolve(p), "utf8"));
+  const includePractice = argv.includes("--include-practice");
+  if (out) {
+    const sessions = auditSessions(texts, { includePractice });
+    const rows = sessions.flatMap((s) => s.rows);
+    writeFileSync(resolve(out), blindSheetCsv(rows));
+    if (key) writeFileSync(resolve(key), keyCsv(sessions));
+    const hedged = rows.filter((r) => r.statedCertainty === "hedged").length;
+    process.stdout.write(`${sessions.length} sessions, ${rows.length} Thinker answers (${hedged} hedged) -> ${out}\n`);
+  }
+  if (report) {
+    const rows = certaintyAudit(texts, { includePractice });
+    writeFileSync(resolve(report), certaintyReport(rows));
+    if (haku) writeFileSync(resolve(haku), certaintyRowsCsv(rows));
+    process.stdout.write(`${rows.filter((r) => r.tool === "haku").length} Haku and ${rows.filter((r) => r.tool === "thinker").length} Thinker answers audited for certainty -> ${report}\n`);
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main(process.argv.slice(2));

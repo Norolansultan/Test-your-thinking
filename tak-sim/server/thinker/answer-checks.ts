@@ -157,9 +157,14 @@ function forbiddenWords(sentence: string, lang: "fi" | "en"): string[] {
   return out;
 }
 
+/** A sentence that recommends ("I recommend", "we suggest", "suosittelen"), even as a question: rule 4's ban (SPEC/14 ab.2). */
+export function isRecommendationSentence(sentence: string, lang: "fi" | "en"): boolean {
+  return RECOMMENDATION[lang].test(sentence);
+}
+
 /** An instruction or a recommendation: a statement with a forbidden word, or any sentence that recommends. A question to the commander is none (researcher, 11 Oct 2026). */
 export function isImperativeSentence(sentence: string, lang: "fi" | "en"): boolean {
-  if (RECOMMENDATION[lang].test(sentence)) return true;
+  if (isRecommendationSentence(sentence, lang)) return true;
   return !isQuestionSentence(sentence) && forbiddenWords(sentence, lang).length > 0;
 }
 

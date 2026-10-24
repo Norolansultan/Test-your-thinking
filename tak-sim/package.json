@@ -38,6 +38,7 @@
     "review:export": "tsx tools/review/export.ts",
     "review:panel": "tsx tools/review/panel-packet.ts",
     "review:uncertainty": "tsx tools/review/thinker-uncertainty-audit.ts",
+    "review:fidelity": "tsx tools/review/fidelity.ts",
     "tak:export": "tsx tools/tak/export.ts",
     "tak:replay": "tsx tools/tak/replay.ts",
     "skills:export": "tsx tools/skills/export.ts",

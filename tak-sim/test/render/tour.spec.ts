@@ -7,8 +7,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UI_TEXT as UI } from "../../app/i18n/ui.js";
-import { PROJECTION_CAVEAT_EN, PROJECTION_CAVEAT_FI } from "../../app/scenario/briefing.js";
+import { PROJECTION_CAVEAT_EN, PROJECTION_CAVEAT_FI, SECONDARY_TASK_DEFINITIONS_EN, SECONDARY_TASK_DEFINITIONS_FI } from "../../app/scenario/briefing.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
+import { SPAM_ANSWER_TIMEOUT_MS } from "../../app/scenario/demo-probes.js";
 import { PRACTICE_THINKER_STEP, PRACTICE_TOUR, practiceTour, TOUR_TARGET_NAMES, toolsTour, tourSteps } from "../../app/render/ui/tour.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import { allocateAndConfirm, runOutView } from "../session/view-flow.js";
@@ -47,8 +48,13 @@ describe("the tour's content", () => {
     expect(UI.fi.tour.steps.spam.body).toContain(UI.fi.spam.ready);
     expect(UI.en.tour.steps.spam.body).toContain(UI.en.spam.ready);
     // Revision (ag): the prompt waits (it can be minimised), it comes before the period ends, and the tools stay usable.
-    expect(UI.fi.tour.steps.spam.body).toMatch(/Kysymys odottaa sinua/);
-    expect(UI.en.tour.steps.spam.body).toMatch(/The question waits for you/);
+    // Play-test finding 3 (24 Oct 2026): it is the PROMPT that waits; once Ready is pressed each question has its answer
+    // window (`SPAM_ANSWER_TIMEOUT_MS`, kept at 60 s), and the card shows the time left.
+    expect(UI.fi.tour.steps.spam.body).toMatch(/Kehote odottaa sinua/);
+    expect(UI.en.tour.steps.spam.body).toMatch(/The prompt waits for you/);
+    for (const lang of ["fi", "en"] as const) expect(UI[lang].tour.steps.spam.body).not.toMatch(/Kysymys odottaa sinua|The question waits for you/);
+    expect(UI.fi.tour.steps.spam.body).toContain(`kuhunkin kysymykseen on aikaa ${SPAM_ANSWER_TIMEOUT_MS / 1000} sekuntia; jäljellä oleva aika näkyy kysymyskortissa`);
+    expect(UI.en.tour.steps.spam.body).toContain(`each question has ${SPAM_ANSWER_TIMEOUT_MS / 1000} seconds; the time left shows on the question card`);
     expect(UI.fi.tour.steps.spam.body).toMatch(/ennen kuin jakso päättyy/);
     expect(UI.en.tour.steps.spam.body).toMatch(/before the period ends/);
     expect(UI.fi.tour.steps.spam.body).toMatch(/voit käyttää karttaa, viestilokia ja hakutyökaluja/);
@@ -57,6 +63,20 @@ describe("the tour's content", () => {
     expect(UI.en.tour.steps.spam.body).toMatch(/practice/);
     // Revision (am): the practice tour's common steps are the same for both groups; the AI group adds only the Thinker practice.
     expect(tourSteps("practice", "directed")).toEqual(tourSteps("practice", "substitutive").filter((s) => s.id !== "practiceThinker"));
+  });
+
+  it("the decision step says, in one sentence, that messages addressed to command are context and what the plan sets (play-test D11, 24 Oct 2026)", () => {
+    const fi = UI.fi.tour.steps.decision.body, en = UI.en.tour.steps.decision.body;
+    const SENTENCE_FI = "Johdolle osoitetut viestit, kuten pyynnöt ja ehdotukset, ovat taustatietoa: yksiköt toimivat pysyvien ohjeiden ja oman harkintansa mukaan, ja suunnitelmasi määrää painopisteen ja sen toimintatavan, toissijaisen tehtävän ja droonien tehtävän.";
+    const SENTENCE_EN = "Messages addressed to command, such as requests and proposals, are context: the units act on standing orders and their own judgement, and your plan sets the main effort and its posture, the secondary task and the drones' task.";
+    expect(fi).toContain(`päättyy. ${SENTENCE_FI}\n${SECONDARY_TASK_DEFINITIONS_FI[0]}`);
+    expect(en).toContain(`ends. ${SENTENCE_EN}\n${SECONDARY_TASK_DEFINITIONS_EN[0]}`);
+    // The tour's own rules hold: no AI tool named (VP is the same for both groups), one sentence, and it stays short.
+    for (const s of [SENTENCE_FI, SENTENCE_EN]) {
+      expect(s).not.toMatch(AI_WORDS);
+      expect(s.split(/(?<=[.!?])\s+/)).toHaveLength(1);
+      expect(s.length).toBeLessThanOrEqual(260);
+    }
   });
 
   it("revision (am): the Thinker practice is in the practice tour of both Thinker cells (the same step), right after Haku, and never in the radio cell", () => {

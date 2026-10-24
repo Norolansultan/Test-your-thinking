@@ -52,8 +52,9 @@ export const UNIT_ROSTER_EN: Readonly<Record<string, { readonly type: string; re
   EK15: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring station" },
   EK16: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring station" },
   KY23: { type: "Rescue unit (reinforcement)", crew: "1+4", from: "Neighbouring rescue department" },
-  OUT1: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "From outside the region" },
-  OUT2: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "From outside the region" },
+  // Play-test, 24 Oct 2026: was "From outside the region", shown under the help card's "From:" label as "From: From …".
+  OUT1: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "Outside the region" },
+  OUT2: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "Outside the region" },
   UGV1: { type: "Hose-laying robot (autonomous, trial)", crew: "1 (operator)", from: "Arrived with OUT1", detail: "Lays hose with its crew; not tasked by the plan" },
   DR1: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },
   DR2: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },

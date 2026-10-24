@@ -90,6 +90,30 @@ describe("the second SPAM item (SPEC/30 §5.2)", () => {
     expect(spamTrail(records).at(-1)).toEqual(["spam_closed", A]);
   });
 
+  it("the card's countdown (24 Oct 2026, display only) reads each item's own window: none at the prompt, 60 s at the display, down to 0", async () => {
+    const { o, snap } = await atView(3, "radio", { realClockMs: () => Date.now() }, withSecond);
+    await vi.advanceTimersByTimeAsync(SPAM_OFFSET_MS);
+    expect(o.spamSecondsLeft()).toBeNull(); // the ready prompt has no window
+    await o.spamReady();
+    expect(o.spamSecondsLeft()).toBe(SPAM_ANSWER_TIMEOUT_MS / 1000);
+    await vi.advanceTimersByTimeAsync(20_500);
+    expect(o.spamSecondsLeft()).toBe(40); // whole seconds, rounded up
+    await o.answerSpam("a");
+    expect(o.spamSecondsLeft()).toBe(40); // the confidence shares the item's window
+    await o.submitSpamConfidence(50);
+    expect(snap().spam).toMatchObject({ phase: "item", probeId: B });
+    expect(o.spamSecondsLeft()).toBe(SPAM_ANSWER_TIMEOUT_MS / 1000); // the second item's own window
+    await vi.advanceTimersByTimeAsync(SPAM_ANSWER_TIMEOUT_MS - 500);
+    expect(o.spamSecondsLeft()).toBe(1);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(snap().spam).toBeNull();
+    expect(o.spamSecondsLeft()).toBeNull();
+    // Display only: the delivery's records are exactly those it had before the countdown.
+    expect(spamTrail(await o.logRecords())).toEqual([
+      ["spam_prompt_shown", A], ["spam_ready", A], ["spam_answered", A], ["recall_confidence_submitted", A], ["spam_answered", B], ["spam_closed", A],
+    ]);
+  });
+
   it("the first item's window running out leads to the second (its own window), as its confidence does", async () => {
     const { o, snap } = await atView(3, "radio", {}, withSecond);
     await vi.advanceTimersByTimeAsync(SPAM_OFFSET_MS);

@@ -60,6 +60,15 @@ describe("the help card (SPEC/35 §3 item 3)", () => {
     for (const r of [...fi, ...en]) expect(r.type.length, r.callSign).toBeGreaterThan(3);
   });
 
+  it("never repeats the row's own label in a unit's origin (play-test 24 Oct 2026: \"From: From outside the region\")", () => {
+    for (const lang of ["fi", "en"] as const) {
+      const label = HELP_CARD_TEXT[lang].from;
+      for (const r of rosterRows(lang)) if (r.from) expect(r.from, `${lang} ${r.callSign}`).not.toMatch(new RegExp(`^${label}\\b`, "i"));
+    }
+    expect(rosterRows("en").find((r) => r.callSign === "OUT1")!.from).toBe("Outside the region");
+    expect(rosterRows("fi").find((r) => r.callSign === "OUT1")!.from).toBe("Alueen ulkopuolelta"); // "Mistä: Alueen ulkopuolelta" reads right
+  });
+
   it("shows the map legend with every row (the map's own legend, embedded)", () => {
     const card = code("explain/HelpCard.tsx");
     expect(card).toMatch(/<Legend isoMinutes=\{\[\]\} drawn=\{ALL_LEGEND_ROWS\} embedded surface="help_card" \/>/);

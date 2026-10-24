@@ -43,7 +43,7 @@ export function SessionView({ scenario, condition, cell, previewOverride, langua
   readonly studyShell?: boolean; readonly allowPreflightOverride?: boolean;
   /** Demonstration only (6 Oct 2026): the presenter may skip the rest of a view or a freeze. */
   readonly allowViewSkip?: boolean;
-  /** Demonstration only (11 Oct 2026): the index-based search tab (never under ?tuotanto). */
+  /** The index-based search tab (11 Oct 2026, demonstration only; since 24 Oct 2026 shown in no session: App and the resume path pass false). */
   readonly indexedSearch?: boolean;
   /** The minimum-window cover (`WindowSizeGuard`, SPEC/12 (al)); on in the study (`?tuotanto`), off in a demonstration and the web demo (14 Oct 2026). */
   readonly minWindowGuard?: boolean;

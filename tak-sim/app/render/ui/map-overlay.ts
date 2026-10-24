@@ -21,6 +21,11 @@
  * labelled at their points. Not done (they reverse researcher decisions; RC): the water points W1–W3 (d3) and this overlay on the
  * memory-check map (d6).
  *
+ * Play-test D8 (24 Oct 2026): a second label for the brook Korpioja ("Alder Creek"), whose only name on the basemap sits by
+ * Mökkiranta, ~2.8 km west of where the crown run crosses it. It sits on the drawn brook at the nearest stretch east of the
+ * crossing that keeps the distances below (the brook IS V13's old north edge at the crossing), its text just above the line
+ * (`overlayAnchor`), clear of the "L2 Koillinen" code below it. Finnish DRAFT.
+ *
  * No label sits near the old fire's north edge or V13's US2 (`test/render/map-overlay.spec.ts` holds every one
  * ≥ 600 m from both), none marks a safety zone, escape route or fuel, and none changes with the view.
  * Coordinates: the scenario export and `map-overlay.json` (`scripts/build-map-overlay.ts`, build time; its `grid` is
@@ -97,7 +102,10 @@ export function sectorLabelPoint(geometry: Polygon, ignition: LatLon): LatLon {
 export const SECTOR_OUTLINES: readonly { readonly id: string; readonly geometry: Polygon; readonly labelAt: LatLon }[] =
   SITE_SCENARIO.sectors.map((s) => ({ id: s.id, geometry: s.geometry, labelAt: sectorLabelPoint(s.geometry, SITE_SCENARIO.ignition) }));
 
-export interface OverlayLabel { readonly key: string; readonly at: LatLon; readonly html: string; readonly kind: "road" | "bridge" | "power" | "cp" | "sector" | "settlement" | "region" }
+export interface OverlayLabel { readonly key: string; readonly at: LatLon; readonly html: string; readonly kind: "road" | "bridge" | "power" | "cp" | "sector" | "settlement" | "brook" | "region" }
+
+/** A brook's label sits this far above its point on the line, px (anchored at its bottom; play-test D8, 24 Oct 2026). */
+export const BROOK_LABEL_GAP_PX = 6;
 
 const TEXT = `font:600 ${OVERLAY_FONT_PX}px/1.15 -apple-system,'Segoe UI',Roboto,sans-serif;color:#1c1b19;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -115,6 +123,8 @@ export function overlayLabels(lang: "fi" | "en"): OverlayLabel[] {
     const at = SITE_SCENARIO.features[l.feature];
     if (at) out.push({ key: l.key, at, kind: "settlement", html: `<span style="${TEXT};font-style:italic">${esc(lang === "en" ? l.en : l.fi)}</span>` });
   }
+  const brook = lang === "en" ? englishNames(OVERLAY.brook.fi) : OVERLAY.brook.fi;
+  out.push({ key: "brook:korpioja", at: OVERLAY.brook.at, kind: "brook", html: `<span style="${TEXT};font-style:italic;font-weight:500">${esc(brook)}</span>` });
   for (const r of regionFires()) {
     const name = lang === "en" ? `${r.nameEn}, ${r.haEn}` : `${r.nameFi}, ${r.haFi}`;
     out.push({ key: `region:${r.id}`, at: r.at, kind: "region", html: `${REGION_SVG}<span style="${TEXT};margin-left:3px">${esc(name)}</span>` });
@@ -134,10 +144,11 @@ export function addOverlayLines(map: MapLibreMap): void {
   map.addLayer({ id: "ref-sectors-line", type: "line", source: "ref-sectors", paint: { "line-color": SECTOR_LINE.color, "line-width": SECTOR_LINE.widthPx, "line-opacity": SECTOR_LINE.opacity, "line-dasharray": [...SECTOR_LINE.dash] } });
 }
 
-/** Marker anchor and offset of an overlay label: the command post up-left of its point, region fires to the right, the rest centred. */
-export function overlayAnchor(kind: OverlayLabel["kind"]): { readonly anchor: "center" | "left" | "bottom-right"; readonly offset: readonly [number, number] } {
+/** Marker anchor and offset of an overlay label: the command post up-left of its point, region fires to the right, a brook's name above its line, the rest centred. */
+export function overlayAnchor(kind: OverlayLabel["kind"]): { readonly anchor: "center" | "left" | "bottom" | "bottom-right"; readonly offset: readonly [number, number] } {
   if (kind === "cp") return { anchor: "bottom-right", offset: CP_OFFSET_PX };
   if (kind === "region") return { anchor: "left", offset: [-5, 0] };
+  if (kind === "brook") return { anchor: "bottom", offset: [0, -BROOK_LABEL_GAP_PX] };
   return { anchor: "center", offset: [0, 0] };
 }
 

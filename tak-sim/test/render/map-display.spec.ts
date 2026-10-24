@@ -126,9 +126,20 @@ describe("the camera never moves by itself (revision (aj))", () => {
 
   it("the presets are content-independent: Area 20 km and Sector 2 km about the participant's centre, Fire the opening frame", () => {
     const mv = code("components/MapView.tsx");
-    expect(mv).toMatch(/\{ id: "alue", labelFi: "Alue", widthM: 20_000 \},\s*\{ id: "palo", labelFi: "Palo", widthM: null \},\s*\{ id: "lohko", labelFi: "2 km", widthM: 2_000 \},/);
+    expect(mv).toMatch(/\{ id: "alue", labelFi: "Alue", widthM: 20_000 \},\s*\{ id: "palo", labelFi: "7 km", widthM: null \},[^\n]*\n\s*\{ id: "lohko", labelFi: "2 km", widthM: 2_000 \},/);
     expect(mv).toMatch(/if \(widthM === null\) \{ frameWhole\(map\); return; \}/);
     expect(mv).not.toMatch(/easeTo\(\{[^}]*center/);
+  });
+
+  it("names the whole-area preset for what it shows, \"7 km\", not \"Palo\" / \"Fire\" (play-test, 24 Oct 2026), and no two buttons read alike", () => {
+    for (const lang of ["fi", "en"] as const) {
+      const z = UI_TEXT[lang].zoom;
+      expect(z.palo).toBe("7 km");
+      expect(new Set([z.alue, z.palo, z.lohko]).size).toBe(3);
+      for (const label of [z.alue, z.palo, z.lohko]) expect(label, lang).not.toMatch(/^(Palo|Fire)$/);
+      // The tour's zoom step names the buttons as they read.
+      expect(UI_TEXT[lang].tour.steps.zoom.body.startsWith(`${z.alue}, ${z.palo} ${lang === "fi" ? "ja" : "and"} ${z.lohko} `)).toBe(true);
+    }
   });
 
   it("the memory-check map fills the card and opens on the live map's opening frame, never on the fire as reported (revision (ap))", () => {

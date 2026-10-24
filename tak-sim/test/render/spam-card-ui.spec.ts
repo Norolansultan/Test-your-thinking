@@ -49,6 +49,22 @@ describe("the SPAM card", () => {
     expect(card).not.toMatch(/correct|invariant|expected|truth/i);
   });
 
+  it("shows the item's answer time left (24 Oct 2026): beside the title, quiet, amber in the last 15 s, not announced, nothing logged", () => {
+    expect(card).toMatch(/export const SPAM_TIME_AMBER_S = 15;/);
+    expect(card).toMatch(/<AnswerTimeLeft key=\{spam\.probeId\} orchestrator=\{orchestrator\} \/>/);
+    expect(card).toMatch(/setInterval\(\(\) => setLeft\(orchestrator\.spamSecondsLeft\(\)\), 250\)/);
+    expect(card).toMatch(/data-testid="spam-time-left" role="timer" aria-live="off"/);
+    expect(card).toMatch(/color: late \? AMBER : "#aeb4ba"/);
+    const timer = card.slice(card.indexOf("function AnswerTimeLeft"));
+    expect(timer).not.toMatch(/logPanelUse|logMapUse|event\(/);
+    // On every item, forced or not: it sits in the item's markup, before the forced branch.
+    expect(card.indexOf("<AnswerTimeLeft")).toBeLessThan(card.indexOf("if (!spam.forced) return item;"));
+    for (const lang of ["fi", "en"] as const) {
+      expect(UI_TEXT[lang].spam.timeLeft(42)).toMatch(/\b42 s$/);
+      expect(UI_TEXT[lang].spam.timeLeft(42)).not.toMatch(/thinker|tekoäly|\bAI\b|haku\b/i);
+    }
+  });
+
   it("has the new texts in both languages: the pill, the forced item's title and note; no tool is named", () => {
     for (const lang of ["fi", "en"] as const) {
       const s = UI_TEXT[lang].spam;

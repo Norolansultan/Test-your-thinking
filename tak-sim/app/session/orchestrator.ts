@@ -348,7 +348,7 @@ export class SessionOrchestrator {
       phaseTag: () => this.phaseTag(),
       aiAvailable: () => this.aiAvailable(), language: () => this.language, cell: () => cell,
     }, options.thinker);
-    this.spam = new SpamDelivery({ event: (e) => this.event(e), notify: () => this.notify(), closed: () => this.afterSpam() });
+    this.spam = new SpamDelivery({ event: (e) => this.event(e), notify: () => this.notify(), closed: () => this.afterSpam(), realMs: () => this.realMs() });
     this.visible = new VisibleProbes({ event: (e) => this.event(e), notify: () => this.notify(), optionSeed: this.optionSeed() });
     this.consult = new ConsultNotice({ event: (e) => this.event(e), notify: () => this.notify() }, consultToolOf(cell));
     this.planConfidence = new PlanConfidence({ event: (e) => this.event(e), notify: () => this.notify() });
@@ -1266,6 +1266,8 @@ export class SessionOrchestrator {
   answerSpam(optionId: string): Promise<void> { return this.spam.answer(optionId); }
   /** The SPAM item's confidence (25/50/75/100); the probe closes. */
   submitSpamConfidence(value: number): Promise<void> { return this.spam.confidence(value); }
+  /** The SPAM item's answer window left, whole seconds (the card's countdown, 24 Oct 2026; display only), else null. */
+  spamSecondsLeft(): number | null { return this.spam.secondsLeft(); }
 
   // ---- The visible probes F, U (`visible-probes.ts`; placement and reasons in `demo-probes.ts`) ----------
 

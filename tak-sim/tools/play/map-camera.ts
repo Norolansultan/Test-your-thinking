@@ -1,6 +1,7 @@
 /**
  * The live map's camera in the play harness (`tools/play/`): the participant moves the map themselves — the three preset buttons
- * (`ZOOM_LEVELS`: "Alue" 20 km and "2 km" about the map's centre, "Palo" the whole study area), the wheel and dragging — and the
+ * (`ZOOM_LEVELS`: "Alue" 20 km and "2 km" about the map's centre, "7 km" the whole study area — "Palo" until 24 Oct 2026), the
+ * wheel and dragging — and the
  * app never moves it by itself; each new view opens on the opening frame again (`MapView`, `openingCamera`). `map` does the same
  * for the player: a preset, one wheel step in or out, or a pan that brings a pixel of the last image to the centre, within the
  * app's zoom limits and pan bounds. Pure: MapLibre's own Web Mercator (`mercatorProjector`, 512-px tiles), inverted for the pan.
@@ -16,7 +17,9 @@ const FRAME_PAD_PX = 16;
 const PAN_LIMIT_M = 12_000;
 const MIN_WIDTH_M = 24_000, MAX_WIDTH_M = 400;
 
-export const MAP_MOVES = ["alue", "palo", "2km", "in", "out", "reset"] as const;
+export const MAP_MOVES = ["alue", "7km", "2km", "in", "out", "reset"] as const;
+/** The "7 km" button's old label ("Palo" until 24 Oct 2026): runs played before then replay with it. */
+export const MAP_MOVE_ALIASES: Readonly<Record<string, (typeof MAP_MOVES)[number]>> = { palo: "7km" };
 
 /** The opening frame at the harness's map size. */
 export function openingOf(extent: Extent): Camera {
@@ -41,7 +44,7 @@ export function moveCamera(extent: Extent, from: Camera, move: (typeof MAP_MOVES
   const lat = (extent.south + extent.north) / 2;
   const width = (m: number) => zoomForWidth(m, LIVE_MAP_PX.width, lat);
   if (move === "reset") camera = openingOf(extent);
-  else if (move === "palo") camera = extentCamera(extent, LIVE_MAP_PX.width, LIVE_MAP_PX.height, FRAME_PAD_PX);
+  else if (move === "7km") camera = extentCamera(extent, LIVE_MAP_PX.width, LIVE_MAP_PX.height, FRAME_PAD_PX);
   else if (move === "alue") camera = { ...camera, zoom: width(20_000) };
   else if (move === "2km") camera = { ...camera, zoom: width(2_000) };
   else if (move === "in") camera = { ...camera, zoom: camera.zoom + 1 };

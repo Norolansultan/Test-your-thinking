@@ -65,7 +65,8 @@ export async function helpText(session: PlaySession, sectionArg: string | undefi
     for (const t of glossaryList(terms, pick)) out.push(`${t.term}: ${t.definition}`);
   } else if (section === "roster") {
     out.push(T.rosterNote);
-    for (const r of rosterRows(lang)) out.push(`${r.callSign} — ${r.type}${r.crew ? ` · ${T.crew} ${r.crew}` : ""}${r.from ? ` · ${T.from} ${r.from}` : ""}${r.detail ? ` · ${r.detail}` : ""}`);
+    // As `HelpCard`'s row: "Crew 1+4 · From: …" (the colon was dropped here until 24 Oct 2026).
+    for (const r of rosterRows(lang)) out.push(`${r.callSign} — ${r.type}${r.crew ? ` · ${T.crew} ${r.crew}` : ""}${r.from ? ` · ${T.from}: ${r.from}` : ""}${r.detail ? ` · ${r.detail}` : ""}`);
   } else {
     const L = FIRE_THEME.legend, M = LEGEND_MAP_TEXT[lang];
     out.push(T.legendNote, `${tr(lang, L.title)}:`);

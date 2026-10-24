@@ -35,6 +35,36 @@ describe("Finnish inflection and compounds", () => {
     expect(en("VOL1's crew")).toEqual([["VOL1's", "volunteer_brigade"], ["crew", "crew"]]);
   });
 
+  it("finds the play-test's terms (24 Oct 2026) in the forms the records use", () => {
+    expect(fi("EK16, metsäautotie (Honkaharju): esitämme taustapolttoa tien reunasta")).toContainEqual(["taustapolttoa", "burnout"]);
+    expect(fi("taustapoltto peruttu, tuuli liian kova")).toContainEqual(["taustapoltto", "burnout"]);
+    expect(fi("Laukaisupiste sovittu: kun yksittäiset puut alkavat soihduta")).toContainEqual(["Laukaisupiste", "trigger_point"]);
+    expect(fi("EK16: laukaisupiste täyttyi klo 19.00")).toContainEqual(["laukaisupiste", "trigger_point"]);
+    expect(fi("siirrän sovitun vapautussäännön mukaan KY21:n ja VPK:n")).toContainEqual(["vapautussäännön", "release_rule"]);
+    expect(fi("Palo palaa syvällä kunttakerroksessa. Vesi ei imeydy kuivaan kunttaan.")).toEqual([["kunttakerroksessa", "humus_layer"]]);
+    expect(en("we propose a burnout from the road edge")).toContainEqual(["burnout", "burnout"]);
+    expect(en("Burnouts are called off.")).toContainEqual(["Burnouts", "burnout"]);
+    expect(en("Trigger point: when the head is about 200 m from the road")).toContainEqual(["Trigger point", "trigger_point"]);
+    expect(en("under the agreed release rule I am moving KY21")).toContainEqual(["release rule", "release_rule"]);
+    expect(en("burning deep in the humus layer and the stump roots")).toContainEqual(["humus layer", "humus_layer"]);
+    expect(en("The water does not soak into the dry humus.")).toContainEqual(["humus", "humus_layer"]);
+  });
+
+  it("marks each play-test term in the scenario's own records, in both languages", () => {
+    const site = JSON.parse(readFileSync("app/scenario/site-scenario.json", "utf8")) as { traffic: { content?: string }[]; radio: { text: string }[]; english: Record<string, string> };
+    const authored = JSON.parse(readFileSync("content/i18n/authored.en.json", "utf8")) as Record<string, string>;
+    // The corpus export carries the authored story's Finnish too (the humus layer is in a story record, not in the site traffic).
+    const corpus = readFileSync("content/corpus/interaction-log.jsonl", "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => (JSON.parse(l) as { content?: string }).content ?? "");
+    const fiTexts = [...site.traffic.map((t) => t.content ?? ""), ...site.radio.map((r) => r.text), ...corpus];
+    const enTexts = [...Object.values(site.english), ...Object.values(authored)];
+    const ids = (lang: "fi" | "en", texts: readonly string[]) => new Set(texts.flatMap((t) => segmentsIn(lang, t).flatMap((s) => (s.kind === "term" ? [s.termId] : []))));
+    const fiIds = ids("fi", fiTexts), enIds = ids("en", enTexts);
+    for (const id of ["burnout", "trigger_point", "release_rule", "humus_layer"]) {
+      expect(fiIds.has(id), `fi ${id}`).toBe(true);
+      expect(enIds.has(id), `en ${id}`).toBe(true);
+    }
+  });
+
   it("matches multi-word forms across white space only", () => {
     expect(fi("Mitä 20 kV:n sähkölinjan tila merkitsee?")).toEqual([["20 kV:n sähkölinjan", "power_line"]]);
     expect(fi("Johto on kytketty pois.")).toEqual([["kytketty pois", "de_energised"]]);

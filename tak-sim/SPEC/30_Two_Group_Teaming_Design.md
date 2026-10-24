@@ -328,6 +328,18 @@ Null (Δ 0, all items): 6 · 5 · 5 %. Reference (the effect on every item, §11
 1. **If the effect sits where seeking is needed, the pre-registered H2 is underpowered.** Over all 24 items a medium effect (Δ +0.8) has 43 % at n = 100 (§11 assumed 100 %, with the effect on every item); 150 participants raise it to 56 %. The minimum detectable effect on the seek-dependent items is Δ 1.38 at n = 100 — about three times the small effect §11 planned for — because two thirds of the items carry no effect and dilute the gap.
 2. **The gap on the seek-dependent items is the powered test:** 92 % at Δ +0.8, MDE Δ 0.68 (a population gap of +.11 on those items) at n = 100. Dropping the lure items from it costs 8 points (two of the eight are lures).
 3. **Dropping the late items helps the all-items test** (43 → 54 %) because they are passive items that carry no effect; dropping the lure items as well hurts (54 → 42 %), because two of the three lures are seek-dependent.
+**Re-run 24 Oct 2026 after the play-test decisions (`08` (bg); audit regenerated):** 18 of the 24 H2 items are now answerable without seeking (was 16), 5 partly, 1 not, so **6 are seek-dependent** (was 8). The table above is superseded by:
+
+| Window | Items | n = 100 | n = 120 | n = 150 | MDE n = 100 | MDE n = 120 | MDE n = 150 |
+|---|---|---|---|---|---|---|---|
+| All H2 items (as pre-registered) | 24 | 10 · 26 % | 10 · 28 % | 13 · 37 % | Δ 2.00 (+.067) | Δ 1.81 (+.062) | Δ 1.55 (+.055) |
+| Seek-dependent only | 6 | 34 · **85** % | 38 · 87 % | 43 · 93 % | Δ 0.76 (+.123) | Δ 0.73 (+.116) | Δ 0.66 (+.104) |
+| Without the late items | 19 | 14 · 36 % | 13 · 40 % | 15 · 47 % | Δ 1.58 (+.072) | Δ 1.43 (+.066) | Δ 1.25 (+.059) |
+| Without the late and lure items | 16 | 10 · 23 % | 9 · 23 % | 11 · 29 % | Δ 2.71 (+.075) | Δ 2.18 (+.068) | Δ 1.88 (+.062) |
+| Seek-dependent without lure items | 4 | 24 · 69 % | 25 · 74 % | 33 · 82 % | Δ 0.95 (+.147) | Δ 0.88 (+.135) | Δ 0.78 (+.121) |
+
+Null: 5 · 4 · 5 %. Making the items fairer (answerable from the log, D1/D3/D7) moved two more items out of the seek-dependent class, so the all-items H2 lost further power (43 → 26 % at Δ +0.8, n = 100) while the seek-dependent window still has 85 %. Point 4 below holds with more force.
+
 4. **What follows (RC, before the lock).** Pre-register the gap on the seek-dependent items as H2's powered test — either as the primary (with all 24 items as the sensitivity) or as a pre-stated secondary in the Holm family — and state the minimum detectable effects above; the class list is fixed from the audit before pilot 2's data, never from them. The re-run is one command: when the scenario work regenerates the audit (`items.csv`), `npm run power:h2-items` reads the new classes (and a `lure` column if the audit adds one). Pilot 2 replaces the difficulty and effect assumptions (per-item accuracy by class, `09` (be)'s checks).
 
 ### bf.6 §8 additions

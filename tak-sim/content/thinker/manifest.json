@@ -384,24 +384,24 @@
   },
   "index": {
     "file": "content/thinker/index.json",
-    "sha256": "503ac9f7a14824d5bad18e70364fbe9528364ac1867373351aa1e1d4a97d2826",
+    "sha256": "b1aba0c2b97d91974bf4a2c46c9ebc5b1dc145d52585cb0c9b793259adf0c9e2",
     "atomCount": 1004,
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
-    "carriedVectors": 582,
-    "carriedFromIndexSha256": "b204453d141397d2d531a41d8e2fb5908b708ee7b86018fda2fa15f6e6091c8b",
+    "carriedVectors": 583,
+    "carriedFromIndexSha256": "f7bc2dd798c95f3f569e7dc8783143d0280447912c61d65e0aa57a01fd2ca77a",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "indexEn": {
     "file": "content/thinker/index.en.json",
-    "sha256": "c9184c025274904e07c0d283d78f00ee67ec2611cd7fc008f48c3fe7d9169ae8",
+    "sha256": "328f89a067038b4cce4a8fe093b4ee97e01359c73c470ba7d47760b75266b88d",
     "atomCount": 1004,
     "language": "en",
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
     "authoredQueries": "content/thinker/authored-queries.en.json",
-    "carriedVectors": 645,
-    "carriedFromIndexSha256": "0addfe1adc5f324e1266cf302721c43b025ce0a06b70eca1ffa08386daa3d9a5",
+    "carriedVectors": 646,
+    "carriedFromIndexSha256": "e61a1fe24ed1ec9a2b39ac58058a632dfd06668f4b5b83f847025194458ccd1e",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "directivePremises": {
@@ -413,7 +413,7 @@
   },
   "premiseEvidence": {
     "file": "content/thinker/premise-evidence.json",
-    "sha256": "2f309578a0114c52e6089dee49148f9b5d4718b1bde737e736bdca13e1b4e305",
+    "sha256": "3cae40f84cd128c84fd62ae06e2e0d4741cff2c28c3d20edfa5977ec3738274d",
     "newlineNormalisation": "LF",
     "version": 2,
     "directivePremisesSha256": "f6ea5946b77930769171b11e738e2468d91a647bee643d5f741a0972a1ba3ae2",

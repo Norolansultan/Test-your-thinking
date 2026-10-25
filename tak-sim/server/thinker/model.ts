@@ -205,7 +205,7 @@ export function openPlanContext(scenario: ScenarioContract, view: number, virtua
  * say "Bay Village", the map's Finnish tiles "Lahdenkylä"), so the model is given both.
  */
 export const GAZETTEER_PLACES: readonly string[] = [
-  "Lahdenkylä", "Mökkiranta", "Karhujärvi", "Haukilampi", "Kotkanjoki", "Koivuoja", "Korpioja", "Rahkasuo", "Iso-Rahkasuo", "Kuivakangas", "Kuusimäki", "Honkaharju",
+  "Lahdenkylä", "Mökkiranta", "Karhujärvi", "Haukilampi", "Kotkanjoki", "Koivuoja", "Myllyoja", "Rahkasuo", "Iso-Rahkasuo", "Kuivakangas", "Kuusimäki", "Honkaharju",
 ];
 
 /**

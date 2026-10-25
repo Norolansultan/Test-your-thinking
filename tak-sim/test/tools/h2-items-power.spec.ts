@@ -39,10 +39,17 @@ describe("the H2 window from the audit's items.csv", () => {
     expect(items.filter((i) => i.lure).map((i) => i.id).sort()).toEqual([...LURES].sort());
   });
 
-  it("the committed audit: 24 H2 items, every one in one of the three classes", () => {
+  it("the committed audit: 23 H2 items, every one in one of the three classes (play-test R2: V4's exploratory head_later is out)", () => {
     const items = h2ItemClasses(AUDIT_CSV);
-    expect(items).toHaveLength(24);
+    expect(items).toHaveLength(23);
+    expect(items.map((i) => i.id)).not.toContain("freeze.4.head_later");
     expect(new Set(items.map((i) => i.view))).toEqual(new Set(VIEWS));
+  });
+
+  it("leaves out a row the audit marks scored outside the composites (`scored_for`, play-test R2)", () => {
+    const head = HEAD.replace("retrieval_dependent,", "retrieval_dependent,scored_for,");
+    const r = (id: string, scoredFor: string) => row(id, "V4", "L3", "partly", false).replace(",false,\"Prompt", `,false,${scoredFor},"Prompt`);
+    expect(h2ItemClasses(`${head}\n${r("freeze.a", "")}\n${r("freeze.b", "exploratory")}\n`).map((i) => i.id)).toEqual(["freeze.a"]);
   });
 
   it("reads a lure column when the audit adds one, and refuses an unknown class", () => {

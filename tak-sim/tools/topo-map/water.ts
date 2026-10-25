@@ -5,7 +5,7 @@
  *      the fire's ground), each at its spill level with its outlet at the lowest shore; every other hollow is filled flat (peat or
  *      sand fills it: soil.ts makes the wet ones mires).
  *   B. Kotkanjoki is traced as a least-cost path through its valley floor, pinned straight through the R3 bridge, then given
- *      meanders that grow on flat ground; Korpioja (through Karhujärvi) and Koivuoja likewise in their valleys. Each gets a monotone
+ *      meanders that grow on flat ground; Myllyoja (through Karhujärvi) and Koivuoja likewise in their valleys. Each gets a monotone
  *      water surface and is carved in as a shallow channel (no canyon: the valley is the base DEM's, the carve is a channel).
  *   C. Re-flood; D8 on the ε-filled surface and flow accumulation; brooks are where the catchment passes ~1 km² (more on sand,
  *      which swallows the runoff), and every lake ≥ 2 ha gets its outlet stream; these are carved in as well.
@@ -76,7 +76,7 @@ const levelA = (x: number, y: number): number | undefined => {
 };
 
 // ---------------------------------------------------------------------------
-// B. Kotkanjoki, Korpioja and Koivuoja
+// B. Kotkanjoki, Myllyoja and Koivuoja
 // ---------------------------------------------------------------------------
 
 const valleyFlat = (p: P) => Math.max(0.15, sampleGrid(BASE.valleyFloor, p.x, p.y));
@@ -127,9 +127,9 @@ function joinTo(line: readonly P[], into: readonly P[], m: number): P[] {
   return out;
 }
 
-/** Korpioja: from the mires west of Karhujärvi down to the lake (least cost), through it, and out along Korpilaakso's floor (the
+/** Myllyoja: from the mires west of Karhujärvi down to the lake (least cost), through it, and out along Korpilaakso's floor (the
  * valley's own centre line, which the base DEM makes the lowest line of the floor) to Kotkanjoki. */
-function traceKorpioja(): P[] {
+function traceMyllyoja(): P[] {
   const karhu = lakeCellsNamed("Karhujärvi");
   if (karhu.length === 0) throw new Error("water: Karhujärvi did not form in its bowl");
   const karhuSet = new Set(karhu);
@@ -145,12 +145,12 @@ function traceKorpioja(): P[] {
   return [...upLine, ...joinTo(downLine, RIVER, 40)];
 }
 
-function traceKoivuoja(korpioja: readonly P[]): P[] {
-  return joinTo(naturalise(resample(KOIVU_VALLEY.line, 20), 35, 300, 43, () => 1), korpioja, 30);
+function traceKoivuoja(myllyoja: readonly P[]): P[] {
+  return joinTo(naturalise(resample(KOIVU_VALLEY.line, 20), 35, 300, 43, () => 1), myllyoja, 30);
 }
 
-const KORPIOJA_LINE = traceKorpioja();
-const KOIVUOJA_LINE = traceKoivuoja(KORPIOJA_LINE);
+const MYLLYOJA_LINE = traceMyllyoja();
+const KOIVUOJA_LINE = traceKoivuoja(MYLLYOJA_LINE);
 
 /** Water surface of `line` at the vertex nearest `p`. */
 function surfaceNear(line: readonly P[], surface: readonly number[], p: P): number {
@@ -160,14 +160,14 @@ function surfaceNear(line: readonly P[], surface: readonly number[], p: P): numb
 }
 
 export const RIVER_SURFACE: readonly number[] = channelSurface(RIVER, groundA, levelA, 1.2, 30, 0.0001);
-const KORPIOJA_SURFACE = channelSurface(KORPIOJA_LINE, groundA, levelA, 0.6, 25, 0.0002, surfaceNear(RIVER, RIVER_SURFACE, KORPIOJA_LINE[KORPIOJA_LINE.length - 1]!));
-const KOIVUOJA_SURFACE = channelSurface(KOIVUOJA_LINE, groundA, levelA, 0.6, 25, 0.0003, surfaceNear(KORPIOJA_LINE, KORPIOJA_SURFACE, KOIVUOJA_LINE[KOIVUOJA_LINE.length - 1]!));
+const MYLLYOJA_SURFACE = channelSurface(MYLLYOJA_LINE, groundA, levelA, 0.6, 25, 0.0002, surfaceNear(RIVER, RIVER_SURFACE, MYLLYOJA_LINE[MYLLYOJA_LINE.length - 1]!));
+const KOIVUOJA_SURFACE = channelSurface(KOIVUOJA_LINE, groundA, levelA, 0.6, 25, 0.0003, surfaceNear(MYLLYOJA_LINE, MYLLYOJA_SURFACE, KOIVUOJA_LINE[KOIVUOJA_LINE.length - 1]!));
 
 const demB = new Float32Array(GN * GN);
 for (let i = 0; i < GN * GN; i++) demB[i] = lakeOfA[i]! >= 0 || BIG[i] ? BASE.dem[i]! : floodA[i]!;
 const isLakeA = (i: number) => lakeOfA[i]! >= 0 || BIG[i] === 1;
 carve(demB, RIVER, RIVER_SURFACE, riverProfile, 90, isLakeA);
-carve(demB, KORPIOJA_LINE, KORPIOJA_SURFACE, brookProfile, 45, isLakeA);
+carve(demB, MYLLYOJA_LINE, MYLLYOJA_SURFACE, brookProfile, 45, isLakeA);
 carve(demB, KOIVUOJA_LINE, KOIVUOJA_SURFACE, brookProfile, 45, isLakeA);
 
 // ---------------------------------------------------------------------------
@@ -204,9 +204,9 @@ export interface Brook { readonly name: string; readonly line: readonly P[]; rea
 
 const streamCell = new Int32Array(GN * GN).fill(-1);
 markLine(streamCell, RIVER, 40, 0);
-markLine(streamCell, KORPIOJA_LINE, 30, 1);
+markLine(streamCell, MYLLYOJA_LINE, 30, 1);
 markLine(streamCell, KOIVUOJA_LINE, 30, 2);
-const LINES: P[][] = [RIVER as P[], KORPIOJA_LINE, KOIVUOJA_LINE];
+const LINES: P[][] = [RIVER as P[], MYLLYOJA_LINE, KOIVUOJA_LINE];
 const KINDS: Brook["kind"][] = ["named", "named", "named"];
 /** For each traced stream: the stream (id) or lake (−2 − lake id) it ends in, or −1 (sheet edge). */
 const ENDS: number[] = [-1, 0, 1];
@@ -271,7 +271,7 @@ for (let k = 3; k < LINES.length; k++) {
 
 const groundB = (x: number, y: number) => sampleGrid(S1.filled, x, y);
 const levelB = (x: number, y: number): number | undefined => { const k = S1.lakeId[cellOf(x, y)]!; return k >= 0 ? S1.levels[k] : undefined; };
-const SURFACES: number[][] = [RIVER_SURFACE as number[], KORPIOJA_SURFACE, KOIVUOJA_SURFACE];
+const SURFACES: number[][] = [RIVER_SURFACE as number[], MYLLYOJA_SURFACE, KOIVUOJA_SURFACE];
 const demC = Float32Array.from(demB);
 for (let i = 0; i < GN * GN; i++) if (S1.lakeId[i]! < 0) demC[i] = S1.filled[i]!;
 for (let k = 3; k < LINES.length; k++) {
@@ -431,13 +431,17 @@ export const LAKES: readonly Lake[] = buildLakes();
 for (let k = LINES.length - 1; k >= 0; k--) enforceMonotone(ELEV, LINES[k]!, (i) => LAKE_ID[i]! >= 0);
 function cells2(k: number): number { let n = 0; for (let i = 0; i < GN * GN; i++) if (LAKE_ID[i] === k) n++; return n; }
 
-/** Brooks in flow order (source → mouth): Korpioja, Koivuoja, then the generated brooks and lake outlets. Unnamed ones are "puro". */
+/**
+ * Brooks in flow order (source → mouth): Myllyoja, Koivuoja, then the generated brooks and lake outlets. Unnamed ones are "puro".
+ * Play-test R5 (researcher 25 Oct 2026): the first was Korpioja (English "Alder Creek"), confusable with Koivuoja ("Birch Creek"); the
+ * geometry is unchanged, only the name.
+ */
 export const BROOKS: readonly Brook[] = (() => {
   const out: Brook[] = [];
   const lengths = LINES.map((l) => l.reduce((s, p, k) => (k ? s + Math.hypot(p.x - l[k - 1]!.x, p.y - l[k - 1]!.y) : 0), 0));
   const far = LINES.map((l, k) => ({ k, len: lengths[k]! })).filter(({ k }) => k >= 3 && LINES[k]!.every((p) => Math.hypot(p.x, p.y) > 5000)).sort((a, b) => b.len - a.len || a.k - b.k);
   const named = new Map<number, string>([[far[0]?.k ?? -1, "Suo-oja"], [far[1]?.k ?? -1, "Rahkapuro"]]);
-  for (let k = 1; k < LINES.length; k++) out.push({ name: k === 1 ? "Korpioja" : k === 2 ? "Koivuoja" : named.get(k) ?? "puro", line: LINES[k]!, kind: KINDS[k]! });
+  for (let k = 1; k < LINES.length; k++) out.push({ name: k === 1 ? "Myllyoja" : k === 2 ? "Koivuoja" : named.get(k) ?? "puro", line: LINES[k]!, kind: KINDS[k]! });
   return out;
 })();
 export const BROOK_SURFACES: readonly (readonly number[])[] = SURFACES.slice(1);

@@ -23,7 +23,8 @@ import { tr } from "../../app/i18n/text.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SPAM_AUTHORED, SPAM_KEY_ATOMS, SPAM_OFFSET_MS, SPAM_SECOND_AUTHORED, SPAM_SECOND_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
 import type { FreezeItem, InfoAtom, ScenarioContract, ViewSpec } from "../../app/scenario/types.js";
-import { PRACTICE_FREEZE_AT_S, STEP_SECONDS } from "../../app/scenario/views.js";
+import { MAIN_VIEWS, PRACTICE_FREEZE_AT_S, STEP_SECONDS } from "../../app/scenario/views.js";
+import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import { hybridRetrieve } from "../../app/retrieval/hybrid.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
 import { HAND, type HandRow } from "./difficulty-audit-hand.js";
@@ -52,9 +53,17 @@ export interface AuditItem {
   readonly format: string;
   readonly basisKind: string;
   readonly retrievalDependent: boolean;
+  /** `FreezeItem.scoredFor` (`h9_only`, `exploratory`: play-test D6, R2): scored outside H2 and the SA composites; "" otherwise. */
+  readonly scoredFor: string;
   readonly promptEn: string;
   readonly keyEn: string;
   readonly momentS: number;
+  /**
+   * Play-test R1 (25 Oct 2026): an L3 item's horizon in minutes from the header's "now", the end of the span of the view's latest reports
+   * (the end of its last step), to the clock the key is read at (the end of `keySteps[1]`). The stems state that clock only; phase A's
+   * horizons are a step shorter than the old "N minuutin kuluttua" counted from the span's start. Null for other items and the practice.
+   */
+  readonly horizonMin: number | null;
   readonly momentNote: string;
   readonly atoms: readonly AtomLead[];
   /** All key records pushed before the moment (the stream told everyone). */
@@ -136,10 +145,13 @@ export function auditItems(): AuditItem[] {
   const out: AuditItem[] = [];
   const freezeItem = (view: number, it: FreezeItem, momentS: number, momentNote: string) => {
     const ids = [...new Set([...(it.keyAtomIds ?? []), ...(it.basisAtomIds ?? [])])];
+    const def = view === 0 ? undefined : (FREEZE_BANK[view] ?? []).find((d) => it.id === `freeze.${view}.${d.slug}`);
+    const lastStep = MAIN_VIEWS.find((v) => v.index === view)?.steps.at(-1);
+    const horizonMin = def?.keySteps && lastStep !== undefined && it.level === "L3" ? (def.keySteps[1] - lastStep) * 20 : null;
     out.push(finish(s, {
       id: it.id, kind: "freeze", view, level: it.level, goal: it.goal ?? "", format: it.kind ?? "choice", basisKind: it.basisKind ?? "",
-      retrievalDependent: it.retrievalDependent === true, promptEn: tr("en", it.promptFi), keyEn: keyLabel(it), momentS, momentNote,
-      atoms: ids.map((id) => atomLead(s, id, view, momentS)),
+      retrievalDependent: it.retrievalDependent === true, scoredFor: it.scoredFor ?? "", promptEn: tr("en", it.promptFi), keyEn: keyLabel(it), momentS, momentNote,
+      horizonMin, atoms: ids.map((id) => atomLead(s, id, view, momentS)),
     }));
   };
   for (const it of s.practice.freeze.items) freezeItem(0, it, PRACTICE_FREEZE_AT_S, "fixed, after the tour");
@@ -150,8 +162,8 @@ export function auditItems(): AuditItem[] {
   }
   const spamMoment = SPAM_OFFSET_MS / 1000;
   const spam = (view: number, suffix: string, prompt: string, key: string, level: number, ids: readonly string[]) => out.push(finish(s, {
-    id: `probe.s.cycle_${view}${suffix}`, kind: "spam", view, level: `L${level}`, goal: "", format: "choice", basisKind: "", retrievalDependent: false,
-    promptEn: tr("en", prompt), keyEn: tr("en", key), momentS: spamMoment, momentNote: "ready prompt at 25 s; answered with the tools at hand",
+    id: `probe.s.cycle_${view}${suffix}`, kind: "spam", view, level: `L${level}`, goal: "", format: "choice", basisKind: "", retrievalDependent: false, scoredFor: "",
+    promptEn: tr("en", prompt), keyEn: tr("en", key), momentS: spamMoment, momentNote: "ready prompt at 25 s; answered with the tools at hand", horizonMin: null,
     atoms: ids.map((id) => atomLead(s, id, view, spamMoment)),
   }));
   for (const v of [3, 6, 8, 11]) {
@@ -229,9 +241,10 @@ const csvCell = (v: string | number | boolean | null): string => {
 const atomCell = (a: AtomLead) => `${a.id}:${a.tier}:${a.status}${a.view !== null ? `:V${a.view}` : ""}${a.leadS !== null ? `:${a.leadS}s` : ""}`;
 
 export function itemsCsv(items: readonly AuditItem[]): string {
-  const head = ["id", "kind", "view", "level", "goal", "format", "basis_kind", "retrieval_dependent", "prompt_en", "key_en", "moment_s", "key_records",
+  // Play-test R1, R2 (25 Oct 2026): `horizon_min` (from the header's "now") and `scored_for` (outside H2 and the composites) added.
+  const head = ["id", "kind", "view", "level", "goal", "format", "basis_kind", "retrieval_dependent", "scored_for", "prompt_en", "key_en", "moment_s", "horizon_min", "key_records",
     "hand_basis_records", "all_key_pushed", "key_needs_search", "latest_lead_s", "late_lt60s", "channels", "passive", "map_dependence", "map_fact_unstated", "seek_channel", "note"];
-  const rows = items.map((i) => [i.id, i.kind, i.view === 0 ? "VP" : `V${i.view}`, i.level, i.goal, i.format, i.basisKind, i.retrievalDependent, i.promptEn, i.keyEn, i.momentS,
+  const rows = items.map((i) => [i.id, i.kind, i.view === 0 ? "VP" : `V${i.view}`, i.level, i.goal, i.format, i.basisKind, i.retrievalDependent, i.scoredFor, i.promptEn, i.keyEn, i.momentS, i.horizonMin,
     i.atoms.map(atomCell).join(" "), i.handAtoms.map(atomCell).join(" "), i.allPushed, i.needsSearch, i.latestLeadS, i.late, i.hand.channels, i.hand.passive, i.hand.map, i.hand.mapUnstated, i.hand.seek, i.hand.note].map(csvCell).join(","));
   return `${[head.join(","), ...rows].join("\n")}\n`;
 }
@@ -254,8 +267,18 @@ export function summaryMd(items: readonly AuditItem[]): string {
   const views = [...new Set(items.map((i) => i.view))];
   table("Per view (the practice view VP included, not scored)", views.map((v) => [`${v === 0 ? "VP" : `V${v}`} ${items.find((i) => i.view === v)!.kind}`, items.filter((i) => i.view === v)] as const));
   table("Per SA level (scored items only)", ["L1", "L2", "L3"].map((l) => [l, scored.filter((i) => i.level === l)] as const));
-  const h2 = scored.filter((i) => i.kind === "freeze" && i.view <= 7 && i.level !== "L1");
-  table("Per probe kind (scored items only)", [["freeze", scored.filter((i) => i.kind === "freeze")], ["SPAM", scored.filter((i) => i.kind === "spam")], ["all", scored], ["H2 window (V2–V7 freeze L2/L3)", h2]]);
+  // Play-test R2 (25 Oct 2026): an item scored outside the composites (`scored_for`, V4's exploratory head_later) is out of H2's window.
+  const h2 = scored.filter((i) => i.kind === "freeze" && i.view <= 7 && i.level !== "L1" && i.scoredFor === "");
+  table("Per probe kind (scored items only)", [["freeze", scored.filter((i) => i.kind === "freeze")], ["SPAM", scored.filter((i) => i.kind === "spam")], ["all", scored], ["H2 window (V2–V7 freeze L2/L3, composite items)", h2]]);
+  lines.push("## Items scored outside H2 and the SA composites (`scored_for`)", "");
+  for (const i of items.filter((x) => x.scoredFor !== "")) lines.push(`- \`${i.id}\` (${i.level}): ${i.scoredFor}`);
+  lines.push("", "## L3 horizons from the header's \"now\" (play-test R1: the stems state the clock only)", "",
+    "| View | Items: minutes from the end of the latest reports' span to the key's clock |", "|---|---|");
+  for (const v of views.filter((x) => x !== 0)) {
+    const l3 = items.filter((i) => i.view === v && i.horizonMin !== null);
+    if (l3.length) lines.push(`| V${v} | ${l3.map((i) => `\`${i.id.split(".").at(-1)}\` ${i.horizonMin}`).join(", ")} |`);
+  }
+  lines.push("");
   lines.push("## Records per view: what the stream shows and what waits in the records", "",
     "| View | Pushed to the log | Recorded only (Haku / Thinker), of the view's steps | Share pushed |", "|---|---|---|---|");
   for (const r of recordsPerView()) lines.push(`| ${r.view === 0 ? "VP" : `V${r.view}`} | ${r.pushed} | ${r.recorded} | ${pct(r.pushed, r.pushed + r.recorded)} |`);

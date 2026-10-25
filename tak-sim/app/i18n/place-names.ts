@@ -31,7 +31,8 @@ export const PLACE_NAMES_EN: Readonly<Record<string, string>> = {
   Haukilampi: "Pike Pond",
   Kotkanjoki: "Eagle River",
   Koivuoja: "Birch Creek",
-  Korpioja: "Alder Creek",
+  // Play-test R5 (researcher 25 Oct 2026): was Korpioja / "Alder Creek", confusable with Koivuoja / "Birch Creek" in both languages.
+  Myllyoja: "Mill Brook",
   Lahdenkylä: "Bay Village",
   Mökkiranta: "Lakeside Cottages",
   Rahkasuo: "Moss Bog",
@@ -67,12 +68,12 @@ export const PLACE_NAMES_EN: Readonly<Record<string, string>> = {
 };
 
 /**
- * A word the English text put after a Finnish name to say what it is ("the Korpioja brook", "the
- * Mökkiranta cabins"): the English name already says it, so it goes with the name ("Alder Creek",
- * "Lakeside Cottages", not "Alder Creek brook").
+ * A word the English text put after a Finnish name to say what it is ("the Myllyoja brook", "the
+ * Mökkiranta cabins"): the English name already says it, so it goes with the name ("Mill Brook",
+ * "Lakeside Cottages", not "Mill Brook brook").
  */
 const ABSORBED: Readonly<Record<string, readonly string[]>> = {
-  Haukilampi: ["pond"], Koivuoja: ["brook"], Korpioja: ["brook"], Kotkanjoki: ["river"], Karhujärvi: ["lake"],
+  Haukilampi: ["pond"], Koivuoja: ["brook"], Myllyoja: ["brook"], Kotkanjoki: ["river"], Karhujärvi: ["lake"],
   Mökkiranta: ["cabins"], Lahdenkylä: ["village"], Rahkasuo: ["bog"],
 };
 
@@ -82,7 +83,7 @@ export const VOLUNTEER_CALL_SIGN_EN = "VOL1";
 
 const LETTER = "\\p{L}\\p{N}";
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-/** "the Korpioja brook" is "Alder Creek", not "the Alder Creek" (a name in English takes no article; the cottages keep theirs). */
+/** "the Myllyoja brook" is "Mill Brook", not "the Mill Brook" (a name in English takes no article; the cottages keep theirs). */
 const ARTICLE_RULES: readonly (readonly [RegExp, string])[] = sortedKeys(ABSORBED)
   .filter((fi) => fi !== "Mökkiranta")
   .map((fi) => [new RegExp(`(?<![${LETTER}])[Tt]he ${escape(fi)} (?:${ABSORBED[fi]!.join("|")})(?![${LETTER}])`, "gu"), PLACE_NAMES_EN[fi]!] as const);

@@ -34,7 +34,24 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 | freeze | 50 | 36/50 (72 %) | 12/50 (24 %) | 2/50 (4 %) | 13/50 (26 %) | 11/50 (22 %) | 8/50 (16 %) |
 | SPAM | 6 | 4/6 (67 %) | 1/6 (17 %) | 1/6 (17 %) | 2/6 (33 %) | 0/6 (0 %) | 0/6 (0 %) |
 | all | 56 | 40/56 (71 %) | 13/56 (23 %) | 3/56 (5 %) | 15/56 (27 %) | 11/56 (20 %) | 8/56 (14 %) |
-| H2 window (V2–V7 freeze L2/L3) | 24 | 18/24 (75 %) | 5/24 (21 %) | 1/24 (4 %) | 3/24 (13 %) | 4/24 (17 %) | 5/24 (21 %) |
+| H2 window (V2–V7 freeze L2/L3, composite items) | 23 | 18/23 (78 %) | 4/23 (17 %) | 1/23 (4 %) | 3/23 (13 %) | 3/23 (13 %) | 5/23 (22 %) |
+
+## Items scored outside H2 and the SA composites (`scored_for`)
+
+- `freeze.4.head_later` (L3): exploratory
+- `freeze.12.f7` (L2): h9_only
+
+## L3 horizons from the header's "now" (play-test R1: the stems state the clock only)
+
+| View | Items: minutes from the end of the latest reports' span to the key's clock |
+|---|---|
+| V2 | `area_40` 20, `spruce_behaviour` 60, `junction_hour` 40, `head_later` 40 |
+| V4 | `return_danger` 20, `crown_drops` 20, `korpioja_spot` 20, `head_later` 0 |
+| V5 | `ek14_shelter` 20, `wind_shift` 40, `area_hour` 40, `road_jump` 20 |
+| V7 | `rekindle_sector` 40, `cabins_reach` 40, `cp_safe` 40, `relief_next` 20 |
+| V10 | `area_growth_hour` 60, `front_r2_80` 80 |
+| V12 | `village_distance` 40, `head_later` 60 |
+| V14 | `se_front_r2` 20, `flare_next` 60 |
 
 ## Records per view: what the stream shows and what waits in the records
 
@@ -60,7 +77,7 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 
 - `freeze.2.junction_hour` (L3): no record states the fire's distance to the R1/R2 junction; extrapolate the drawn head along its direction with the scale bar and the pushed rate (DR1 7.1 m/min); the map's ~950 m now is the lure
 - `freeze.2.head_later` (L3): an hour on; V2's projection ends at 40 minutes: extrapolate the drawn head and rate on the blank basemap
-- `freeze.4.head_later` (L3): 20 minutes on, inside V4's 40-minute projection (a breach view: the key lies beyond the isochrone); placed on the blank basemap
+- `freeze.4.head_later` (L3): at 15.20, the end of the header's span (0 minutes from its 'now'), inside V4's 40-minute projection (a breach view: the key lies beyond the isochrone); placed on the blank basemap; the key implies ~38 m/min, the pushed DR3 15.05 says 14.1; exploratory, outside H2 and the composites (play-test R2)
 - `freeze.7.cp_safe` (L3): no record states the fire's distance to the command post (~760 m) before V8: the scale bar and the wind arrow; the turn away from the CP is in the recorded forecast
 - `freeze.12.head_later` (L3): an hour on; V12's projection ends at 19.20: extrapolate on the blank basemap
 
@@ -88,9 +105,9 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 | `freeze.4.infra` | fi | Voiko Haukilammelta täyttää säiliöitä? | 6 | evt.c06.003: 1 |
 | `freeze.4.infra` | en | Can tankers fill up at Pike Pond? | 6 | evt.c06.003: 4 |
 | `freeze.5.infra` | fi | Mikä on tien R1 tilanne? | 7 | evt.c07.016: — |
-| `freeze.5.infra` | fi | tiehavainto tie R1 | 7 | evt.c07.016: 4 |
+| `freeze.5.infra` | fi | tiehavainto tie R1 | 7 | evt.c07.016: 3 |
 | `freeze.5.infra` | en | What is the state of road R1? | 7 | evt.c07.016: — |
-| `freeze.5.infra` | en | road report road R1 | 7 | evt.c07.016: 4 |
+| `freeze.5.infra` | en | road report road R1 | 7 | evt.c07.016: 3 |
 | `freeze.5.ek14_shelter` | fi | Mikä on sääennuste? | 7 | evt.wx.03: — |
 | `freeze.5.ek14_shelter` | fi | Miten tuuli muuttuu? | 7 | evt.wx.03: — |
 | `freeze.5.ek14_shelter` | en | What is the weather forecast? | 7 | evt.wx.03: 4 |
@@ -114,6 +131,6 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 | `probe.s.cycle_3.b` | fi | Kuinka suuri palanut ala on? | 4 | evt.c03.035: 2 |
 | `probe.s.cycle_3.b` | en | How large is the burnt area? | 4 | evt.c03.035: — |
 | `probe.s.cycle_6.b` | fi | Mikä on tien R1 tilanne? | 8 | evt.c07.016: —; evt.c08.012: — |
-| `probe.s.cycle_6.b` | fi | tiehavainto tie R1 | 8 | evt.c07.016: —; evt.c08.012: 4 |
+| `probe.s.cycle_6.b` | fi | tiehavainto tie R1 | 8 | evt.c07.016: —; evt.c08.012: 3 |
 | `probe.s.cycle_6.b` | en | What is the state of road R1? | 8 | evt.c07.016: —; evt.c08.012: — |
-| `probe.s.cycle_6.b` | en | road report road R1 | 8 | evt.c07.016: —; evt.c08.012: 4 |
+| `probe.s.cycle_6.b` | en | road report road R1 | 8 | evt.c07.016: —; evt.c08.012: 3 |

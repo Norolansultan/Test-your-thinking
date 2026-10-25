@@ -134,7 +134,9 @@ export const CYCLE_STORY: Readonly<Record<CycleIndex, { readonly title: string; 
   // D2 a (6 Oct 2026): R2's role is on record before the V10 freeze (its r2_meaning key cites this atom).
   // Radio DF-02 (SPEC/31): "uusi palo", not "uusi rintama" (a front), which pushed an implicit size cue in the view whose deciding
   // quantity (small) is on record only. Its R2 sentences (V10's `r2_meaning` key) are unchanged.
-  13: { title: "Uudelleenvakiinnutus", bubbles: [{ authorUnitId: "DR2", text: "Uusi palo etenee itään vanhan eteläreunan suuntaisesti. Huoltotie R2 vielä ajettavissa, uusi palo runsaan kilometrin päässä tiestä. Huoltotie R2 on säiliöautojen vesikuljetusreitti." }] },
+  // Play-test R3 (researcher 25 Oct 2026; DRAFT, native check): "Huoltotie R2 ajettavissa" (was "vielä ajettavissa", "still passable",
+  // which read as "for now" and led all five play-test runs to V10 infra's "threatened" option): a plain current state for the L1 item.
+  13: { title: "Uudelleenvakiinnutus", bubbles: [{ authorUnitId: "DR2", text: "Uusi palo etenee itään vanhan eteläreunan suuntaisesti. Huoltotie R2 ajettavissa, uusi palo runsaan kilometrin päässä tiestä. Huoltotie R2 on säiliöautojen vesikuljetusreitti." }] },
   // Phase-B rebuild: the dropped hinge rule 3 ("Ei vapauteta ennen lämpökameravarmistusta") is gone; the region's request stays.
   14: { title: "Konflikti", bubbles: [{ authorUnitId: "P2", text: "Alue pyytää KY21:tä toiselle palolle." }] },
   15: { title: "Syvyys", bubbles: [{ authorUnitId: "KY21", text: "Tien pohjoispuolella palo palaa syvällä kunttakerroksessa ja kantojen juurissa, 20–40 cm. Vesi ei imeydy kuivaan kunttaan. Harkitaan kasteluainetta." }] }, // round 2: soft hyphen removed (SPEC/27 §7.3 b); (al): the depth placed — KY21's line is on mineral soil, the drained peat of Rahkasuo ~170 m south of the road, beyond the fire until 19:00

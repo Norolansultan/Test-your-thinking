@@ -36,7 +36,7 @@
  *   statement in V10 (freeze L3 `front_direction`), no "hardly spreads" in V4 (freeze L3 `rate_trend`),
  *   no north-west statement in V7 (`cabins_reach`);
  * - no `new_front` statement in views where a spot fire is REPORTED during the view but merged into
- *   the main fire by its horizon (V2 ridge, V5 road and Korpioja, V6 Koivuoja, V13 SPOT's smoke): the
+ *   the main fire by its horizon (V2 ridge, V5 road and Myllyoja, V6 Koivuoja, V13 SPOT's smoke): the
  *   CA would key it false while the record says a new fire started — grey by construction;
  * - lengths within a view stay close (`test/scenario/branch-statements.spec.ts`).
  * DRAFT: Finnish for native review, the selection for domain review.

@@ -635,6 +635,24 @@
    ]
   },
   {
+   "id": "R1_STRETCH_W_OF_R2",
+   "kind": "road_point",
+   "names": {
+    "fi": "tie R1 vajaa kilometri R2:n risteyksestä länteen",
+    "en": "road R1 just under a kilometre west of the R2 junction"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     660,
+     450
+    ]
+   },
+   "sources": [
+    "tools/fire-ca/traffic-drones.ts"
+   ]
+  },
+  {
    "id": "R3_W",
    "kind": "road_gravel",
    "names": {
@@ -3052,13 +3070,13 @@
    ]
   },
   {
-   "id": "KORPIOJA",
+   "id": "MYLLYOJA",
    "kind": "brook",
    "names": {
-    "fi": "Korpioja",
-    "en": "Alder Creek"
+    "fi": "Myllyoja",
+    "en": "Mill Brook"
    },
-   "match": "Korpioj|Alder Creek",
+   "match": "Myllyoj|Mill Brook",
    "geometry": {
     "type": "LineString",
     "coordinates": [
@@ -5976,12 +5994,12 @@
    ]
   },
   {
-   "id": "dist.IGN.KORPIOJA",
+   "id": "dist.IGN.MYLLYOJA",
    "type": "distance",
    "measure": "distance",
    "features": [
     "IGN",
-    "KORPIOJA"
+    "MYLLYOJA"
    ],
    "value": 1495,
    "unit": "m",
@@ -5999,18 +6017,18 @@
     },
     {
      "file": "app/scenario/freeze-bank.ts",
-     "id": "RADIO.sparksKorpioja"
+     "id": "RADIO.sparksMyllyoja"
     }
    ],
    "note": "the brook N of the crown run, crossed by spotting in step 7"
   },
   {
-   "id": "bearing.IGN.KORPIOJA",
+   "id": "bearing.IGN.MYLLYOJA",
    "type": "bearing",
    "measure": "bearing",
    "features": [
     "IGN",
-    "KORPIOJA"
+    "MYLLYOJA"
    ],
    "value": 8.3,
    "unit": "deg",
@@ -6028,7 +6046,7 @@
     },
     {
      "file": "app/scenario/freeze-bank.ts",
-     "id": "RADIO.sparksKorpioja"
+     "id": "RADIO.sparksMyllyoja"
     }
    ]
   },
@@ -7457,12 +7475,59 @@
    ]
   },
   {
-   "id": "adjacency.KOIVUOJA.KORPIOJA",
+   "id": "on_road.R1_STRETCH_W_OF_R2.R1",
+   "type": "on_road",
+   "measure": "distance",
+   "features": [
+    "R1_STRETCH_W_OF_R2",
+    "R1"
+   ],
+   "value": 19.9,
+   "unit": "m",
+   "tolerance": {
+    "kind": "range",
+    "max": 30
+   },
+   "usedBy": [
+    {
+     "file": "tools/fire-ca/traffic-drones.ts",
+     "id": "STRETCHES"
+    }
+   ]
+  },
+  {
+   "id": "distance.R1_R2.R1_STRETCH_W_OF_R2",
+   "type": "distance",
+   "measure": "distance",
+   "features": [
+    "anchor.R1_R2",
+    "R1_STRETCH_W_OF_R2"
+   ],
+   "value": 841,
+   "unit": "m",
+   "tolerance": {
+    "kind": "relative",
+    "value": 0.15
+   },
+   "usedBy": [
+    {
+     "file": "tools/fire-ca/traffic-drones.ts",
+     "id": "STRETCHES"
+    },
+    {
+     "file": "app/scenario/site-scenario.json",
+     "pattern": "vajaa kilometri R2:n risteyksestä länteen|just under a kilometre west of the R2 junction",
+     "note": "DR1 14.46, DR3 14.48 (play-test R7)"
+    }
+   ]
+  },
+  {
+   "id": "adjacency.KOIVUOJA.MYLLYOJA",
    "type": "adjacency",
    "measure": "distance",
    "features": [
     "KOIVUOJA",
-    "KORPIOJA"
+    "MYLLYOJA"
    ],
    "value": 0,
    "unit": "m",
@@ -7473,7 +7538,7 @@
    "usedBy": [
     {
      "file": "tools/topo-map/terrain.ts",
-     "id": "Koivuoja ends in Korpioja"
+     "id": "Koivuoja ends in Myllyoja"
     }
    ]
   },
@@ -7701,11 +7766,11 @@
    ]
   },
   {
-   "id": "crosses.KORPIOJA.KARHUJARVI",
+   "id": "crosses.MYLLYOJA.KARHUJARVI",
    "type": "crosses",
    "measure": "crossing_count",
    "features": [
-    "KORPIOJA",
+    "MYLLYOJA",
     "KARHUJARVI"
    ],
    "value": 2,
@@ -7717,17 +7782,17 @@
    "usedBy": [
     {
      "file": "tools/topo-map/terrain.ts",
-     "id": "Korpioja flows through Karhujärvi"
+     "id": "Myllyoja flows through Karhujärvi"
     }
    ]
   },
   {
-   "id": "crosses.R1.KORPIOJA",
+   "id": "crosses.R1.MYLLYOJA",
    "type": "crosses",
    "measure": "crossing_count",
    "features": [
     "R1",
-    "KORPIOJA"
+    "MYLLYOJA"
    ],
    "value": 0,
    "unit": "count",
@@ -8158,13 +8223,13 @@
    ]
   },
   {
-   "id": "text_mention.label.Korpioja",
+   "id": "text_mention.label.Myllyoja",
    "type": "text_mention",
    "measure": "label_present",
    "features": [],
    "params": {
-    "text": "Korpioja",
-    "en": "Alder Creek"
+    "text": "Myllyoja",
+    "en": "Mill Brook"
    },
    "value": true,
    "tolerance": {
@@ -8173,7 +8238,7 @@
    "usedBy": [
     {
      "file": "app/i18n/place-names.ts",
-     "id": "Korpioja",
+     "id": "Myllyoja",
      "note": "named in the scenario's records, questions and directive"
     }
    ]

@@ -136,14 +136,14 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["Birch Creek[^.]{0,80}(?:drop|surface fire|broadleaf|birch)", "(?:drop\\w*|surface fire)[^.]{0,80}Birch Creek", "broadleaf\\w*[^.]{0,40}Birch Creek"],
   },
   "freeze.4.korpioja_spot": {
-    fi: ["Korpioj\\w*[^.]{0,80}(?:yli|toisel\\w* puolel)", "(?:kipinä\\w*|pistepalo\\w*)[^.]{0,60}(?:ojan|Korpiojan) (?:yli|toisel)", "kipinät sytyttävät paloja ojan yli"],
-    en: ["Alder Creek[^.]{0,80}(?:across it|far side|other side|jump)", "(?:sparks?|spot fires?|embers?)[^.]{0,60}(?:across|over)[^.]{0,20}(?:the )?(?:brook|creek|Alder Creek)"],
+    fi: ["Myllyoj\\w*[^.]{0,80}(?:yli|toisel\\w* puolel)", "(?:kipinä\\w*|pistepalo\\w*)[^.]{0,60}(?:ojan|Myllyojan) (?:yli|toisel)", "kipinät sytyttävät paloja ojan yli"],
+    en: ["Mill Brook[^.]{0,80}(?:across it|far side|other side|jump)", "(?:sparks?|spot fires?|embers?)[^.]{0,60}(?:across|over)[^.]{0,20}(?:the )?(?:brook|creek|Mill Brook)"],
   },
   // ---- V5 ----
-  // SPEC/33 stage 9 (20 Oct 2026): re-authored with the item (the one crossing, Korpioja, unattended; the Kuusimäki road crossing is gone).
+  // SPEC/33 stage 9 (20 Oct 2026): re-authored with the item (the one crossing, Myllyoja, unattended; the Kuusimäki road crossing is gone).
   "freeze.5.lines_breached": {
-    fi: ["Korpioja\\w*[^.]{0,40}(?:takana|yli|toisella puolella)[^.]{0,60}(?:kukaan ei|ei kukaan|ilman sammuttaj|ei ole ketään)", "(?:kukaan ei|ei kukaan|ilman sammuttaj)[^.]{0,60}Korpioja", "Korpioja\\w*[^.]{0,40}ei (?:enää )?(?:rajaa|pidä|pysäytä)"],
-    en: ["(?:beyond|across|over|other side of) Alder Creek[^.]{0,80}(?:no one|nobody|unattended|no crew)", "(?:no one|nobody|no crew)[^.]{0,60}Alder Creek", "Alder Creek[^.]{0,40}(?:no longer|does not|doesn't) (?:contain|hold|stop)"],
+    fi: ["Myllyoja\\w*[^.]{0,40}(?:takana|yli|toisella puolella)[^.]{0,60}(?:kukaan ei|ei kukaan|ilman sammuttaj|ei ole ketään)", "(?:kukaan ei|ei kukaan|ilman sammuttaj)[^.]{0,60}Myllyoja", "Myllyoja\\w*[^.]{0,40}ei (?:enää )?(?:rajaa|pidä|pysäytä)"],
+    en: ["(?:beyond|across|over|other side of) Mill Brook[^.]{0,80}(?:no one|nobody|unattended|no crew)", "(?:no one|nobody|no crew)[^.]{0,60}Mill Brook", "Mill Brook[^.]{0,40}(?:no longer|does not|doesn't) (?:contain|hold|stop)"],
   },
   "freeze.5.hose_short": {
     fi: ["letku\\w*[^.]{0,40}(?:liian vähän|loppu\\w*|ei riitä|vähissä)", "(?:liian vähän|ei riitä)[^.]{0,30}letku", "lisää letkua", "letkua varalla alle"],
@@ -284,9 +284,9 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.4.head_unattended": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
   "freeze.4.return_danger": { fi: ["pistepalo", "perääntymis", "miehist"], en: ["spot ?fire", "escape route", "crew"] },
   "freeze.4.crown_drops": { fi: ["latvapalo", "pintapalo", "Koivuoj"], en: ["crown", "surface fire", "Birch Creek"] },
-  "freeze.4.korpioja_spot": { fi: ["Korpioj"], en: ["Alder Creek"] },
+  "freeze.4.korpioja_spot": { fi: ["Myllyoj"], en: ["Mill Brook"] },
   "freeze.4.head_later": { fi: ["kär[kj]"], en: ["\\bhead\\b"] },
-  "freeze.5.lines_breached": { fi: ["Korpioj", "ylity"], en: ["Alder Creek", "cross"] },
+  "freeze.5.lines_breached": { fi: ["Myllyoj", "ylity"], en: ["Mill Brook", "cross"] },
   "freeze.5.hose_short": { fi: ["EK11", "letku"], en: ["EK11", "hose"] },
   "freeze.5.ek14_shelter": { fi: ["EK14"], en: ["EK14"] },
   "freeze.5.wind_shift": { fi: ["pohjoisreuna", "reuna"], en: ["north edge", "edge"] },

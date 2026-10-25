@@ -5,8 +5,10 @@
  * was meant, so it never matched), with the 588908b `se_front_r2` item kept as its regression case; the re-authored items' keys.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
+import { clockOf, R1_ARRIVAL } from "../../app/scenario/freeze-readings.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { CYCLE_STORY } from "../../app/scenario/demo-story.js";
 import { UNIT_PLAN } from "../../tools/fire-ca/deployment.js";
@@ -72,26 +74,33 @@ describe("the computed rules", () => {
     expect(item(2, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(5)); // `31` F03: an hour on (15.00), was 14.40
     expect(item(4, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(6));
     expect(item(12, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(20)); // `31` §3.8: now is V12's end (19.00); an hour on is 20.00
-    expect(item(2, "head_later").promptFi).toMatch(/ tunnin kuluttua/); // 15:00 from 14:00
-    expect(item(4, "head_later").promptFi).toMatch(/20 minuutin kuluttua/); // 15:20, the end of the crown run, from 15:00
-    expect(item(12, "head_later").promptFi).toMatch(/ tunnin kuluttua/); // 20:00 from 19:00
+    expect(item(2, "head_later").promptFi).toMatch(/ klo 15\.00\.$/); // play-test R1: the clock only; the end of step 5
+    expect(item(4, "head_later").promptFi).toMatch(/ klo 15\.20\.$/); // the end of the crown run, the header's span end
+    expect(item(12, "head_later").promptFi).toMatch(/ klo 20\.00\.$/); // an hour after V12's end
     expect(scenario.freezes.find((f) => f.cycle === 14)!.items.some((it) => it.kind === "map_point")).toBe(false); // `31` F03: no truth after 20.00
     // Play-test D1 (24 Oct 2026; was "no stem names a clock", y.2): every L3 stem states the clock its horizon ends at, from the key's own
     // base; no L1 or L2 stem names one.
     for (const f of scenario.freezes) for (const it of f.items) {
       if (it.level !== "L3") { expect(it.promptFi, it.id).not.toMatch(/klo \d/); continue; }
       const def = FREEZE_BANK[f.cycle]!.find((d) => it.id === `freeze.${f.cycle}.${d.slug}`)!;
-      expect(it.promptFi, it.id).toContain(`(klo ${stepEndClockFi(def.keySteps![1])}`);
+      expect(it.promptFi, it.id).toMatch(new RegExp(` klo ${stepEndClockFi(def.keySteps![1]).replace(".", "\\.")}(?: mennessä)?[?.,]`));
+      expect(it.promptFi, it.id).not.toMatch(/kuluttua|seuraavan .* aikana|\(klo/); // R1: no minutes from "now"
     }
-    expect(item(2, "head_later").promptFi).toBe("Merkitse kartalle, missä palon kärki on tunnin kuluttua (klo 15.00).");
-    expect(item(2, "area_40").promptFi).toBe("Kuinka suuri koko palanut ala on 40 minuutin kuluttua (klo 14.40)?");
+    expect(item(2, "head_later").promptFi).toBe("Merkitse kartalle, missä palon kärki on klo 15.00.");
+    expect(item(2, "area_40").promptFi).toBe("Kuinka suuri koko palanut ala on klo 14.40?");
     // "Now" is the last step's start for a freeze inside the view: every merged view's freeze falls after its step boundary.
     for (const c of scenario.cycles.filter((x) => x.stepBoundary && x.freezeAtSeconds !== null)) expect(c.freezeAtSeconds!, `V${c.index}`).toBeGreaterThan(c.minViewSeconds / 2);
   });
 
-  it("VP: the head needs over an hour to reach R1 (≈340 m at the drawn 3.5 m/min), and the CA head is at R1 by 13:20", () => {
+  it("VP (play-test R4): the head reaches R1 at 13.10–13.40 by the pushed figures (≈13.21), the drawn head and rate (≈13.37) and the CA (13.20)", () => {
     expect(distanceToLineM(headNow(-3), R1_LINE)).toBeGreaterThan(300);
-    expect(key(0, "r1_arrival")).toBe("gt60");
+    expect(key(0, "r1_arrival")).toBe("m1310_1340");
+    expect(item(0, "r1_arrival").options.map((o) => o.id)).toEqual(["lt1250", "m1250_1310", "m1310_1340", "gt1340"]); // ascending, time of day
+    expect([R1_ARRIVAL.pushed, R1_ARRIVAL.drawn, R1_ARRIVAL.truth].map((m) => clockOf(m))).toEqual(["13.21", "13.37", "13.20"]);
+    // The CA run (not in the bundle): 34 m short of R1 at 13.00 (W4's end), across it at 13.20 (W5's end): read at step resolution, 13.20.
+    const ca = JSON.parse(readFileSync("content/site/build/fire-ca.json", "utf8")) as { cycles: { id: string; truthAtEnd: LatLon[][] }[] };
+    const toR1 = (id: string) => Math.min(...ca.cycles.find((c) => c.id === id)!.truthAtEnd.flat().map((p) => distanceToLineM(p, R1_LINE)));
+    expect([toR1("W4") > 25, toR1("W5") < 25]).toEqual([true, true]);
     expect(distanceToLineM(headNow(1), R1_LINE)).toBeLessThan(75); // SPEC/33 stage 9: the 13:20 head is ~53 m past R1 on the rebuilt map (DR1 "noin 50 m")
   });
 
@@ -141,7 +150,7 @@ describe("the computed rules", () => {
 
   it("V10 (now 17.40, the view's end): the reports put the south front 700–1000 m from R2 in an hour and 20 minutes, as the CA does; the cabins are 1.5–2.5 km from the fire now", () => {
     expect(key(10, "front_r2_80")).toBe("m650_950"); // SPEC/33 stage 9: bands 350/650/950 (were 400/700/1000)
-    expect(item(10, "front_r2_80").promptFi).toMatch(/tunnin ja 20 minuutin kuluttua/);
+    expect(item(10, "front_r2_80").promptFi).toMatch(/klo 19\.00\?$/); // play-test R1: the clock only (was "tunnin ja 20 minuutin kuluttua")
     expect(reportedDetachedClosingAt(13, 15, R2_LINE)).toBeGreaterThan(1000); // the hour item's key was the recalled band
     expect(cardinalOf(96)).toBe("east");
     expect(cardinalOf(45)).toBeNull();
@@ -223,7 +232,7 @@ const stated = (text: string, unit: "ha" | "m" | "min"): number[] => {
  */
 type Check = { readonly subject: RegExp; readonly value?: RegExp } | { readonly states: RegExp };
 const CHECKS: Readonly<Record<string, Check>> = {
-  r1_arrival: { subject: /R1/i },
+  r1_arrival: { states: /R1[^.]{0,60}klo 13[.:][1-3]\d/i }, // play-test R4: a time of day (no record before VP's freeze names one)
   area_hour: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
   area_40: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
   // Play-test D5 (24 Oct 2026; was area_total_hour): the hour's growth — no record states what the area grows by over an hour from 17.40.
@@ -239,7 +248,7 @@ const CHECKS: Readonly<Record<string, Check>> = {
   // Play-test D3 (24 Oct 2026): DR1's pushed 14.27 line states the birch strip along Koivuoja (V3), the basis; what would state the key is
   // the crown fire dropping there (CYCLE_STORY 7.0, step 7), so the check reads the drop, no longer any mention of the brook or its birch.
   crown_drops: { states: /latvapalo\w* (?:on )?laskeutu|(?:laskeutu|pintapaloksi)\w*[^.]*(?:Koivuoj|koivik|lehtimets)/i },
-  korpioja_spot: { states: /Korpioj/i },
+  korpioja_spot: { states: /Myllyoj/i }, // play-test R5: the brook is Myllyoja (was Korpioja); the slug is a logged id
   ek14_shelter: { states: /EK14[^.]*(?:vetäyty|turva-alue|turvaan)/i },
   road_jump: { states: /toisessa kohdassa|toisessakin kohdassa/i },
   cp_safe: { states: /johtopaik\w*[^.]*(?:turvassa|uhattu|vaarassa|ei tarvitse siirt)|ei paloa näköetäisyydellä/i },
@@ -313,7 +322,7 @@ describe("no L3 key is stated by a record on hand before the freeze (fix pass 5,
 
   it("the report-keyed projections key with a margin from every band edge, and the fire model's truth falls in the same band (`31` §3.5 rule (5))", () => {
     for (const [name, k, id, margin] of [
-      ["V2 area_40", V2_AREA, "m20_35", 2], ["V2 junction_hour", V2_JUNCTION, "m400_700", 50], ["V5 area_hour", V5_AREA, "m140_190", 5], // SPEC/33 stage 9: re-keyed
+      ["V2 area_40", V2_AREA, "m20_35", 2], ["V2 junction_hour", V2_JUNCTION, "m400_700", 50], ["V5 area_hour", V5_AREA, "m130_190", 5], // SPEC/33 stage 9: re-keyed; play-test R8: 130–190 (was 140–190)
       ["V10 front_r2_80", V10_R2, "m650_950", 50], ["V12 village_distance", V12_VILLAGE, "m1600_2100", 100],
     ] as const) {
       expect(k.id, name).toBe(id);
@@ -385,7 +394,7 @@ describe("the cited keys hold against the data", () => {
     expect(keys(2, "ek11_between")).toEqual(["atom.radio.3.0"]);
     expect(keys(4, "ek12_where")).toEqual(["atom.radio.6.1"]);
     expect(keys(4, "head_unattended")).toEqual(["atom.radio.6.0", "atom.radio.6.1"]);
-    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.2"]); // SPEC/33 stage 9: the Korpioja crossing only; gate R (R1): 7.2, VPK's return from W1 (7.0) now goes out in step 7
+    expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.2"]); // SPEC/33 stage 9: the Myllyoja (was Korpioja) crossing only; gate R (R1): 7.2, VPK's return from W1 (7.0) now goes out in step 7
     expect(keys(7, "ky21_where")).toEqual(["atom.radio.10.3"]);
     expect(keys(7, "north_help")).toEqual(["atom.radio.10.3", "atom.radio.10.4", "atom.radio.10.1"]);
     expect(keys(14, "shift_change")).toEqual(["atom.radio.19.3", "atom.radio.19.1"]); // the relief on the line (EK11 shift change 19.3, VPK move 19.1)

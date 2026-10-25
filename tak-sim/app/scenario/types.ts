@@ -855,9 +855,11 @@ export interface FreezeItem {
    * Analysis only (play-test D6, researcher 24 Oct 2026; SPEC/09 (bg)): `h9_only` — the item is scored for its own hypothesis (V12's F7
    * item, H9) and never enters an SA accuracy or calibration composite (`calibrationPairs` drops it; `FreezeItemScore.inSaComposites`).
    * F7's key, "the line is live", is the safety default an unexposed participant gives, so in a composite it adds credit without SA.
-   * Never sent to the screen.
+   * Play-test R2 (researcher 25 Oct 2026; SPEC/09 (bh)): `exploratory` — scored and reported as an exploratory item, outside H2 and every
+   * SA accuracy or calibration composite, until the expert panel decides (V4's `head_later`: its fire-model key needs ~38 m/min against the
+   * pushed 14.1 m/min; 0/5 play-test runs). Never sent to the screen.
    */
-  readonly scoredFor?: "h9_only";
+  readonly scoredFor?: "h9_only" | "exploratory";
 }
 
 export interface FreezeSpec {

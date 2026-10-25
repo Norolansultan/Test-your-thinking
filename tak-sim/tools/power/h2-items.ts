@@ -11,7 +11,8 @@
  * seeking. If the guide's overconfidence effect works through what the AI tells the seeker (SPEC/30 §5.3), it sits on the
  * seek-dependent items only, and the pre-registered gap over all 24 items dilutes it. This module computes that effective power.
  *
- * The window: the audit's `items.csv` rows that are freeze items of V2, V4, V5 or V7 at L2 or L3 (H2's 24). The command reads the CSV
+ * The window: the audit's `items.csv` rows that are freeze items of V2, V4, V5 or V7 at L2 or L3 (H2's 24; 23 since play-test R2, 25 Oct
+ * 2026: a row with a `scored_for` value, V4's exploratory `head_later`, is outside H2 and left out). The command reads the CSV
  * the audit wrote, so a regenerated audit is re-run by the same command. Lure items (a seeker finds a designed stale figure): the CSV's
  * `lure` column when it has one, else the build's items that carry `lureStatements` (`app/scenario/types.ts`), passed in by the CLI.
  *
@@ -59,10 +60,12 @@ export function h2ItemClasses(csv: string, lureIds: ReadonlySet<string> = new Se
   const [head, ...body] = parseCsv(csv);
   if (!head) throw new Error("items.csv: empty");
   const col = (name: string) => head.findIndex((h) => h.trim() === name);
-  const at = { id: col("id"), kind: col("kind"), view: col("view"), level: col("level"), passive: col("passive"), late: col("late_lt60s"), lure: col("lure") };
+  const at = { id: col("id"), kind: col("kind"), view: col("view"), level: col("level"), passive: col("passive"), late: col("late_lt60s"), lure: col("lure"), scoredFor: col("scored_for") };
   for (const k of ["id", "kind", "view", "level", "passive", "late"] as const) if (at[k] < 0) throw new Error(`items.csv: no column for ${k}`);
   return body.flatMap((r): ItemClass[] => {
     if (r[at.kind] !== "freeze" || !H2_VIEWS.has(r[at.view] ?? "") || !["L2", "L3"].includes(r[at.level] ?? "")) return [];
+    // Play-test R2 (25 Oct 2026): an item scored outside H2 and the composites (`scored_for`: V4's exploratory head_later) is not in the window.
+    if (at.scoredFor >= 0 && (r[at.scoredFor] ?? "").trim() !== "") return [];
     const passive = (r[at.passive] ?? "").trim();
     if (passive !== "yes" && passive !== "partly" && passive !== "no") throw new Error(`items.csv: ${r[at.id]} has passive "${passive}"`);
     const id = r[at.id]!;

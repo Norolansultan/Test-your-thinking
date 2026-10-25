@@ -78,14 +78,14 @@ describe("the reference overlay (revision (al))", () => {
     expect(fi.find((l) => l.key === "power")!.html.replace(/<[^>]+>/g, "")).toBe("20 kV");
   });
 
-  it("labels Korpioja a second time, on the drawn brook east of the crown run's crossing, above its line and clear of the L2 code (play-test D8, 24 Oct 2026)", () => {
-    const fi = overlayLabels("fi").find((l) => l.key === "brook:korpioja")!, en = overlayLabels("en").find((l) => l.key === "brook:korpioja")!;
-    expect(fi.html.replace(/<[^>]+>/g, "")).toBe("Korpioja");
-    expect(en.html.replace(/<[^>]+>/g, "")).toBe("Alder Creek");
+  it("labels Myllyoja (Mill Brook; Korpioja until play-test R5) a second time, on the drawn brook east of the crown run's crossing, above its line and clear of the L2 code (play-test D8, 24 Oct 2026)", () => {
+    const fi = overlayLabels("fi").find((l) => l.key === "brook:myllyoja")!, en = overlayLabels("en").find((l) => l.key === "brook:myllyoja")!;
+    expect(fi.html.replace(/<[^>]+>/g, "")).toBe("Myllyoja");
+    expect(en.html.replace(/<[^>]+>/g, "")).toBe("Mill Brook");
     expect(overlayAnchor("brook")).toEqual({ anchor: "bottom", offset: [0, -BROOK_LABEL_GAP_PX] });
-    // On the brook: within 15 m of the site contract's (simplified) Korpioja line, east of the crossing (~1500, 1480 site metres).
+    // On the brook: within 15 m of the site contract's (simplified) Myllyoja line, east of the crossing (~1500, 1480 site metres).
     const contract = JSON.parse(readFileSync("content/site/contract.json", "utf8")) as { features: { id: string; geometry: { coordinates: [number, number][] } }[] };
-    const line = contract.features.find((f) => f.id === "KORPIOJA")!.geometry.coordinates.map(([x, y]) => tm35ToWgs84(IGN_TM35.eastM + x, IGN_TM35.northM + y));
+    const line = contract.features.find((f) => f.id === "MYLLYOJA")!.geometry.coordinates.map(([x, y]) => tm35ToWgs84(IGN_TM35.eastM + x, IGN_TM35.northM + y));
     type Ll = { lat: number; lon: number };
     const toSegment = (p: Ll, a: Ll, b: Ll) => Math.min(...Array.from({ length: 51 }, (_, i) => metres(p, { lat: a.lat + ((b.lat - a.lat) * i) / 50, lon: a.lon + ((b.lon - a.lon) * i) / 50 })));
     expect(Math.min(...line.slice(1).map((b, i) => toSegment(fi.at, line[i]!, b)))).toBeLessThan(15);

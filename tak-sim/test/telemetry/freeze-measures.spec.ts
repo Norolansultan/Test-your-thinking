@@ -336,6 +336,17 @@ describe("plantedFalseValueHeld (F7, V12)", () => {
     expect(all.proportionCorrect).toBe(0);
     expect(plantedFalseValueHeld(records)).toMatchObject({ itemId: "freeze.12.f7", held: false, confidence: 100 });
   });
+
+  it("an exploratory item (play-test R2, 25 Oct 2026: V4's head_later) is scored and named, but outside H2's window and every composite", async () => {
+    const freezes: readonly FreezeContentLike[] = [{ cycle: 4, items: [mapItem("freeze.4.head_later", "L3", { scoredFor: "exploratory" }), choice("v4.l3", "L3", "a")] }];
+    const records = await buildLog([[1_000, { kind: "freeze_submitted", detail: { cycle: 4, responses: [
+      answer("freeze.4.head_later", "map_point", 75, { point: NORTH_100M }), answer("v4.l3", "a", 50),
+    ] } }]]);
+    const scores = freezeItemScores(records, freezes);
+    expect(scores.map((s) => [s.itemId, s.correct, s.inSaComposites, s.scoredFor])).toEqual([["freeze.4.head_later", true, false, "exploratory"], ["v4.l3", true, undefined, undefined]]);
+    expect(calibrationPairs(scores).pairs.map((p) => p.itemId)).toEqual(["v4.l3"]); // H2's primary window (V2–V7, L2/L3)
+    expect(calibrationPairs(scores, {}).n).toBe(1);
+  });
 });
 
 describe("plantedExposure (fix pass 6, H9): the planted record, and the grid operator's contradicting record, met before the V12 freeze", () => {

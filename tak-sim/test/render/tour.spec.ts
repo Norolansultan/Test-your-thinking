@@ -79,14 +79,15 @@ describe("the tour's content", () => {
     }
   });
 
-  it("revision (am): the Thinker practice is in the practice tour of both Thinker cells (the same step), right after Haku, and never in the radio cell", () => {
+  it("revision (am): the Thinker practice is in the practice tour of both Thinker cells (the same step), right after Haku's steps (since (bl): Haku, then what the records hold, then Thinker), and never in the radio cell", () => {
     expect(tourSteps("practice", "directed", "radio").map((s) => s.id)).not.toContain("practiceThinker");
     expect(tourSteps("practice", "directed", "radio")).toEqual(PRACTICE_TOUR);
     for (const cell of ["reasoning_once", "reasoning_intent"] as const) {
       const steps = tourSteps("practice", "substitutive", cell);
       expect(steps.filter((s) => s.id === "practiceThinker")).toEqual([PRACTICE_THINKER_STEP]);
       const ids = steps.map((s) => s.id);
-      expect(ids.indexOf("practiceThinker")).toBe(ids.indexOf("haku") + 1);
+      expect(ids.indexOf("hakuRecords")).toBe(ids.indexOf("haku") + 1); // (bl)
+      expect(ids.indexOf("practiceThinker")).toBe(ids.indexOf("hakuRecords") + 1);
       expect(steps.length).toBe(PRACTICE_TOUR.length + 1);
     }
     expect(tourSteps("practice", "substitutive", "reasoning_once")).toEqual(tourSteps("practice", "substitutive", "reasoning_intent"));

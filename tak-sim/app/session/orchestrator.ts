@@ -23,7 +23,7 @@
  * SPEC/36 (23 Oct 2026): every session's step "Personal results after the study" after the post-session questionnaire
  * (`results_optin`, `decideResultsOptIn`); the commander profile on screen only with `immediateProfile` (`?profiili=heti`).
  * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest before VP (`mapPretest`; since 25 Oct
- * 2026 the map training in its step, `map-training.ts`), the source-only practice feedback after VP (`practiceFeedback`, `practice-feedback.ts`), the practice SPAM
+ * 2026 the map training in its step, `map-training.ts`), the practice feedback after VP (source-only, but for the records item's search and answer since 25 Oct 2026 (bl); `practiceFeedback`, `practice-feedback.ts`), the practice SPAM
  * item's measuring task (`practice-measure.ts`), and the content-free "New records" badge on the Haku button (`recordsBadge`).
  */
 
@@ -72,7 +72,7 @@ import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanRev
 import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
 import { keptTraining, MapTraining, trainingSpentMs } from "./map-training.js";
 import type { TrainingAnswer } from "./map-training-spec.js";
-import { PRACTICE_FEEDBACK_SCREEN_ID, PRACTICE_HEAD_ITEM_ID, practiceFeedbackView, practiceHeadMarkOf, type PracticeFeedbackView } from "./practice-feedback.js";
+import { PRACTICE_FEEDBACK_SCREEN_ID, PRACTICE_HEAD_ITEM_ID, practiceChoicesIn, practiceChoicesOf, practiceFeedbackView, practiceHeadMarkOf, type PracticeFeedbackView } from "./practice-feedback.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
@@ -300,6 +300,7 @@ export class SessionOrchestrator {
   private readonly practiceFeedbackOn: boolean;
   private practiceFeedback: PracticeFeedbackView | null = null;
   private practiceHeadMark: LatLon | null = null; // the practice freeze's head mark, for the feedback's map task
+  private practiceChoices: Readonly<Record<string, string>> = {}; // the practice freeze's choices by item, for the feedback's records item (bl)
   /** Difficulty audit (a.4): the "New records" badge, and whether the Haku tool is open now (its last `tab_selected`). */
   private recordsBadge = false;
   private hakuOpen = false;
@@ -533,11 +534,11 @@ export class SessionOrchestrator {
   }
 
   /**
-   * Difficulty audit (`proposal.md` (b.3), `practice-feedback.ts`): after VP, the source-only feedback screen (TUTORIAL; the training
-   * follows it). Shown once its record (`practice_feedback_shown`) is durable (I5).
+   * Difficulty audit (`proposal.md` (b.3), `practice-feedback.ts`): after VP, the feedback screen (source-only; the records item also
+   * shows its search and answer, (bl); TUTORIAL; the training follows it). Shown once its record (`practice_feedback_shown`) is durable (I5).
    */
   private async showPracticeFeedback(): Promise<void> {
-    this.practiceFeedback = practiceFeedbackView(this.scenario, this.practiceHeadMark);
+    this.practiceFeedback = practiceFeedbackView(this.scenario, this.practiceHeadMark, this.practiceChoices);
     this.step = "practice_feedback";
     this.shellShownMs = this.realMs();
     await this.event({ kind: "practice_feedback_shown", detail: { itemIds: this.practiceFeedback.items.map((i) => i.itemId) } });
@@ -812,7 +813,10 @@ export class SessionOrchestrator {
     });
     return this.guarded("freeze", "submitFreeze", async () => { // one submission only: a second click is refused (review 2 Oct 2026)
       await this.event({ kind: "freeze_submitted", detail: { cycle: this.currentCycle, responses: checked, ...(options.skipped ? { skipped: true as const } : {}), ...(options.timedOut ? { timedOut: true as const } : {}), ...(missing.length > 0 ? { missing } : {}) } });
-      if (this.isPractice()) this.practiceHeadMark = checked.find((r) => r.itemId === PRACTICE_HEAD_ITEM_ID)?.point ?? null; // the feedback's map task
+      if (this.isPractice()) { // the feedback's map task and records item
+        this.practiceHeadMark = checked.find((r) => r.itemId === PRACTICE_HEAD_ITEM_ID)?.point ?? null;
+        this.practiceChoices = practiceChoicesIn(checked);
+      }
       this.clearFreezeCap();
       audioManager.exitFreeze();
       if (this.endFreeze) { this.endFreeze = false; await this.afterViewEnded("probes"); return; } // SPEC/30 §5.1: on to what follows the view
@@ -1666,7 +1670,7 @@ export class SessionOrchestrator {
     switch (target.kind) {
       case "briefing": return this.toBriefing(); // the intro video again, from its start; without it the page is gone: on to the practice view
       case "training":
-        if (feedbackPending) { this.practiceHeadMark = practiceHeadMarkOf(records); return this.showPracticeFeedback(); }
+        if (feedbackPending) { this.practiceHeadMark = practiceHeadMarkOf(records); this.practiceChoices = practiceChoicesOf(records); return this.showPracticeFeedback(); }
         this.showIntro("training"); this.notify(); return;
       case "hinge": return this.enterHinge();
       case "complete": this.step = "complete"; this.completed = plan.alreadyCompleted; this.notify(); return;

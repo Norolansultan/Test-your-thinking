@@ -5,6 +5,8 @@
  * user"): in the Thinker cells the practice tour has one more step, `practiceThinker`, after Haku — it
  * opens the Thinker tab, says what Thinker is for, offers one pre-filled example question to send with a
  * click and lets the participant ask their own; the tour goes on once one question has been answered.
+ * Revision (bl), 25 Oct 2026 (researcher): Haku has a second step, `hakuRecords`, right after it (what the
+ * records hold and how to ask for it); the Thinker step now follows both Haku steps.
  * The radio cell's practice tour is unchanged and names no AI tool. V1 opens with the tool reminder:
  * Haku in both groups and, in the AI group, a short Thinker step (it was practised in VP, so its text
  * is not repeated). The view's time waits until each is finished.
@@ -18,7 +20,7 @@ import type { TourId } from "../../session/snapshot.js";
 import type { Cell } from "../../scenario/types.js";
 
 export type TourStepId =
-  | "welcome" | "status" | "fire" | "projection" | "legend" | "wind" | "zoom" | "measure" | "sectors" | "units" | "log" | "haku" | "decision" | "freeze" | "spam" | "ready"
+  | "welcome" | "status" | "fire" | "projection" | "legend" | "wind" | "zoom" | "measure" | "sectors" | "units" | "log" | "haku" | "hakuRecords" | "decision" | "freeze" | "spam" | "ready"
   | "practiceThinker"
   | "toolsHaku" | "toolsThinker" | "toolsThinkerIntent";
 
@@ -60,6 +62,9 @@ export const PRACTICE_TOUR: readonly TourStep[] = [
   { id: "units", target: '.unit-marker:not([style*="display: none"]), .unit-stack', placement: "right" },
   { id: "log", target: at("log"), placement: "left" },
   { id: "haku", target: at("haku"), placement: "left" },
+  // Revision (bl), 25 Oct 2026: what the records hold and how to ask for them (by topic, place, source and time), at the Haku pane. It
+  // teaches how to ask and never that one must: nothing on the memory checks or on scores. Its examples are the practice view's.
+  { id: "hakuRecords", target: at("haku"), placement: "left" },
   { id: "decision", target: at("decision"), placement: "top" },
   { id: "freeze", target: null },
   // The situation question (SPAM, 5 Oct 2026; revision (ag)): the ready prompt that waits (and is forced before the period ends),
@@ -73,11 +78,12 @@ export const PRACTICE_THINKER_STEP: TourStep = { id: "practiceThinker", target: 
 
 /**
  * Revision (am): the practice tour of a condition — the common steps, and in the AI group (both Thinker
- * cells, the same step and text) the Thinker practice right after Haku. Identical within a cell.
+ * cells, the same step and text) the Thinker practice right after Haku's two steps (revision (bl): after `hakuRecords`, so that
+ * the Haku steps stay together). Identical within a cell.
  */
 export function practiceTour(condition: "directed" | "substitutive"): readonly TourStep[] {
   if (condition !== "substitutive") return PRACTICE_TOUR;
-  const i = PRACTICE_TOUR.findIndex((s) => s.id === "haku") + 1;
+  const i = PRACTICE_TOUR.findIndex((s) => s.id === "hakuRecords") + 1;
   return [...PRACTICE_TOUR.slice(0, i), PRACTICE_THINKER_STEP, ...PRACTICE_TOUR.slice(i)];
 }
 

@@ -1,13 +1,15 @@
 /**
  * The practice feedback screen (difficulty audit, 23 Oct 2026; `proposal.md` (b.3), `proposal-map.md` c.3; content from
  * `app/session/practice-feedback.ts`), after VP and before the training text, in both groups. Source-only: for each practice question
- * it says where the information could be found and never which option was right. The two map tasks teach the skill: the head mark
+ * it says where the information could be found. The one exception (revision (bl), 25 Oct 2026): a question whose information a search
+ * finds also shows what the search would have given — the record and, the practice being unscored, the right answer and the
+ * participant's own. Only the practice item's answer is ever in the view. The two map tasks teach the skill: the head mark
  * beside the head as the practice map drew it, on the basemap's own tiles (no fire layers, no units), and the measured distance with
  * how the measure tool works. The closing line names the tools the group has. Leaving it is logged with its dwell by the session.
  */
 
 import type { SessionOrchestrator, SessionSnapshot } from "../../../session/orchestrator.js";
-import type { PracticeFeedbackItem, PracticeFeedbackView } from "../../../session/practice-feedback.js";
+import { searchLessonLines, type PracticeFeedbackItem, type PracticeFeedbackView } from "../../../session/practice-feedback.js";
 import { DIFFICULTY_TEXT } from "../../../i18n/difficulty-texts.js";
 import { sourceName } from "../../../i18n/text.js";
 import { topoTileUrl } from "../../../i18n/place-names.js";
@@ -41,7 +43,7 @@ export function PracticeFeedbackScreen({ snapshot, orchestrator }: { readonly sn
             <div style={{ fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase", opacity: 0.6 }}>{t.question}</div>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{tr(it.promptFi)}</p>
             <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.5 }}>{where(it)}</p>
-            {it.exampleQuestion && <p style={{ margin: 0, fontSize: 14, opacity: 0.85 }}>{t.example(it.exampleQuestion[lang])}</p>}
+            {it.lesson ? <SearchLesson lesson={it.lesson} lang={lang} /> : it.exampleQuestion && <p style={{ margin: 0, fontSize: 14, opacity: 0.85 }}>{t.example(it.exampleQuestion[lang])}</p>}
           </section>
         ))}
         <section style={card} data-testid="practice-feedback-head">
@@ -60,6 +62,17 @@ export function PracticeFeedbackScreen({ snapshot, orchestrator }: { readonly sn
         </button>
       </div>
     </div>
+  );
+}
+
+/** (bl) What a search would have given for a records item: the question, the record and the right answer, then the participant's own answer. */
+function SearchLesson({ lesson, lang }: { readonly lesson: NonNullable<PracticeFeedbackItem["lesson"]>; readonly lang: "fi" | "en" }) {
+  const lines = searchLessonLines(lang, lesson);
+  return (
+    <>
+      <p data-testid="practice-feedback-lesson" style={{ margin: 0, fontSize: 14.5, lineHeight: 1.5 }}>{lines.lesson}</p>
+      {lines.yours !== null && <p data-testid="practice-feedback-yours" style={{ margin: 0, fontSize: 14.5, lineHeight: 1.5, opacity: 0.9 }}>{lines.yours}</p>}
+    </>
   );
 }
 

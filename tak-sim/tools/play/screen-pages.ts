@@ -13,6 +13,7 @@ import type { SessionSnapshot } from "../../app/session/snapshot.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { sourceName, tr } from "../../app/i18n/text.js";
 import { DIFFICULTY_TEXT } from "../../app/i18n/difficulty-texts.js";
+import { searchLessonLines } from "../../app/session/practice-feedback.js";
 import { PUBLIC_TEXT, studyTextFor } from "../../app/i18n/public-texts.js";
 import { introTextsIn } from "../../app/scenario/briefing.js";
 import { pageOfLabel, PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
@@ -108,7 +109,9 @@ function feedbackText(session: PlaySession, s: SessionSnapshot, path: string | n
   for (const it of v.items) {
     const records = it.records.map((r) => `${sourceName(lang, r.sourceId)} ${r.clockLabel}`).join(", ");
     const where = it.source === "log" ? t.log(records) : it.source === "map" ? t.map : it.source === "records" ? t.records(records) : t.workedOut;
-    out.push("", `${t.question}: ${tr(lang, it.promptFi)}`, where, ...(it.exampleQuestion ? [t.example(it.exampleQuestion[lang])] : []));
+    // (bl) A records item shows what a search would have given and its answer (the screen's `SearchLesson`, the same lines); else its example question.
+    const lesson = it.lesson ? searchLessonLines(lang, it.lesson) : null;
+    out.push("", `${t.question}: ${tr(lang, it.promptFi)}`, where, ...(lesson ? [lesson.lesson, ...(lesson.yours !== null ? [lesson.yours] : [])] : it.exampleQuestion ? [t.example(it.exampleQuestion[lang])] : []));
   }
   out.push("", `# ${t.headTitle}`, v.head.mark ? t.head : t.headNoMark);
   // The head map is an image (24 Oct 2026: a player on `--no-map` read "shown in blue" and saw no picture): its path, or how to get it.

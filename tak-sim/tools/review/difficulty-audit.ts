@@ -28,6 +28,7 @@ import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import { hybridRetrieve } from "../../app/retrieval/hybrid.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
 import { HAND, type HandRow } from "./difficulty-audit-hand.js";
+import { SEEK_QUESTIONS } from "./seek-questions.js";
 
 /** A record's arrival is "late" when it reaches the participant less than this many view seconds before the item's moment. */
 export const LATE_LEAD_S = 60;
@@ -200,7 +201,6 @@ export const FINDABILITY_QUERIES: Readonly<Record<string, { readonly fi: readonl
   "freeze.4.infra": { fi: ["Voiko Haukilammelta täyttää säiliöitä?"], en: ["Can tankers fill up at Pike Pond?"] },
   "freeze.5.infra": { fi: ["Mikä on tien R1 tilanne?", "tiehavainto tie R1"], en: ["What is the state of road R1?", "road report road R1"] },
   "freeze.5.ek14_shelter": { fi: ["Mikä on sääennuste?", "Miten tuuli muuttuu?"], en: ["What is the weather forecast?", "How will the wind change?"] },
-  "freeze.5.wind_shift": { fi: ["Mikä on sääennuste?"], en: ["What is the weather forecast?"] },
   "freeze.7.infra": { fi: ["Voiko Kotkanjoelta täyttää säiliöitä?"], en: ["Can tankers fill up at Eagle River?"] },
   "freeze.10.ek12_water": { fi: ["Saako EK12 lisää vettä?"], en: ["Is EK12 getting more water?"] },
   "freeze.10.area_growth_hour": { fi: ["Kuinka nopeasti uusi palo kasvaa?"], en: ["How fast is the new fire growing?"], records: ["atom.demo.12.1", "evt.c13.010", "evt.c13.034"] }, // play-test D5: the growth (was area_total_hour)
@@ -210,6 +210,8 @@ export const FINDABILITY_QUERIES: Readonly<Record<string, { readonly fi: readonl
   "freeze.12.front_toward": { fi: ["Mihin suuntaan palon kärki etenee?"], en: ["Which way is the head of the fire spreading?"] },
   "probe.s.cycle_3.b": { fi: ["Kuinka suuri palanut ala on?"], en: ["How large is the burnt area?"] },
   "probe.s.cycle_6.b": { fi: ["Mikä on tien R1 tilanne?", "tiehavainto tie R1"], en: ["What is the state of road R1?", "road report road R1"] },
+  // Revision (bk), 25 Oct 2026: the converted seek-dependent items' questions (`seek-questions.ts`); V5 wind_shift's row went with it.
+  ...Object.fromEntries(SEEK_QUESTIONS.map((q) => [q.itemId, { fi: q.fi, en: q.en, records: q.records }])),
 };
 
 export interface Findability { readonly id: string; readonly lang: "fi" | "en"; readonly query: string; readonly step: number; readonly ranks: readonly { readonly id: string; readonly rank: number | null }[] }

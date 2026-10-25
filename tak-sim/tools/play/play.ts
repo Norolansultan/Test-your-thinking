@@ -6,14 +6,14 @@
  * it is the only command that reads the keys, and writes them to `<run>/score.md` and `score.json`, never to the screen.
  *
  * Commands (README.md has the costs and the limitations):
- *   start --audience expert|public --lang fi|en     look            continue          wait [seconds]
- *   haku "<question>"   haku-history   glossary <term>   help [glossary|roster|legend] [letter]   consult open|dismiss
+ *   start --audience expert|public --lang fi|en     look [--all]    continue          wait [seconds]
+ *   haku "<question>"   chip   haku-history   glossary <term>   help [glossary|roster|legend] [letter]   consult open|dismiss
  *   primer-answer <n>   primer-retry   primer-next   primer-back      pretest-answer <item> <option>
  *   freeze-answer <item> <option|x,y> <25|50|75|100>   freeze-submit
  *   spam-ready   spam-collapse   spam-expand   spam-answer <option> <confidence> | spam-answer <confidence>
  *   plan main=… posture=… secondary=… drones=… [departure=… reason=…]   confirm   revise
- *   plan-confidence <v>   review keep|change   probe-answer …   hinge-answer <option>
- *   quest-answer <item> <option>   quest-submit   score [--force]
+ *   plan-confidence <v>   review keep|change   probe-answer …   hinge-answer <option>   hinge-fatigue <1-7>
+ *   quest-answer <item> <option|number>   quest-submit   score [--force]
  * Flags: --run <dir> (required), --no-map (no PNGs).
  */
 
@@ -60,7 +60,7 @@ async function main(): Promise<number> {
     if (cmd === "start") {
       const audience = flags.get("audience") ?? "expert", lang = flags.get("lang") ?? "fi";
       if ((audience !== "expert" && audience !== "public") || (lang !== "fi" && lang !== "en")) throw new PlayError("start --audience expert|public --lang fi|en");
-      result = await startRun(dir, { audience: audience as Audience, lang: lang as Lang, waitStopsOnMessages: true }, { withMap });
+      result = await startRun(dir, { audience: audience as Audience, lang: lang as Lang, waitStopsOnMessages: true, questionnairesPlayed: true }, { withMap });
       if (result.ok) result = { ...result, text: [...PREAMBLE, "", result.text].join("\n") };
     } else if (cmd === "score") {
       const session = await replayRun(dir);
@@ -69,7 +69,8 @@ async function main(): Promise<number> {
       const written = await writeScore(dir, session);
       result = { ok: true, text: `Analyst output (contains the answer keys — never show it to the player): ${written.join(", ")}`, images: [] };
     } else {
-      result = await playCommand(dir, cmd, args, { withMap });
+      // `look --all` (B10): the flag parser takes "--all" as a flag, so it is handed on as the command's argument.
+      result = await playCommand(dir, cmd, cmd === "look" && flags.has("all") ? [...args, "--all"] : args, { withMap });
     }
   } catch (e) {
     if (!(e instanceof PlayError)) throw e;

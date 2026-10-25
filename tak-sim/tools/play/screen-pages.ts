@@ -2,7 +2,8 @@
  * The play harness's full-screen pages (`tools/play/`): the screens that take the whole window instead of the map — the primer
  * (public sessions; `PrimerScreen`, its pure flow `primer-flow.ts`), the map-reading pretest (`MapPretestScreen` and the extract's
  * PNG), the intro video, the practice feedback (`PracticeFeedbackScreen` and its head map's PNG), the training text with a public
- * session's mission card (`IntroScreen`), the post-session questionnaire's source-memory items (`StudyShell`), the debrief and the
+ * session's mission card (`IntroScreen`), the questionnaires' player items (`StudyShell`; B2, 25 Oct 2026: the pre-session form,
+ * the post-session source-memory, self-estimate and influence items), the debrief and the
  * end — as text, with the app's own strings (`PRIMER_CONTENT`, `DIFFICULTY_TEXT`, `introTextsIn`, `PUBLIC_TEXT`, `studyTextFor`).
  * Null for a view's screen (`screen.ts` draws those). Never a key: the primer shows right or wrong after a choice, as the app does;
  * nothing else here is scored.
@@ -16,7 +17,7 @@ import { PUBLIC_TEXT, studyTextFor } from "../../app/i18n/public-texts.js";
 import { introTextsIn } from "../../app/scenario/briefing.js";
 import { pageOfLabel, PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
 import { canGoOn, isLastPage, questionPhase } from "../../app/render/ui/explain/primer-flow.js";
-import { SOURCE_SECTION } from "../../app/session/questionnaire.js";
+import { REFLECTION_SECTION, SOURCE_SECTION, type QuestionnaireItem } from "../../app/session/questionnaire.js";
 import type { PlaySession } from "./session.js";
 import type { ImageRequest } from "./map-data.js";
 
@@ -106,18 +107,37 @@ function trainingText(session: PlaySession): string {
   return out.join("\n");
 }
 
-/** The post-session questionnaire: the source-memory items for the player; every other item is left blank (all are optional). */
+/**
+ * The questionnaire items the player answers (B2, 25 Oct 2026): the whole pre-session form (fatigue, sleep and, in an expert session,
+ * the recent shift); in the post-session form the source-memory items and the self-estimate and perceived-influence items after them.
+ * Every other post-session item is left blank (all are optional). The items as the screen resolves them (cell, audience).
+ */
+export function playerQuestItems(view: NonNullable<SessionSnapshot["questionnaire"]>): readonly QuestionnaireItem[] {
+  return view.id === "pre" ? view.items : view.items.filter((i) => i.section === SOURCE_SECTION || i.section === REFLECTION_SECTION);
+}
+
+/** The points of a scale item ("1 | 2 | … | 7"). */
+export function scalePoints(item: Extract<QuestionnaireItem, { kind: "scale" }>): number[] {
+  const step = item.step ?? 1;
+  return Array.from({ length: Math.floor((item.max - item.min) / step) + 1 }, (_, i) => item.min + i * step);
+}
+
+/** A questionnaire (pre- or post-session): the player's items with their answers so far; the rest of the post-session form blank. */
 function questText(session: PlaySession, s: SessionSnapshot): string {
   const q = studyTextFor(session.config.lang, { audience: session.o.audience, scope: session.o.scope }).questionnaire;
   const view = s.questionnaire!;
   const out = [`== ${view.id === "pre" ? q.preTitle : q.postTitle} ==`, `${view.id === "pre" ? q.preIntro : q.postIntro} ${q.optionalNote}`];
   let section = "";
-  for (const item of view.items.filter((i) => i.section === SOURCE_SECTION)) {
+  for (const item of playerQuestItems(view)) {
     if (item.section !== section) { section = item.section; out.push("", `-- ${q.sections[section] ?? section} --`); }
     const text = q.items[item.id]!;
+    const given = session.quest.get(item.id);
     out.push(`[${item.id}] ${text.prompt}`);
-    if (item.kind === "choice") out.push(`  ${item.options.map((o) => `${o}: ${text.options?.[o] ?? o}${session.quest.get(item.id) === o ? " ◀" : ""}`).join(" | ")}`);
+    if (item.kind === "choice") out.push(`  ${item.options.map((o) => `${o}: ${text.options?.[o] ?? o}${given === o ? " ◀" : ""}`).join(" | ")}`);
+    else if (item.kind === "scale") out.push(`  ${scalePoints(item).map((p) => `${p}${given === p ? " ◀" : ""}`).join(" | ")}${text.low && text.high ? `  (${text.low} … ${text.high})` : ""}`);
+    else if (item.kind === "number") out.push(`  ${item.min}–${item.max}${given !== undefined ? `: ${given} ◀` : ""}`);
   }
-  out.push("", H("Only the source-memory items above are yours to answer (`quest-answer <item id> <option id>`); the rest of the form is left blank (every item is optional). `quest-submit` sends it."), `[${q.submit}]`);
+  const rest = view.id === "pre" ? "" : " the rest of the form is left blank (every item is optional);";
+  out.push("", H(`The items above are yours to answer (\`quest-answer <item id> <option id | number>\`; every item is optional);${rest} \`quest-submit\` sends the form.`), `[${q.submit}]`);
   return out.join("\n");
 }

@@ -23,22 +23,26 @@ Flags: `--run <dir>` (required: the run's directory), `--no-map` (no PNGs: text 
 costs spent. Every call **replays** it into a fresh session (a whole session replays in about 0.4 s), applies one command, prints
 the result, draws its images and saves. A refused command (wrong screen, bad arguments) prints `Refused: …` and is not recorded.
 A run that no longer replays to the same virtual time (the app changed since it was played) stops with an error instead of
-drifting. `<run>/transcript.md` gets every command and what it printed (refused ones too); `<run>/screens/NNN-*.png` the images.
+drifting. The play-test runs of 23–24 Oct 2026 replay only on a checkout before the consult notice's R6 timing (commit `93d67ce`,
+25 Oct 2026: a `wait` that the old 60 s notice ended no longer ends there); score them on `8789fcb`, where Haku's template answers
+are also the ones the players saw (B6 changed them in `62a10f8`). `<run>/transcript.md` gets every command and what it printed (refused ones too); `<run>/screens/NNN-*.png` the images.
 Keep run directories outside `tools/` (or in `tools/play/.smoke/`, which git ignores).
 
 ## Commands
 
 Lines starting `»` are the harness's own (how to answer, the period's elapsed seconds); everything else is the app's text.
 Every command ends with a status line and what the participant would have noticed meanwhile (new messages, a freeze, the SPAM
-prompt, the period's end). Use `look` after any command to see the whole screen.
+prompt, the period's end). Use `look` after any command to see the screen; it lists only the messages that came in since your last
+`look` (with a count of the earlier ones), and `look --all` lists the whole message log.
 
 | Command | Screen | Cost (s) |
 |---|---|---|
-| `start --audience expert\|public --lang fi\|en` | a new run; consent, the AI-literacy test (skipped), the browser check and the pre-session fatigue item (4/7) are completed neutrally; prints the first screen | — |
-| `look` | the screen as text; in a view also the live map PNG; during a freeze only the freeze screen (the app blanks the map and log) | 0 |
+| `start --audience expert\|public --lang fi\|en` | a new run; consent, the AI-literacy test (skipped) and the browser check are completed neutrally; prints the first screen, the pre-session form (runs started before 25 Oct 2026 had it completed neutrally: fatigue 4/7, the rest blank) | — |
+| `look`, `look --all` | the screen as text; the message log's rows since the last `look`, after a count of the earlier ones (`look --all`: every row, the new ones marked `*`; 25 Oct 2026, B10); in a view also the live map PNG; during a freeze only the freeze screen (the app blanks the map and log) | 0 |
 | `continue` | leaves the guided tour, the intro video, the practice feedback, the training text, the hinge's directive and the debrief | tour 60, video 60, feedback 45, training 45, hinge 30 + 5, debrief 20 |
 | `wait [seconds]` | lets time run (default 10, at most 300); stops early when something changes (a freeze, the SPAM prompt, new messages, the decision panel, the minimum, the period's end) | as waited |
 | `haku "<question>"` | Haku's chat: opens the pane, types (the records gate at the moment it is sent), shows the answer, back to GeoChat | 15 + 15 |
+| `chip` | V8–V14 (the Haku group): clicks the suggested question above Haku's input ("What is new in this period's records?"), which `look` shows exactly when the app does; asked through Haku's path, logged `viaChip` (25 Oct 2026, B1). The guide group's Thinker chip never shows in this harness (it plays the Haku group) | 2 + 15 |
 | `haku-history` | Haku's earlier answers | 5 |
 | `map alue\|7km\|2km\|in\|out\|reset [center=x,y]`, `map legend` | moves the live map as the zoom buttons, the wheel and a drag do (x,y: pixels of the last map image; `7km` is the whole study area, the button read "Palo" until 24 Oct 2026 and `palo` still replays); shows or hides the legend | 3 |
 | `contacts [call sign]` | the TAK Contacts pane (type, task, water, last message); with a call sign the map centres on it | 8 |
@@ -53,10 +57,11 @@ prompt, the period's end). Use `look` after any command to see the whole screen.
 | `freeze-answer <letter\|x,y> <confidence>` / `freeze-submit` | the freeze, one item at a time (the one on screen), no going back; a map item is answered in the freeze map PNG's pixel coordinates. Options are lettered a, b, c … and no item or option id is shown, as in the app (some ids name the key); runs played before 24 Oct 2026, which named the item and the option id, still replay | 10 / 2 |
 | `probe-answer no` · `probe-answer yes a,b` · `probe-answer <letter> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
 | `hinge-answer <letter>` | the hinge's question | 10 |
+| `hinge-fatigue <1–7>` | the hinge's optional fatigue item, once its question is answered (one click; again: the last one counts; 25 Oct 2026, B2) | 3 |
 | `pretest-answer <item> <option>` | the map-reading pretest (its extract as a PNG) | 20 |
 | `primer-answer <n>`, `primer-retry`, `primer-next`, `primer-back` | the primer (public) | 10, 5, 20, 20 |
 | `glossary <term>`, `help [glossary\|roster\|legend] [letter]` | the glossary and the help card (public; logged as the app logs them) | 5, 10 |
-| `quest-answer <item> <option>` / `quest-submit` | the post-session questionnaire: the source-memory items are the player's; the rest is left blank (every item is optional) | 6 / 20 |
+| `quest-answer <item> <option\|number>` / `quest-submit` | the questionnaires (25 Oct 2026, B2): the pre-session form (fatigue 1–7, hours slept 0–24, and in an expert session the recent shift) and, after the session, the source-memory items, the self-estimate (0–100 %) and the group's influence items (periods 0–14; 0–100 in tens) are the player's; the rest of the post-session form is left blank (every item is optional) | 6 / 5 (pre), 20 (post) |
 | `score [--force]` | **analyst only**: `<run>/score.md` and `score.json` | — |
 
 The costs are in `costs.ts` (one place, DRAFT guesses at a practised participant's pace). `look` is free. The results step after
@@ -88,9 +93,11 @@ key to. The keys never reach the player's screens; `test/tools/play.spec.ts` che
 ## Smoke
 
 `npx tsx tools/play/smoke.ts [outDir]` plays a whole session in both audiences with a dumb policy (waits, every item's first
-option at confidence 50, one Haku question a period, the same plan every period, kept at the review) and replays each run from
-disk. On the development container (23 Oct 2026): expert/fi 314 commands, virtual 52 min, played in 0.4 s, replayed in 0.4 s;
-public/en 338 commands, virtual 57 min, 0.5 s and 0.4 s. A CLI command takes about 1.2 s without a map (tsx start-up, the
+option at confidence 50, one Haku question a period — from V8 the chip —, the same plan every period, kept at the review, the
+questionnaires' items and the hinge's fatigue item answered) and replays each run from disk. On the development container (25 Oct
+2026): expert/fi 328 commands, virtual 53 min, played in 0.4 s, replayed in 0.4 s; public/en 351 commands, virtual 57 min, 0.4 s and
+0.3 s; the consult notice in 8 of 14 views in both (the dumb policy plans before 60 s in most single-step views, R6), 7 chip
+questions. A CLI command takes about 1.2 s without a map (tsx start-up, the
 scenario's build, the replay) and about 3 s with the freeze map or the pretest extract, about 5 s with the live map (Chromium,
 MapLibre, the tiles).
 

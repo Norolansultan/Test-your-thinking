@@ -374,7 +374,7 @@ The replay (`docs/audits/2026-10-23-playtest/analysis.md` §10.3 c and g, §10.4
 
 - **A participant who plans after the minimum** (the expert-identity driver, `test/public/expert-identity.spec.ts`): **14 of 14 views**, as before. Five merged views' `consult_prompt_shown` move to after the boundary (V6's waited for its SPAM item, as before). Mapped back, every other record is still the 0.12.0 run's byte for byte (`identity-normalise.ts`).
 - **A participant who plans when the decision panel opens (20 s) and revises before the minimum** (the English study-session driver, all three cells): **6 of 14 views**, the merged ones (V2, V4, V6, V11, V12, V14), at 70 s. In the eight single-step views nothing arrives after the plan, so no notice.
-- **The play harness's smoke run** (`tools/play/smoke.ts`; it asks Haku once a period, then plans): see `15` (bi).
+- **The play harness's smoke run** (`tools/play/smoke.ts`; it asks Haku once a period, then plans as soon as the panel allows): **8 of 14 views** in both audiences (V1, V3 and the six merged views). In V5, V7, V8, V9, V10 and V13 its plan came before 60 s and nothing arrived after it.
 - The replay's players confirmed 9 of 12 merged-view plans before the burst. For them the notice now comes after the burst and is true.
 
 Tests: `test/session/consult-notice.spec.ts` (R6 block), `test/scenario/freeze-at-view-end.spec.ts` (the moments), `test/session/english-study-session.spec.ts` and `test/public/expert-identity.spec.ts`, all updated deliberately. Pilot 2: report the notice's show rate per view and per group (`consult_prompt_shown` against the derivation above).

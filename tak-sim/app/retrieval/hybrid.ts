@@ -28,6 +28,12 @@
  *   names, and exempts that minute's records from the routine collapse. The cue words and clocks used
  *   leave the LEXICAL query, so "17.24" no longer meets "17.24" in an unrelated record's text. The
  *   vector half and the embedded passage are unchanged.
+ * - **A named source and function words** (25 Oct 2026, SPEC/14 revision (bo), the review's B2):
+ *   a question naming a source as Haku shows it ("EK12", "EK12:n", "sääennusteen") adds
+ *   `namedSource.boost` to that source's records, and returns them newest first when the rest of the
+ *   question names no topic (`named-source.ts`); a record matched only by the question's function
+ *   words ("on", "mikä", "been") is no lexical match (`function-words.ts`, {@link HybridConfig.contentMatch}).
+ *   The vector half and the embedded passage are unchanged.
  * - **Diversity** (optional, {@link HybridConfig.maxPerSource}): at most N records per source in
  *   top-k, taken in rank order. No other re-ranking.
  *
@@ -45,11 +51,16 @@
 
 import { compareStrings } from "../engine/deterministic-object.js";
 import { hashString64 } from "../engine/prng.js";
-import { recordIn, sourceName } from "../i18n/text.js";
+import { recordIn } from "../i18n/text.js";
 import type { InfoAtom } from "../scenario/types.js";
-import { clockAt, recordText } from "../session/template-answer.js";
+import { recordText } from "../session/template-answer.js";
+import { clockBoosts, latestBoosts, recencyBoosts, recordClockMinutes } from "./boosts.js";
+import { functionTokens } from "./function-words.js";
+import { namedSourceCue, namesSource } from "./named-source.js";
 import { queryCues } from "./query-cues.js";
 import { collapseRoutine, type RoutineCollapseConfig } from "./routine-collapse.js";
+
+export { clockBoosts, latestBoosts, namesSource, recencyBoosts, recordClockMinutes };
 
 /** The declared retrieval parameters (mirrored in `content/thinker/manifest.json`). */
 export interface HybridConfig {
@@ -68,6 +79,18 @@ export interface HybridConfig {
   readonly recencyBoost?: RecencyBoostConfig | null;
   /** D10 (24 Oct 2026): the clock a question names matched against the record's clock; null or absent: none. */
   readonly clockMatch?: ClockMatchConfig | null;
+  /** (bo) 25 Oct 2026 (`named-source.ts`): a source the question names; null or absent: none. */
+  readonly namedSource?: NamedSourceConfig | null;
+  /** (bo) 25 Oct 2026 (`function-words.ts`): a record matched only by the question's function words is no lexical match; absent: off. */
+  readonly contentMatch?: boolean;
+}
+
+/**
+ * (bo): every record of a source the question names gets `boost` and counts as matched; when the rest of the question names no topic,
+ * the named sources' records alone are returned, newest first (`named-source.ts`).
+ */
+export interface NamedSourceConfig {
+  readonly boost: number;
 }
 
 export interface RecencyBoostConfig {
@@ -118,6 +141,10 @@ export const THINKER_RETRIEVAL_CONFIG: HybridConfig = {
   recencyBoost: { source: 0.05, sector: 0.03, latest: { relevance: 0.5, graded: 0.3 } },
   // 24 Oct 2026 (D10): a record at a clock the question names (±2 min; ±10 min weaker), more when it also names the source.
   clockMatch: { nearMinutes: 2, near: 0.5, namedSource: 0.5, farMinutes: 10, far: 0.15 },
+  // 25 Oct 2026 ((bo), B2; chosen on the play-test development set): a named source's records get +0.25, newest first when the rest
+  // of the question names no topic; a record matched only by the question's function words is no lexical match.
+  namedSource: { boost: 0.25 },
+  contentMatch: true,
 };
 
 /**
@@ -193,78 +220,6 @@ export function passageText(atom: InfoAtom, lang: RetrievalLang = "fi"): string 
 /** FNV-1a 64 of the passage text, so a changed record is caught against the frozen index. */
 export function passageHash(atom: InfoAtom, lang: RetrievalLang = "fi"): string {
   return hashString64(passageText(atom, lang)).toString(16).padStart(16, "0");
-}
-
-const SECTOR_CODE = /\bL[1-4]\b/g;
-
-/** Newer observation first, then the larger id: the same total order as the ranking's tie-break. */
-function isNewer(a: InfoAtom, b: InfoAtom): boolean {
-  return a.provenance.observedAt !== b.provenance.observedAt ? a.provenance.observedAt > b.provenance.observedAt : compareStrings(a.id, b.id) > 0;
-}
-
-/** The recency boost of each candidate (by position): the newest of its source and the newest of each sector it names. */
-export function recencyBoosts(candidates: readonly InfoAtom[], boost: RecencyBoostConfig): number[] {
-  const newestOfSource = new Map<string, number>();
-  const newestOfSector = new Map<string, number>();
-  const sectorsOf = candidates.map((a) => [...new Set(recordText(a.record).match(SECTOR_CODE) ?? [])]);
-  const consider = (map: Map<string, number>, key: string, i: number) => {
-    const held = map.get(key);
-    if (held === undefined || isNewer(candidates[i]!, candidates[held]!)) map.set(key, i);
-  };
-  candidates.forEach((a, i) => {
-    consider(newestOfSource, a.provenance.sourceId, i);
-    for (const sec of sectorsOf[i]!) consider(newestOfSector, sec, i);
-  });
-  const out = candidates.map(() => 0);
-  for (const i of newestOfSource.values()) out[i]! += boost.source;
-  const sectorWinners = new Set<number>();
-  for (const i of newestOfSector.values()) sectorWinners.add(i);
-  for (const i of sectorWinners) out[i]! += boost.sector;
-  return out;
-}
-
-/** The latest-state preference ({@link LatestRecencyConfig}) of each candidate (by position), from the base scores. */
-export function latestBoosts(candidates: readonly InfoAtom[], base: readonly number[], latest: LatestRecencyConfig): number[] {
-  const top = Math.max(0, ...base);
-  const relevant = base.map((b) => top > 0 && b > 0 && b >= latest.relevance * top);
-  const times = candidates.filter((_, i) => relevant[i]).map((a) => a.provenance.observedAt);
-  const lo = Math.min(...times);
-  const hi = Math.max(...times);
-  return candidates.map((a, i) => (relevant[i] && hi > lo ? (latest.graded * (a.provenance.observedAt - lo)) / (hi - lo) : 0));
-}
-
-/** A record's clock as Haku and the model show it (`clockAt`, floored to the minute), in minutes after midnight. */
-export function recordClockMinutes(atom: InfoAtom): number {
-  const [h, m] = clockAt(atom.provenance.observedAt).split(".").map(Number) as [number, number];
-  return h * 60 + m;
-}
-
-/**
- * Whether the question's lexical tokens name the record's source as Haku shows it in the session
- * language (`sourceName`: "VPK", "Sääasema", "Water supply", "Volunteer fire brigade VOL1"):
- * every word of the shown name, or a code in it ("VOL1", "EK11"). The shown name, not the id, so the
- * Finnish verb "saa" does not name the weather station (SAA).
- */
-export function namesSource(queryTokens: ReadonlySet<string>, sourceId: string, lang: RetrievalLang): boolean {
-  const shown = tokenise(sourceName(lang, sourceId), lang);
-  const words = shown.filter((t) => !/\p{N}/u.test(t));
-  return (words.length > 0 && words.every((t) => queryTokens.has(t))) || shown.some((t) => /\p{N}/u.test(t) && queryTokens.has(t));
-}
-
-/** The clock match of each candidate: the nearest of the question's clocks decides ({@link ClockMatchConfig}). */
-export function clockBoosts(candidates: readonly InfoAtom[], clocks: readonly number[], match: ClockMatchConfig, lexicalQuery: string, lang: RetrievalLang): number[] {
-  const queryTokens = new Set(tokenise(lexicalQuery, lang));
-  const named = new Map<string, boolean>();
-  return candidates.map((a) => {
-    if (clocks.length === 0) return 0;
-    const t = recordClockMinutes(a);
-    const d = Math.min(...clocks.map((c) => Math.abs(t - c)));
-    if (d > match.farMinutes) return 0;
-    if (d > match.nearMinutes) return match.far;
-    const id = a.provenance.sourceId;
-    if (!named.has(id)) named.set(id, namesSource(queryTokens, id, lang));
-    return match.near + (named.get(id) ? match.namedSource : 0);
-  });
 }
 
 export function roundTo(x: number, decimals: number): number {
@@ -346,8 +301,12 @@ export function tokeniseEn(text: string): string[] {
   return out;
 }
 
-/** Okapi BM25 of `query` against each document, in document order, with the language's tokeniser. */
-export function bm25Scores(query: string, documents: readonly string[], params: HybridConfig["bm25"], lang: RetrievalLang = "fi"): number[] {
+/**
+ * Okapi BM25 of `query` against each document, in document order, with the language's tokeniser. (bo): a document matched only by
+ * `weak` terms (the question's function tokens) scores 0 — when another document matches one of the question's other terms; else
+ * nothing changes.
+ */
+export function bm25Scores(query: string, documents: readonly string[], params: HybridConfig["bm25"], lang: RetrievalLang = "fi", weak: ReadonlySet<string> = new Set()): number[] {
   const docs = documents.map((d) => tokenise(d, lang));
   const n = docs.length;
   if (n === 0) return [];
@@ -355,18 +314,21 @@ export function bm25Scores(query: string, documents: readonly string[], params: 
   const terms = [...new Set(tokenise(query, lang))];
   const df = new Map<string, number>();
   for (const d of docs) for (const t of new Set(d)) df.set(t, (df.get(t) ?? 0) + 1);
+  const contentMatched = terms.some((t) => !weak.has(t) && df.has(t));
   return docs.map((d) => {
     const tf = new Map<string, number>();
     for (const t of d) tf.set(t, (tf.get(t) ?? 0) + 1);
     let score = 0;
+    let content = false;
     for (const t of terms) {
       const f = tf.get(t);
       if (!f) continue;
       const nt = df.get(t)!;
       const idf = Math.log(1 + (n - nt + 0.5) / (nt + 0.5));
       score += (idf * f * (params.k1 + 1)) / (f + params.k1 * (1 - params.b + (params.b * d.length) / avgdl));
+      content ||= !weak.has(t);
     }
-    return score;
+    return contentMatched && !content ? 0 : score;
   });
 }
 
@@ -438,18 +400,25 @@ export function hybridRetrieve(
   const collapsed = cfg.routineCollapse ? collapseRoutine(gated, cfg.routineCollapse) : gated;
   // A record at a clock the question names is exempt from the routine collapse: it was asked for by its time.
   const candidates = clocks.length > 0 && collapsed !== gated ? withRecordsAtClock(gated, collapsed, clocks, cfg.clockMatch!.nearMinutes) : collapsed;
+  // (bo) 25 Oct 2026 (`named-source.ts`): a named source's records, newest first when the rest of the question names no topic.
+  const named = cfg.namedSource ? namedSourceCue(candidates.map((a) => a.provenance.sourceId), lang, cues) : null;
+  const ofNamed = (a: InfoAtom) => named !== null && named.sources.includes(a.provenance.sourceId);
+  if (named?.newestFirst) return topK(newestFirst(candidates.filter(ofNamed)), cfg);
   // D10 addendum (24 Oct 2026): a latest-state question naming no topic ("Mitä uutta?", "Any new reports?") gets the newest records.
   if (cfg.recencyBoost?.latest && cues.topicFree) return topK(newestFirst(candidates), cfg);
-  const lexical = minMax(bm25Scores(cues.lexicalQuery, candidates.map((a) => passageText(a, lang)), cfg.bm25, lang));
+  const lexicalQuery = named?.lexicalQuery ?? cues.lexicalQuery; // a named source's reporting verbs leave it, as cue words do
+  const weak = cfg.contentMatch ? functionTokens(lexicalQuery, lang) : undefined;
+  const lexical = minMax(bm25Scores(lexicalQuery, candidates.map((a) => passageText(a, lang)), cfg.bm25, lang, weak));
   const dense = vector ? minMax(candidates.map((a) => cosine(vector.queryVector, vector.index.vectorOf(a)))) : null;
   const base = candidates.map((_, i) => (dense ? cfg.lexicalWeight * lexical[i]! + cfg.vectorWeight * dense[i]! : lexical[i]!));
-  const clockScore = cfg.clockMatch && clocks.length > 0 ? clockBoosts(candidates, clocks, cfg.clockMatch, cues.lexicalQuery, lang) : null;
-  // A record the question matched: by its words or meaning (a base score above 0), or by its clock.
-  const matched = base.map((b, i) => b > 0 || (clockScore !== null && clockScore[i]! > 0));
+  const clockScore = cfg.clockMatch && clocks.length > 0 ? clockBoosts(candidates, clocks, cfg.clockMatch, lexicalQuery, lang) : null;
+  // A record the question matched: by its words or meaning (a base score above 0), by its clock, or by naming its source.
+  const matched = base.map((b, i) => b > 0 || (clockScore !== null && clockScore[i]! > 0) || ofNamed(candidates[i]!));
   const boosts = cfg.recencyBoost ? recencyBoosts(candidates, cfg.recencyBoost) : null;
   const latest = cfg.recencyBoost?.latest && cues.latest ? latestBoosts(candidates, base, cfg.recencyBoost.latest) : null;
   const scored = candidates.map((atom, i) => {
-    const extra = matched[i] ? (boosts?.[i] ?? 0) + (latest?.[i] ?? 0) + (clockScore?.[i] ?? 0) : 0;
+    const source = ofNamed(atom) ? cfg.namedSource!.boost : 0;
+    const extra = matched[i] ? (boosts?.[i] ?? 0) + (latest?.[i] ?? 0) + (clockScore?.[i] ?? 0) + source : 0;
     return { atom, score: roundTo(base[i]! + extra, SCORE_DECIMALS) };
   });
   const ranked = scored

@@ -70,7 +70,10 @@ describe("C2: the current step's best matches", () => {
   const view = 5;
   const step = stepAtVirtualTime(specOf(view), specOf(view).startsAtVirtual)!;
   const gated = reachableAtoms(scenario.atoms, step);
-  const question = "Montako pistepaloa on ja missä?";
+  // SPEC/14 revision (bo), 25 Oct 2026: was "Montako pistepaloa on ja missä?". A record matched only by function words ("on", "ja",
+  // "missä") is no longer a lexical match, so that question's one current-step spot-fire record is now in the retrieved list itself and
+  // nothing is left for the recent block; "kärjen edessä" gives the current step more matches than the retrieved list holds.
+  const question = "Montako pistepaloa kärjen edessä on ja missä?";
 
   it("adds up to RECENT_MATCH_SIZE records of the current step, none already retrieved; the frozen retrieval is unchanged", () => {
     const retrieved = hybridRetrieve(question, gated, null, undefined, "fi");

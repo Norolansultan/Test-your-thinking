@@ -102,10 +102,22 @@ export function loadPlaytestCases(file: string = PLAYTEST_HAKU_FILE): PlaytestCa
   return playtestCases(readFileSync(repoPath(file), "utf8"));
 }
 
-/** The declared configuration with D10 taken out (the retrieval before 24 Oct 2026): the "before" of the evaluation. */
+/**
+ * The configuration with D10's two rules taken out (the latest-state preference and the clock match). With {@link withoutBo} as well
+ * it is the retrieval before 24 Oct 2026: the first "before" of the evaluation.
+ */
 export function withoutD10(config: HybridConfig = THINKER_RETRIEVAL_CONFIG): HybridConfig {
   const { latest: _latest, ...boost } = config.recencyBoost ?? { source: 0, sector: 0 };
   return { ...config, recencyBoost: config.recencyBoost ? boost : null, clockMatch: null };
+}
+
+/**
+ * The configuration with revision (bo)'s two rules taken out (25 Oct 2026: the named-source rule and the content match): the
+ * retrieval of revision (bn), the "before" of (bo)'s evaluation.
+ */
+export function withoutBo(config: HybridConfig = THINKER_RETRIEVAL_CONFIG): HybridConfig {
+  const { namedSource: _named, contentMatch: _content, ...rest } = config;
+  return rest;
 }
 
 /** The 1-based rank of the first target in a ranked id list; 0 when none is ranked. */

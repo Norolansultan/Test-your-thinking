@@ -3,6 +3,7 @@
 **Version 0.2 · 17 September 2026 · Status: governing for the AI group's engine.** Answers forks F2 and F3 in `11` §7 as far as Kalle has decided them. Where this document conflicts with `02` or `05`, those remain governing until they are amended to match.
 
 > **Changelog**
+> - **25 Oct 2026 (bo)** — the independent review's B2: findability was shown only for questions that presuppose the topic, and taught questions pulled H9 records. **(1) A named source:** a question naming a source as Haku shows it ("EK12", "EK12:n", "DR3:lta", "sääennuste", "sääennusteen", "weather forecast") gives that source's records +0.25; when the rest of the question is only reporting verbs or topic-free words ("Mitä EK12 ilmoitti?", "What has EK12 reported?", "Mikä on viimeisin sääennuste?", "Mikä on sääennuste?"), only that source's records are returned, newest first (D10's topic-free rule restricted to the source). The named-source check (D10's, now whole words with Finnish inflection) is shared with the clock rule. **(2) Content match:** a record matched only by the question's function words ("on", "mikä", "been") is no lexical match. Vector half, passages, index and log format unchanged; lexical only evaluated (dev MRR@8 0.5469 → 0.5910, held out 0.5752 → 0.5856). A guard test holds every taught or fixed question free of H9/H10 records in the top 8. See the revision at the end.
 > - **25 Oct 2026 (bm)** — the time gate leaves out the "report filed" pointers (`18` (bm)): a pointer is a radio line in the message log, not a command-post record, so neither Haku, the Thinker, the digest nor the recent matches ever return one. Every other record is reachable as before; no prompt, configuration or hash of the retrieval changes. See the revision at the end.
 > - **25 Oct 2026 (bi)** — the replay's fixes (`docs/audits/2026-10-23-playtest/analysis.md` §10.4, researcher decisions B5 and B6 of 25 Oct 2026). **Amendment to D10 (B5):** "new" before a word for records ("uusia ilmoituksia", "uudet tiedot", "new reports", "what new …") is a recency cue, "uusi palo" / "new fire" stays out; "edellisen suunnitelmani jälkeen" / "since my last plan" is a time relative to the plan, never a previous cue, so the question still asks for the latest; the topic-free rule now fires for "Mitä uusia ilmoituksia on tullut?", "What new reports have come in?" and the consult notice's own words. Play-test questions unchanged (development 45: MRR@8 0.5543; held-out 36: 0.5692); authored questions 0 of 224 lists change. **Step 6, the template fallback (B6):** a record that is a question (a unit asking command) is never the answer, the next ranked one is; a shown record more than 30 minutes older than the period's end reads "epävarma (tieto klo hh.mm)" / "uncertain (record from hh.mm)". See the revision at the end.
 > - **24 Oct 2026 (D10)** — query-aware recency and clock-aware matching (researcher decision D10, after the play-test of 23 Oct 2026). A question asking for the latest state ("viimeisin", "uutta", "nyt", "latest", "now" …) adds up to +0.3 by recency among its relevant records. A clock it names ("klo 17.24", "at 17:24") is matched against each record's clock (±2 min +0.5, +0.5 more when it names the record's source as shown, ±10 min +0.15), leaves the lexical query, and exempts that minute's records from the routine collapse. The embedded passage and the vectors are unchanged. Play-test questions (lexical): MRR@8 0.388 → 0.567. Neutral evaluation (lexical only; the model is not available here): Finnish 0.5049 / 0.4653 → 0.5196 / 0.4996, English MRR 0.3552 → 0.3699. The authored questions (hybrid) are unchanged. See the revision at the end.
@@ -1096,3 +1097,84 @@ The replay found that Haku's "varma" on records two hours old came from the temp
 ## Revision 25 Oct 2026 (bm) — the time gate and the pointers
 
 `reachableAtoms` (`app/retrieval/time-gate.ts`, the one definition of what the query tools can reach) now leaves out every atom marked `pointer` (`18` (bm)). A pointer ("EK12: tilanneilmoitus kirjattu.") holds nothing to retrieve, and as the closest lexical match to its own follow-up question it would push the report it points to down the list — the play-test's echo (`docs/audits/2026-10-23-playtest/analysis.md` §10.3 d). Every other record is reachable exactly as before, so no rank of any other record moves (the difficulty audit's findability table is unchanged) and the frozen retrieval configuration stands. The carried index holds a vector for each pointer (`npm run thinker:index -- --carry`), never used: the gate never offers a pointer as a candidate. Both groups alike.
+
+## Revision 25 Oct 2026 (bo) — a named source, function words, and the taught questions' guard (the review's B2)
+
+Source: the independent review's finding B2 (blocker). Findability had been shown only for questions that presuppose the topic. Checked first with `hybridRetrieve` (lexical half, time gate at the item's step), the finding held:
+
+- "Mitä EK12 ilmoitti?" at step 3: EK12's key reports (`evt.c02.022`, `evt.c03.021`) were not in the top 8 (rank 10). "What has EK12 reported?": rank 17.
+- "Mitä EK11 ilmoitti?" at step 7: `evt.c07.032` was rank 36. "Mitä EK14 ilmoitti?" at step 10: `evt.c10.028` was rank 25.
+- "Mitä lisäyksiköitä on hälytetty?" at step 7: `f7.grid_record` (H9) was rank 4.
+- The tour's example "Mikä on viimeisin sääennuste?" at step 10: `f7.grid_record` was rank 4 and the 16.00 forecast `evt.wx.04` rank 7. The practice lesson's "Mikä on sääennuste?" pulled `f7.grid_record` into the top 8 at every step from 6 to 17.
+
+**Why.** The forecast records say "Ennuste"; only their source is SÄÄENNUSTE (its shown name too). The lexical half had no notion of a named source, so "EK12" weighed like any token, and "ilmoitti" met "ilmoitamme" in a lateral line. And it scored function words: `f7.grid_record` is short and says "on" twice, the radio lines asking "Mikä on teidän reittinne?" had "mikä" and "on", and "Have reinforcements been dispatched?" reached the grid record by "been". H9 exposure counts any retrieval at rank ≤ 8 (`09` (bh) §3), so a taught question that pulls an H9 record raises exposure in both groups before V12.
+
+**Unchanged:** the vector half, the embedded passage (`passageText`), the indexes (1016 of 1016 passage hashes match in both languages), the prompts, the time gate, the routine collapse, D10's rules and the log format. Rules (1) and (2) are declared in the configuration (`THINKER_RETRIEVAL_CONFIG.namedSource`, `.contentMatch`) and the manifest (`npm run thinker:index -- --manifest-only`; `retrieval.namedSource`, `retrieval.contentMatch` and the same in `retrievalEn`, with the verb and function-word lists). Nothing names a record or a designed event.
+
+### bo.1 A named source (`app/retrieval/named-source.ts`)
+
+- **Naming** (`namesSource`): the question has every word of the source's shown name in the session language (`sourceName`: "EK12", "VPK", "SÄÄENNUSTE", "Sääasema"; "Weather forecast", "Volunteer fire brigade VOL1") or a code in it. Words are whole and lowercased, and a case ending after a colon is dropped ("EK12:n", "EK12:lta", "DR3:n", "VPK:lta"). A Finnish word may be inflected: it begins with the name word less its last two letters ("sääennusteen", "sääennusteesta", "johtopaikalta", "hätäkeskuksen", "vesihuollon"); a name word of five letters or fewer, and a code, must be whole. An English word may be a plural or a possessive (the S-stemmer; "EK12's"). This is D10's check, now shared by both rules (the clock rule's `namedSource` uses it). It replaces the lexical half's five-letter prefix, which would have let "metsäautotie" name METSÄKESKUS, "tilanne" TILANNEKUVA and "droonien" the Drooniryhmä. No development or held-out case of the clock rule changes.
+- **Boost:** every gated, collapsed record of a named source gets **+0.25** and counts as matched (so it also gets D2(a)'s and D10's boosts).
+- **Newest first:** with no clock naming a record time, when the question's other words (the lexical query less the words naming a source) are all reporting words (`REPORTING_FI` / `REPORTING_EN`) or topic-free words (D10's `TOPIC_FREE_FI` / `TOPIC_FREE_EN`), only the named sources' records are returned, newest first (then by id). This is D10's topic-free rule restricted to the named source. A recency cue is already out of the lexical query, so "Mikä on viimeisin sääennuste?" qualifies; "Mikä on viimeisin sääennuste illaksi?" (a topic) is ranked with the boost and D10's latest-state preference. A bare name ("EK11") qualifies.
+  - Reporting words, Finnish: *ilmoit-* (ilmoitti, ilmoittanut …), *raportoi-*, *kertoa* (kertoi, kertonut, kertoo, kerro, kerrottu …), *sanoa* (sanoi, sanonut, sanoo, sanottu …), *kuulua* (kuulunut, kuuluu), and *ja / tai / sekä* between names.
+  - Reporting words, English: *report(s/ed/ing)*, *say/says/said/saying*, *tell/tells/told/telling*, *hear/heard*, *do/does/did*, *from*, and *and / or* between names.
+- **Reporting words leave the lexical query** when a source is named, as D10's cue words do: they say how the source spoke, not what about ("Mitä EK12 ilmoitti kärjestä?" is matched as "Mitä EK12 kärjestä?").
+- **Chosen on the development set** (`haku.csv`, MRR@8), as D10 was, over newest-first {only for a topic-free rest; for any recency cue too} × boost {0.1, 0.25, 0.5, 1.0} × (2) {on, off}. Newest-first for any recency cue: development MRR@8 0.5704, against 0.5872 for a topic-free rest only (both before the reporting words left the lexical query). Boost 0.25: 0.5910 (0.1: 0.5898; 0.5 and 1.0: 0.5835). (2) on: 0.5910 (off: 0.5813). The replay set was held out.
+
+### bo.2 Function words are no match alone (`app/retrieval/function-words.ts`)
+
+A record whose BM25 match is only on the question's **function tokens** scores 0 in the lexical half. Function tokens are the tokens of the question's function words (declared closed-class lists, `FUNCTION_WORDS_FI` / `FUNCTION_WORDS_EN`: "olla" and the negation verb, question words, pronouns, conjunctions; "be", "have", "do", modals, articles, prepositions) that no other word of the question has. English "has" and the unit "ha" share a token, so "ha" is a function token only when no content word has it. Every other record's score is exactly as before: the function words still count in a record that also matches a content word. If no record matches another word of the question, nothing changes. This is not a stopword list: the lexical query keeps every word.
+
+### bo.3 The guard (`test/retrieval/taught-questions-guard.spec.ts`)
+
+**Taught and fixed questions.** Both languages, read from where the instrument shows them, so a re-worded text is checked after a merge:
+
+- the tour's records-step examples (`ui.ts` `hakuRecords`, every quoted question);
+- the practice lesson's example question (`practiceFeedbackView`);
+- the Haku chip and the guide's chip;
+- the consult notice's text;
+- the Thinker practice's example;
+- every `SEEK_QUESTIONS` question at its item's moment.
+
+None returns an H9 record (`f7.planted_record`, `f7.grid_record`, `f7.grid_at_line`, `f7.heli_line_clearance`) or an H10 record (`rekindle.objection`, `t4.private_doubt`) in the top 8 while that record's exposure counts (`09` (bh) §3). For H9 that is through V12 (step 17); for H10 through V8 (step 11). A question taught for the whole session is checked at every step it can be asked.
+
+Outside the window, at V13 (step 18), the Haku chip and the notice's words return the period's newest records, among them the grid company's 19.18 record (`f7.grid_at_line`, rank 7). That is by design: it comes after the F7 freeze.
+
+**Natural forms.** At each converted item's moment, with no H9 or H10 record in the top 8 (lexical rank of the item's key):
+
+| Question | Step | (bn) | (bo) |
+|---|---|---|---|
+| Mitä EK12 ilmoitti? / What has EK12 reported? | 3 | 10 / 17 | **5 / 5** |
+| Mitä EK11 ilmoitti? / What has EK11 reported? | 7 | 36 / 58 | **2 / 2** |
+| Mitä EK14 ilmoitti? / What has EK14 reported? | 10 | 25 / 31 | **2 / 2** |
+| Mitä lisäyksiköitä on hälytetty? / What additional units have been alerted? | 7 | 1 (with H9 at 4) / 1 | **1 / 1** (no H9) |
+
+**LIMIT: EK12 is 5th, not in the top 3.** Newest first, as the rule says, four EK12 records are newer than its 14.08 report: three lateral lines to EK11 and EK14 (14.09, 14.13, 14.16) and the 14.08 vehicle-location line. Putting the source's reports before its lateral traffic would lift EK12's key, but it would drop EK14's key (`evt.c10.028`, a lateral line) out of the top 3. No ordering principle serves both. The key is in the top 8 the answer is built on. The guard holds EK12 at ≤ 5 and the other three at ≤ 3.
+
+**The finding reproduced:** the guard also runs the cases on (bn)'s retrieval (`withoutBo`) and finds the H9 pulls and the misses above.
+
+### bo.4 Evaluation (`npx tsx tools/thinker/eval-playtest.ts`; lexical; preD10 = neither D10 nor (bo), (bn) = D10 without (bo))
+
+| Set | n | | top-1 | top-3 | top-8 | MRR@8 |
+|---|---|---|---|---|---|---|
+| Development (`haku.csv`) | 45 | preD10 | 10 | 24 | 33 | 0.3732 |
+| | | (bn) | 18 | 30 | 38 | 0.5469 |
+| | | **(bo)** | **20** | **32** | **38** | **0.5910** |
+| Held out (`haku-replay.csv`) | 36 | preD10 | 11 | 23 | 31 | 0.4789 |
+| | | (bn) | 15 | 28 | 31 | 0.5752 |
+| | | **(bo)** | **14** | **29** | **33** | **0.5856** |
+
+- **Development, (bn) → (bo):** 15 better, 1 worse, 29 unchanged. Better: K19 "Mikä on viimeisin sääennuste?" 7 → 1; K9 7 → 4; K12 6 → 4; K14 8 → 5; K6 8 → 6; L3 2 → 1; L2 3 → 2; L6 5 → 4; L10 4 → 3; and others outside the top 8. Worse: K22 75 → not ranked (its right record matched only "on" and "se"; a miss either way).
+- **Held out, (bn) → (bo):** 8 better, 2 worse. Better: L17 15 → 6; L4 12 → 8; K5 3 → 2; K15 4 → 3; K17 3 → 2; L16 3 → 2. Worse: **L1 "How much water does EK11 have left?" 1 → 2** (EK11 is named; the right record is the water supply's) and L7 85 → not ranked.
+- **Authored questions, hybrid, stored query vectors, 14 views:**
+  - Questions naming no source: 20 of 84 top-8 lists change in Finnish and 10 of 84 in English, all in "onko lohko 3 hallinnassa?", "onko 20 kV linja jännitteetön?", "is sector 3 under control?" and "is the 20 kV line de-energised?". These are the records matched only by "onko" / "is" / "the" leaving the tail of the list, replaced by the next by vector.
+  - Questions naming one ("EK11", "VOL1 point of origin"; "VPK syttymäkohta" is unchanged): 14 of 28 and 15 of 28 change, by design.
+  - **Designed ranks at the tests' views:** the objection 232 → 230 ("onko lohko 3 hallinnassa?"), 15 → 15, 8 → 8 (Finnish); 127 → 96, 35 → 21, 1 → 1 (English). F7's planted record 1, 2–4, 1 as before. None enters or leaves a top 8.
+- **Index:** 1016 of 1016 passage hashes match in both languages.
+- **The hybrid half is not re-checked here.** The embedding model cannot be downloaded in this environment. The stored authored vectors cover only the authored questions, and the guard and natural questions have none. **A hybrid re-check of the guard and of B2's questions is due with the next index rebuild** (`npm run thinker:index`).
+
+### bo.5 Consequences to note
+
+- **H10 by naming VPK.** "Mitä VPK ilmoitti?" at V7 (step 10) now returns VPK's newest records, and the objection (`rekindle.objection`, VPK 16.21) is **3rd** (it was 46th). At V8 (step 11), `t4.private_doubt` is 8th. This is seeking, not contamination: the question names the source of the record. But it raises H10 exposure for anyone who asks what VPK reported. Similarly, "What has VOL1 reported?" at step 10 puts the objection 3rd, and "Mitä johtopaikka kirjasi?" at step 10 puts the planted record 2nd (it was 3rd). For `09` (bh) §3's exposure estimate.
+- **Tests changed outside the retrieval folder.** `test/engine/rekindle.spec.ts`: the broad question's objection rank is 230 (was 232). `test/server/thinker-review-ah.spec.ts` (C2): the question gains "kärjen edessä". The old question's one current-step spot-fire record is now in the retrieved list itself, so nothing was left for the recent block.
+- **Code layout.** The additive scores moved from `hybrid.ts` to `app/retrieval/boosts.ts`, re-exported and unchanged, to keep `hybrid.ts` under 500 lines.

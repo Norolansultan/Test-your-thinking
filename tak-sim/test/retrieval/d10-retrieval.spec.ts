@@ -9,15 +9,17 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  clockBoosts, hybridRetrieve, latestBoosts, namesSource, passageText, recordClockMinutes, retrievalConfigOf, THINKER_RETRIEVAL_CONFIG, tokenise, vectorIndexOf,
+  bm25Scores, clockBoosts, hybridRetrieve, latestBoosts, namesSource, passageText, recordClockMinutes, retrievalConfigOf, THINKER_RETRIEVAL_CONFIG, vectorIndexOf,
   type HybridConfig, type VectorIndexFile,
 } from "../../app/retrieval/hybrid.js";
+import { FUNCTION_WORDS_EN, FUNCTION_WORDS_FI, functionTokens } from "../../app/retrieval/function-words.js";
+import { REPORTING_EN, REPORTING_FI } from "../../app/retrieval/named-source.js";
 import { collapseRoutine } from "../../app/retrieval/routine-collapse.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { trafficAtom } from "../../app/scenario/traffic-atoms.js";
 import type { InfoAtom, InteractionEvent } from "../../app/scenario/types.js";
-import { bestRank, loadPlaytestCases, playtestCases, rankSummary, stepOfClock, withoutD10 } from "../../tools/thinker/playtest-cases.js";
+import { bestRank, loadPlaytestCases, playtestCases, rankSummary, stepOfClock, withoutBo, withoutD10 } from "../../tools/thinker/playtest-cases.js";
 
 function event(id: string, cycle: number, simTimeS: number, actor: string, content: string): InteractionEvent {
   return {
@@ -92,14 +94,13 @@ describe("the clock match", () => {
   });
 
   it("names a source by the name Haku shows, every word or a code in it", () => {
-    const t = (q: string, lang: "fi" | "en" = "fi") => new Set(tokenise(q, lang));
-    expect(namesSource(t("Mitä VPK ilmoitti"), "VPK", "fi")).toBe(true);
-    expect(namesSource(t("What did VOL1 report", "en"), "VPK", "en")).toBe(true);
-    expect(namesSource(t("What did the volunteer fire brigade report", "en"), "VPK", "en")).toBe(true);
-    expect(namesSource(t("Mistä EK13 saa vettä"), "SAA", "fi")).toBe(false); // the verb "saa" is not the weather station
-    expect(namesSource(t("Mitä sääasema näyttää"), "SAA", "fi")).toBe(true);
-    expect(namesSource(t("Water supply", "en"), "VESIHUOLTO", "en")).toBe(true);
-    expect(namesSource(t("How much water is left", "en"), "VESIHUOLTO", "en")).toBe(false);
+    expect(namesSource("Mitä VPK ilmoitti", "VPK", "fi")).toBe(true);
+    expect(namesSource("What did VOL1 report", "VPK", "en")).toBe(true);
+    expect(namesSource("What did the volunteer fire brigade report", "VPK", "en")).toBe(true);
+    expect(namesSource("Mistä EK13 saa vettä", "SAA", "fi")).toBe(false); // the verb "saa" is not the weather station
+    expect(namesSource("Mitä sääasema näyttää", "SAA", "fi")).toBe(true);
+    expect(namesSource("Water supply", "VESIHUOLTO", "en")).toBe(true);
+    expect(namesSource("How much water is left", "VESIHUOLTO", "en")).toBe(false);
   });
 });
 
@@ -225,16 +226,116 @@ describe("on the play-test questions (lexical, as the play harness runs Haku)", 
   });
 });
 
-describe("the manifest declares D10 (`npm run thinker:index -- --manifest-only`)", () => {
-  const manifest = JSON.parse(readFileSync(new URL("../../content/thinker/manifest.json", import.meta.url), "utf8")) as {
-    retrieval: { recencyBoost: Record<string, unknown>; clockMatch: Record<string, unknown> };
-    retrievalEn: { recencyBoost: Record<string, unknown>; clockMatch: Record<string, unknown> };
-  };
+describe("the manifest declares D10 and (bo) (`npm run thinker:index -- --manifest-only`)", () => {
+  type Block = { recencyBoost: Record<string, unknown>; clockMatch: Record<string, unknown>; namedSource: Record<string, unknown>; contentMatch: Record<string, unknown> };
+  const manifest = JSON.parse(readFileSync(new URL("../../content/thinker/manifest.json", import.meta.url), "utf8")) as { retrieval: Block; retrievalEn: Block };
 
   it.each(["retrieval", "retrievalEn"] as const)("%s: the recency boost, the latest-state preference and the clock match", (block) => {
     const cfg = retrievalConfigOf(block === "retrievalEn" ? "en" : "fi");
     expect(manifest[block].recencyBoost).toMatchObject({ source: cfg.recencyBoost!.source, sector: cfg.recencyBoost!.sector, latest: cfg.recencyBoost!.latest! });
     expect(manifest[block].clockMatch).toMatchObject(cfg.clockMatch!);
+  });
+
+  it.each(["retrieval", "retrievalEn"] as const)("%s: (bo)'s named-source rule with its verb lists, and the content match with its function words", (block) => {
+    const cfg = retrievalConfigOf(block === "retrievalEn" ? "en" : "fi");
+    expect(manifest[block].namedSource).toMatchObject({ boost: cfg.namedSource!.boost, reportingVerbs: { fi: REPORTING_FI.map((c) => c.cue), en: REPORTING_EN.map((c) => c.cue) } });
+    expect(manifest[block].contentMatch).toMatchObject({ functionWords: { fi: [...FUNCTION_WORDS_FI].join(" "), en: [...FUNCTION_WORDS_EN].join(" ") } });
+    expect(cfg.contentMatch).toBe(true);
+  });
+});
+
+/**
+ * SPEC/14 revision (bo), 25 Oct 2026 (the independent review's B2): a question naming a source prefers its records (`named-source.ts`),
+ * newest first when the rest of the question names no topic; a record matched only by function words is no lexical match
+ * (`function-words.ts`). Synthetic records, then the review's questions on the built scenario (lexical, as the play harness runs Haku).
+ */
+describe("revision (bo): a named source and function words", () => {
+  // 13:20 is virtual 0.
+  const report = atom("r.ek12", 3, 2900, "EK12", "EK12, kärki, eteläsivusta: pintapaloa, liekit 1–2 m.");
+  const lateral = atom("l.ek12", 3, 3400, "EK12", "EK11, EK12: selvä, pidetään raja. Ilmoitamme toisillemme.");
+  const old = atom("o.ek12", 1, 600, "EK12", "EK12: tehtävä sammutus letkulinjalla.");
+  const alarm = atom("a.alarm", -3, -4800, "HÄTÄKESKUS", "Hätäkeskus: hälytetty EK11, VPK ja EK12. Ilmoittaja metsäkoneen kuljettaja.");
+  const other = atom("x.ek11", 3, 3500, "EK11", "EK11: pintapalo etenee koilliseen.");
+  const pool = [alarm, old, report, lateral, other];
+
+  it("'Mitä EK12 ilmoitti?' returns EK12's records alone, newest first; before (bo) the alarm and the 'ilmoitamme' line led", () => {
+    expect(ids(hybridRetrieve("Mitä EK12 ilmoitti?", pool, null, PLAIN))).toEqual(["l.ek12", "r.ek12", "o.ek12"]);
+    expect(ids(hybridRetrieve("Mitä EK12 ilmoitti?", pool, null, withoutBo(PLAIN))).slice(0, 2)).toEqual(["l.ek12", "a.alarm"]);
+    expect(ids(hybridRetrieve("What has EK12 reported?", pool, null, PLAIN, "en"))).toEqual(["l.ek12", "r.ek12", "o.ek12"]);
+  });
+
+  it("with a topic, the named source's records get the boost and stay ranked by the question; the reporting verb leaves the lexical query", () => {
+    const got = hybridRetrieve("Mitä EK12 ilmoitti pintapalosta?", pool, null, PLAIN);
+    expect(got[0]!.atom.id).toBe("r.ek12");
+    expect(ids(got)).toContain("x.ek11"); // another source's "pintapalo" is still a match
+    expect(ids(got)).toContain("o.ek12"); // matched by its source alone
+    expect(ids(got).indexOf("l.ek12")).toBeGreaterThan(ids(got).indexOf("x.ek11")); // "ilmoitti" no longer meets "Ilmoitamme"
+  });
+
+  it("a clock is the clock rule's: no newest-first, the record at the named clock first", () => {
+    expect(ids(hybridRetrieve("Mitä EK12 ilmoitti klo 14.08?", pool, null, PLAIN))[0]).toBe("r.ek12");
+  });
+
+  it("the content match: a record matched only by function words scores 0 when another matches a content word, else nothing changes", () => {
+    const docs = ["Mikä on teidän reittinne?", "Ennuste: tuuli kääntyy.", "Linja on jännitteinen ja se on vahvistettu."];
+    const weak = functionTokens("Mikä on tuuli?", "fi");
+    expect([...weak].sort()).toEqual(["mikä", "on"]);
+    const scores = bm25Scores("Mikä on tuuli?", docs, THINKER_RETRIEVAL_CONFIG.bm25, "fi", weak);
+    expect(scores[0]).toBe(0);
+    expect(scores[2]).toBe(0);
+    expect(scores[1]).toBeGreaterThan(0);
+    expect(scores[1]).toBe(bm25Scores("Mikä on tuuli?", docs, THINKER_RETRIEVAL_CONFIG.bm25, "fi")[1]); // unchanged where a content word matched
+    // No candidate matches a content word: as before.
+    expect(bm25Scores("Mikä on xyz?", docs, THINKER_RETRIEVAL_CONFIG.bm25, "fi", functionTokens("Mikä on xyz?", "fi"))).toEqual(bm25Scores("Mikä on xyz?", docs, THINKER_RETRIEVAL_CONFIG.bm25, "fi"));
+    // English "has" and the unit "ha" share a token: it is a function token only when no content word has it.
+    expect(functionTokens("What has burned?", "en").has("ha")).toBe(true);
+    expect(functionTokens("Is it 12 ha?", "en").has("ha")).toBe(false);
+  });
+
+  it("names a source by its inflected call sign or shown name (whole words, not the lexical prefix)", () => {
+    for (const q of ["Mitä EK12:n ryhmä teki?", "Mitä EK12:lta kuuluu?", "EK12"]) expect(namesSource(q, "EK12", "fi"), q).toBe(true);
+    expect(namesSource("Mitä DR3:n kartoitus näyttää?", "DR3", "fi")).toBe(true);
+    for (const q of ["Mikä on sääennuste?", "Onko sääennusteen päivitys tullut?", "Mitä sääennusteesta tiedetään?"]) expect(namesSource(q, "SÄÄENNUSTE", "fi"), q).toBe(true);
+    expect(namesSource("Mitä johtopaikalta kirjattiin?", "JOHTOPAIKKA", "fi")).toBe(true);
+    expect(namesSource("Kuinka kaukana metsäautotie on?", "METSÄKESKUS", "fi")).toBe(false);
+    expect(namesSource("Mikä on tilanne?", "TILANNEKUVA", "fi")).toBe(false);
+    expect(namesSource("What is the latest weather forecast?", "SÄÄENNUSTE", "en")).toBe(true);
+    expect(namesSource("What did EK12's crew say?", "EK12", "en")).toBe(true);
+  });
+
+  const scenario = buildDemoScenario();
+  const rank = (q: string, step: number, target: string, lang: "fi" | "en" = "fi", cfg?: HybridConfig) =>
+    bestRank(ids(hybridRetrieve(q, reachableAtoms(scenario.atoms, step), null, { ...(cfg ?? retrievalConfigOf(lang)), topK: 1e9 }, lang)), [target]);
+
+  it.each([
+    ["Mikä on viimeisin sääennuste?", 10, "evt.wx.04", "fi", 7],
+    ["Mikä on sääennuste?", 7, "evt.wx.03", "fi", 0],
+    ["Mitä EK11 ilmoitti?", 7, "evt.c07.032", "fi", 0],
+    ["What has EK11 reported?", 7, "evt.c07.032", "en", 0],
+    ["Mitä EK14 ilmoitti?", 10, "evt.c10.028", "fi", 0],
+    ["What has EK14 reported?", 10, "evt.c10.028", "en", 0],
+  ] as const)("%s at step %i: %s in the top 2 (before (bo): rank %i in the top 8, 0 = not there)", (q, step, target, lang, before) => {
+    expect(rank(q, step, target, lang)).toBeGreaterThan(0);
+    expect(rank(q, step, target, lang)).toBeLessThanOrEqual(2);
+    const b = rank(q, step, target, lang, withoutBo(retrievalConfigOf(lang)));
+    expect(b === 0 || b > 8 ? 0 : b).toBe(before);
+  });
+
+  it("a question naming no source whose every match has a content word ranks exactly as in (bn)", () => {
+    for (const q of ["vettä säiliössä", "sähkölinja jännitteinen", "kehäkartoitus palanut ala"]) {
+      for (const step of [4, 10, 16]) {
+        const gated = reachableAtoms(scenario.atoms, step);
+        expect(hybridRetrieve(q, gated, null).map((r) => [r.atom.id, r.score]), `${q} ${step}`).toEqual(hybridRetrieve(q, gated, null, withoutBo()).map((r) => [r.atom.id, r.score]));
+      }
+    }
+  });
+
+  it("is deterministic and independent of the candidates' order", () => {
+    const gated = reachableAtoms(scenario.atoms, 10);
+    for (const q of ["Mitä EK14 ilmoitti?", "Mitä EK14 ilmoitti kärjestä?", "Mikä on viimeisin sääennuste?"]) {
+      const a = hybridRetrieve(q, gated, null).map((r) => [r.atom.id, r.score]);
+      expect(hybridRetrieve(q, [...gated].reverse(), null).map((r) => [r.atom.id, r.score]), q).toEqual(a);
+    }
   });
 });
 

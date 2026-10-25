@@ -2,16 +2,27 @@
  * The consult notification (SPEC/30 §4, 19 Oct 2026). Split out of `orchestrator.ts`, which owns the view's clock and
  * calls this at the notification's moment, when a freeze or a SPAM item closes, and at the view's end.
  *
- * At 60 s on the view's clock (`CONSULT_PROMPT_AT_S`, scaled like every view moment) in every main view V1–V14 — never
+ * At 60 s on the view's clock (`CONSULT_PROMPT_AT_S`, scaled like every view moment; 70 s in a merged view, R6 below) in every main view V1–V14 — never
  * the practice view — a non-modal notice appears beside the tool button: "New reports since your last plan", with one
  * button that opens the group's tool (Haku in the Haku group, `radio`; the Thinker in the guide group and for the
  * demonstration's `reasoning_once`) and a close button. It carries no content, is the same in fit and no-fit views and is
- * never triggered by a record: only the clock places it. If a freeze or a SPAM item is open at that moment, it waits
+ * never triggered by a record's content: the clock places it (and R6's arrival rule may drop it). If a freeze or a SPAM item is open at that moment, it waits
  * until that closes and is shown then (`consult_prompt_shown.atViewSeconds` logs the actual moment). Still open when the
  * view ends: dismissed by the end (`cause: "view_end"`); still waiting then, it is dropped unlogged (it never showed).
  *
  * Once per run of a view: `reset` at each view's start. A resumed session replays the interrupted view from its start
  * (SPEC/05 §9), which is a new run and may show it again; within one run it shows at most once.
+ *
+ * R6 (SPEC/30 §4 revision (bi), 25 Oct 2026; replay analysis §10.3 c): the notice's text must be true.
+ * - **Its moment** ({@link consultMomentOf}): 60 s in a single-step view; in a merged view 5 s after the step boundary (70 s at
+ *   the 130 s minimum), so it no longer comes 5 s before the second step's burst of reports.
+ * - **Only when reports arrived since the plan:** a view's first step arrives at its start, a merged view's second step at its
+ *   boundary (`recordsArrived`); recording a plan or a revision (`planRecorded`) makes what came before it old. At its moment
+ *   (or when the freeze or SPAM item that held it closes) the notice shows only if something arrived after the participant's
+ *   last recorded plan — the previous view's, until one is recorded in this view; otherwise it is dropped for this run,
+ *   unlogged, as one still waiting at the view's end is (no new record kind: the log format is unchanged; the analysis derives
+ *   a dropped notice from `cycle_start`, `step_boundary_reached` and the plan records). The rule reads no record's content and
+ *   is the same in both groups; only the clock, the step boundary and the participant's own plan decide.
  *
  * Records (raw, `record-kinds.ts`): `consult_prompt_shown` — durable before the notice shows (I5) — then exactly one of
  * `consult_prompt_opened` or `consult_prompt_dismissed`. The notice leaves the screen once that record is durable.
@@ -19,8 +30,17 @@
  */
 
 import type { CycleIndex } from "../engine/primitives.js";
-import type { Cell } from "../scenario/types.js";
+import { CONSULT_PROMPT_AT_S } from "../scenario/views.js";
+import type { Cell, ViewSpec } from "../scenario/types.js";
 import type { ConsultTool, TelemetryEvent } from "../telemetry/record-kinds.js";
+
+/** R6: in a merged view the notice comes this long after the step boundary (half the view's minimum), after its burst. */
+export const CONSULT_AFTER_BOUNDARY_S = 5;
+
+/** R6: the notice's moment in unscaled view seconds — 60 s, or in a merged view the step boundary + {@link CONSULT_AFTER_BOUNDARY_S}. */
+export function consultMomentOf(spec: Pick<ViewSpec, "minViewSeconds" | "stepBoundary">): number {
+  return spec.stepBoundary ? spec.minViewSeconds / 2 + CONSULT_AFTER_BOUNDARY_S : CONSULT_PROMPT_AT_S;
+}
 
 export interface ConsultHost {
   readonly event: (event: TelemetryEvent) => Promise<unknown>;
@@ -47,14 +67,23 @@ type State = "idle" | "pending" | "logging" | "open" | "closing" | "done";
 export class ConsultNotice {
   private cycle: CycleIndex | null = null;
   private state: State = "idle";
+  /** R6: reports arrived after the participant's last recorded plan (a view's start always brings its first step's). */
+  private newSincePlan = true;
 
   constructor(private readonly host: ConsultHost, private readonly tool: ConsultTool) {}
 
-  /** A new run of a view: a main view (`cycle`), or null for the practice view and anything outside a view (never shown). */
+  /** A new run of a view: a main view (`cycle`), or null for the practice view and anything outside a view (never shown). Its first step's reports arrive now. */
   reset(cycle: CycleIndex | null): void {
     this.cycle = cycle;
     this.state = "idle";
+    this.newSincePlan = true;
   }
+
+  /** R6: a plan or a revision is recorded: the reports so far are no longer new to it. */
+  planRecorded(): void { this.newSincePlan = false; }
+
+  /** R6: reports arrived (a merged view's second step, at its boundary). */
+  recordsArrived(): void { this.newSincePlan = true; }
 
   /** On screen (its button may be pressed). */
   get open(): boolean { return this.state === "open"; }
@@ -74,12 +103,18 @@ export class ConsultNotice {
   async due(atViewSeconds: number, blocked: boolean): Promise<void> {
     if (this.state !== "idle" || this.cycle === null) return;
     if (blocked) { this.state = "pending"; return; }
-    await this.show(atViewSeconds);
+    await this.showIfNew(atViewSeconds);
   }
 
   /** What held it back has closed: shown now, at this view moment, if it was waiting. */
   async flush(atViewSeconds: number): Promise<void> {
-    if (this.state === "pending") await this.show(atViewSeconds);
+    if (this.state === "pending") await this.showIfNew(atViewSeconds);
+  }
+
+  /** R6: shown only if reports arrived since the last plan; else over for this run, unlogged (it never showed). */
+  private async showIfNew(atViewSeconds: number): Promise<void> {
+    if (!this.newSincePlan) { this.state = "done"; return; }
+    await this.show(atViewSeconds);
   }
 
   /** The notice's button: `consult_prompt_opened`; the notice goes once it is durable. Resolves to the tool to open. */

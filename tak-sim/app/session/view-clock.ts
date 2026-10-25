@@ -10,7 +10,8 @@
  * length (`view_ended`), through an injected clock; it times the participant, never the world.
  */
 
-import { CONSULT_PROMPT_AT_S, consultHeldForFreeze, DECISION_OPENS_AFTER_S, PRACTICE_VIEW_INDEX } from "../scenario/views.js";
+import { consultHeldForFreeze, DECISION_OPENS_AFTER_S, PRACTICE_VIEW_INDEX } from "../scenario/views.js";
+import { consultMomentOf } from "./consult-notice.js";
 import type { ViewSpec } from "../scenario/types.js";
 import { scaleViewSeconds, type PreviewOverride } from "./preview.js";
 
@@ -30,7 +31,7 @@ export interface ViewTiming {
   readonly freezeAtViewEnd: boolean;
   /** A merged view reaches its second step halfway through its minimum length (SPEC/26 §2); null in a single-step view. */
   readonly stepBoundaryAtSeconds: number | null;
-  /** SPEC/30 §4: the consult notification's moment (every main view); null in the practice view. */
+  /** SPEC/30 §4: the consult notification's moment (every main view; R6: 70 s in a merged view, `consultMomentOf`); null in the practice view. */
   readonly consultPromptAtSeconds: number | null;
   /**
    * `31` F23: the view's freeze falls due less than `CONSULT_FREEZE_GAP_S` after the notification's moment, so the notification
@@ -42,7 +43,8 @@ export interface ViewTiming {
 export function viewTimingOf(spec: ViewSpec, override: PreviewOverride | null): ViewTiming {
   const scaled = (seconds: number) => scaleViewSeconds(seconds, override);
   const freezeAt = spec.hasFreeze && spec.freezeAtViewEnd !== true ? spec.freezeAtSeconds : null;
-  const consultAt = spec.index === PRACTICE_VIEW_INDEX ? null : CONSULT_PROMPT_AT_S;
+  // R6 (SPEC/30 §4 (bi), 25 Oct 2026): 60 s, or 5 s after a merged view's step boundary (70 s), after its burst of reports.
+  const consultAt = spec.index === PRACTICE_VIEW_INDEX ? null : consultMomentOf(spec);
   return {
     minViewSeconds: scaled(spec.minViewSeconds),
     decisionOpensAtSeconds: scaled(DECISION_OPENS_AFTER_S),

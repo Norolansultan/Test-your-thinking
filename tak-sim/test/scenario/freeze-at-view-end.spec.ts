@@ -12,6 +12,7 @@ import { FREEZE_VIEWS } from "../../app/scenario/demo-probes.js";
 import { CONSULT_FREEZE_GAP_S, CONSULT_PROMPT_AT_S, consultHeldForFreeze, FREEZE_AT_VIEW_END } from "../../app/scenario/views.js";
 import type { ScenarioContract } from "../../app/scenario/types.js";
 import { viewTimingOf } from "../../app/session/view-clock.js";
+import { CONSULT_AFTER_BOUNDARY_S, consultMomentOf } from "../../app/session/consult-notice.js";
 import { buildValidScenario } from "./fixtures/valid-scenario.js";
 
 const scenario = buildDemoScenario();
@@ -71,7 +72,7 @@ describe("the consult notification's moment (SPEC/30 §4)", () => {
     expect(consultHeldForFreeze(60, null)).toBe(false);
     for (const c of scenario.cycles) {
       const t = viewTimingOf(c, null);
-      const gap = c.freezeAtSeconds === null ? null : c.freezeAtSeconds - CONSULT_PROMPT_AT_S;
+      const gap = c.freezeAtSeconds === null ? null : c.freezeAtSeconds - consultMomentOf(c); // R6: the view's own moment (70 s in a merged view)
       expect(t.consultHeldForFreeze, `V${c.index}`).toBe(gap !== null && gap >= 0 && gap < 15);
       // A preview scales both moments but defers exactly where the study does.
       expect(viewTimingOf(c, { minViewSeconds: 12 }).consultHeldForFreeze, `V${c.index} preview`).toBe(t.consultHeldForFreeze);
@@ -81,10 +82,21 @@ describe("the consult notification's moment (SPEC/30 §4)", () => {
     expect(held).toEqual(scenario.cycles.filter((c) => c.freezeAtSeconds !== null && c.freezeAtSeconds >= 60 && c.freezeAtSeconds < 75).map((c) => c.index));
   });
 
-  it("is 60 s on every main view's clock, scaled by a preview like every view moment, and absent in the practice view", () => {
+  // R6 (25 Oct 2026, SPEC/30 §4 (bi)): updated deliberately — a merged view's notice comes 5 s after its step boundary (70 s), after
+  // the second step's burst, no longer 5 s before it.
+  it("is 60 s on a single-step view's clock and 70 s (the step boundary + 5 s) on a merged view's, scaled by a preview like every view moment, and absent in the practice view", () => {
     expect(CONSULT_PROMPT_AT_S).toBe(60);
-    for (const c of scenario.cycles) expect(viewTimingOf(c, null).consultPromptAtSeconds).toBe(60);
+    expect(CONSULT_AFTER_BOUNDARY_S).toBe(5);
+    for (const c of scenario.cycles) {
+      const t = viewTimingOf(c, null);
+      expect(t.consultPromptAtSeconds, `V${c.index}`).toBe(c.stepBoundary ? 70 : 60);
+      if (t.stepBoundaryAtSeconds !== null) expect(t.consultPromptAtSeconds! - t.stepBoundaryAtSeconds, `V${c.index}`).toBe(5);
+    }
+    expect(scenario.cycles.filter((c) => c.stepBoundary).map((c) => c.index)).toEqual([2, 4, 6, 11, 12, 14]);
     expect(viewTimingOf(scenario.cycles[0]!, { minViewSeconds: 12 }).consultPromptAtSeconds).toBe(6);
+    const merged = scenario.cycles.find((c) => c.stepBoundary)!;
+    const preview = viewTimingOf(merged, { minViewSeconds: 12 });
+    expect(preview.consultPromptAtSeconds!).toBeGreaterThan(preview.stepBoundaryAtSeconds!);
     expect(viewTimingOf(scenario.practice.cycle, null).consultPromptAtSeconds).toBeNull();
   });
 });

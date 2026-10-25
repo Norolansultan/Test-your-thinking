@@ -13,7 +13,8 @@
  * the view's time and the cap standing still (r.12). A merged view reaches its second step halfway (SPEC/26 §2).
  * With `guidedTour`, VP opens with the guided tour and V1 with the tool reminder, the view's
  * clocks held until each is finished (SPEC/15 r.11).
- * SPEC/30 (19 Oct 2026): the consult notification at 60 s of every main view (`consult-notice.ts`), the guide's
+ * SPEC/30 (19 Oct 2026): the consult notification at 60 s of every main view (70 s in a merged view, and only when reports came
+ * in after the last plan: R6, 25 Oct 2026; `consult-notice.ts`), the guide's
  * suggested question from V8, the plan's confidence after each main view's end (`plan-confidence.ts`), V10 and V14's
  * freeze at the view's end (`afterViewEnded`), and a view's second SPAM item (`spam-delivery.ts`).
  * SPEC/32 §3 (20 Oct 2026): in phase B, the plan review at the moment the plan would become final (`plan-review.ts`; `endView`,
@@ -723,6 +724,7 @@ export class SessionOrchestrator {
     await this.event({ kind: "step_boundary_reached", detail: { cycle: this.currentCycle, atViewSeconds } });
     this.renderTree = applyRenderEvent(this.renderTree, { kind: "step_boundary", cycle: cycleSpec });
     await this.deliverPushed(cycleSpec, STEP_SECONDS, Infinity);
+    this.consult.recordsArrived(); // SPEC/30 §4 R6: reports newer than a plan recorded before the boundary
     this.recordsBadge = this.recordsBadge || !this.hakuOpen; // difficulty audit (a.4): the second step's records are released now
     this.notify();
   }
@@ -890,6 +892,7 @@ export class SessionOrchestrator {
     assertValidPlan(this.scenario.allocationSpace, this.currentCycle, plan);
     await this.event({ kind: "allocation_submitted", detail: { plan: copyPlan(plan), rationaleAsked: false, rationaleFi: null } });
     this.allocationCommitted = true; // as soon as it is in the log: a freeze from here on records it as committed
+    this.consult.planRecorded(); // SPEC/30 §4 R6: the reports so far are no longer "since your last plan"
     this.recordedPlan = copyPlan(plan);
     await this.recordOrders(plan);
     this.periodConfirmed = true;
@@ -922,6 +925,7 @@ export class SessionOrchestrator {
     assertValidPlan(this.scenario.allocationSpace, this.currentCycle, plan);
     this.revisionCount += 1;
     await this.event({ kind: "allocation_revised", detail: { cycle: this.currentCycle, revision: this.revisionCount, plan: copyPlan(plan) } });
+    this.consult.planRecorded(); // SPEC/30 §4 R6
     this.recordedPlan = copyPlan(plan);
     await this.recordOrders(plan);
     this.revisingAllocation = false;

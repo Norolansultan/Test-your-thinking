@@ -207,13 +207,18 @@ describe("a whole English study session (consent to the end)", () => {
       expect([...seen.english].filter((t) => FINNISH.test(t))).toEqual([]);
       if (cell !== "radio") expect(records.some((r) => r.kind === "ai_chat_answer_received" && (r.detail as { retrievalLanguage: string }).retrievalLanguage === "en")).toBe(true);
 
-      // SPEC/30 §4: the consult notification in every main view once (60 s), never VP; opened or dismissed; the tool by the group.
-      const consult = records.filter((r) => r.kind.startsWith("consult_prompt_")).map((r) => ({ kind: r.kind, ...(r.detail as { cycle: number; tool: string; cause?: string }) }));
+      // SPEC/30 §4: the consult notification at most once per main view, never VP; opened or dismissed; the tool by the group.
+      // R6 (25 Oct 2026, updated deliberately): this driver records its plan when the decision panel opens (20 s) and revises it before
+      // the minimum, so in a single-step view nothing arrives after its last plan and the notice is dropped; in the merged views the
+      // step boundary's reports (65 s) come after the plan, and the notice shows at 70 s. The same in all three cells.
+      const consult = records.filter((r) => r.kind.startsWith("consult_prompt_")).map((r) => ({ kind: r.kind, ...(r.detail as { cycle: number; tool: string; cause?: string; atViewSeconds?: number }) }));
       const tool = cell === "radio" ? "haku" : "thinker";
-      expect(consult.filter((c) => c.kind === "consult_prompt_shown").map((c) => c.cycle)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+      const merged = [2, 4, 6, 11, 12, 14];
+      expect(consult.filter((c) => c.kind === "consult_prompt_shown").map((c) => c.cycle)).toEqual(merged);
+      expect(consult.filter((c) => c.kind === "consult_prompt_shown").every((c) => c.atViewSeconds! >= 70)).toBe(true);
       expect(consult.every((c) => c.tool === tool)).toBe(true);
       for (let v = 1; v <= 14; v++) {
-        expect(consult.filter((c) => c.cycle === v).map((c) => c.kind), `V${v}`).toEqual(["consult_prompt_shown", v % 2 === 0 ? "consult_prompt_opened" : "consult_prompt_dismissed"]);
+        expect(consult.filter((c) => c.cycle === v).map((c) => c.kind), `V${v}`).toEqual(merged.includes(v) ? ["consult_prompt_shown", v % 2 === 0 ? "consult_prompt_opened" : "consult_prompt_dismissed"] : []);
       }
       expect(consult.filter((c) => c.kind === "consult_prompt_dismissed").every((c) => c.cause === "participant")).toBe(true);
       // SPEC/30 §4: the chip only in the guide group, only from V8, logged `viaChip` with exactly its question.

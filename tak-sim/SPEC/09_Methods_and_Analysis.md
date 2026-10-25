@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `04_Methods_v2.md`. All two-sitting, eight-cycle and two-scenario language is replaced.
 
 > **Changelog**
+> - **25 Oct 2026 (bj)** — the map training (`08` (bj)): its first-try pointing errors (task 1, the map on screen; task 7, from memory on the blank map) are the pre-registered per-person pointing baseline for the map-point freeze items, replacing the pretest covariate of (be) §2; its other first answers are descriptive; new pilot checks. See the revision at the end.
 > - **24 Oct 2026 (bf)** — adopted before pilot 2 (`30` (bf)): the chip in both packages (pre-registration note); the awareness index (perceived against logged influence) and the global self-estimate; sleep, shift and the three fatigue ratings as covariates only; the allocation strata (language, profession, leads others) as covariates in every confirmatory model; the guardrail fidelity report as the manipulation check, with DRAFT thresholds; the uncertainty audit's Haku extension; H2's power re-run with the audit's item classes and the proposal to pre-register the gap on the seek-dependent items. See the revision at the end.
 > - **24 Oct 2026 (bg)** — the play-test decisions: F7 (`freeze.12.f7`) scored for H9 only and excluded from every SA accuracy and calibration composite (pre-registered; `calibrationPairs`); the eight late phase-A items reported as "reading under load" with a pre-registered sensitivity analysis without them; the moved keys (V12 `head_now`, V10 `south_front_point`) and V10's truth-keyed growth item; told classes and power to re-run on pilot 2. See the revision at the end.
 > - **23 Oct 2026 (be)** — the difficulty audit (`docs/audits/2026-10-23-difficulty/`): pre-registered pilot-2 checks (seeking, key records reached, item discrimination, late items, map, the pretest, background groups, the badge, group parity); the map-reading pretest as a covariate only; `tools/power/h2-power.ts` to be re-run with pilot 2's told-class rates (power not changed now); three source-memory facts re-classed `pushed`. See the revision at the end.
@@ -1101,3 +1102,27 @@ Source: `docs/audits/2026-10-23-playtest/analysis.md` §6 and the researcher's d
 **4. V10's area item is truth-keyed (D5).** `area_growth_hour` (the growth 17.40 → 18.40, bands 2/15/40 ha) replaces the report-keyed total `area_total_hour`; its key is the fire model's growth (9.0 ha, 2–15 ha) with a stated tolerance (≥ 2.5 ha from every band edge); the reports' reading falls in the same band, so (ay)'s dual-key sensitivity does not apply to it. It is the one truth-keyed numeric L3 item; ab.3's limitation (the reports lag the truth) is stated for it in reverse: a participant who reads only the reports and the new front's rate lands in the key's band.
 
 **5. Covariates and classes that moved.** V5's `ek14_shelter` and `wind_shift` now rest on a pushed record too (the 15.00 forecast's headline) beside the recorded forecast, so neither is `retrievalDependent` any more; `toldClass` is computed from the key records as before (the recorded forecast keeps them out of stream-told), but more participants will have read their basis, and V3's birch strip, V5's reinforcement ETAs and V9's area add pushed context in both groups alike. H2t's told shares may shift — re-run `tools/power/h2-power.ts` with pilot 2's rates, as (be) §3 already asks. The difficulty audit's passive classes are regenerated (`docs/audits/2026-10-23-difficulty/summary.md`).
+
+## Revision 25 Oct 2026 (bj) — the map training's pointing baseline replaces the pretest covariate
+
+Source: `08` (bj) (the map training replaces the map-reading pretest); the records are `07` (bj). A treatment revision before pilot 2: no data are pooled across it (`30` §2).
+
+**1. The covariate (pre-registered; replaces (be) §2).** Per participant, the map training's FIRST-try pointing errors (`map_pretest_answer.errorM`, metres, logged before the feedback is shown):
+- `point_visible`: task 1 (`training.t1.place`). The map is on screen; the participant finds a named place (a junction of two coded roads) and points at it.
+- `point_memory`: task 7 (`training.t7.memory`). A unit is shown on the map for 8 s, then marked on the blank memory-check map, drawn in the freeze map's style.
+
+Together they are a per-person pointing baseline. Both enter, as log(1 + error), every model of the map-point freeze items (`map_point` items: the error in metres, `haversineMetres` in `freezeItemScores`, and the hit within tolerance). This separates map handling (finding, pointing, placing from memory on a blank map) from situation awareness (knowing where the head or the unit is). On the map-dependent choice items (`items.csv` `map_dependence` required or helps) they enter only a sensitivity analysis.
+- A missing error (the cap ended the training first) is imputed with the sample median and flagged by an indicator; both are pre-registered.
+- Never an exclusion criterion; never shown as a score.
+
+**2. Descriptive only.** The other first answers are reported, not modelled: task 2's distance band, task 3's slope choice, task 4's fill point, task 5's "now" choice, task 6's projection error, and the measure tool's use (`measures`), by background group. Tasks 5 and 6 are an exploratory lead for the freezes' "now" and projection items.
+
+**3. Pilot checks** (they replace (be) §1's two pretest rows; thresholds DRAFT, RC):
+
+| Check | Target | Computed by |
+|---|---|---|
+| The training fits its cap | completion within the 5-minute cap ≥ 90 %; median length ≤ 5 min | `map_pretest_completed.endReason`, `durationMs` |
+| The memory baseline varies | task 7's error has an IQR ≥ 50 m over the first ten participants (else the build's rule sets a harder place before the lock) | `map_pretest_answer.errorM` (task 7) |
+| Map | the map-point error median ≤ the tolerance; map-point error correlated with `point_visible` and `point_memory` (reported, not a gate) | `haversineMetres` in `freezeItemScores`; `map_pretest_answer.errorM` |
+
+**4. What goes.** The pretest's score (0–6, against `map-pretest.key.json`) goes with the pretest. Any pilot sessions run with the pretest are not pooled with the training's.

@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `05_Probe_and_Freeze_Design.md` including amendment B1. All eight- and nine-cycle figures are replaced by the twenty-cycle schedule.
 
 > **Changelog**
+> - **25 Oct 2026 (bj)** — the map training replaces the map-reading pretest (researcher decision 25 Oct 2026): seven tasks in its slot on its neutral extract, each answered once with feedback (find a named place, measure a distance, fire and slope, water by road, the map against the log, project by the clock, the memory-check map); keys computed by `tools/review/map-training.ts`; tasks 1 and 7's first-try pointing errors a covariate (`09` (bj)). Replaces (be) §4. See the revision at the end.
 > - **24 Oct 2026 (bg)** — the play-test decisions (`docs/audits/2026-10-23-playtest/analysis.md` §6, researcher 24 Oct 2026): one definition of "now" (the header names the span of the period's latest reports; phase-A L1/L2 stems "viimeisimpien tietojen mukaan"; every L3 stem names its clock; V12 `head_now` and V10 `south_front_point` re-keyed at the header's time); V2 `ek11_between` and V4 `head_unattended` re-worded without their cues, V4 `crown_drops` on a pushed record; V10 `area_total_hour` → `area_growth_hour` (truth-keyed growth); F7 scored for H9 only; V10's map tolerance 200 m; the item table regenerated. Supersedes y.1, y.2 and (ay)'s "now". See the revision at the end.
 > - **23 Oct 2026 (be)** — the difficulty audit (`docs/audits/2026-10-23-difficulty/`): the practice freeze gains a fifth item answerable only with Haku (the forecast); the practice SPAM delivery a second item (measuring a distance); the map-reading pretest (six items, keys computed by `tools/review/map-pretest.ts`, a covariate only); the source-only practice feedback. **No scored freeze or SPAM item, option or key changes**: the item-level fixes (`proposal-items.md`) wait for the expert panel. See the revision at the end.
 > - **20 Oct 2026 (ba)** — `32` §5–§6: the S-TIAS (`stias.tools.1–3`, `stias.thinker.1–3`) replaces `tools.trust` and `thinker.trust`; `freeze.intrusiveness` added. DRAFT Finnish. See the revision at the end.
@@ -1162,3 +1163,59 @@ Generated with `npx tsx tools/review/freeze-table.ts` from the bank as built for
 | V14 | `residents` | L2 | values | choice | Kylässä on yhä asukkaita, joten linjojen on pidettävä | cited | — | — | — | relates the police's pushed report (radio 18.6: two households refuse to leave, the police continue alone) and VPK's return to the line on R2 towards Lahdenkylä (radio 19.1) to the village: people remain behind R2's lines (DR1 sees people in at least three houses, recorded 19.26 and 19.46) |
 | V14 | `se_front_r2` | L3 | containment | choice | Ei, rintama on silloin vielä satojen metrien päässä tiestä | computed | 21–21 | record | — | REPORT-keyed (`31` F02; no truth after 20.00): the nearest pushed distance (KY21 19.52, OUT1 19.56: 500 m) less the fastest pushed rate of the south-east front (DR2 19.05: 11.5 m/min) × 20 min, ~270 m, against the ~100 m at which the sprinkler water goes on (OUT1, pushed; gate R: was KY21's line) |
 | V14 | `flare_next` | L3 | containment | choice | Se laajenee kaakkoon tuulen mukana | cited | 21–23 | record | — | REPORT-keyed (`31` F03; no truth after 20.00; DRAFT, domain review): the flare-up still burns with visible flames, its smoke driven south-east towards Rahkasuo (story 20.1, pushed 19.42; story 19.2, pushed 19.23), in the north-westerly the map's wind arrow shows; unattended, a litter fire in that wind runs south-east (the V14 directive key's basis, `demo-directive.ts`) |
+
+## Revision 25 Oct 2026 (bj) — the map training replaces the map-reading pretest
+
+Source: the researcher's decision of 25 Oct 2026, on the evidence of `docs/audits/2026-10-23-difficulty/proposal-map.md` c.2 and the play-tests (`docs/audits/2026-10-23-playtest/analysis.md` §10). The pretest measured little: professionals hit its ceiling (the island's square, water, mire, distance, direction), its slope item was a guess even for experts on this extract, and novices guessed the contour and mire items. It gave no feedback, so nobody learnt anything. It also did not match what the freezes demand: in the play-tests, map errors came from marking positions from memory on the blank freeze map, from the drawn fire lagging the reports ("now" means the latest reports, not the drawn edge), and from turning reported speeds into positions at a clock time. **This revision replaces (be) §4.** No background question is added. The session side is `15` (bj), the records `07` (bj), the analysis `09` (bj).
+
+**1. What it is.** "Karttaharjoitus" / "Map training": seven short tasks in the pretest's slot (after the pre-session item in expert sessions, after the primer in public sessions; before the intro video and VP). It uses the pretest's neutral extract: tile `0_3`, x 625–1250, y 0–625, around Kaitajärvi, outside the incident, with nothing of the scenario on it.
+- **Each task:** a short instruction; the answer (an option, or a point on the extract); then **feedback**: the right answer drawn on the map and one or two sentences on how it works in the simulation, left with "Next task".
+- One attempt per task (no retry loop); no score shown; a 5-minute cap on the whole training, with a countdown as the pretest had.
+- **Identical** in both groups and both audiences.
+- **Generic** (`35` §1's rule, `32` §1): it teaches the interface and general map and fire basics, never anything about the scenario's situation. The extract's road codes (R5, R6, R7), call signs (EK51, DR8) and clock times (14.00–14.42) are the training's own and appear in no record, item or radio text (tested, `test/tools/map-training.spec.ts`).
+- Finnish DRAFT (native check); English DRAFT.
+
+**2. Symbology:** the simulation's own where it applies (`app/render/ui/map-training-overlay.ts`).
+- The road codes are drawn as the live map's overlay draws R1–R3.
+- The TAK shell's scale bar (500 m) and a north arrow.
+- The fire as the live map draws the current edge (`fire-theme.json`: the burnt fill, the red uncontained edge with its outside ticks, the head's glow), labelled with the time it was mapped.
+- The unit as the TAK shell draws it: the 2525 friendly ground-vehicle symbol with its call sign.
+- The measure tool as the shell's R&B / Mittaa: two taps give the range and the true bearing (`formatRange`, `formatBearing`).
+- The memory-check map is the plain tile with the scale bar, as the freeze map is the plain basemap: no fire, no units, no overlay codes.
+
+**3. The tasks.** Built and keyed by `tools/review/map-training.ts` from `topo-features.json`. Every key is computed, with a margin the build checks. The figures are in `content/pretest/map-training.key.json`; the key checkers' preview is `docs/audits/2026-10-23-difficulty/map-training-preview.svg`. Extract pixels are 4 m.
+
+| # | Id | Skill | Instruction (en) | Answer and key (computed) | Margin |
+|---|---|---|---|---|---|
+| 1 | `training.t1.place` | find a named place | Reports and Search use place names. Mark the junction of roads R5 and R6 on the map. | a point: the R5/R6 junction (px 172, 495) | the nearest other junction 525 m away; ≥ 240 m from the extract's edge |
+| 2 | `training.t2.measure` | measure a distance | How far is A from road R7? You can measure with the R&B tool (above the map) or with the scale bar. | about 150 / **300** / 600 / 1 200 m (A to R7's nearest point: 300 m) | ± 4 % of the option (0 %); the next road 1 371 m away; the options double, so no other is within 40 % |
+| 3 | `training.t3.slope` | fire and slope | There is no wind. A fire is burning at A. From A to B the ground rises (the brown contour lines); from A to C it is level. Will the fire spread faster towards B or towards C? | **faster towards B** / faster towards C / equally fast both ways | B 240 m away, +8.1 m (3.4 %), rising throughout, across the 90 m and 95 m lines; C 240 m away, within 0.6 m, no line |
+| 4 | `training.t4.water` | water by road | A pump stands at the star (★), and a tanker brings it water. Which fill point should the tanker use, 1 or 2? | fill point 1 / **fill point 2** / it makes no difference | 1 is nearer in a straight line (1.6 against 2.2 km, ratio 0.70 ≤ 0.75); 2 is nearer by road (2.5 against 6.4 km, ratio 0.40 ≤ 0.5); both where a drivable road passes ≤ 48 m from open water (34 m, 21 m); ★ 363 m from water |
+| 5 | `training.t5.now` | the map against the log | The map shows the fire's edge as it was mapped at 14.00. Since then, the report below has come into the message log. Where is the head of the fire now? Log: "14.12 DR8: The head of the fire has reached road R5." | where the map draws it / **at road R5, as the report says** / there is no way to tell | the drawn head 120 m short of R5 (12 min at 10 m/min); R5 crossed at 80° |
+| 6 | `training.t6.project` | project by the clock | At 14.12 the head of the fire is at road R5 (the red dot), moving north-east at about 10 m/min. Mark where the head will be at 14.42. | a point 300 m north-east of the 14.12 head | over land, 76 m from water (≥ 60 m); 30 minutes counted from the drawn edge instead lands 120 m short (the lure, in the key file) |
+| 7 | `training.t7.memory` | the memory-check map | First, for 8 s: "Remember where unit EK51 is." Then: "This is the memory-check map: it shows no fire, no units and no road codes. Mark where EK51 was." | a point: EK51 on R6 by the lake's west shore (px 81, 270) | 200 m from water; ≥ 160 m from R6's ends and every junction; 964 m from every other task's points |
+
+**The feedback** (en; fi in `app/i18n/map-training-texts.ts`):
+1. "The junction of roads R5 and R6 is at the green ring. The map's names and codes – road codes, the names of lakes and brooks – and its legend help you find the places that reports and Search name."
+2. "The shortest distance from A to road R7 is about 300 m (the yellow line). In the simulation you measure with the R&B tool: choose R&B among the tools on the right edge and tap two points on the map. The map's scale bar tells distances too."
+3. "Faster towards B. With no wind a fire spreads faster uphill, because the flames lean towards the slope and dry and heat the unburnt fuel ahead of them. The brown contour lines show slopes: the closer together they are, the steeper the slope. From A to B the ground rises about 8 m."
+4. "Fill point 2. In a straight line fill point 1 is nearer: 1.6 km, against 2.2 km to fill point 2. By road, though, fill point 1 is 6.4 km away and fill point 2 only 2.5 km. The drive by road is what counts: in the simulation, tankers shuttle water by road." (Both road routes are drawn.)
+5. "At road R5. The map shows the edge as it was mapped at the start of the period (14.00); newer reports in the log tell you where the fire is now (14.12). In the memory checks, “now” means the situation the latest reports give."
+6. "About 300 m north-east of road R5: 14.12 to 14.42 is 30 minutes, and 30 min × 10 m/min = 300 m. Projection questions name a clock time; count it from the latest report, not from the edge the map draws."
+7. "EK51 was here. The memory-check map shows no fire and no units, so anchor places in your memory to roads, water and names: on which road, by which lake or brook."
+
+A point task's feedback also says how far the mark was ("Your mark was N m from the right place") and draws the mark (blue) joined to the right place (a green ring). A choice task's feedback shows the participant's answer beside the right one.
+
+**Departures from the brief**, forced by the extract and documented here:
+- Task 1 is a road junction: the extract's only printed name, Kaitajärvi, is the lake that fills it.
+- Task 3's B and C are both in forest: C is level ground, not a field, so the slope is the only difference (a field's fuel would differ). The extract's steepest climb is gentle (3.4 %; the basemap draws 5 m contours and some 2.5 m ones), and contour lines alone cannot tell up from down, so the stem says that the ground rises towards B; the feedback teaches the reading and the rule.
+- Task 4 offers two fill points by roads, both on the same lake: the one nearer in a straight line and the one nearer by road.
+- Task 7's unit is on a road (an engine keeps to the roads).
+
+**4. Use.** It is training, not a test: each key is shown in its feedback, and nothing is scored for the participant. The first answers are logged (`07` (bj)). Tasks 1 and 7's first-try pointing errors are a pre-registered covariate (`09` (bj)); the other first answers are descriptive only. Never an exclusion criterion.
+
+**5. Before use (RC):**
+- Two people check the key figures against the preview.
+- A native check of the Finnish.
+- A domain check of task 3's wording (the uphill rule shown on a gentle slope) and of task 4's fill points.
+- The pilot measures the length (`15` (bj)) and whether task 7's error has spread (`09` (bj)).

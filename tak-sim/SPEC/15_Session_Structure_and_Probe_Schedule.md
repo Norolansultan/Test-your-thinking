@@ -3,6 +3,7 @@
 **Version 1.1 · 17 September 2026 · Status: governing for the topics below.** Implements forks F5, F6 and F8 (`11` §7). Where this document conflicts with `01` §7, `03` §2.2 and §4.3, `05` §4, `08` §3–§5 or `09` §3 and §8, **this document wins**; those sections carry `[SUPERSEDED 2026-09-17]` markers.
 
 > **Changelog**
+> - **25 Oct 2026 (bj)** — the pretest's step holds the map training (`08` (bj)): seven tasks with feedback, a 5-minute cap (was 4), about 3.5–5 min; the order and every view's timing unchanged. See the revision at the end.
 > - **24 Oct 2026 (play-test)** — `docs/audits/2026-10-23-playtest/analysis.md` finding 3 and D11 (researcher): the SPAM answer window stays 60 s, but the item now shows its time left (a quiet countdown, amber in the last 15 s; display only, no record); the tour's SPAM step says that the "Ready to answer?" prompt waits (it can be minimised; it is forced before the period ends) and that each question, once Ready is pressed, has 60 s, the time left on the card; the tour's decision step adds one sentence: messages addressed to command (requests, proposals) are context, the units act on standing orders and their own judgement, and the plan sets the main effort and its posture, the secondary task and the drones. No scored item, key or timing changes. Finnish DRAFT.
 > - **24 Oct 2026 (bf)** — adopted before pilot 2 (`30` (bf)): two pre-session covariates (sleep; the recent shift, experts only); the hinge's optional one-click fatigue item; the Haku group's chip from V8; the post-session self-estimate and perceived-influence items after the source block; about +1 min. No view's timing changes. See the revision at the end.
 > - **24 Oct 2026 (bg)** — the freeze header names the span of the period's latest reports and defines "now" by them (`08` (bg) bg.1; supersedes (ay)'s "states the clock at now"). See the revision at the end.
@@ -678,3 +679,14 @@ Source: `30` (bf); records `07` (bf); analysis `09` (bf). Finnish texts DRAFT (n
 ## Revision 24 Oct 2026 (bg) — the freeze header's "now" (the play-test, D1)
 
 The freeze header no longer states the clock ("Kello pysähtyi klo 14.00. ”Nyt” tarkoittaa tätä hetkeä."): it names the span of the period's latest reports, the view's last step, and defines "now" by them — fi "Jakson viimeisimmät tiedot kattavat klo 14.00–14.20. Kysymysten ”nyt” on tilanne niiden mukaan.", en "The period's latest reports cover 14.00–14.20. In the questions, “now” is the situation they give." (`ui.ts` `freezeNow`, `freeze-answers.ts` `freezeNowClock`; DRAFT, native check). The span is the same for a freeze inside the view and one at its end (V12 18.40–19.00). (y)'s briefing line ("each period sums up 20 or 40 minutes … each report carries its own time") stands and now agrees with the header. The order, moments, caps and records are unchanged; only the header's text differs, and no record kind is added. Items: `08` (bg).
+
+## Revision 25 Oct 2026 (bj) — the map training in the pretest's step
+
+Source: `08` (bj) (the researcher's decision of 25 Oct 2026); records `07` (bj); analysis `09` (bj). It replaces (be)'s pretest bullet; everything else of (be) stands.
+
+**The order is unchanged.** The step keeps its place and its id (`map_pretest`; the header's `mapPretest`): consent → AI literacy → preflight → the pre-session item → (public: the primer) → **the map training** → the intro video → VP …
+
+- **Content:** seven short tasks on the neutral extract, each answered once and then given its feedback (`08` (bj) §3). The memory task shows its unit for 8 s before the blank map. Identical in both groups and both audiences.
+- **Length:** a 5-minute cap (the pretest had 4). Expected length is about 3.5–5 minutes. At the play harness's costs (about 20 s a question, 10 s a feedback, plus the 8 s exposure) it takes 3.6 minutes. The time budget before V1 becomes about +7 minutes (was +6). Pilot 2 measures it (`durationMs`, `09` (bj)).
+- **Resume** (`05` §9): the training re-opens at the first task whose feedback was not left. If that task's answer is logged, its feedback is shown again and the answer stands; otherwise its question is shown, and the memory task's unit is shown again in full. The cap is what is left after the active time already logged.
+- **No view's timing changes** (minimums, caps, freeze moments, SPAM offsets).

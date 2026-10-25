@@ -114,32 +114,32 @@ Displaced from the stream to the records by the pointers (`site-scenario.json` `
 
 | Item | Lang | Question | Step reached | Rank of each recorded key record (— = not in the top 8) |
 |---|---|---|---|---|
-| `freeze.2.infra` | fi | Mikä on tien R1 tilanne? | 3 | evt.c03.018: 4; evt.c02.013: — |
+| `freeze.2.infra` | fi | Mikä on tien R1 tilanne? | 3 | evt.c03.018: 3; evt.c02.013: — |
 | `freeze.2.infra` | fi | tiehavainto tie R1 | 3 | evt.c03.018: 1; evt.c02.013: — |
-| `freeze.2.infra` | en | What is the state of road R1? | 3 | evt.c03.018: 5; evt.c02.013: — |
+| `freeze.2.infra` | en | What is the state of road R1? | 3 | evt.c03.018: 4; evt.c02.013: — |
 | `freeze.2.infra` | en | road report road R1 | 3 | evt.c03.018: 1; evt.c02.013: — |
-| `freeze.2.south_flank` | fi | Miten kärki etenee EK12:n kohdalla? | 3 | evt.c02.022: 1; evt.c03.021: — |
-| `freeze.2.south_flank` | fi | Millaista paloa EK12:n kohdalla on? | 3 | evt.c02.022: 2; evt.c03.021: — |
+| `freeze.2.south_flank` | fi | Miten kärki etenee EK12:n kohdalla? | 3 | evt.c02.022: 1; evt.c03.021: 6 |
+| `freeze.2.south_flank` | fi | Millaista paloa EK12:n kohdalla on? | 3 | evt.c02.022: 1; evt.c03.021: — |
 | `freeze.2.south_flank` | fi | Miten kärki käyttäytyy eteläsivustalla? | 3 | evt.c02.022: 2; evt.c03.021: 4 |
 | `freeze.2.south_flank` | en | How is the fire behaving on EK12's flank? | 3 | evt.c02.022: 1; evt.c03.021: 2 |
 | `freeze.2.south_flank` | en | What is EK12 reporting from the south flank? | 3 | evt.c02.022: 2; evt.c03.021: 3 |
-| `freeze.2.south_flank` | en | What is the fire doing at EK12's section? | 3 | evt.c02.022: 2; evt.c03.021: 4 |
+| `freeze.2.south_flank` | en | What is the fire doing at EK12's section? | 3 | evt.c02.022: 2; evt.c03.021: 3 |
 | `freeze.2.area_40` | fi | Kuinka suuri palanut ala on? | 3 | evt.c02.028: 2; evt.c03.035: 1 |
 | `freeze.2.area_40` | en | How large is the burnt area? | 3 | evt.c02.028: —; evt.c03.035: — |
 | `freeze.4.infra` | fi | Voiko Haukilammelta täyttää säiliöitä? | 6 | evt.c06.003: 1 |
 | `freeze.4.infra` | en | Can tankers fill up at Pike Pond? | 6 | evt.c06.003: 4 |
-| `freeze.5.infra` | fi | Mikä on tien R1 tilanne? | 7 | evt.c07.016: — |
+| `freeze.5.infra` | fi | Mikä on tien R1 tilanne? | 7 | evt.c07.016: 8 |
 | `freeze.5.infra` | fi | tiehavainto tie R1 | 7 | evt.c07.016: 3 |
-| `freeze.5.infra` | en | What is the state of road R1? | 7 | evt.c07.016: — |
+| `freeze.5.infra` | en | What is the state of road R1? | 7 | evt.c07.016: 7 |
 | `freeze.5.infra` | en | road report road R1 | 7 | evt.c07.016: 3 |
 | `freeze.5.hose_short` | fi | Mitä EK11 tarvitsee? | 7 | evt.c07.032: 1 |
 | `freeze.5.hose_short` | fi | Mitä tarvikkeita EK11 tarvitsee? | 7 | evt.c07.032: 1 |
-| `freeze.5.hose_short` | en | What equipment does EK11 need? | 7 | evt.c07.032: 3 |
+| `freeze.5.hose_short` | en | What equipment does EK11 need? | 7 | evt.c07.032: 2 |
 | `freeze.5.hose_short` | en | What does EK11 need on its line? | 7 | evt.c07.032: 1 |
-| `freeze.5.ek14_shelter` | fi | Mikä on sääennuste? | 7 | evt.wx.03: — |
+| `freeze.5.ek14_shelter` | fi | Mikä on sääennuste? | 7 | evt.wx.03: 1 |
 | `freeze.5.ek14_shelter` | fi | Miten tuuli muuttuu? | 7 | evt.wx.03: — |
-| `freeze.5.ek14_shelter` | en | What is the weather forecast? | 7 | evt.wx.03: 4 |
-| `freeze.5.ek14_shelter` | en | How will the wind change? | 7 | evt.wx.03: — |
+| `freeze.5.ek14_shelter` | en | What is the weather forecast? | 7 | evt.wx.03: 1 |
+| `freeze.5.ek14_shelter` | en | How will the wind change? | 7 | evt.wx.03: 7 |
 | `freeze.5.reinforcements` | fi | Milloin lisäyksiköt saapuvat? | 7 | atom.demo.7.1: 1 |
 | `freeze.5.reinforcements` | fi | Onko lisäyksiköitä tulossa? | 7 | atom.demo.7.1: 2 |
 | `freeze.5.reinforcements` | en | Have reinforcements been dispatched? | 7 | atom.demo.7.1: 1 |
@@ -147,7 +147,7 @@ Displaced from the stream to the records by the pointers (`site-scenario.json` `
 | `freeze.7.infra` | fi | Voiko Kotkanjoelta täyttää säiliöitä? | 10 | evt.c10.023: 3 |
 | `freeze.7.infra` | en | Can tankers fill up at Eagle River? | 10 | evt.c10.023: 7 |
 | `freeze.7.north_help` | fi | Miten EK14:n linjalle pääsee? | 10 | evt.c10.028: 1 |
-| `freeze.7.north_help` | fi | Kuinka lähelle EK14:ää pääsee? | 10 | evt.c10.028: 2 |
+| `freeze.7.north_help` | fi | Kuinka lähelle EK14:ää pääsee? | 10 | evt.c10.028: 1 |
 | `freeze.7.north_help` | fi | Pääseekö EK14:n linjalle? | 10 | evt.c10.028: 1 |
 | `freeze.7.north_help` | en | Can a fire engine get to EK14? | 10 | evt.c10.028: 1 |
 | `freeze.7.north_help` | en | Can vehicles get through to EK14's line? | 10 | evt.c10.028: 1 |
@@ -157,15 +157,15 @@ Displaced from the stream to the records by the pointers (`site-scenario.json` `
 | `freeze.10.cabins_distance` | en | How far is the fire from the Lakeside Cottages? | 13 | evt.c11.015: 7 |
 | `freeze.10.area_growth_hour` | fi | Kuinka nopeasti uusi palo kasvaa? | 13 | atom.demo.12.1: 7; evt.c13.010: —; evt.c13.034: 8 |
 | `freeze.10.area_growth_hour` | en | How fast is the new fire growing? | 13 | atom.demo.12.1: 2; evt.c13.010: —; evt.c13.034: — |
-| `freeze.12.longest_shift` | fi | Kuinka kauan miehistöt ovat olleet kentällä? | 17 | evt.c17.008: —; evt.c17.024: —; evt.c17.033: —; evt.c17.029: 6 |
-| `freeze.12.longest_shift` | en | How long have the crews been in the field? | 17 | evt.c17.008: —; evt.c17.024: —; evt.c17.033: —; evt.c17.029: 8 |
-| `freeze.12.f7` | fi | Onko sähkölinja jännitteinen? | 17 | f7.grid_record: 1; f7.heli_line_clearance: 4 |
+| `freeze.12.longest_shift` | fi | Kuinka kauan miehistöt ovat olleet kentällä? | 17 | evt.c17.008: —; evt.c17.024: —; evt.c17.033: —; evt.c17.029: 5 |
+| `freeze.12.longest_shift` | en | How long have the crews been in the field? | 17 | evt.c17.008: —; evt.c17.024: —; evt.c17.033: 7; evt.c17.029: 6 |
+| `freeze.12.f7` | fi | Onko sähkölinja jännitteinen? | 17 | f7.grid_record: 1; f7.heli_line_clearance: 3 |
 | `freeze.12.f7` | en | Is the power line live? | 17 | f7.grid_record: 1; f7.heli_line_clearance: 2 |
-| `freeze.12.front_toward` | fi | Mihin suuntaan palon kärki etenee? | 17 | atom.demo.17.1: 2 |
+| `freeze.12.front_toward` | fi | Mihin suuntaan palon kärki etenee? | 17 | atom.demo.17.1: 1 |
 | `freeze.12.front_toward` | en | Which way is the head of the fire spreading? | 17 | atom.demo.17.1: 2 |
 | `probe.s.cycle_3.b` | fi | Kuinka suuri palanut ala on? | 4 | evt.c03.035: 2 |
 | `probe.s.cycle_3.b` | en | How large is the burnt area? | 4 | evt.c03.035: — |
 | `probe.s.cycle_6.b` | fi | Mikä on tien R1 tilanne? | 8 | evt.c07.016: —; evt.c08.012: — |
 | `probe.s.cycle_6.b` | fi | tiehavainto tie R1 | 8 | evt.c07.016: —; evt.c08.012: 3 |
-| `probe.s.cycle_6.b` | en | What is the state of road R1? | 8 | evt.c07.016: —; evt.c08.012: — |
+| `probe.s.cycle_6.b` | en | What is the state of road R1? | 8 | evt.c07.016: —; evt.c08.012: 8 |
 | `probe.s.cycle_6.b` | en | road report road R1 | 8 | evt.c07.016: —; evt.c08.012: 3 |

@@ -3,7 +3,8 @@
  * over the authored bundle. Each is a build-blocking assertion." Fourteen
  * checks, numbered here as they are listed there, plus a fifteenth from
  * SPEC/12_Map_Symbology_and_Projection.md §10 ("CI assertion:
- * `scenario.allocationRecommendations.length === 0`").
+ * `scenario.allocationRecommendations.length === 0`"). #16 is SPEC/25 §6's navigation coverage; #17 (revision (bm), 25 Oct 2026)
+ * the "report filed" pointers' integrity.
  *
  * Unlike {@link createScenarioContract} (which throws on the first
  * structural violation, because a partially-valid scenario must never
@@ -33,6 +34,7 @@ import { assertNoTruthKeysPresent, TruthLeakError, toRenderable } from "../bound
 import { checkNavigationCoverage } from "../retrieval/navigation.js";
 import {
   CANONICAL_FLAG_SEQUENCE,
+  DESIGNED_EVENT_IDS,
   CONTAINMENT_HOLDS_MAX,
   CONTAINMENT_HOLDS_MIN,
   LOAD_BEARING_T4_IDS,
@@ -59,7 +61,8 @@ export type ValidatorCheckId =
   | "validity-claim-divergence-tags" // #13
   | "no-truth-leak" // #14
   | "no-allocation-recommendations" // #15, SPEC/12 §10
-  | "navigation-coverage"; // #16, SPEC/25 §6
+  | "navigation-coverage" // #16, SPEC/25 §6
+  | "pointers"; // #17, revision (bm)
 
 export interface ValidationFailure {
   readonly check: ValidatorCheckId;
@@ -313,6 +316,42 @@ function checkNavigationCoverageRule(s: ScenarioContract): ValidationFailure[] {
   return checkNavigationCoverage(s.atoms).map((x) => f("navigation-coverage", `"${x.atomId}": ${x.message}`));
 }
 
+/** Revision (bm): H9's and H10's records (`09` (bh) §3), which no pointer may point to. */
+export const H9_H10_RECORD_IDS: readonly string[] = [
+  DESIGNED_EVENT_IDS.planted, DESIGNED_EVENT_IDS.gridRecord, DESIGNED_EVENT_IDS.gridAtLine, DESIGNED_EVENT_IDS.heliLineClearance,
+  DESIGNED_EVENT_IDS.objection, "t4.private_doubt",
+];
+
+// #17 — revision (bm), 25 Oct 2026: a "report filed" pointer (`InfoAtom.pointer`, `pointers.ts`) is pushed in exactly one view, in its
+// record's step, at or after the record's clock; the record exists and is recorded (pushed nowhere); it is no H9/H10 record; no pointer
+// comes from an H9/H10 record's source within a step of it (an obvious pointer), nor from a source whose only records are those; and no
+// freeze item's key or basis is a pointer (a pointer holds no content).
+function checkPointers(s: ScenarioContract): ValidationFailure[] {
+  const failures: ValidationFailure[] = [];
+  const pushedIn = new Map<string, number>();
+  for (const c of [s.practice.cycle, ...s.cycles]) for (const id of c.pushedAtomIds) pushedIn.set(id, (pushedIn.get(id) ?? 0) + 1);
+  const byId = new Map(s.atoms.map((a) => [a.id, a] as const));
+  const banned = H9_H10_RECORD_IDS.map((id) => byId.get(id)).filter((a): a is NonNullable<typeof a> => a !== undefined);
+  const freezeAtoms = new Set(s.freezes.flatMap((fz) => fz.items.flatMap((it) => [...(it.keyAtomIds ?? []), ...(it.basisAtomIds ?? [])])));
+  for (const p of s.atoms) {
+    if (!p.pointer) continue;
+    const to = byId.get(p.pointer.to);
+    if (p.tier !== "T1_pushed" || pushedIn.get(p.id) !== 1) failures.push(f("pointers", `"${p.id}" is not pushed in exactly one view`));
+    if (!to) { failures.push(f("pointers", `"${p.id}" points to "${p.pointer.to}", which does not exist`)); continue; }
+    if (to.pointer || pushedIn.has(to.id)) failures.push(f("pointers", `"${p.id}" points to "${to.id}", which is pushed (a pointer points to a recorded report)`));
+    if (to.cycle !== p.cycle) failures.push(f("pointers", `"${p.id}" (step ${p.cycle}) points to "${to.id}" of step ${to.cycle}: not reachable when the pointer arrives`));
+    if (p.provenance.observedAt < to.provenance.observedAt) failures.push(f("pointers", `"${p.id}" is said before "${to.id}" was observed`));
+    if (H9_H10_RECORD_IDS.includes(to.id)) failures.push(f("pointers", `"${p.id}" points to "${to.id}", an H9/H10 record`));
+    for (const b of banned) {
+      if (b.provenance.sourceId === p.provenance.sourceId && Math.abs(b.cycle - p.cycle) <= 1) failures.push(f("pointers", `"${p.id}" comes from ${p.provenance.sourceId}, the source of H9/H10's "${b.id}" in step ${b.cycle}`));
+    }
+    const own = s.atoms.filter((a) => a.provenance.sourceId === p.provenance.sourceId && !a.pointer);
+    if (own.length === 0 || own.every((a) => H9_H10_RECORD_IDS.includes(a.id))) failures.push(f("pointers", `"${p.id}" comes from ${p.provenance.sourceId}, a source with no records but H9/H10's`));
+    if (freezeAtoms.has(p.id)) failures.push(f("pointers", `"${p.id}" is a freeze item's key or basis record`));
+  }
+  return failures;
+}
+
 export function validateScenario(scenario: ScenarioContract): ValidationResult {
   const failures: ValidationFailure[] = [
     ...checkMarkersWellFormed(scenario),
@@ -331,6 +370,7 @@ export function validateScenario(scenario: ScenarioContract): ValidationResult {
     ...checkNoTruthLeak(scenario),
     ...checkNoAllocationRecommendations(scenario),
     ...checkNavigationCoverageRule(scenario),
+    ...checkPointers(scenario),
   ];
   return { ok: failures.length === 0, failures };
 }

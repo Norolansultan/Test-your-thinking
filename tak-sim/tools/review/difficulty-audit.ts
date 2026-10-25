@@ -19,11 +19,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { sortedKeys } from "../../app/engine/deterministic-object.js";
 import { tr } from "../../app/i18n/text.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SPAM_AUTHORED, SPAM_KEY_ATOMS, SPAM_OFFSET_MS, SPAM_SECOND_AUTHORED, SPAM_SECOND_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
 import type { FreezeItem, InfoAtom, ScenarioContract, ViewSpec } from "../../app/scenario/types.js";
-import { MAIN_VIEWS, PRACTICE_FREEZE_AT_S, STEP_SECONDS } from "../../app/scenario/views.js";
+import { MAIN_VIEWS, PRACTICE_FREEZE_AT_S, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
+import { POINTERS } from "../../app/scenario/pointers.js";
+import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
+import { clockAt } from "../../app/session/template-answer.js";
 import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import { hybridRetrieve } from "../../app/retrieval/hybrid.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
@@ -214,6 +218,30 @@ export const FINDABILITY_QUERIES: Readonly<Record<string, { readonly fi: readonl
   ...Object.fromEntries(SEEK_QUESTIONS.map((q) => [q.itemId, { fi: q.fi, en: q.en, records: q.records }])),
 };
 
+/**
+ * Revision (bm), 25 Oct 2026: every record a scored item rests on — its key and basis records, the hand table's pushed basis
+ * (`extra`), the findability records — and the pushed records an item relies on by content (`CITED_BY_CONTENT`). The push cap's pointer
+ * displacement (`tools/fire-ca/view-traffic.ts` `displaceForPointers`) never moves one; `test/scenario/pointers.spec.ts` checks it.
+ */
+export function itemRecordIds(items: readonly AuditItem[] = auditItems()): ReadonlySet<string> {
+  const ids = new Set<string>(CITED_BY_CONTENT.map((c) => c.id));
+  for (const i of items) for (const a of [...i.atoms, ...i.handAtoms]) ids.add(a.id);
+  for (const k of sortedKeys(FINDABILITY_QUERIES)) for (const r of FINDABILITY_QUERIES[k]!.records ?? []) ids.add(r);
+  return ids;
+}
+
+/**
+ * Revision (bm): pushed records an item relies on by their content although no key, basis or hand list names them (the hand notes
+ * describe them), and the H10 arc's place: kept in the stream when the pointers need slots.
+ */
+export const CITED_BY_CONTENT: readonly { readonly id: string; readonly why: string }[] = [
+  { id: "evt.c03.015", why: "V2 junction_hour, head_later: 'the pushed rate (DR1 7.1 m/min)', DR1's 14.05 thermal image" },
+  { id: "evt.c03.032", why: "H10: VPK's 14.14 report on the origin's south edge, the rekindle arc's place and actor" },
+  { id: "evt.c10.029", why: "SPAM V8: EK14's first question whether the Lakeside cottages are checked (the key record repeats it)" },
+  { id: "evt.c10.032", why: "V7 north_help: EK15 waiting at the command post for a task, the unit one would send" },
+  { id: "evt.c17.012", why: "V12 village_distance: 'the rate (map or pushed DR2)', DR2's 18.45 thermal image" },
+];
+
 export interface Findability { readonly id: string; readonly lang: "fi" | "en"; readonly query: string; readonly step: number; readonly ranks: readonly { readonly id: string; readonly rank: number | null }[] }
 
 export function findability(items: readonly AuditItem[]): Findability[] {
@@ -284,6 +312,15 @@ export function summaryMd(items: readonly AuditItem[]): string {
   lines.push("## Records per view: what the stream shows and what waits in the records", "",
     "| View | Pushed to the log | Recorded only (Haku / Thinker), of the view's steps | Share pushed |", "|---|---|---|---|");
   for (const r of recordsPerView()) lines.push(`| ${r.view === 0 ? "VP" : `V${r.view}`} | ${r.pushed} | ${r.recorded} | ${pct(r.pushed, r.pushed + r.recorded)} |`);
+  // Revision (bm), 25 Oct 2026: the pointers are among the pushed above; they carry no content, so no item's class rests on them.
+  lines.push("", "## \"Report filed\" pointers (revision (bm)): pushed, content-free, counted among the pushed above", "",
+    "| Pointer | View | Clock | Line | Record it points to | Kind | Items whose record it is |", "|---|---|---|---|---|---|---|");
+  const s = buildDemoScenario();
+  for (const p of POINTERS) {
+    const a = s.atoms.find((x) => x.id === p.id)!;
+    lines.push(`| \`${p.id}\` | V${viewOfStep(p.step)!.index} | ${clockAt(a.provenance.observedAt)} | ${p.fi} | \`${p.to}\` | ${p.kind} | ${p.serves.map((x) => `\`${x}\``).join(", ") || "—"} |`);
+  }
+  lines.push("", `Displaced from the stream to the records by the pointers (\`site-scenario.json\` \`pointerDisplaced\`, none an item's record): ${(SITE_SCENARIO.pointerDisplaced ?? []).map((x) => `\`${x}\``).join(", ")}.`);
   lines.push("", "## Items whose key rests on a map fact (or a fact on no surface) that no record states before the moment", "");
   for (const i of items.filter((x) => x.hand.mapUnstated)) lines.push(`- \`${i.id}\` (${i.level}): ${i.hand.note}`);
   lines.push("", `## Freeze items whose last key record arrives less than ${LATE_LEAD_S} s before the freeze`, "");

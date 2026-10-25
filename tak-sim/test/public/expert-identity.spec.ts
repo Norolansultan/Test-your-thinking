@@ -44,12 +44,19 @@
  * — so the session writes three `bubble_available` records fewer (524), and V5's `wind_shift` is replaced at its place by
  * `reinforcements`. The normaliser puts the two generated reports' deliveries back where 0.12.0 wrote them and maps the item id back
  * (`identity-normalise.ts`); the dispatch was not in 0.12.0. Every other record is still the 0.12.0 run's: the same three digests.
+ * Updated deliberately for revision (bm) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/18 (bm)): the twelve "report filed"
+ * pointers are pushed (twelve `bubble_available` records more) and displace seven routine generated records from the stream (seven
+ * fewer): 529. The normaliser removes the pointers' deliveries and puts the displaced ones back where 0.12.0 wrote them
+ * (`identity-normalise.ts`); every other record is still the 0.12.0 run's: the same three digests. The pointer mark itself never
+ * reaches the log (a `bubble_available` names the atom only).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TELEMETRY_FORMAT_VERSION } from "../../app/telemetry/record-kinds.js";
 import { driveSession, newStudySession, wholeSession } from "./public-run.js";
-import { BK_HELD, BK_HELD_BEAT, PLAYTEST_PUSHED, segmentDigests } from "./identity-normalise.js";
+import { BK_HELD, BK_HELD_BEAT, BM_DISPLACED, BM_POINTER_PREFIX, PLAYTEST_PUSHED, segmentDigests } from "./identity-normalise.js";
+import { POINTERS } from "../../app/scenario/pointers.js";
+import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -74,7 +81,7 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
   for (const cell of ["radio", "reasoning_once", "reasoning_intent"] as const) {
     it(`${cell}: the records are those of 0.12.0 except the header's new fields and the difficulty audit's deliberate additions`, async () => {
       const { o, records } = await wholeSession({ cell });
-      expect(records).toHaveLength(524); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12 (the map training's 16 in the pretest's 8), the play-test's 3 pushed records, revision (bk)'s 2 held (see the notes above)
+      expect(records).toHaveLength(529); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12 (the map training's 16 in the pretest's 8), the play-test's 3 pushed records, revision (bk)'s 2 held, revision (bm)'s 12 pointers and 7 displaced (see the notes above)
       const optIn = records.findIndex((r) => r.kind === "results_optin");
       expect(records[optIn]!.detail).toEqual({ optedIn: false });
       expect(records[optIn - 1]).toMatchObject({ kind: "questionnaire_submitted", detail: { questionnaireId: "post" } });
@@ -93,6 +100,13 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       expect(records.filter((r) => r.kind === "bubble_available" && PLAYTEST_PUSHED.has((r.detail as { atomId: string }).atomId)).map((r) => (r.detail as { atomId: string }).atomId).sort()).toEqual([...PLAYTEST_PUSHED].sort());
       const held = new Set([BK_HELD_BEAT, ...BK_HELD.map((h) => h.atomId)]);
       expect(records.filter((r) => r.kind === "bubble_available" && held.has((r.detail as { atomId: string }).atomId))).toEqual([]);
+      // Revision (bm): every pointer delivered once, with no more than any delivery says (the atom, its tier and source); the displaced never.
+      const pointerDeliveries = records.filter((r) => r.kind === "bubble_available" && (r.detail as { atomId: string }).atomId.startsWith(BM_POINTER_PREFIX));
+      expect(pointerDeliveries.map((r) => (r.detail as { atomId: string }).atomId).sort()).toEqual(POINTERS.map((p) => p.id).sort());
+      for (const r of pointerDeliveries) expect(Object.keys(r.detail as object).sort()).toEqual(["atomId", "mapPosition", "sourceId", "tier"]);
+      expect(BM_DISPLACED.map((x) => x.atomId).sort()).toEqual([...(SITE_SCENARIO.pointerDisplaced ?? [])].sort());
+      const displaced = new Set(BM_DISPLACED.map((x) => x.atomId));
+      expect(records.filter((r) => r.kind === "bubble_available" && displaced.has((r.detail as { atomId: string }).atomId))).toEqual([]);
       const digests = segmentDigests(records);
       expect(digests.count).toBe(502);
       expect({ preVp: digests.preVp, vp: digests.vp, main: digests.main }).toEqual(SEGMENTS[cell]);

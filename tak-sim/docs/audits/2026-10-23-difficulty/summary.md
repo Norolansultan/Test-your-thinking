@@ -59,19 +59,38 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 |---|---|---|---|
 | VP | 13 | 9 | 13/22 (59 %) |
 | V1 | 18 | 23 | 18/41 (44 %) |
-| V2 | 17 | 72 | 17/89 (19 %) |
+| V2 | 18 | 74 | 18/92 (20 %) |
 | V3 | 13 | 35 | 13/48 (27 %) |
 | V4 | 18 | 80 | 18/98 (18 %) |
-| V5 | 16 | 31 | 16/47 (34 %) |
+| V5 | 18 | 32 | 18/50 (36 %) |
 | V6 | 18 | 57 | 18/75 (24 %) |
-| V7 | 18 | 28 | 18/46 (39 %) |
+| V7 | 18 | 30 | 18/48 (38 %) |
 | V8 | 18 | 47 | 18/65 (28 %) |
-| V9 | 17 | 42 | 17/59 (29 %) |
+| V9 | 18 | 42 | 18/60 (30 %) |
 | V10 | 10 | 36 | 10/46 (22 %) |
-| V11 | 18 | 76 | 18/94 (19 %) |
-| V12 | 17 | 82 | 17/99 (17 %) |
+| V11 | 18 | 77 | 18/95 (19 %) |
+| V12 | 18 | 83 | 18/101 (18 %) |
 | V13 | 18 | 46 | 18/64 (28 %) |
 | V14 | 18 | 93 | 18/111 (16 %) |
+
+## "Report filed" pointers (revision (bm)): pushed, content-free, counted among the pushed above
+
+| Pointer | View | Clock | Line | Record it points to | Kind | Items whose record it is |
+|---|---|---|---|---|---|---|
+| `atom.ptr.2.0` | V2 | 13.55 | EK14: tilanneilmoitus kirjattu. | `evt.c02.026` | decoy | — |
+| `atom.ptr.3.0` | V2 | 14.09 | EK12: tilanneilmoitus kirjattu. | `evt.c03.021` | real | `freeze.2.south_flank` |
+| `atom.ptr.3.1` | V2 | 14.16 | DR3: kehäkartoitus valmis, kirjattu. | `evt.c03.035` | real | `freeze.2.area_40`, `probe.s.cycle_3.b` |
+| `atom.ptr.7.0` | V5 | 15.36 | EK11: täydennystilaus kirjattu. | `evt.c07.032` | real | `freeze.5.hose_short` |
+| `atom.ptr.7.1` | V5 | 15.31 | P2: resurssitilanne kirjattu. | `atom.demo.7.1` | real | `freeze.5.reinforcements` |
+| `atom.ptr.7.2` | V5 | 15.23 | Drooniryhmä: lentotilanne päivitetty, kirjattu. | `evt.c07.005` | decoy | — |
+| `atom.ptr.10.0` | V7 | 16.36 | EK14: ohjeet kirjattu. | `evt.c10.028` | real | `freeze.7.north_help` |
+| `atom.ptr.10.1` | V7 | 16.31 | DR3: lentoloki kirjattu. | `evt.c10.019` | decoy | — |
+| `atom.ptr.12.0` | V9 | 17.19 | KY23: ohjeet kirjattu. | `evt.c12.050` | decoy | — |
+| `atom.ptr.14.0` | V11 | 17.56 | DR3: kehäkartoitus valmis, kirjattu. | `evt.c14.033` | decoy | — |
+| `atom.ptr.16.0` | V12 | 18.33 | OUT1: tukipyyntö kirjattu. | `evt.c16.031` | decoy | — |
+| `atom.ptr.17.0` | V12 | 18.43 | SPOT: havainnot kirjattu. | `atom.demo.17.1` | real | `freeze.12.front_toward` |
+
+Displaced from the stream to the records by the pointers (`site-scenario.json` `pointerDisplaced`, none an item's record): `evt.c03.039`, `evt.c03.029`, `evt.c07.036`, `evt.c10.025`, `evt.c10.020`, `evt.c15.035`, `evt.c17.028`.
 
 ## Items whose key rests on a map fact (or a fact on no surface) that no record states before the moment
 

@@ -28,6 +28,11 @@
  *   request (V5) are held for seeking, so their `bubble_available` records (`BK_HELD`) are put back where the 0.12.0 run wrote them;
  *   P2's dispatch (V5, a play-test beat) is recorded again, so it writes nothing to remove; V5's `missing` list names
  *   `freeze.5.reinforcements` as `freeze.5.wind_shift` (the item it replaced at the same place).
+ * - Revision (bm) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/18 (bm)): the twelve "report filed" pointers write a
+ *   `bubble_available` each (`BM_POINTERS`, `atom.ptr.*`), which are removed; the seven generated records they displaced from the
+ *   stream (`BM_DISPLACED`, `SITE_SCENARIO.pointerDisplaced`) are put back where 0.12.0 wrote them, each just after the record 0.12.0
+ *   delivered before it — EK14's 14.11 report after EK12's held 14.08 one, which is put back first, and EK14's 15.38 fuel request after
+ *   EK11's held 15.35 request.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -57,6 +62,22 @@ const PLAYTEST_SOURCE_FROM: Readonly<Record<string, number>> = { P2: 9, TILANNEK
 export const BK_HELD: readonly { readonly atomId: string; readonly sourceId: string; readonly after: string }[] = [
   { atomId: "evt.c03.021", sourceId: "EK12", after: "evt.c03.016" }, // V2: EK12's 14.08 report (south_flank)
   { atomId: "evt.c07.032", sourceId: "EK11", after: "evt.c07.031" }, // V5: EK11's 15.35 hose request (hose_short)
+];
+
+/** Revision (bm): the pointers' atoms (`app/scenario/pointers.ts`), whose deliveries are removed. */
+export const BM_POINTER_PREFIX = "atom.ptr.";
+/**
+ * Revision (bm): the generated records the pointers displaced (`SITE_SCENARIO.pointerDisplaced`), each put back after the record 0.12.0
+ * delivered before it in the same burst (a held record of (bk) when that is the one).
+ */
+export const BM_DISPLACED: readonly { readonly atomId: string; readonly sourceId: string; readonly after: string }[] = [
+  { atomId: "evt.c03.029", sourceId: "EK14", after: "evt.c03.021" }, // V2: EK14's 14.11 north-edge report
+  { atomId: "evt.c03.039", sourceId: "SPOT", after: "evt.c03.032" }, // V2: SPOT's 14.17 smoke column
+  { atomId: "evt.c07.036", sourceId: "EK14", after: "evt.c07.032" }, // V5: EK14's 15.38 fuel request
+  { atomId: "evt.c10.020", sourceId: "EK11", after: "evt.c10.017" }, // V7: EK11's 16.31 request for food and drink
+  { atomId: "evt.c10.025", sourceId: "EK14", after: "evt.c10.024" }, // V7: EK14's 16.33 request for food and drink
+  { atomId: "evt.c15.035", sourceId: "VD1", after: "evt.c15.027" }, // V11: VD1's 18.13 drops
+  { atomId: "evt.c17.028", sourceId: "VD1", after: "evt.c17.020" }, // V12: VD1's 18.51 pause in the drops
 ];
 
 /** 0.16.0's new questionnaire items (`app/session/questionnaire.ts` revision (bf)). */
@@ -93,9 +114,15 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     if (r.kind === "briefing_advanced" && d.screenId === "practice.feedback") continue;
     if (d.probeId === "probe.s.practice.b") continue;
     if (r.kind === "bubble_available" && PLAYTEST_PUSHED.has(d.atomId as string)) continue;
-    const held = r.kind === "bubble_available" ? BK_HELD.find((h) => h.after === d.atomId) : undefined;
-    if (held) {
-      kept.push(r, { ...r, detail: { ...d, atomId: held.atomId, sourceId: held.sourceId, tier: "T1_pushed" } });
+    if (r.kind === "bubble_available" && (d.atomId as string).startsWith(BM_POINTER_PREFIX)) continue;
+    if (r.kind === "bubble_available") {
+      // (bk)'s held and (bm)'s displaced deliveries go back after the record 0.12.0 delivered before each, in a chain.
+      const putBack = (b: Rec): void => {
+        kept.push(b);
+        const atomId = (b.detail as Record<string, unknown>).atomId;
+        for (const h of [...BK_HELD, ...BM_DISPLACED].filter((x) => x.after === atomId)) putBack({ ...r, detail: { ...d, atomId: h.atomId, sourceId: h.sourceId, tier: "T1_pushed" } });
+      };
+      putBack(r);
       continue;
     }
     if (r.kind === "freeze_submitted" && d.cycle === 5 && Array.isArray(d.missing)) {

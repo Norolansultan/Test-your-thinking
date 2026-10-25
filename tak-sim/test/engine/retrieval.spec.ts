@@ -32,9 +32,12 @@ describe("the time gate (SPEC/14 revision (q) step 1)", () => {
     }
   }, 15_000); // every view × every authored question: ~5 s on a loaded machine, past the default 5 s
 
-  it("is Haku's rule: the candidates are exactly the atoms of every step reached", () => {
+  // Revision (bm), 25 Oct 2026: a "report filed" pointer (`InfoAtom.pointer`) is a radio line, not a record, and is never a candidate;
+  // V7 (step 10) has two. Every other atom of the steps reached still is.
+  it("is Haku's rule: the candidates are exactly the atoms of every step reached, the pointers aside", () => {
     const step = stepAtViewStart(7);
-    expect(reachableAtoms(scenario.atoms, step)).toEqual(scenario.atoms.filter((a) => a.cycle <= step));
+    expect(reachableAtoms(scenario.atoms, step)).toEqual(scenario.atoms.filter((a) => a.cycle <= step && a.pointer === undefined));
+    expect(scenario.atoms.filter((a) => a.cycle <= step && a.pointer !== undefined).length).toBeGreaterThan(0);
   });
 });
 

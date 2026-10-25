@@ -20,6 +20,7 @@ import type { SiteRadio } from "../../app/scenario/site-scenario.js";
 import { LOAD_BEARING_T4_IDS, type InteractionEvent } from "../../app/scenario/types.js";
 import { MAIN_VIEWS, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
 import { CYCLE_STORY, countsTowardCap } from "../../app/scenario/demo-story.js";
+import { pointersCountedInSteps } from "../../app/scenario/pointers.js";
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import type { MoveReason } from "./deployment.js";
 
@@ -134,6 +135,37 @@ export const HELD_FOR_SEEKING: readonly { readonly step: number; readonly re: Re
   // V5 `hose_short`: EK11's 15.35 hose request (logistics; its 15.24 "the head runs past us" stays pushed).
   { step: 7, re: /^EK11, Koivuoja: linjaa jo \d+ m, varaletkua alle \d+ m\./, item: "freeze.5.hose_short" },
 ];
+
+/**
+ * Revision (bm), 25 Oct 2026 (SPEC/18 (bm); `app/scenario/pointers.ts`): the "report filed" pointers count toward the push cap. Applied
+ * after `capPushed`, before `holdForSeeking`, on the same accounting (the records held for seeking still count). A pointer to a held
+ * record takes the slot that record kept ((bk)); every other pointer is one more pushed item, and a view it takes over the cap
+ * displaces generated records: logistics first (`DISPLACE_ORDER`: status, water drops, requests, coordination, tasks — the cap's own
+ * order of these), then the fire reports in the cap's order, latest first, skipping every record in `protectedIds` (what a freeze or
+ * SPAM item rests on). So a view without a pointer is exactly as before. Returns the displaced ids (written to the bundle).
+ */
+/** Logistics before the fire picture: what a pointer may displace first (each group in `DEMOTE_ORDER`'s order). */
+const LOGISTICS: readonly InteractionEvent["event_type"][] = ["status", "water_drop", "request", "coordination", "task_update"];
+const DISPLACE_ORDER: readonly InteractionEvent["event_type"][] = [...DEMOTE_ORDER.filter((t) => LOGISTICS.includes(t)), ...DEMOTE_ORDER.filter((t) => !LOGISTICS.includes(t))];
+
+export function displaceForPointers<R extends SiteRadio>(capped: { traffic: InteractionEvent[]; radio: R[] }, protectedIds: ReadonlySet<string>): { traffic: InteractionEvent[]; radio: R[]; displaced: string[] } {
+  const counts = pushedCountByView(capped.traffic, capped.radio);
+  const displaced: string[] = [];
+  for (const v of MAIN_VIEWS) {
+    const extra = pointersCountedInSteps(v.steps);
+    if (extra === 0) continue;
+    let over = (counts.get(v.index) ?? 0) + storyPushed(v.index) + extra - PUSH_CAP_PER_VIEW;
+    if (over <= 0) continue;
+    const pool = capped.traffic
+      .filter((e) => e.session_view === v.index && e.tier === "T1_pushed" && !loadBearing(e) && !protectedIds.has(e.id))
+      .map((e) => ({ e, rank: DISPLACE_ORDER.indexOf(e.event_type) }))
+      .sort((a, b) => a.rank - b.rank || b.e.sim_time_s - a.e.sim_time_s || (a.e.id < b.e.id ? -1 : 1));
+    for (const { e } of pool) { if (over <= 0) break; displaced.push(e.id); over -= 1; }
+    if (over > 0) throw new Error(`displaceForPointers: view ${v.index} stays ${over} over the push cap after displacing every unprotected generated record`);
+  }
+  const set = new Set(displaced);
+  return { traffic: capped.traffic.map((e) => (set.has(e.id) ? { ...e, tier: "T2_system" as const } : e)), radio: capped.radio, displaced };
+}
 
 /** Revision (bk): the records `HELD_FOR_SEEKING` names, recorded (T2) instead of pushed. */
 export function holdForSeeking<R extends SiteRadio>(capped: { traffic: InteractionEvent[]; radio: R[] }): { traffic: InteractionEvent[]; radio: R[] } {

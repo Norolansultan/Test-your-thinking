@@ -130,6 +130,12 @@ export interface SiteScenarioBundle {
   readonly radio: readonly SiteRadio[];
   /** The incident's traffic corpus (SPEC/18 revision (n)): flat InteractionEvents, also exported as JSON Lines. */
   readonly traffic: readonly InteractionEvent[];
+  /**
+   * Revision (bm), 25 Oct 2026: the generated records that the "report filed" pointers displaced from the stream (recorded, T2): the
+   * push cap's next routine records in a view the pointers took over the cap, never one a freeze or SPAM item rests on
+   * (`tools/fire-ca/view-traffic.ts` `displaceForPointers`).
+   */
+  readonly pointerDisplaced?: readonly string[];
   /** English of every generated record and radio atom, by record id (`tools/fire-ca/traffic-english.ts`). */
   readonly english?: Readonly<Record<string, string>>;
 }

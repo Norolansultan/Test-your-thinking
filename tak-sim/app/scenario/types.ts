@@ -295,6 +295,18 @@ export interface InfoAtom {
   readonly retrievalKeys: readonly string[]; // generated, then reviewed
   readonly truth: TruthAnnotation; // analysis only; STRIPPED at the boundary
   readonly consequence?: Consequence; // for load-bearing atoms
+  /**
+   * Revision (bm), 25 Oct 2026 (`pointers.ts`): this atom is a pointer — a pushed radio line saying that a report was filed, without
+   * its content. Analysis only: `toRenderable` copies no such field, the log names the atom only (`bubble_available`), and the query
+   * tools never reach a pointer (`time-gate.ts`).
+   */
+  readonly pointer?: PointerMark;
+}
+
+/** Revision (bm): the record a pointer points to, and whether a freeze or SPAM item asks about it (`real`) or none does (`decoy`). */
+export interface PointerMark {
+  readonly to: string;
+  readonly kind: "real" | "decoy";
 }
 
 // ---------------------------------------------------------------------------
@@ -1179,10 +1191,14 @@ export const CONTAINMENT_HOLDS_MAX = 0.55;
  * about 900–1300 records. Pushed volume is still capped per view (`view-traffic.ts`
  * `PUSH_CAP_PER_VIEW`), so the growth lands in T2 and T4: their ceilings rise to 520 and 200.
  * T1 and T3 bands are unchanged.
+ *
+ * Revision (bm), 25 Oct 2026 (SPEC/02 (bm)): the twelve "report filed" pointers are pushed and count toward the cap, so seven routine
+ * generated records they displace are recorded instead (`SITE_SCENARIO.pointerDisplaced`): T2 518 → 525, over the 520 ceiling by five.
+ * The T2 ceiling rises to 530 for that reason only (the corpus is 1016 records); every other band is unchanged.
  */
 export const TIER_COUNT_BANDS: Readonly<Record<Tier, { readonly min: number; readonly max: number }>> = {
   T1_pushed: { min: 180, max: 320 },
-  T2_system: { min: 220, max: 520 },
+  T2_system: { min: 220, max: 530 },
   T3_person: { min: 110, max: 200 },
   T4_lateral: { min: 70, max: 200 },
 };

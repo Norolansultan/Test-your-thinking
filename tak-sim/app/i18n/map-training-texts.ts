@@ -45,6 +45,9 @@ export interface MapTrainingText {
 
 const fiNum = (n: number) => (n >= 1000 ? `${Math.floor(n / 1000)} ${String(n % 1000).padStart(3, "0")}` : String(n));
 const enNum = (n: number) => (n >= 1000 ? `${Math.floor(n / 1000)},${String(n % 1000).padStart(3, "0")}` : String(n));
+/** Small counts as words at a sentence's start ("Seitsemän lyhyttä tehtävää", "Seven short tasks"). */
+const FI_COUNT: Readonly<Record<number, string>> = { 4: "Neljä", 5: "Viisi", 6: "Kuusi", 7: "Seitsemän", 8: "Kahdeksan" };
+const EN_COUNT: Readonly<Record<number, string>> = { 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight" };
 const fiKm = (km: number) => km.toFixed(1).replace(".", ",");
 const enKm = (km: number) => km.toFixed(1);
 const DIR_FI: Readonly<Record<string, string>> = { ne: "koilliseen", n: "pohjoiseen", e: "itään", nw: "luoteeseen", se: "kaakkoon" };
@@ -55,7 +58,7 @@ const fills = (t: WaterTask) => (t.key === "fill_1" ? { key: 1, other: 2, k: 0, 
 export const MAP_TRAINING_TEXT: Readonly<Record<Lang, MapTrainingText>> = {
   fi: {
     title: "Karttaharjoitus",
-    intro: (n, min) => `${n} lyhyttä tehtävää siitä, miten kartta toimii simulaatiossa. Kartta on eri alueelta kuin tuleva harjoitus, eikä siinä ole mitään tämän tilanteen tietoa. Vastaa kuhunkin tehtävään kerran: sen jälkeen näet oikean vastauksen ja lyhyen selityksen. Mitään ei pisteytetä. Aikaa on yhteensä ${min} minuuttia.`,
+    intro: (n, min) => `${FI_COUNT[n] ?? n} lyhyttä tehtävää siitä, miten kartta toimii simulaatiossa. Kartta on eri alueelta kuin tuleva harjoitus, eikä siinä ole mitään tämän tilanteen tietoa. Vastaa kuhunkin tehtävään kerran: sen jälkeen näet oikean vastauksen ja lyhyen selityksen. Mitään ei pisteytetä. Aikaa on yhteensä ${(FI_COUNT[min] ?? String(min)).toLowerCase()} minuuttia.`,
     progress: (n, of) => `Tehtävä ${n} / ${of}`,
     timeLeft: (s) => `Aikaa jäljellä ${Math.floor(s / 60)}.${String(s % 60).padStart(2, "0")}`,
     answer: "Vastaa",
@@ -80,7 +83,7 @@ export const MAP_TRAINING_TEXT: Readonly<Record<Lang, MapTrainingText>> = {
         case "water": return "Tähdellä (★) merkityllä paikalla on pumppu, jolle säiliöauto ajaa vettä. Kummasta täyttöpaikasta, 1 vai 2, auton kannattaa hakea vesi?";
         case "now": return `Kartta näyttää palon reunan sellaisena kuin se kartoitettiin klo ${t.fire.mappedAt}. Sen jälkeen viestilokiin on tullut alla oleva ilmoitus. Missä palon kärki on nyt?`;
         case "project": return `Klo ${t.fromClock} palon kärki on tiellä ${t.road} (punainen piste) ja etenee ${DIR_FI[t.direction]} noin ${t.metresPerMin} m/min. Merkitse, missä kärki on klo ${t.toClock}.`;
-        case "memory": return `Tämä on muistitehtävien kartta: siinä ei ole paloa, yksiköitä eikä teiden tunnuksia. Merkitse, missä ${t.unit.callsign} oli.`;
+        case "memory": return `Tämä on muistikatkon kartta: siinä ei ole paloa, yksiköitä eikä teiden tunnuksia. Merkitse, missä ${t.unit.callsign} oli.`;
       }
     },
     option: (t, id) => {
@@ -98,9 +101,9 @@ export const MAP_TRAINING_TEXT: Readonly<Record<Lang, MapTrainingText>> = {
         case "measure": { const m = t as MeasureTask; return `Lyhin matka A:sta tielle ${m.road} on noin ${fiNum(m.metres)} m (keltainen viiva). Simulaatiossa mittaat Mittaa-työkalulla: valitse oikean reunan työkaluista Mittaa ja napauta kartalta kahta kohtaa. Myös kartan mittakaavajana kertoo matkan.`; }
         case "slope": { const s = t as SlopeTask; return `Nopeammin kohti B:tä. Tuulettomassa säässä palo etenee ylämäkeen nopeammin, koska liekit kallistuvat rinnettä kohti ja kuivattavat ja lämmittävät palamatonta kasvillisuutta edeltä. Ruskeat korkeuskäyrät näyttävät rinteet: mitä tiheämmässä ne ovat, sitä jyrkempi rinne. A:sta B:hen maa nousee noin ${s.riseB.toFixed(0)} m.`; }
         case "water": { const w = t as WaterTask, f = fills(w); return `Täyttöpaikasta ${f.key}. Linnuntietä täyttöpaikka ${f.other} on lähempänä: ${fiKm(w.straightKm[f.o]!)} km, kun täyttöpaikalle ${f.key} on ${fiKm(w.straightKm[f.k]!)} km. Tietä pitkin täyttöpaikalle ${f.other} on kuitenkin ${fiKm(w.roadKm[f.o]!)} km ja täyttöpaikalle ${f.key} vain ${fiKm(w.roadKm[f.k]!)} km. Ratkaisee ajomatka tietä pitkin: simulaatiossa säiliöautot ajavat vettä teitä pitkin.`; }
-        case "now": { const n = t as NowTask; return `Tiellä ${n.road}. Kartta näyttää reunan sellaisena kuin se kartoitettiin jakson alussa (klo ${n.fire.mappedAt}); lokin uudemmat ilmoitukset kertovat, missä palo on nyt (klo ${n.report.clock}). Muistitehtävissä ”nyt” tarkoittaa tilannetta uusimpien ilmoitusten mukaan.`; }
+        case "now": { const n = t as NowTask; return `Tiellä ${n.road}. Kartta näyttää reunan sellaisena kuin se kartoitettiin jakson alussa (klo ${n.fire.mappedAt}); lokin uudemmat ilmoitukset kertovat, missä palo on nyt (klo ${n.report.clock}). Muistikatkoissa ”nyt” tarkoittaa tilannetta uusimpien ilmoitusten mukaan.`; }
         case "project": { const p = t as ProjectTask, m = p.minutes * p.metresPerMin; return `Noin ${fiNum(m)} m ${DIR_FI[p.direction]} tiestä ${p.road}: klo ${p.fromClock}–${p.toClock} on ${p.minutes} minuuttia, ja ${p.minutes} min × ${p.metresPerMin} m/min = ${fiNum(m)} m. Ennustekysymykset nimeävät kellonajan. Laske aika uusimmasta ilmoituksesta, ei kartan piirtämästä reunasta.`; }
-        case "memory": { const u = t as MemoryTask; return `${u.unit.callsign} oli tässä. Muistitehtävien kartalla ei ole paloa eikä yksiköitä, joten kiinnitä paikat mieleesi teihin, vesistöihin ja nimiin: millä tiellä, minkä järven tai puron kohdalla.`; }
+        case "memory": { const u = t as MemoryTask; return `${u.unit.callsign} oli tässä. Muistikatkon kartalla ei ole paloa eikä yksiköitä, joten kiinnitä paikat mieleesi teihin, vesistöihin ja nimiin: millä tiellä, minkä järven tai puron kohdalla.`; }
       }
     },
     report: (t) => `Palon kärki on edennyt tielle ${t.road}.`,
@@ -109,7 +112,7 @@ export const MAP_TRAINING_TEXT: Readonly<Record<Lang, MapTrainingText>> = {
   },
   en: {
     title: "Map training",
-    intro: (n, min) => `${n} short tasks on how the map works in the simulation. The map is of a different area from the coming practice and holds nothing about this situation. Answer each task once: you then see the right answer and a short explanation. Nothing is scored. You have ${min} minutes in all.`,
+    intro: (n, min) => `${EN_COUNT[n] ?? n} short tasks on how the map works in the simulation. The map is of a different area from the coming practice and holds nothing about this situation. Answer each task once: you then see the right answer and a short explanation. Nothing is scored. You have ${(EN_COUNT[min] ?? String(min)).toLowerCase()} minutes in all.`,
     progress: (n, of) => `Task ${n} of ${of}`,
     timeLeft: (s) => `Time left ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`,
     answer: "Answer",

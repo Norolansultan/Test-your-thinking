@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Consolidates `11_Condition_Specification.md` and `09_Realism_Review_and_Hidden_Information.md` Part 3. Supersedes both.
 
 > **Changelog**
+> - **25 Oct 2026 (bn)** — the pointers' sender is the command centre JOKE, a new pushed source identical in both groups (`18` (bn)); T2 stays 525, within the ceiling of 530 (bands not adjusted). See the revision at the end.
 > - **25 Oct 2026 (bm)** — the T2 band's ceiling 520 → 530: the twelve pushed "report filed" pointers (`18` (bm)) displace seven routine generated records to the records (T2 525). Every other band unchanged. See the revision at the end.
 > - **11 Oct 2026 (au)** — 210 = 3 × 70: permuted blocks of 42, 14 : 14 : 14; Haku 70, Thinker cells 70 + 70 (140 pooled). See the revision at the end.
 > - **10 Oct 2026 (al)** — the Thinker cells separated again: `reasoning_intent`'s Open Thinker holds P2's orders (opening intent, then the directive) as data at the end of its system instruction; `reasoning_once`'s has its own prompt without them (the directive is in the banner and the log). Haku unchanged in every cell; the participant information says truthfully what each Thinker holds. See the revision at the end.
@@ -745,3 +746,7 @@ Researcher decision. The planned sample is **210** in three equal cells of **70*
 ## Revision 25 Oct 2026 (bm) — the T2 ceiling for the pointers
 
 The twelve "report filed" pointers of `18` (bm) are pushed and count toward the 18-a-view cap, so seven routine generated records they displace are recorded instead (T1 → T2). T2 rises from 518 to 525, over the ceiling of 520 set when the 1 Oct 2026 corpus revision grew T2 (`app/scenario/types.ts` `TIER_COUNT_BANDS`). The T2 ceiling is raised to **530** for that reason only; the corpus is 1016 records (1004 and the pointers), and T1, T3 and T4 stay inside their bands. Both groups receive the same records (parity unchanged).
+
+## Revision 25 Oct 2026 (bn) — the pointers' sender; the T2 band checked
+
+The pointers (`18` (bn)) are now said by the command centre, **JOKE** (pelastuslaitoksen johtokeskus; "Command centre" in English), a new pushed source, identical in both groups and both audiences: the same twelve lines at the same moments; the query tools never return them (`14` (bm)); in the TAK shell its lines join the GeoChat "Johto" / "Command" room. Two displaced records changed (V11, V12: KY23's repeated reports instead of VD1's drops and pause, `18` (bn)), so each view pushes what it did in (bm). **Tier bands:** T2 stays **525** (T1 252, T3 157, T4 82; 1016 records), within the ceiling of 530 set in (bm); the bands are **not** adjusted.

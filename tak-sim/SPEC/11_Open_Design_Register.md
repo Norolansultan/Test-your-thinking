@@ -1062,3 +1062,37 @@ The researcher's decisions R1–R5 and R7–R11 and the bugs B3, B4, B9 of 25 Oc
 5. **Retrieval owner:** after R7, play-test question L15 ("latest road report road R1 south of Dry Heath", V6) ranks the designed stale lure (DR2 15.07) first and the 15.47 key record second in the lexical half, 0.03 behind; check with the study model and B5's recency cues.
 6. **Thinker index:** PROVISIONAL, carried (583 Finnish and 646 English vectors carried of 1004; the four reworded records keep their own previous vectors); run `npm run thinker:index` (both languages, the model) and `npm run thinker:eval -- --write` before any session.
 7. **Play harness:** `tools/play/README.md` still says "Korpioja's second label" (the harness's owner).
+
+### 7.35 The message log's history: how much of the past the log shows (25 Oct 2026; open for the researcher, then the panel and the domain reviewer; decide before pilot 2)
+
+The researcher's aim: the log should give only a sample of the kinds of information that exist, so that participants learn what to look for; the full picture should need search. Today the log keeps every pushed message from the start, scrollable at any time. In the play-tests this let readers (the LLM players especially) answer from the history; real radio has no history. On VIRVE a message is heard once, and the command post's diary (johtopaikan päiväkirja), here the records Haku searches, keeps everything.
+
+Options:
+
+| Option | What it is | Search dependence | Realism | Main risk |
+|---|---|---|---|---|
+| A. No log | Only the records, by search | very high | weak: commanders hear the radio | floor effects, novices lost, SA becomes search skill |
+| **B. This period only** (recommended) | The log shows the current period's traffic; earlier messages move to the records, with one line "Aiemmat viestit (N) on kirjattu – löydät ne Haulla" / "Earlier messages (N) are filed – find them with Search" | higher for anything earlier | better than now: radio heard once, history in the diary | memory load (what SAGAT measures anyway) |
+| C. Overload | Much more routine chatter, so scanning loses to searching | moderate | realistic for a busy channel | measures reading speed; fi/en readers differ; novices drown |
+| D. Headlines only | Most pushed lines become short headlines; details recorded | very high | partly | as A; safety lines must stay in full |
+
+**Why B (recommendation):**
+- Current-period items stay passive, so roughly half the items remain passive anchors. This keeps the group × item-class test (`09` (bk)), the SA meaning of the scores, and novices off the floor.
+- Items that need earlier information become seek-dependent on a principled ground: integration over time, where the AI should help or mislead.
+- It removes the read-everything strategy.
+
+**B's costs:**
+- It is a stimulus change before pilot 2, so pilot 1 is not directly comparable.
+- Memory load rises for both groups.
+- The AI tool becomes more of the window, so the told split matters more (`09` H2t).
+- The audit must be re-run: if more than about 60 % of H2 items become seek-dependent, rebalance.
+- Implementation:
+  - the log filter and the "earlier messages filed" line, in both layouts;
+  - the tour, the records step and the training texts ("the radio is heard once; the diary keeps everything");
+  - the play harness;
+  - the exposure measures, which then count pushed records only within their period;
+  - the identity test;
+  - re-runs of the audit and power;
+  - a play-test.
+
+C as a small addition to B (some more routine chatter) is acceptable; C alone is not. **Status: deferred by the researcher (25 Oct 2026): decide later, before pilot 2.**

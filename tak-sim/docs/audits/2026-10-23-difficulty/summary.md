@@ -73,24 +73,24 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 | V13 | 18 | 46 | 18/64 (28 %) |
 | V14 | 18 | 93 | 18/111 (16 %) |
 
-## "Report filed" pointers (revision (bm)): pushed, content-free, counted among the pushed above
+## Pointers (revisions (bm), (bn)): the command centre's acknowledgements, pushed, content-free, counted among the pushed above
 
-| Pointer | View | Clock | Line | Record it points to | Kind | Items whose record it is |
-|---|---|---|---|---|---|---|
-| `atom.ptr.2.0` | V2 | 13.55 | EK14: tilanneilmoitus kirjattu. | `evt.c02.026` | decoy | — |
-| `atom.ptr.3.0` | V2 | 14.09 | EK12: tilanneilmoitus kirjattu. | `evt.c03.021` | real | `freeze.2.south_flank` |
-| `atom.ptr.3.1` | V2 | 14.16 | DR3: kehäkartoitus valmis, kirjattu. | `evt.c03.035` | real | `freeze.2.area_40`, `probe.s.cycle_3.b` |
-| `atom.ptr.7.0` | V5 | 15.36 | EK11: täydennystilaus kirjattu. | `evt.c07.032` | real | `freeze.5.hose_short` |
-| `atom.ptr.7.1` | V5 | 15.31 | P2: resurssitilanne kirjattu. | `atom.demo.7.1` | real | `freeze.5.reinforcements` |
-| `atom.ptr.7.2` | V5 | 15.23 | Drooniryhmä: lentotilanne päivitetty, kirjattu. | `evt.c07.005` | decoy | — |
-| `atom.ptr.10.0` | V7 | 16.36 | EK14: ohjeet kirjattu. | `evt.c10.028` | real | `freeze.7.north_help` |
-| `atom.ptr.10.1` | V7 | 16.31 | DR3: lentoloki kirjattu. | `evt.c10.019` | decoy | — |
-| `atom.ptr.12.0` | V9 | 17.19 | KY23: ohjeet kirjattu. | `evt.c12.050` | decoy | — |
-| `atom.ptr.14.0` | V11 | 17.56 | DR3: kehäkartoitus valmis, kirjattu. | `evt.c14.033` | decoy | — |
-| `atom.ptr.16.0` | V12 | 18.33 | OUT1: tukipyyntö kirjattu. | `evt.c16.031` | decoy | — |
-| `atom.ptr.17.0` | V12 | 18.43 | SPOT: havainnot kirjattu. | `atom.demo.17.1` | real | `freeze.12.front_toward` |
+| Pointer | View | Clock | Line | Source it names | Record it points to | Kind | Window | Items whose record it is |
+|---|---|---|---|---|---|---|---|---|
+| `atom.ptr.2.0` | V2 | 13.55 | JOKE: EK14:n tilanneilmoitus kuitattu. | EK14 | `evt.c02.026` | decoy | view start → freeze | — |
+| `atom.ptr.3.0` | V2 | 14.09 | JOKE: EK12:n tilanneilmoitus vastaanotettu. | EK12 | `evt.c03.021` | real | step boundary → freeze | `freeze.2.south_flank` |
+| `atom.ptr.3.1` | V2 | 14.16 | JOKE: DR3:n kehäkartoitus kuitattu. | DR3 | `evt.c03.035` | real | step boundary → freeze | `freeze.2.area_40`, `probe.s.cycle_3.b` |
+| `atom.ptr.7.0` | V5 | 15.36 | JOKE: EK11:n täydennystilaus vastaanotettu. | EK11 | `evt.c07.032` | real | view start → freeze | `freeze.5.hose_short` |
+| `atom.ptr.7.1` | V5 | 15.31 | JOKE: P2:n viesti kirjattu. | P2 | `atom.demo.7.1` | real | view start → freeze | `freeze.5.reinforcements` |
+| `atom.ptr.7.2` | V5 | 15.23 | JOKE: drooniryhmän lentotilanne vastaanotettu. | DRONERYHMÄ | `evt.c07.005` | decoy | view start → freeze | — |
+| `atom.ptr.10.0` | V7 | 16.36 | JOKE: EK14:n viesti kirjattu. | EK14 | `evt.c10.028` | real | view start → freeze | `freeze.7.north_help` |
+| `atom.ptr.10.1` | V7 | 16.29 | JOKE: EK13:n viesti kirjattu. | EK13 | `evt.c10.014` | decoy | view start → freeze | — |
+| `atom.ptr.12.0` | V9 | 17.12 | JOKE: DR3:n anturiloki vastaanotettu. | DR3 | `evt.c12.037` | decoy | view start → view end | — |
+| `atom.ptr.15.0` | V11 | 18.16 | JOKE: tilannekuvan päivitys kirjattu. | TILANNEKUVA | `evt.c15.037` | decoy | step boundary → view end | — |
+| `atom.ptr.17.0` | V12 | 18.43 | JOKE: SPOTin havainnot kuitattu. | SPOT | `atom.demo.17.1` | real | step boundary → freeze | `freeze.12.front_toward` |
+| `atom.ptr.17.1` | V12 | 18.58 | JOKE: EK13:n viesti kuitattu. | EK13 | `evt.c17.039` | decoy | step boundary → freeze | — |
 
-Displaced from the stream to the records by the pointers (`site-scenario.json` `pointerDisplaced`, none an item's record): `evt.c03.039`, `evt.c03.029`, `evt.c07.036`, `evt.c10.025`, `evt.c10.020`, `evt.c15.035`, `evt.c17.028`.
+Displaced from the stream to the records by the pointers (`site-scenario.json` `pointerDisplaced`, none an item's record, no air asset's change of state, repeats first since (bn)): `evt.c03.039`, `evt.c03.029`, `evt.c07.036`, `evt.c10.025`, `evt.c10.020`, `evt.c15.027`, `evt.c17.010`.
 
 ## Items whose key rests on a map fact (or a fact on no surface) that no record states before the moment
 
@@ -135,7 +135,7 @@ Displaced from the stream to the records by the pointers (`site-scenario.json` `
 | `freeze.5.hose_short` | fi | Mitä EK11 tarvitsee? | 7 | evt.c07.032: 1 |
 | `freeze.5.hose_short` | fi | Mitä tarvikkeita EK11 tarvitsee? | 7 | evt.c07.032: 1 |
 | `freeze.5.hose_short` | en | What equipment does EK11 need? | 7 | evt.c07.032: 3 |
-| `freeze.5.hose_short` | en | What does EK11 need on its line? | 7 | evt.c07.032: 3 |
+| `freeze.5.hose_short` | en | What does EK11 need on its line? | 7 | evt.c07.032: 1 |
 | `freeze.5.ek14_shelter` | fi | Mikä on sääennuste? | 7 | evt.wx.03: — |
 | `freeze.5.ek14_shelter` | fi | Miten tuuli muuttuu? | 7 | evt.wx.03: — |
 | `freeze.5.ek14_shelter` | en | What is the weather forecast? | 7 | evt.wx.03: 4 |
@@ -147,10 +147,10 @@ Displaced from the stream to the records by the pointers (`site-scenario.json` `
 | `freeze.7.infra` | fi | Voiko Kotkanjoelta täyttää säiliöitä? | 10 | evt.c10.023: 3 |
 | `freeze.7.infra` | en | Can tankers fill up at Eagle River? | 10 | evt.c10.023: 7 |
 | `freeze.7.north_help` | fi | Miten EK14:n linjalle pääsee? | 10 | evt.c10.028: 1 |
-| `freeze.7.north_help` | fi | Kuinka lähelle EK14:ää pääsee? | 10 | evt.c10.028: 1 |
+| `freeze.7.north_help` | fi | Kuinka lähelle EK14:ää pääsee? | 10 | evt.c10.028: 2 |
 | `freeze.7.north_help` | fi | Pääseekö EK14:n linjalle? | 10 | evt.c10.028: 1 |
 | `freeze.7.north_help` | en | Can a fire engine get to EK14? | 10 | evt.c10.028: 1 |
-| `freeze.7.north_help` | en | How close can vehicles get to EK14? | 10 | evt.c10.028: 1 |
+| `freeze.7.north_help` | en | Can vehicles get through to EK14's line? | 10 | evt.c10.028: 1 |
 | `freeze.10.ek12_water` | fi | Saako EK12 lisää vettä? | 13 | evt.c13.035: — |
 | `freeze.10.ek12_water` | en | Is EK12 getting more water? | 13 | evt.c13.035: — |
 | `freeze.10.cabins_distance` | fi | Kuinka kaukana palo on Mökkirannasta? | 13 | evt.c11.015: — |

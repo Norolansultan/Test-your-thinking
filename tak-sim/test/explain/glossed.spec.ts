@@ -62,7 +62,7 @@ describe("every participant-visible text surface is wrapped, with its surface", 
       /<Glossed text=\{displayAnswerText\(turn\.answer\.answerFi\)\} surface="search" \/>/,
       /<Glossed text=\{displayAnswerText\(turn\.answer\.wouldChangeIfFi\)\} surface="search" \/>/,
       /<Glossed text=\{displayAnswerText\(turn\.answer\)\} surface="guide" \/>/,
-      /<HelpCard \/>/,
+      /<HelpCard seen={rosterSeen\(snapshot\)} \/>/, // revision (bn): the roster shows the units met (`rosterSeen`)
     ]],
     ["components/Drawers.tsx", [/surface="search" \/>/]],
     ["components/FreezeScreen.tsx", [/<Glossed text=\{tr\(item\.promptFi\)\} surface="freeze" \/>/, /<Glossed text=\{tr\(opt\.labelFi\)\} surface="freeze" \/>/]],
@@ -72,7 +72,7 @@ describe("every participant-visible text surface is wrapped, with its surface", 
     ["components/PlanReviewPanel.tsx", [/<Glossed text=\{line\} surface="review" \/>/, /surface="review" \/>/, /<GlossSurfaceContext\.Provider value="record"><MessageLogRow entry=\{opened\} \/><\/GlossSurfaceContext\.Provider>/]],
     ["components/OpenAnswerView.tsx", [/<Glossed text=\{displayAnswerText\(f\.text\)\} surface="guide" \/>/, /<Glossed text=\{displayAnswerText\(o\.option\)\} surface="guide" \/>/, /<Glossed text=\{displayAnswerText\(answer\.inference\)\} surface="guide" \/>/]],
     ["components/Legend.tsx", [/<Glossed text=\{label\} surface=\{surface\} \/>/]],
-    ["tak/TakToolbar.tsx", [/<HelpCard variant="toolbar" \/>/]],
+    ["tak/TakToolbar.tsx", [/<HelpCard variant="toolbar" seen={rosterSeen} \/>/]],
   ];
   it.each(cases)("%s", (file, patterns) => {
     const src = code(file);

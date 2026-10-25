@@ -5,9 +5,9 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { alphaKey, chooseSection, glossaryLetters, glossaryList, HELP_CARD_SECTIONS, HELP_CARD_TEXT, rosterRows } from "../../app/render/ui/explain/HelpCard.js";
+import { alphaKey, chooseSection, glossaryLetters, glossaryList, HELP_CARD_SECTIONS, HELP_CARD_TEXT, rosterRows, rosterSeen } from "../../app/render/ui/explain/HelpCard.js";
 import { GLOSSARY_FILES } from "../../app/render/ui/explain/glossary.js";
-import { UNIT_ROSTER } from "../../app/render/ui/unit-roster.js";
+import { SOURCE_ROSTER, UNIT_ROSTER, UNIT_ROSTER_EN } from "../../app/render/ui/unit-roster.js";
 import type { HelpCardSection } from "../../app/render/ui/audience-context.js";
 
 const code = (f: string) => readFileSync(`app/render/ui/${f}`, "utf8");
@@ -48,10 +48,13 @@ describe("the help card (SPEC/35 §3 item 3)", () => {
     expect(code("explain/HelpCard.tsx")).not.toMatch(/<input|<textarea/);
   });
 
-  it("lists every unit of the roster with its type, in both languages (VPK is VOL1 in English)", () => {
+  it("lists every unit of the roster with its type, in both languages (VPK is VOL1 in English), then the command centre JOKE", () => {
     const fi = rosterRows("fi");
     const en = rosterRows("en");
-    expect(fi).toHaveLength(Object.keys(UNIT_ROSTER).length);
+    expect(fi).toHaveLength(Object.keys(UNIT_ROSTER).length + Object.keys(SOURCE_ROSTER).length);
+    expect(fi.at(-1)!.callSign).toBe("JOKE"); // revision (bn): the source that acknowledges reports (the pointers)
+    expect(en.at(-1)!.callSign).toBe("Command centre");
+    expect(fi.at(-1)!.type).toMatch(/johtokeskus/);
     expect(en).toHaveLength(fi.length);
     expect(fi.find((r) => r.callSign === "EK13")!.type).toMatch(/Säiliöauto/);
     expect(en.find((r) => r.callSign === "EK13")!.type).toMatch(/tanker/);
@@ -81,11 +84,32 @@ describe("the help card (SPEC/35 §3 item 3)", () => {
     const card = code("explain/HelpCard.tsx");
     expect(card).toMatch(/if \(audience !== "public"\) return null;/);
     expect(card).toMatch(/chooseSection\(section, next, onHelpCardOpened\)/);
-    expect(card).not.toMatch(/condition|substitutive|snapshot/i); // the same card in both groups, nothing of the session's state
+    // The same card in both groups. Revision (bn): its one input from the session is which units the participant has met (`seen`, from
+    // the map and the message log, the same in both groups); nothing else of the session's state.
+    expect(card).not.toMatch(/condition|substitutive/i);
+    expect(card).toMatch(/export function HelpCard\(\{ variant = "panel", seen \}: \{ readonly variant\?: "panel" \| "toolbar"; readonly seen\?: ReadonlySet<string> \| undefined \}\)/);
+  });
+
+  it("revision (bn), review S8: the roster shows only the units and sources met so far, so it does not tell that reinforcements will come", () => {
+    // At V1: the first alarm's units on the map, nobody heard from later arrivals.
+    const v1 = rosterSeen({ radioLog: [{ from: "EK11" }, { from: "DR1" }, { from: "P2" }], renderTree: { cycleInfo: { unitPositions: { EK11: 0, EK12: 0, EK13: 0, EK14: 0, VPK: 0 }, aircraft: [{ platformId: "DR1" }, { platformId: "SPOT" }] } } });
+    const ids = rosterRows("fi", v1).map((r) => r.callSign);
+    expect(ids).toEqual(["EK11", "VPK", "EK12", "EK13", "EK14", "DR1", "SPOT"]);
+    for (const later of ["EK15", "EK16", "KY23", "OUT1", "OUT2", "UGV1", "VD1", "JOKE"]) expect(ids, later).not.toContain(later);
+    // Once heard or on the map, a unit is listed; the command centre once it has acknowledged a report.
+    const later = rosterSeen({ radioLog: [{ from: "EK15" }, { from: "JOKE" }], renderTree: { cycleInfo: null } });
+    expect(rosterRows("en", later).map((r) => r.callSign)).toEqual(["EK15", "Command centre"]);
+    // No origin tells who comes with whom ("Saapui OUT1:n mukana", "Arrived with the reinforcements"), and the note names no OUT.
+    for (const lang of ["fi", "en"] as const) {
+      for (const r of rosterRows(lang)) expect(r.from ?? "", `${lang} ${r.callSign}`).not.toMatch(/saapui|mukana|arrived|reinforcement/i);
+      expect(HELP_CARD_TEXT[lang].rosterNote, lang).not.toMatch(/\bOUT\b/);
+    }
+    expect(UNIT_ROSTER_EN.VD1!.from).toBe("Regional drone unit");
   });
 
   it("is mounted in both shells: the classic message log's header and the TAK toolbar", () => {
-    expect(code("components/RightPanel.tsx")).toMatch(/<span>\{t\.messageLog\} \(\{snapshot\.radioLog\.length\}\)<\/span>\n\s*<\/div>\n\s*\{\/\*[^\n]*\*\/\}\n\s*<HelpCard \/>/);
-    expect(code("tak/TakToolbar.tsx")).toMatch(/<HelpCard variant="toolbar" \/>\n\s*<\/nav>/);
+    expect(code("components/RightPanel.tsx")).toMatch(/<span>\{t\.messageLog\} \(\{snapshot\.radioLog\.length\}\)<\/span>\n\s*<\/div>\n\s*\{\/\*[^\n]*\*\/\}\n\s*<HelpCard seen=\{rosterSeen\(snapshot\)\} \/>/);
+    expect(code("tak/TakToolbar.tsx")).toMatch(/<HelpCard variant="toolbar" seen=\{rosterSeen\} \/>\n\s*<\/nav>/);
+    expect(code("tak/TakSessionLayout.tsx")).toMatch(/rosterSeen=\{rosterSeen\(snapshot\)\}/);
   });
 });

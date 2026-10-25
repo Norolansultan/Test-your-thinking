@@ -33,6 +33,10 @@
  *   stream (`BM_DISPLACED`, `SITE_SCENARIO.pointerDisplaced`) are put back where 0.12.0 wrote them, each just after the record 0.12.0
  *   delivered before it — EK14's 14.11 report after EK12's held 14.08 one, which is put back first, and EK14's 15.38 fuel request after
  *   EK11's held 15.35 request.
+ * - Revision (bn) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/18 (bn)): the pointers are the command centre's (JOKE), so
+ *   JOKE, a new source, leaves the views' `navSources`; V11 and V12 displace KY23's repeated 18.10 and 18.45 reports instead of VD1's
+ *   18.13 drops and 18.51 pause (`BM_DISPLACED`, an air asset's change of state stays in the stream), each put back after the record
+ *   0.12.0 delivered before it. The re-worded records (EK14's 16.35 line, EK11's 15.35 request) are not delivered, so nothing else moves.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -76,9 +80,13 @@ export const BM_DISPLACED: readonly { readonly atomId: string; readonly sourceId
   { atomId: "evt.c07.036", sourceId: "EK14", after: "evt.c07.032" }, // V5: EK14's 15.38 fuel request
   { atomId: "evt.c10.020", sourceId: "EK11", after: "evt.c10.017" }, // V7: EK11's 16.31 request for food and drink
   { atomId: "evt.c10.025", sourceId: "EK14", after: "evt.c10.024" }, // V7: EK14's 16.33 request for food and drink
-  { atomId: "evt.c15.035", sourceId: "VD1", after: "evt.c15.027" }, // V11: VD1's 18.13 drops
-  { atomId: "evt.c17.028", sourceId: "VD1", after: "evt.c17.020" }, // V12: VD1's 18.51 pause in the drops
+  // Revision (bn) (review S10): KY23's repeats, no longer VD1's 18.13 drops (V11) and 18.51 pause (V12).
+  { atomId: "evt.c15.027", sourceId: "KY23", after: "evt.c15.023" }, // V11: KY23's 18.10 north-edge report (a repeat of 17.09)
+  { atomId: "evt.c17.010", sourceId: "KY23", after: "evt.c17.009" }, // V12: KY23's 18.45 north-edge report (a repeat)
 ];
+
+/** Revision (bn): the command centre that acknowledges reports (`pointers.ts` POINTER_SENDER), a source 0.12.0 did not have. */
+export const BN_SOURCE = "JOKE";
 
 /** 0.16.0's new questionnaire items (`app/session/questionnaire.ts` revision (bf)). */
 const ADDED_ITEM_IDS: ReadonlySet<string> = new Set([
@@ -131,7 +139,7 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     }
     if (r.kind === "cycle_start" && Array.isArray(d.navSources)) {
       const cycle = d.cycle as number;
-      kept.push({ ...r, detail: { ...d, navSources: (d.navSources as string[]).filter((s) => !(cycle < (PLAYTEST_SOURCE_FROM[s] ?? 0))) } });
+      kept.push({ ...r, detail: { ...d, navSources: (d.navSources as string[]).filter((s) => s !== BN_SOURCE && !(cycle < (PLAYTEST_SOURCE_FROM[s] ?? 0))) } });
       continue;
     }
     if (r.kind === "freeze_submitted" && d.cycle === 10 && Array.isArray(d.missing)) {

@@ -54,7 +54,7 @@ import type {
 } from "./record-kinds.js";
 
 /** Revision (bm), 25 Oct 2026 (SPEC/09 (bm)): the "report filed" pointers' follow-up, in its own module (this one is long). */
-export { POINTER_RETRIEVED_MAX_RANK, POINTER_SPECS, pointerFollowUpRates, pointerFollowUps, type FollowUpQuery, type FollowUpRate, type PointerFollowUp, type PointerSpec } from "./pointer-measures.js";
+export { POINTER_RETRIEVED_MAX_RANK, POINTER_SPECS, pointerFollowUpRates, pointerFollowUps, pointerItemClasses, WINDOW_CLASSES, type FollowUpQuery, type FollowUpRate, type PointerFollowUp, type PointerItemClass, type PointerItemFollowUp, type PointerSpec, type PointerWindow, type WindowClass } from "./pointer-measures.js";
 
 function byKind(records: readonly LogRecord[], kind: RecordKind): LogRecord[] {
   return records.filter((r) => r.kind === kind);

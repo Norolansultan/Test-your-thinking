@@ -356,12 +356,17 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       slug: "hose_short", level: "L2", goal: "resources", promptFi: "Mikä rajoittaa viimeisimpien tietojen mukaan eniten EK11:n työtä Koivuojan linjalla?", // play-test D1 (was "nyt"): the 15.35 report
       options: [
         ["hose", "Letkua on liian vähän kärjen perässä pysymiseen"], ["water", "Vesi loppuu, koska vesiajo ei ehdi linjalle"],
-        ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
+        ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["withdrawn", "Miehet on vedetty pistepalon takia pois linjalta"],
       ], key: "hose",
       // Revision (bk), 25 Oct 2026 (SPEC/30 (bk)): seek-dependent. EK11's 15.35 hose request is held for seeking (`view-traffic.ts`
-      // HELD_FOR_SEEKING; recorded, T2); pushed stay the 15.24 report and PP1's withdrawal (radio 7.4, the `burnt` lure's basis).
-      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 600 m, varaletkua alle 200 m/)], rule: "cited",
-      basis: `integrates EK11's step-7 reports: the head runs past it to the north-east (15.24, pushed) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35, recorded since revision (bk)): the line cannot follow the head; EK11's tank is at ${EK11_TANK_V5.value} % (asked-only, 15.25; gate R: read from the record, was 63 % before the road-graph shuttle) and the water shuttle runs, so water is not the limit`,
+      // HELD_FOR_SEEKING; recorded, T2); pushed stay the 15.24 report and PP1's withdrawal (radio 7.4).
+      // Revision (bn), 25 Oct 2026 (review S5; DRAFT, native check): the last PUSHED EK11 state before the freeze is radio 7.4, "Vedämme
+      // miehet pois linjalta" (PP1 behind them, 15.30), while the stem asks what limits its work ON the line. The recorded 15.35 request now
+      // says that the crew is back on the line ("palasimme linjalle. Linjaa jo 600 m …", `traffic-requests.ts` BACK_ON_LINE), and option
+      // `burnt` ("Kipinät ovat polttaneet letkulinjan poikki", stated by no record) is replaced by the pushed state itself, `withdrawn`,
+      // false at the freeze: the non-searcher's default is a lure, the searcher reads that the crew returned and is short of hose.
+      keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: palasimme linjalle\. Linjaa jo 600 m, varaletkua alle 200 m/)], rule: "cited",
+      basis: `integrates EK11's step-7 reports: the head runs past it to the north-east (15.24, pushed) and, back on the line after its 15.30 withdrawal from PP1 (radio 7.4, pushed: the \`withdrawn\` lure), its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35, recorded since revision (bk)): the line cannot follow the head; EK11's tank is at ${EK11_TANK_V5.value} % (asked-only, 15.25; gate R: read from the record, was 63 % before the road-graph shuttle) and the water shuttle runs, so water is not the limit`,
     }),
     choice({
       // SPEC/30 §5.1 (DRAFT, domain review). `31` F07: before wind_shift, and the stem no longer names the forecast turn (it told everyone of

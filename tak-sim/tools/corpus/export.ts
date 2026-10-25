@@ -16,6 +16,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { COMMAND_POST_SOURCE, DESIGNED_LOG, GRID_OPERATOR_SOURCE } from "../../app/scenario/designed-events.js";
+import { POINTER_SENDER } from "../../app/scenario/pointers.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import type { InfoAtom, InteractionEvent } from "../../app/scenario/types.js";
 import { viewOfStep } from "../../app/scenario/views.js";
@@ -29,8 +30,11 @@ const scenario = buildDemoScenario();
 const byId = new Map(SITE_SCENARIO.traffic.map((e) => [e.id, e]));
 const { sectorOf, placeNear } = siteTrafficHelpers();
 const ign = wgs84ToTm35(SITE_SCENARIO.ignition);
-/** Sources that are not units or aircraft: register data, the grid operator, the command-post operator, its situation picture. */
-const NON_UNIT_SOURCES = new Set(["register", GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE, "TILANNEKUVA"]);
+/**
+ * Sources that are not units or aircraft: register data, the grid operator, the command-post operator, its situation picture, and the
+ * command centre that acknowledges reports (revision (bn), `pointers.ts` POINTER_SENDER).
+ */
+const NON_UNIT_SOURCES = new Set(["register", GRID_OPERATOR_SOURCE, COMMAND_POST_SOURCE, "TILANNEKUVA", POINTER_SENDER]);
 
 function authored(a: InfoAtom): InteractionEvent {
   const actor = a.provenance.sourceId;

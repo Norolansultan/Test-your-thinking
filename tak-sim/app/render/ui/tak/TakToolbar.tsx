@@ -38,7 +38,7 @@ export const TAK_PANE_ICON: Readonly<Record<TakPaneId, JSX.Element>> = {
 /** The toolbar's `data-tour` targets: the guided tour points at Haku and the Thinker here (`tour.ts`). */
 const TOUR_TARGET: Partial<Record<TakPaneId, string>> = { haku: "haku", thinker: "thinker", indexed_search: "indexed-search" };
 
-export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTarget, recordsBadge = false }: {
+export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTarget, recordsBadge = false, rosterSeen }: {
   readonly panes: readonly TakPaneId[];
   readonly open: TakPaneId | null;
   readonly onSelect: (pane: TakPaneId) => void;
@@ -50,6 +50,8 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
   readonly logTarget: boolean;
   /** Difficulty audit (a.4): the content-free "New records" badge on the Haku button (no count; hidden while Haku is open). */
   readonly recordsBadge?: boolean;
+  /** Revision (bn): the units the participant has met, for the help card's roster (`HelpCard.tsx` `rosterSeen`). */
+  readonly rosterSeen?: ReadonlySet<string> | undefined;
 }) {
   const { t } = useLang();
   return (
@@ -89,7 +91,7 @@ export function TakToolbar({ panes, open, onSelect, searchLocked, unread, logTar
         );
       })}
       {/* SPEC/35 §3: the help card at the toolbar's foot, public sessions only (renders nothing for experts). */}
-      <HelpCard variant="toolbar" />
+      <HelpCard variant="toolbar" seen={rosterSeen} />
     </nav>
   );
 }

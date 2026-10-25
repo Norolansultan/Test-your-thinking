@@ -9,7 +9,7 @@
  * `t4.private_doubt`).
  */
 
-import { FEATURES, type P } from "./deployment.js";
+import { FEATURES, UNIT_PLAN, type P } from "./deployment.js";
 import { ROADS } from "../topo-map/roads.js";
 import { actorTypeOf, bearing, dirAdj, dirFrom, dirTo, dist, fmt1, hm, intensityClass, L, r50, stepStartS, vary } from "./traffic-text.js";
 import type { FireProbe } from "./traffic-fire.js";
@@ -232,7 +232,14 @@ export function lateralTraffic(inp: TrafficCycleInput, state: TrafficState, out:
     const road = inp.roadNear(u.pos);
     if ((road.cls === "track" || road.distM > 250) && !state.said.has(`access:${u.id}`)) {
       state.said.add(`access:${u.id}`);
-      add(5, `access:${u.id}`, u, nearest(u, 1500), L(`${nearest(u, 1500)?.id}, ${u.id}: meille ei pääse autolla lähemmäs kuin ${r50(road.distM)} m, ${road.cls === "track" ? "ajoura on pehmeä" : "tie loppuu"}. Jos tuotte letkua, kantakaa ${dirFrom(bearing(u.pos, nearestRoute(u.pos).at))}.`, `${nearest(u, 1500)?.id}, ${u.id}: a vehicle cannot get closer to us than ${r50(road.distM)} m, ${road.cls === "track" ? "the track is soft" : "the road ends"}. If you bring hose, carry it in from the ${dirFrom(bearing(u.pos, nearestRoute(u.pos).at))}.`));
+      const to = nearest(u, 1500)?.id, m = r50(road.distM), from = dirFrom(bearing(u.pos, nearestRoute(u.pos).at));
+      // Revision (bn), 25 Oct 2026 (review B1): a unit whose own terrain vehicle reaches its line (`access: "offroad"`, EK14's maastoauto,
+      // which keeps its basin full at the line, evt.c10.005, radio 10.5) cannot say that no vehicle gets closer: it says that a fire
+      // engine does not, and that its own terrain vehicle does. Not the road crews' template (was word for word KY23's line to KY21).
+      // DRAFT Finnish (native and domain check). No bog word (`onBogWords`).
+      add(5, `access:${u.id}`, u, nearest(u, 1500), UNIT_PLAN[u.id]?.access === "offroad"
+        ? L(`${to}, ${u.id}: paloautolla pääsee meistä noin ${m} metrin päähän, siitä eteenpäin ajoura on liian pehmeä. Vain meidän maastoauto kulkee linjalle asti. Jos tuotte letkua, kantakaa viimeinen pätkä ${from}.`, `${to}, ${u.id}: a fire engine gets to about ${m} m from us; beyond that the track is too soft. Only our terrain vehicle gets through to the line. If you bring hose, carry it the last stretch in from the ${from}.`)
+        : L(`${to}, ${u.id}: meille ei pääse autolla lähemmäs kuin ${m} m, ${road.cls === "track" ? "ajoura on pehmeä" : "tie loppuu"}. Jos tuotte letkua, kantakaa ${from}.`, `${to}, ${u.id}: a vehicle cannot get closer to us than ${m} m, ${road.cls === "track" ? "the track is soft" : "the road ends"}. If you bring hose, carry it in from the ${from}.`));
     }
   }
 

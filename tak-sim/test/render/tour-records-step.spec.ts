@@ -1,9 +1,14 @@
 /**
  * Revision (bl), 25 Oct 2026 (researcher): the tour's new step after Haku's, "What the records hold" (`hakuRecords`). It shows where the
  * information is and how to ask for it — by topic, by place, by source and time — and never says that one must search, that scores depend
- * on it, or anything about the memory checks. Its examples belong to the PRACTICE view (the forecast, Pike Pond / Haukilampi W1, DR1 at
+ * on it, or anything about the memory checks. Its examples belong to the PRACTICE view (the forecast, the water-supply log, DR1 at
  * 12.05), and a lexical Haku question for each, at the practice step with the time gate, ranks the intended practice record in the top 3
  * in both languages. The step names no scored item's subject; the texts are the same for both groups and both audiences.
+ *
+ * Revision (bn), 25 Oct 2026 (review S6, S4): the place example ("Voivatko säiliöautot täyttää Haukilammelta?" / "Can tankers fill up
+ * at Pike Pond?") was word for word V4 `infra`'s findability question; it is a SOURCE example on an unscored practice record (the water
+ * supply's 12.12 log), so the three are topic, source, source and time. The kinds no longer name the road reports (the R1 series,
+ * retrieval-dependent by design), and the last sentence names the command centre that acknowledges reports (the pointers).
  */
 
 import { describe, expect, it } from "vitest";
@@ -19,16 +24,21 @@ import { PRACTICE_STEP } from "../../app/scenario/views.js";
 import { recordClockLabel } from "../../app/session/message-history.js";
 import { recordText } from "../../app/session/template-answer.js";
 import { toRenderable } from "../../app/boundary/render-boundary.js";
+import { FINDABILITY_QUERIES } from "../../tools/review/difficulty-audit.js";
+import { SEEK_QUESTIONS } from "../../tools/review/seek-questions.js";
 
-/** The researcher's texts of 25 Oct 2026, word for word (the English with "Haku"; the shipped English names the tool "Search", below). */
+/**
+ * The researcher's texts of 25 Oct 2026 with revision (bn)'s amendments (review S6, S4), word for word (the English with "Haku"; the
+ * shipped English names the tool "Search", below). DRAFT, native check.
+ */
 const RESEARCHER = {
   en: {
     title: "What the records hold",
-    body: "Besides the message log, the command post's records hold reports you are not sent automatically: drone surveys and their figures, weather forecasts, units' water and fuel status when asked, road reports, and messages from other authorities. Ask Haku as you would ask the command centre by radio — by topic (“What is the latest weather forecast?”), by place (“Can tankers fill up at Pike Pond?”) or by source and time (“What did DR1 report at 12.05?”). When a unit says on the radio that data has been filed, the details are in the records.",
+    body: "Besides the message log, the command post's records hold reports you are not sent automatically: drone surveys and their figures, weather forecasts, units' water and fuel status when asked, and messages from other authorities. Ask Haku as you would ask the command centre by radio — by topic (“What is the latest weather forecast?”), by source (“What has water supply recorded?”) or by source and time (“What did DR1 report at 12.05?”). When the command centre acknowledges a unit's report on the radio, the details are in the records.",
   },
   fi: {
     title: "Mitä kirjauksista löytyy",
-    body: "Viestilokin lisäksi johtopaikan kirjauksissa on ilmoituksia, joita sinulle ei lähetetä automaattisesti: droonien kartoitukset lukuineen, sääennusteet, yksiköiden vesi- ja polttoainetilanne kysyttäessä, tieilmoitukset sekä muiden viranomaisten viestit. Kysy Haulta kuin kysyisit johtokeskukselta radiolla: aiheen mukaan („Mikä on viimeisin sääennuste?”), paikan mukaan („Voivatko säiliöautot täyttää Haukilammelta?”) tai lähteen ja kellonajan mukaan („Mitä DR1 ilmoitti klo 12.05?”). Kun yksikkö kertoo radiossa, että tiedot on kirjattu, yksityiskohdat löytyvät kirjauksista.",
+    body: "Viestilokin lisäksi johtopaikan kirjauksissa on ilmoituksia, joita sinulle ei lähetetä automaattisesti: droonien kartoitukset lukuineen, sääennusteet, yksiköiden vesi- ja polttoainetilanne kysyttäessä sekä muiden viranomaisten viestit. Kysy Haulta kuin kysyisit johtokeskukselta radiolla: aiheen mukaan („Mikä on viimeisin sääennuste?”), lähteen mukaan („Mitä vesihuolto on kirjannut?”) tai lähteen ja kellonajan mukaan („Mitä DR1 ilmoitti klo 12.05?”). Kun johtokeskus (JOKE) kuittaa radiossa yksikön ilmoituksen, yksityiskohdat löytyvät kirjauksista.",
   },
 } as const;
 
@@ -103,20 +113,22 @@ describe("what the step must not say (the researcher's principle: teach HOW to s
 describe("the step's examples belong to the practice view", () => {
   const recordsAt = (lang: "fi" | "en") => practiceAtomsText(lang);
 
-  it("the sources, places and times it names are all in the practice view's records: DR1, Pike Pond / Haukilampi, 12.05, the forecast", () => {
+  it("the sources and times it names are all in the practice view's records: DR1, the water supply, 12.05, the forecast; it names no place (revision (bn))", () => {
     // Sources: the call signs in the text (DR1) have records in the practice view.
     for (const lang of ["fi", "en"] as const) {
       for (const sign of new Set(step(lang).body.match(/\b[A-Z]{2,}\d+\b/g) ?? [])) {
         expect(practiceAtoms.some((a) => a.provenance.sourceId === sign), `${lang} ${sign}`).toBe(true);
       }
     }
-    // Places: every place of the site's table that the text names is in a practice record; and it names only Haukilampi / Pike Pond.
+    // Places: revision (bn) took the place example out (it was V4 `infra`'s findability question), so the text names no place of the site.
     const fiNamed = Object.keys(PLACE_NAMES_EN).filter((n) => step("fi").body.includes(n.length > 6 ? n.slice(0, 6) : n));
     const enNamed = Object.values(PLACE_NAMES_EN).filter((n) => step("en").body.includes(n));
-    expect(fiNamed).toEqual(["Haukilampi"]);
-    expect(enNamed).toEqual(["Pike Pond"]);
-    expect(recordsAt("fi").some((t) => t.includes("Haukilammelta") || t.includes("Haukilampi"))).toBe(true);
-    expect(recordsAt("en").some((t) => t.includes("Pike Pond"))).toBe(true);
+    expect(fiNamed).toEqual([]);
+    expect(enNamed).toEqual([]);
+    // The source example's source keeps a log in the practice view (the water supply's 12.12 tank levels), shown in both languages.
+    expect(practiceAtoms.filter((a) => a.provenance.sourceId === "VESIHUOLTO").map((a) => a.id)).toEqual(["evt.vp.016"]);
+    expect(recordsAt("fi").some((t) => t.startsWith("Vesihuoltoloki"))).toBe(true);
+    expect(recordsAt("en").some((t) => t.startsWith("Water supply log"))).toBe(true);
     // Times: the clock it names (12.05) is a practice DR1 record's, observed and shown at 12:05; the forecast is a practice record too.
     const dr1 = practiceAtoms.filter((a) => a.provenance.sourceId === "DR1" && recordClockLabel(a) === "12:05");
     expect(dr1.map((a) => a.id)).toEqual(["evt.vp.008"]);
@@ -130,15 +142,23 @@ describe("the step's examples belong to the practice view", () => {
   /** Each example, from the shipped text (so that the text and this test cannot drift apart), with the practice record it should find. */
   const EXAMPLES: ReadonlyArray<{ readonly kind: string; readonly intended: string }> = [
     { kind: "topic: the forecast", intended: "evt.wx.01" },
-    { kind: "place: Pike Pond / Haukilampi W1 (VPK: tankers can fill, the forest road takes a tanker)", intended: "evt.vp.013" },
+    { kind: "source: the water supply's 12.12 log (revision (bn); was the place Pike Pond, V4 infra's findability question)", intended: "evt.vp.016" },
     { kind: "source and time: DR1 at 12.05 (the thermal image)", intended: "evt.vp.008" },
   ];
   const questionsIn = (lang: "fi" | "en") => (step(lang).body.match(lang === "fi" ? /„[^”]+”/g : /“[^”]+”/g) ?? []).map((q) => q.slice(1, -1));
 
   it.each(["fi", "en"] as const)("%s: the body gives one example question per kind, as the researcher wrote them", (lang) => {
     expect(questionsIn(lang)).toEqual(lang === "fi"
-      ? ["Mikä on viimeisin sääennuste?", "Voivatko säiliöautot täyttää Haukilammelta?", "Mitä DR1 ilmoitti klo 12.05?"]
-      : ["What is the latest weather forecast?", "Can tankers fill up at Pike Pond?", "What did DR1 report at 12.05?"]);
+      ? ["Mikä on viimeisin sääennuste?", "Mitä vesihuolto on kirjannut?", "Mitä DR1 ilmoitti klo 12.05?"]
+      : ["What is the latest weather forecast?", "What has water supply recorded?", "What did DR1 report at 12.05?"]);
+  });
+
+  it.each(["fi", "en"] as const)("%s: revision (bn): no example is a scored item's findability or seek question, and the kinds name no road reports", (lang) => {
+    const scored = new Set([...Object.values(FINDABILITY_QUERIES).flatMap((q) => q[lang]), ...SEEK_QUESTIONS.flatMap((q) => q[lang])].map((q) => q.toLowerCase()));
+    expect(scored.size).toBeGreaterThan(10);
+    for (const q of questionsIn(lang)) expect(scored.has(q.toLowerCase()), q).toBe(false);
+    expect(step(lang).body).not.toMatch(/tieilmoitu|road report/i);
+    expect(step(lang).body).toMatch(lang === "fi" ? /johtokeskus \(JOKE\) kuittaa/ : /the command centre acknowledges/);
   });
 
   it.each(["fi", "en"] as const)("%s: a lexical Haku question for each example, at the practice step with the time gate, ranks the intended record in the top 3", (lang) => {

@@ -8,7 +8,7 @@
 
 import { tr } from "../../app/i18n/text.js";
 import { GLOSSARY_FILES, type GlossaryTerm } from "../../app/render/ui/explain/glossary.js";
-import { glossaryLetters, glossaryList, HELP_CARD_SECTIONS, HELP_CARD_TEXT, rosterRows } from "../../app/render/ui/explain/HelpCard.js";
+import { glossaryLetters, glossaryList, HELP_CARD_SECTIONS, HELP_CARD_TEXT, rosterRows, rosterSeen } from "../../app/render/ui/explain/HelpCard.js";
 import { LEGEND_MAP_TEXT } from "../../app/render/ui/components/Legend.js";
 import { FIRE_THEME } from "../../app/render/ui/fire-layers.js";
 import type { GlossarySurface, HelpCardSection } from "../../app/telemetry/record-kinds.js";
@@ -66,7 +66,8 @@ export async function helpText(session: PlaySession, sectionArg: string | undefi
   } else if (section === "roster") {
     out.push(T.rosterNote);
     // As `HelpCard`'s row: "Crew 1+4 · From: …" (the colon was dropped here until 24 Oct 2026).
-    for (const r of rosterRows(lang)) out.push(`${r.callSign} — ${r.type}${r.crew ? ` · ${T.crew} ${r.crew}` : ""}${r.from ? ` · ${T.from}: ${r.from}` : ""}${r.detail ? ` · ${r.detail}` : ""}`);
+    // Revision (bn): as `HelpCard`, only the units and sources the participant has met (on the map or in the message log).
+    for (const r of rosterRows(lang, rosterSeen(session.snap()))) out.push(`${r.callSign} — ${r.type}${r.crew ? ` · ${T.crew} ${r.crew}` : ""}${r.from ? ` · ${T.from}: ${r.from}` : ""}${r.detail ? ` · ${r.detail}` : ""}`);
   } else {
     const L = FIRE_THEME.legend, M = LEGEND_MAP_TEXT[lang];
     out.push(T.legendNote, `${tr(lang, L.title)}:`);

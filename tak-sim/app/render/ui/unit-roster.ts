@@ -9,6 +9,12 @@
  * pelastuslaitos" / "naapuripelastuslaitos", was Etelä-Karjala and Kymenlaakso: EK and KY may be real codes, VERIFY 1–2 with
  * Pelastusopisto; a corpus-wide rename follows only a confirmed collision); the near-future assets VD1, UGV1 and DR3 are marked
  * trials ("kokeilu"); OUT1 and OUT2 are heavy tanker units, as their radio says ("raskas säiliö").
+ *
+ * Revision (bn), 25 Oct 2026 (review S8; SPEC/18 (bn)): the help card's roster no longer tells that reinforcements will come. Its rows
+ * appear only once the unit is on the map or has been heard in the message log (`HelpCard.tsx` `rosterRows(lang, seen)`, `rosterSeen`),
+ * and no origin says "Saapui … mukana" (UGV1 "Saapui OUT1:n mukana", VD1 "Saapui vahvennusten mukana"; now where they come from). The
+ * hover card and the TAK contacts show only units on the map, as before. The command centre JOKE, which acknowledges reports (the
+ * pointers, `pointers.ts`), has a source row (`SOURCE_ROSTER`), not a platform: no marker, no TAK symbol.
  */
 
 export interface RosterEntry {
@@ -31,14 +37,26 @@ export const UNIT_ROSTER: Readonly<Record<string, RosterEntry>> = {
   KY23: { typeFi: "Pelastusyksikkö (vahvennus)", crew: "1+4", fromFi: "Naapuripelastuslaitos" },
   OUT1: { typeFi: "Raskas säiliöyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
   OUT2: { typeFi: "Raskas säiliöyksikkö (toinen alue)", crew: "1+4", fromFi: "Alueen ulkopuolelta" },
-  UGV1: { typeFi: "Letkunvetorobotti (itsenäinen, kokeilu)", crew: "1 (käyttäjä)", fromFi: "Saapui OUT1:n mukana", detailFi: "Vetää letkua miehistönsä kanssa; ei suunnitelman tehtävissä" },
+  UGV1: { typeFi: "Letkunvetorobotti (itsenäinen, kokeilu)", crew: "1 (käyttäjä)", fromFi: "Alueen ulkopuolelta", detailFi: "Vetää letkua miehistönsä kanssa; ei suunnitelman tehtävissä" },
 
   DR1: { typeFi: "Lämpökamerakopteri", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Akku n. 35 min" },
   DR2: { typeFi: "Lämpökamerakopteri", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Akku n. 35 min" },
   DR3: { typeFi: "VTOL-drooni, kehän kartoitus (kokeilu)", crew: "3 (drooniryhmä, johtopaikalla)", fromFi: "Alueellinen drooniyksikkö", detailFi: "Toiminta-aika n. 2,5 h" },
   HELI1: { typeFi: "Sammutushelikopteri (kauha)", fromFi: "Valtion ilmailu", detailFi: "Pudottaa vettä lentäjän harkinnan mukaan; ei suunnitelman tehtävissä" },
-  VD1: { typeFi: "Vesidrooni (autonominen, kokeilu)", crew: "0 — valvoja johtopaikalla", fromFi: "Saapui vahvennusten mukana", detailFi: "Visio: kauhoo vettä lähimmästä vesipisteestä, n. 80 l / kierros; pudottaa palon reunalle oman käyttäjänsä harkinnan mukaan, ei suunnitelman tehtävissä" },
+  VD1: { typeFi: "Vesidrooni (autonominen, kokeilu)", crew: "0 — valvoja johtopaikalla", fromFi: "Alueellinen drooniyksikkö", detailFi: "Visio: kauhoo vettä lähimmästä vesipisteestä, n. 80 l / kierros; pudottaa palon reunalle oman käyttäjänsä harkinnan mukaan, ei suunnitelman tehtävissä" },
   SPOT: { typeFi: "Palovartiolentokone", crew: "2", fromFi: "Vapaaehtoinen palovartiolento", detailFi: "Ilmoitukset hätäkeskuksen kautta" },
+};
+
+/**
+ * Revision (bn): call signs heard on the radio that are not platforms — the rescue department's command centre, JOKE, which
+ * acknowledges the units' reports (`pointers.ts` POINTER_SENDER). The help card lists it after the units once it has been heard.
+ * DRAFT (native and domain check: the call sign's form, `wildfire-radio-realism` "<area> PEL-JOKE").
+ */
+export const SOURCE_ROSTER: Readonly<Record<string, RosterEntry>> = {
+  JOKE: { typeFi: "Pelastuslaitoksen johtokeskus: kuittaa yksiköiden ilmoitukset ja kirjaa ne", fromFi: "Oma pelastuslaitos" },
+};
+export const SOURCE_ROSTER_EN: Readonly<Record<string, { readonly type: string; readonly crew?: string; readonly from?: string; readonly detail?: string }>> = {
+  JOKE: { type: "The rescue department's command centre: acknowledges the units' reports and logs them", from: "Own rescue department" },
 };
 
 /** The roster in English (session language "en"; DRAFT translation), same keys. */
@@ -55,12 +73,12 @@ export const UNIT_ROSTER_EN: Readonly<Record<string, { readonly type: string; re
   // Play-test, 24 Oct 2026: was "From outside the region", shown under the help card's "From:" label as "From: From …".
   OUT1: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "Outside the region" },
   OUT2: { type: "Heavy tanker unit (other region)", crew: "1+4", from: "Outside the region" },
-  UGV1: { type: "Hose-laying robot (autonomous, trial)", crew: "1 (operator)", from: "Arrived with OUT1", detail: "Lays hose with its crew; not tasked by the plan" },
+  UGV1: { type: "Hose-laying robot (autonomous, trial)", crew: "1 (operator)", from: "Outside the region", detail: "Lays hose with its crew; not tasked by the plan" },
   DR1: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },
   DR2: { type: "Thermal-camera multicopter", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Battery approx. 35 min" },
   DR3: { type: "VTOL drone, perimeter mapping (trial)", crew: "3 (drone team, at the command post)", from: "Regional drone unit", detail: "Endurance approx. 2.5 h" },
   HELI1: { type: "Firefighting helicopter (bucket)", from: "State aviation", detail: "Drops water at the pilot's judgement; not tasked by the plan" },
-  VD1: { type: "Water drone (autonomous, trial)", crew: "0 — supervisor at the command post", from: "Arrived with the reinforcements", detail: "Scoops water from the nearest water point, approx. 80 l per round; drops on the burning edge at its own operator's judgement, not tasked by the plan" },
+  VD1: { type: "Water drone (autonomous, trial)", crew: "0 — supervisor at the command post", from: "Regional drone unit", detail: "Scoops water from the nearest water point, approx. 80 l per round; drops on the burning edge at its own operator's judgement, not tasked by the plan" },
   SPOT: { type: "Fire-spotting aircraft", crew: "2", from: "Volunteer fire-spotting flight", detail: "Reports through the emergency centre" },
 };
 

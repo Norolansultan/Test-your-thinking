@@ -394,24 +394,24 @@
   },
   "index": {
     "file": "content/thinker/index.json",
-    "sha256": "4714edeb6f70bffce56315ee4e82e3190d681ed764dddd44406a7ec5eaba56f1",
+    "sha256": "3c74e42d5c3ff01bf3f6dfe25caf744268ab15145843cba9a38587813c1c3c89",
     "atomCount": 1016,
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
     "carriedVectors": 595,
-    "carriedFromIndexSha256": "b1aba0c2b97d91974bf4a2c46c9ebc5b1dc145d52585cb0c9b793259adf0c9e2",
+    "carriedFromIndexSha256": "4714edeb6f70bffce56315ee4e82e3190d681ed764dddd44406a7ec5eaba56f1",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "indexEn": {
     "file": "content/thinker/index.en.json",
-    "sha256": "a3a770b37590e8a911a2e066b9a1826922eaa862976fce91f3e396b179de231f",
+    "sha256": "ad23c14a7eece17a1f14b1d4bec919ed4e5eb584d5a26772f3d54d35d5c74c28",
     "atomCount": 1016,
     "language": "en",
     "scenarioId": "demo-scenario",
     "scenarioVersion": "0.1.0-demo",
     "authoredQueries": "content/thinker/authored-queries.en.json",
     "carriedVectors": 658,
-    "carriedFromIndexSha256": "328f89a067038b4cce4a8fe093b4ee97e01359c73c470ba7d47760b75266b88d",
+    "carriedFromIndexSha256": "a3a770b37590e8a911a2e066b9a1826922eaa862976fce91f3e396b179de231f",
     "status": "PROVISIONAL (SPEC/31 §7 WP-1): written by `npm run thinker:index -- --carry` without the embedding model; the vectors of changed records are carried from the previous index (`carriedFrom` in the entry), so this index is NOT the declared treatment — rebuild with `npm run thinker:index` (both languages, the model) before any session"
   },
   "directivePremises": {

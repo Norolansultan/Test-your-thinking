@@ -82,6 +82,15 @@ describe("the practice feedback's content (source-only, but for the records item
       expect(DIFFICULTY_TEXT[lang].feedback.closingThinker).toMatch(/Thinker/);
     }
   });
+
+  it("revision (bn), review S7: the closing line describes where reports are and what finds them; it tells no one to search", () => {
+    for (const lang of ["fi", "en"] as const) {
+      for (const line of [DIFFICULTY_TEXT[lang].feedback.closingHaku, DIFFICULTY_TEXT[lang].feedback.closingThinker]) {
+        expect(line, lang).not.toMatch(/Käytä|kannattaa|täytyy|\bUse\b|\bshould\b|\bmust\b|when the message log/i);
+        expect(line, lang).toMatch(lang === "fi" ? /ne löytyvät Haulla/ : /Search (?:or Thinker )?finds them/);
+      }
+    }
+  });
 });
 
 describe("the practice feedback in the session", () => {

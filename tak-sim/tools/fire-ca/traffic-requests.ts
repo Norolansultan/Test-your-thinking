@@ -16,6 +16,14 @@ import type { Out, TrafficCycleInput, TrafficState, TrafficUnit } from "./traffi
 
 const angleDiff = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
 
+/**
+ * Revision (bn), 25 Oct 2026 (review S5): a crew that pulled its men off the line earlier in the step says in its next request that it
+ * is back on the line, so the recorded request and the pushed withdrawal agree on where the crew works at the freeze. EK11's PP1
+ * withdrawal (`deployment.ts` EXTRA_RADIO, radio 7.4, 15.30) comes before its 15.35 hose request (V5 `hose_short`'s key record): the
+ * request now opens "palasimme linjalle" (the crew withdraws again at 15.41, step 8's move). The step it says so in, by unit. DRAFT.
+ */
+const BACK_ON_LINE: Readonly<Record<string, number>> = { EK11: 7 };
+
 export function requestTraffic(inp: TrafficCycleInput, state: TrafficState, out: Out): void {
   const { n } = inp;
   const { pick, rnd } = out.draw;
@@ -40,12 +48,13 @@ export function requestTraffic(inp: TrafficCycleInput, state: TrafficState, out:
     if (u.task === "firebreak" && u.onEdge && once(`saws:${u.id}`)) ask(u, L(`palokatkon raivaukseen tarvitaan lisää teräketjuja ja sahabensaa, kaksi sahaa seisoo.`, `we need more saw chains and saw fuel to cut the firebreak, two saws are idle.`));
     // Long hose lines need more hose and pressure.
     // Radio ST-08 (SPEC/31): the request in the crew's own words, fixed by unit and step (the same sentence came four times).
-    if ((u.hoseM ?? 0) >= 500 && once(`hosereq:${u.id}:${u.anchor}`)) ask(u, ((m: number) => vary(u.id, n, [
+    const back = (t: string) => (BACK_ON_LINE[u.id] === n ? `${L("palasimme linjalle.", "we are back on the line.")} ${t.charAt(0).toUpperCase()}${t.slice(1)}` : t);
+    if ((u.hoseM ?? 0) >= 500 && once(`hosereq:${u.id}:${u.anchor}`)) ask(u, back(((m: number) => vary(u.id, n, [
       L(`letkulinja ${u.hoseM} m, letkua varalla alle ${m} m. Pyydämme lisää 76 mm ja 42 mm letkua sekä jakoliittimen.`, `hose line ${u.hoseM} m, under ${m} m of spare hose. We request more 76 mm and 42 mm hose and a dividing breeching.`),
       // Function words as in the first phrasing (one "ja"): a lexical match on "on"/"ja" moved V5's frozen retrieval (thinker-review-ah C2).
       L(`linjaa jo ${u.hoseM} m, varaletkua alle ${m} m. Tarvitsemme lisää 76 mm syöttöletkua, 42 mm työletkua sekä jakoliittimen.`, `the line is already ${u.hoseM} m, under ${m} m of spare hose. We need more 76 mm supply hose, 42 mm attack hose and a dividing breeching.`),
       L(`letku loppuu: linja ${u.hoseM} m, varalla alle ${m} m. Lähettäkää 76 mm ja 42 mm letkua sekä jakoliitin.`, `we are running out of hose: the line is ${u.hoseM} m, under ${m} m spare. Send 76 mm and 42 mm hose and a dividing breeching.`),
-    ]))(r50(150 + rnd() * 100)), "vesi_reitit");
+    ]))(r50(150 + rnd() * 100))), "vesi_reitit");
   }
 
   // Food and drink after the shower (SPEC/19 §5 step 10: food request).

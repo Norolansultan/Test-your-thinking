@@ -61,8 +61,10 @@ export const DIFFICULTY_TEXT: Readonly<Record<Lang, DifficultyText>> = {
       legendHead: "Kärki",
       measureTitle: "Etäisyyden mittaaminen",
       measure: (km, dir) => `R3:n silta on noin ${km} km palosta ${dir}. Mittaa-työkalu: valitse oikean reunan työkaluista Mittaa ja napauta kartalta kahta kohtaa.`,
-      closingHaku: "Tulevissa jaksoissa moni ilmoitus on vain kirjauksissa. Käytä Hakua, kun viestiloki ei kerro tarpeeksi.",
-      closingThinker: "Tulevissa jaksoissa moni ilmoitus on vain kirjauksissa. Käytä Hakua – tai Thinkeriä – kun viestiloki ei kerro tarpeeksi.",
+      // Revision (bn), 25 Oct 2026 (review S7; DRAFT, native check): descriptive, not directive (was "… Käytä Hakua, kun viestiloki ei
+      // kerro tarpeeksi." in bold before V1): it says where reports are and what finds them, as the tour's records step does.
+      closingHaku: "Tulevissa jaksoissa moni ilmoitus on vain kirjauksissa; ne löytyvät Haulla.",
+      closingThinker: "Tulevissa jaksoissa moni ilmoitus on vain kirjauksissa; ne löytyvät Haulla tai Thinkerillä.",
       continue: "Jatka",
     },
   },
@@ -87,8 +89,9 @@ export const DIFFICULTY_TEXT: Readonly<Record<Lang, DifficultyText>> = {
       legendHead: "The head",
       measureTitle: "Measuring a distance",
       measure: (km, dir) => `The R3 bridge is about ${km} km ${dir} of the fire. The R&B tool: choose R&B among the tools on the right edge and tap two points on the map.`,
-      closingHaku: "In the periods to come, many reports are only in the records. Use Search when the message log does not tell you enough.",
-      closingThinker: "In the periods to come, many reports are only in the records. Use Search, or Thinker, when the message log does not tell you enough.",
+      // Revision (bn) (review S7): descriptive, not directive (was "… Use Search when the message log does not tell you enough.").
+      closingHaku: "In the coming periods many reports are only in the records; Search finds them.",
+      closingThinker: "In the coming periods many reports are only in the records; Search or Thinker finds them.",
       continue: "Continue",
     },
   },

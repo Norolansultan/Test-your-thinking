@@ -20,8 +20,8 @@ export const ALL_CHAT_ROOMS_LABEL = { fi: "Kaikki keskustelut", en: "All Chat Ro
 
 /** Sources that are aircraft or drone teams (the scenario's `drone`, `water_drone`, `spotter_aircraft`, `helicopter` actors). */
 const AIR = new Set(["DR1", "DR2", "DR3", "VD1", "SPOT", "HELI1", "DRONERYHMÄ"]);
-/** Command and the duty officers above the participant. */
-const COMMAND = new Set(["P2", "P3", "TILANNEKUVA", "HÄTÄKESKUS", "JÄLKIVARTIO"]);
+/** Command and the duty officers above the participant; JOKE, the rescue department's command centre that acknowledges reports (revision (bn)). */
+const COMMAND = new Set(["P2", "P3", "TILANNEKUVA", "HÄTÄKESKUS", "JÄLKIVARTIO", "JOKE"]);
 /** Ground units: rescue units (EK*, KY*, OUT*), the volunteer brigade and the robot. */
 const GROUND = /^(EK\d+|KY\d+|OUT\d+|VPK|UGV\d+)$/;
 

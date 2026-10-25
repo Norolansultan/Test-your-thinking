@@ -172,9 +172,11 @@ const SPECS: Readonly<Record<string, Spec>> = {
     en: ["edges?[^.]{0,40}calm\\w*[^.]{0,60}(?:not (?:yet )?(?:over|out)|still burn)", "(?:wind|edges?)[^.]{0,60}(?:eas|calm|weaken)\\w*[^.]{0,60}(?:fire|it) is not (?:yet )?(?:over|out)"],
   },
   // Revision (bk), 25 Oct 2026: re-keyed — what reaching EK14's line takes (a vehicle stops short of it, the kit is carried).
+  // Revision (bn) (review B1): the key is a FIRE ENGINE stopping short (EK14's own terrain vehicle reaches the line); an answer saying
+  // so, or that the kit is carried in, states it.
   "freeze.7.north_help": {
-    fi: ["(?:autolla|autoilla|paloautolla) ei pääse", "ei pääse (?:autolla|autoilla)", "(?:letku\\w*|kalusto\\w*)[^.]{0,40}(?:kannetaan|kannettava|kantakaa)", "(?:kannetaan|kannettava|kantakaa)[^.]{0,40}(?:letku|kalusto)"],
-    en: ["(?:cannot|can't|can not) (?:get|drive|reach)[^.]{0,60}(?:closer|the line|EK14)", "(?:no|a) vehicle (?:cannot|can't|can not|gets no) (?:get|reach|closer)", "(?:hose|equipment|kit)[^.]{0,40}(?:carried|carry)", "carr(?:y|ied)[^.]{0,40}(?:hose|equipment|kit)"],
+    fi: ["(?:autolla|autoilla|paloautolla|paloauto|paloautot) ei pääse", "ei pääse (?:autolla|autoilla|paloautolla)", "paloauto\\w*[^.]{0,60}(?:jää|pysähtyy)[^.]{0,40}(?:\\d+ ?m|metrin|päähän)", "(?:letku\\w*|kalusto\\w*)[^.]{0,40}(?:kannetaan|kannettava|kantakaa)", "(?:kannetaan|kannettava|kantakaa)[^.]{0,40}(?:letku|kalusto)"],
+    en: ["(?:cannot|can't|can not) (?:get|drive|reach)[^.]{0,60}(?:closer|the line|EK14)", "(?:no|a) (?:vehicle|fire engine) (?:cannot|can't|can not|gets no) (?:get|reach|closer)", "fire engines?[^.]{0,60}(?:stops?|only gets?)[^.]{0,40}(?:short|\\d+ ?m)", "(?:hose|equipment|kit)[^.]{0,40}(?:carried|carry)", "carr(?:y|ied)[^.]{0,40}(?:hose|equipment|kit)"],
   },
   "freeze.7.rekindle_sector": {
     fi: ["\\bL3\\b[^.]{0,80}(?:uudelleen|syty|kyt|riski)", "(?:uudelleen\\w*|syttyä|kyteä|kytee)[^.]{0,80}(?:\\bL3\\b|syttymäkohdan eteläreun)", "\\bL3\\W{1,3}etelä"],
@@ -295,7 +297,7 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.5.area_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
   "freeze.5.road_jump": { fi: ["Koivuoj"], en: ["Birch Creek"] }, // SPEC/33 stage 9: was the Kuusimäki forest road
   "freeze.7.lull_meaning": { fi: ["tuul", "reun"], en: ["wind", "edge"] },
-  "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna", "pääse", "autolla"], en: ["EK14", "north edge", "reach", "vehicle"] }, // revision (bk): re-keyed
+  "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna", "pääse", "autolla", "paloauto"], en: ["EK14", "north edge", "reach", "vehicle", "fire engine"] }, // revision (bk): re-keyed; (bn): the fire engine
   "freeze.7.rekindle_sector": { fi: ["uudelleen", "syty", "kyt", "lohko"], en: ["flar", "rekindl", "smoulder", "sector"] },
   "freeze.7.cabins_reach": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
   "freeze.7.cp_safe": { fi: ["johtopai"], en: ["command post"] },

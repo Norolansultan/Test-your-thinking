@@ -37,6 +37,7 @@ import { roundedMeasurement } from "./RangeBearing.js";
 import { symbolSvg } from "./tak-symbols.js";
 import { sidcOf } from "../../../tak/symbols.js";
 import { TakToolbar } from "./TakToolbar.js";
+import { rosterSeen } from "../explain/HelpCard.js";
 import { TakSidePane } from "./TakSidePane.js";
 import { GeoChatPane } from "./GeoChatPane.js";
 import { ContactsPane } from "./ContactsPane.js";
@@ -243,7 +244,7 @@ export function TakSessionLayout({ snapshot, orchestrator, extent, condition, fr
             {body(pane)}
           </TakSidePane>
         )}
-        <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} recordsBadge={snapshot.recordsBadge} />
+        <TakToolbar panes={panes} open={pane} onSelect={(p) => choosePane(p, "toolbar")} searchLocked={snapshot.toolsLocked} unread={unread} logTarget={!paneShowsLog(pane)} recordsBadge={snapshot.recordsBadge} rosterSeen={rosterSeen(snapshot)} />
         {/* SPEC/30 §4: the consult notification beside its tool's toolbar button; non-modal (over a side pane, never over the map's centre). */}
         {snapshot.consultPrompt && (
           <ConsultNotice prompt={snapshot.consultPrompt} text={t.consult} onOpen={openConsult} onDismiss={() => void orchestrator.dismissConsultPrompt().catch(() => undefined)}

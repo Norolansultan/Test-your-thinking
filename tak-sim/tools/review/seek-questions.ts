@@ -42,6 +42,7 @@ export const SEEK_QUESTIONS: readonly SeekQuestions[] = [
   {
     itemId: "freeze.7.north_help", records: ["evt.c10.028"],
     fi: ["Miten EK14:n linjalle pääsee?", "Kuinka lähelle EK14:ää pääsee?", "Pääseekö EK14:n linjalle?"],
-    en: ["Can a fire engine get to EK14?", "How close can vehicles get to EK14?"],
+    // Revision (bn) (review B1): EK14's re-worded line says no "closer"; the second English question asks whether vehicles get through.
+    en: ["Can a fire engine get to EK14?", "Can vehicles get through to EK14's line?"],
   },
 ];

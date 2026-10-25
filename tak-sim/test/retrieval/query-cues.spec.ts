@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 import { tokenise } from "../../app/retrieval/hybrid.js";
+import { namedSourceCue } from "../../app/retrieval/named-source.js";
 import { queryClocks, queryCues } from "../../app/retrieval/query-cues.js";
 
 const latest = (q: string, lang: "fi" | "en" = "fi") => queryCues(q, lang).latest;
@@ -266,4 +267,88 @@ describe("a latest-state question that names no topic (D10 addendum, 24 Oct 2026
     ["Any new reports from DR3?", "en"],
     ["What has been recorded in this period?", "en"],
   ] as const)("%s → not topic-free", (q, lang) => expect(topicFree(q, lang)).toBe(false));
+});
+
+/**
+ * SPEC/14 revision (bo), 25 Oct 2026 (the review's B2; `app/retrieval/named-source.ts`): which sources a question names, and whether it
+ * asks for their records newest first — no clock, and nothing besides the names but reporting verbs and words that name no topic.
+ */
+describe("a named source (revision (bo))", () => {
+  const SOURCES = ["EK11", "EK12", "EK14", "DR3", "VPK", "SÄÄENNUSTE", "SAA", "METSÄKESKUS", "TILANNEKUVA", "DRONERYHMÄ", "JOHTOPAIKKA", "HÄTÄKESKUS", "VESIHUOLTO", "POLIISI"];
+  const cue = (q: string, lang: "fi" | "en" = "fi") => namedSourceCue(SOURCES, lang, queryCues(q, lang));
+
+  it.each([
+    ["Mitä EK12 ilmoitti?", "fi", ["EK12"]],
+    ["Mitä EK12:lta on kuulunut?", "fi", ["EK12"]],
+    ["Mitä EK12:n ryhmä kertoi?", "fi", ["EK12"]],
+    ["Mitä DR3:n viimeisin kartoitus näyttää?", "fi", ["DR3"]],
+    ["Mitä VPK:lta on ilmoitettu?", "fi", ["VPK"]],
+    ["Mikä on sääennuste?", "fi", ["SÄÄENNUSTE"]],
+    ["Mitä sääennusteesta tiedetään?", "fi", ["SÄÄENNUSTE"]],
+    ["Onko uutta sääennustetta?", "fi", ["SÄÄENNUSTE"]],
+    ["Mitä johtopaikalta on kirjattu?", "fi", ["JOHTOPAIKKA"]],
+    ["Mitä hätäkeskukselta tuli?", "fi", ["HÄTÄKESKUS"]],
+    ["Mitä vesihuollon loki kertoo?", "fi", ["VESIHUOLTO"]],
+    ["Mitä EK11 ja EK12 ilmoittivat?", "fi", ["EK11", "EK12"]],
+    ["What has EK12 reported?", "en", ["EK12"]],
+    ["What did EK12's crew say?", "en", ["EK12"]],
+    ["What is the latest weather forecast?", "en", ["SÄÄENNUSTE"]],
+    ["Any weather forecasts?", "en", ["SÄÄENNUSTE"]],
+    ["What did VOL1 report?", "en", ["VPK"]],
+    ["Have the police reported?", "en", ["POLIISI"]],
+  ] as const)("%s names %j", (q, lang, sources) => {
+    expect(cue(q, lang).sources).toEqual(sources);
+  });
+
+  it.each([
+    ["Kuinka nopeasti palo etenee kohti metsäautotietä?", "fi"], // not METSÄKESKUS (the lexical half's prefix "metsä" would)
+    ["Mikä on tilanne nyt?", "fi"], // not TILANNEKUVA ("tilan")
+    ["Mitä droonien lämpökuva näyttää?", "fi"], // not the Drooniryhmä ("droon")
+    ["Mistä EK13 saa vettä?", "fi"], // the verb "saa" is not the weather station (Sääasema)
+    ["Mikä on tuuliennuste?", "fi"], // "ennuste" is not "sääennuste"
+    ["What is the forecast?", "en"], // "Weather forecast" needs both words
+    ["How much water is left?", "en"], // "Water supply" needs both words
+  ] as const)("%s names no source", (q, lang) => {
+    expect(cue(q, lang).sources).toEqual([]);
+  });
+
+  it.each([
+    ["Mitä EK12 ilmoitti?", "fi"],
+    ["Mitä EK12 on ilmoittanut?", "fi"],
+    ["Mitä EK12 sanoi?", "fi"],
+    ["Mitä EK12 kertoi?", "fi"],
+    ["Mitä EK12 raportoi?", "fi"],
+    ["Mitä EK12:lta on kuulunut?", "fi"],
+    ["Mitä uutta EK12:lta?", "fi"],
+    ["Mikä on viimeisin sääennuste?", "fi"],
+    ["Mikä on sääennuste?", "fi"],
+    ["Onko uutta sääennustetta?", "fi"],
+    ["EK11", "fi"],
+    ["What has EK12 reported?", "en"],
+    ["What did EK12 report?", "en"],
+    ["What did EK12 say?", "en"],
+    ["What's the latest from EK12?", "en"],
+    ["What is the latest weather forecast?", "en"],
+    ["What is the weather forecast?", "en"],
+  ] as const)("%s asks for the named source's records newest first", (q, lang) => {
+    expect(cue(q, lang).newestFirst).toBe(true);
+  });
+
+  it.each([
+    ["Mitä EK12 ilmoitti kärjestä?", "fi"], // a topic
+    ["Mitä EK12 ilmoitti klo 14.08?", "fi"], // a clock: the clock rule's
+    ["Mikä on viimeisin sääennuste illaksi?", "fi"], // a topic after the cue: ranked, with the latest-state preference
+    ["Missä EK12 on nyt kärkeen nähden?", "fi"],
+    ["Miten kärki etenee EK12:n kohdalla?", "fi"],
+    ["What is EK12 reporting from the south flank?", "en"],
+    ["What did DR3 report at 14.15?", "en"],
+    ["Mitä uutta tällä jaksolla on kirjattu?", "fi"], // names no source: D10's topic-free rule, over all sources
+  ] as const)("%s does not", (q, lang) => {
+    expect(cue(q, lang).newestFirst).toBe(false);
+  });
+
+  it("is deterministic and sorts the sources", () => {
+    expect(cue("Mitä EK12 ja EK11 ilmoittivat?")).toEqual({ sources: ["EK11", "EK12"], newestFirst: true, lexicalQuery: "Mitä EK12 EK11 ?" });
+    expect(namedSourceCue([...SOURCES].reverse(), "fi", queryCues("Mitä EK12 ja EK11 ilmoittivat?"))).toEqual(cue("Mitä EK12 ja EK11 ilmoittivat?"));
+  });
 });

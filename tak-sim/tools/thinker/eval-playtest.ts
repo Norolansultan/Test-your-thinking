@@ -1,7 +1,8 @@
 /**
- * `npx tsx tools/thinker/eval-playtest.ts` — the D10 evaluation (SPEC/14 revision D10, 24 Oct 2026):
- * query-aware recency and clock-aware matching, before (`withoutD10`) and after (the declared
- * configuration). REPORT-ONLY and needs no model or network:
+ * `npx tsx tools/thinker/eval-playtest.ts` — the evaluation of SPEC/14 revision D10 (24 Oct 2026: query-aware recency and
+ * clock-aware matching) and of revision (bo) (25 Oct 2026, the review's B2: the named-source rule and the content match). Three
+ * configurations: before D10 (`withoutD10(withoutBo(…))`, the retrieval before 24 Oct 2026), (bn) (`withoutBo`, D10 without (bo))
+ * and the declared one. REPORT-ONLY and needs no model or network:
  *
  * 1. **Play-test questions** (`playtest-cases.ts`, `docs/audits/2026-10-23-playtest/haku.csv`):
  *    the rank of the right record, LEXICAL only — as the play harness and the demo bridge run Haku
@@ -10,19 +11,21 @@
  *    25 Oct 2026); nothing is chosen on it.
  * 2. **Authored questions** (`authored-questions.ts`) with their stored query vectors
  *    (`content/thinker/authored-queries*.json`): HYBRID, as the proxy runs it, at every view's
- *    start gate; how many top-k lists change, and the designed records' ranks at the tests' views.
+ *    start gate; how many top-k lists change (before D10 -> (bn), and (bn) -> declared, the latter split by whether the question
+ *    names a source), and the designed records' ranks at the tests' views.
  * 3. **Report-only:** each authored question with a recency cue appended ("nyt" / "now"), with the
  *    plain question's stored vector. The cue leaves the lexical query, so the lexical half is exact;
  *    only the vector is approximate (the real embedding of the longer question would differ slightly).
- * 4. The frozen indexes' passage hashes still match every atom in both languages (D10 changes no passage).
+ * 4. The frozen indexes' passage hashes still match every atom in both languages (neither D10 nor (bo) changes a passage).
  *
  *   --verbose   per play-test case, the top 3 records after
  *
- * Nothing is tuned on parts 2–4; part 1 is the development set (SPEC/14 revision D10).
+ * Nothing is tuned on parts 2–4; part 1 is the development set (SPEC/14 revisions D10 and (bo)).
  */
 
 import { readFileSync } from "node:fs";
 import { hybridRetrieve, retrievalConfigOf, vectorIndexOf, type HybridConfig, type RetrievalLang, type VectorIndex } from "../../app/retrieval/hybrid.js";
+import { namedSourceCue } from "../../app/retrieval/named-source.js";
 import { queryCues } from "../../app/retrieval/query-cues.js";
 import { reachableAtoms } from "../../app/retrieval/time-gate.js";
 import { DESIGNED_EVENT_IDS } from "../../app/scenario/types.js";
@@ -30,7 +33,7 @@ import { clockAt, recordText } from "../../app/session/template-answer.js";
 import { AUTHORED_QUERIES_FILE, AUTHORED_QUERIES_FILE_EN, repoPath } from "../../server/thinker/config.js";
 import { authoredQuestionsOf } from "./authored-questions.js";
 import { gateStepOfView, readIndexFile, scenario } from "./eval-common.js";
-import { bestRank, loadPlaytestCases, PLAYTEST_HAKU_FILE, PLAYTEST_REPLAY_HAKU_FILE, rankSummary, withoutD10 } from "./playtest-cases.js";
+import { bestRank, loadPlaytestCases, PLAYTEST_HAKU_FILE, PLAYTEST_REPLAY_HAKU_FILE, rankSummary, withoutBo, withoutD10 } from "./playtest-cases.js";
 
 const ALL = Number.MAX_SAFE_INTEGER;
 const VIEWS = scenario.cycles.map((c) => c.index).filter((v) => v >= 1);
@@ -41,23 +44,33 @@ function ranked(question: string, step: number, lang: RetrievalLang, config: Hyb
   return hybridRetrieve(question, reachableAtoms(scenario.atoms, step), vector, { ...config, topK: ALL }, lang).map((r) => r.atom.id);
 }
 
+/** The three configurations compared: before D10, (bn), declared. */
+function configsOf(lang: RetrievalLang): readonly [HybridConfig, HybridConfig, HybridConfig] {
+  const declared = retrievalConfigOf(lang);
+  return [withoutD10(withoutBo(declared)), withoutBo(declared), declared];
+}
+
+/** Whether the question names a source among the records gated at `step` (`named-source.ts`), and asks for them newest first. */
+function namedTag(question: string, step: number, lang: RetrievalLang): "-" | "N" | "n" {
+  const named = namedSourceCue(reachableAtoms(scenario.atoms, step).map((a) => a.provenance.sourceId), lang, queryCues(question, lang));
+  return named.sources.length === 0 ? "-" : named.newestFirst ? "n" : "N";
+}
+
 function playtest(verbose: boolean, file: string, title: string): void {
   const cases = loadPlaytestCases(file);
   console.log(`\n${title} (${file}: ${cases.length} with an identifiable right record), lexical only, rank of the right record (- = not ranked)`);
-  console.log(`   cue: L latest-state, C a clock, T topic-free (the newest records); before = without D10, after = the declared configuration`);
-  console.log(`   ${"case".padEnd(5)} ${"lang".padEnd(4)} ${"step".padStart(4)} cue   ${"before".padStart(6)} ${"after".padStart(6)}  question`);
-  const before: number[] = [];
-  const after: number[] = [];
+  console.log("   cue: L latest-state, C a clock, T topic-free (the newest records), N a named source (n: its records newest first)");
+  console.log("   preD10 = neither D10 nor (bo); (bn) = D10 without (bo); after = the declared configuration");
+  console.log(`   ${"case".padEnd(5)} ${"lang".padEnd(4)} ${"step".padStart(4)} cue    ${"preD10".padStart(6)} ${"(bn)".padStart(6)} ${"after".padStart(6)}  question`);
+  const columns: [number[], number[], number[]] = [[], [], []];
   for (const c of cases) {
-    const declared = retrievalConfigOf(c.lang);
     const cues = queryCues(c.question, c.lang);
-    const b = bestRank(ranked(c.question, c.step, c.lang, withoutD10(declared), null), c.targets);
-    const top = ranked(c.question, c.step, c.lang, declared, null);
-    const a = bestRank(top, c.targets);
-    before.push(b);
-    after.push(a);
-    const tag = `${cues.latest ? "L" : "-"}${cues.clocks.length > 0 ? "C" : "-"}${cues.topicFree ? "T" : "-"}`;
-    console.log(`   ${c.id.padEnd(5)} ${c.lang.padEnd(4)} ${String(c.step).padStart(4)} ${tag.padEnd(5)} ${rankStr(b).padStart(6)} ${rankStr(a).padStart(6)}  ${c.question.slice(0, 90)}`);
+    const configs = configsOf(c.lang);
+    const top = ranked(c.question, c.step, c.lang, configs[2], null);
+    const ranks = [bestRank(ranked(c.question, c.step, c.lang, configs[0], null), c.targets), bestRank(ranked(c.question, c.step, c.lang, configs[1], null), c.targets), bestRank(top, c.targets)];
+    ranks.forEach((r, i) => columns[i]!.push(r));
+    const tag = `${cues.latest ? "L" : "-"}${cues.clocks.length > 0 ? "C" : "-"}${cues.topicFree ? "T" : "-"}${namedTag(c.question, c.step, c.lang)}`;
+    console.log(`   ${c.id.padEnd(5)} ${c.lang.padEnd(4)} ${String(c.step).padStart(4)} ${tag.padEnd(6)} ${ranks.map((r) => rankStr(r).padStart(6)).join(" ")}  ${c.question.slice(0, 90)}`);
     if (verbose) {
       for (const id of top.slice(0, 3)) {
         const atom = scenario.atoms.find((x) => x.id === id)!;
@@ -66,13 +79,15 @@ function playtest(verbose: boolean, file: string, title: string): void {
     }
   }
   const k = retrievalConfigOf("fi").topK;
-  for (const [name, ranks] of [["before", before], ["after", after]] as const) {
+  for (const [name, ranks] of [["preD10", columns[0]], ["(bn)", columns[1]], ["after", columns[2]]] as const) {
     const s = rankSummary(ranks, k);
     console.log(`   ${name.padEnd(6)} n ${s.n}  top-1 ${s.top1}  top-3 ${s.top3}  top-${k} ${s.topK}  MRR@${k} ${s.mrrAtK.toFixed(4)}`);
   }
-  const better = cases.filter((_, i) => (after[i] || ALL) < (before[i] || ALL)).length;
-  const worse = cases.filter((_, i) => (after[i] || ALL) > (before[i] || ALL)).length;
-  console.log(`   better ${better}, worse ${worse}, unchanged ${cases.length - better - worse}`);
+  for (const [name, from] of [["preD10 -> after", columns[0]], ["(bn) -> after", columns[1]]] as const) {
+    const better = cases.filter((_, i) => (columns[2][i] || ALL) < (from[i] || ALL)).length;
+    const worse = cases.filter((_, i) => (columns[2][i] || ALL) > (from[i] || ALL)).length;
+    console.log(`   ${name}: better ${better}, worse ${worse}, unchanged ${cases.length - better - worse}`);
+  }
 }
 
 /** The stored query vectors of the authored questions of a language. */
@@ -97,12 +112,13 @@ function authored(lang: RetrievalLang): void {
   }
   const index = vectorIndexOf(indexFile);
   const vectors = storedVectors(lang);
-  const declared = retrievalConfigOf(lang);
+  const [pre, bn, declared] = configsOf(lang);
   const k = declared.topK;
   const cue = lang === "en" ? "now" : "nyt";
   let lists = 0;
-  let changed = 0;
+  let changedD10 = 0;
   let changedCue = 0;
+  const changedBo = { named: 0, namedLists: 0, plain: 0, plainLists: 0, which: new Set<string>() };
   const lines: string[] = [];
   for (const [group, questions] of Object.entries(authoredQuestionsOf(lang)) as [keyof typeof DESIGNED_TARGETS, readonly string[]][]) { // determinism-lint-allow: a fixed literal object, its declaration order is the order
     for (const q of questions) {
@@ -112,19 +128,33 @@ function authored(lang: RetrievalLang): void {
       const target = DESIGNED_TARGETS[group];
       for (const view of VIEWS) {
         const step = gateStepOfView(view);
-        const b = ranked(q, step, lang, withoutD10(declared), vector);
+        const p = ranked(q, step, lang, pre, vector);
+        const b = ranked(q, step, lang, bn, vector);
         const a = ranked(q, step, lang, declared, vector);
         const c = ranked(`${q} ${cue}`, step, lang, declared, vector);
+        const named = namedTag(q, step, lang) !== "-";
         lists++;
-        if (b.slice(0, k).join() !== a.slice(0, k).join()) changed++;
+        if (p.slice(0, k).join() !== b.slice(0, k).join()) changedD10++;
+        const differs = b.slice(0, k).join() !== a.slice(0, k).join();
+        if (named) changedBo.namedLists++;
+        else changedBo.plainLists++;
+        if (differs) {
+          if (named) changedBo.named++;
+          else changedBo.plain++;
+          changedBo.which.add(`"${q}"${named ? " (names a source)" : ""}`);
+        }
         if (a.slice(0, k).join() !== c.slice(0, k).join()) changedCue++;
         if (target && (target.views as readonly number[]).includes(view)) {
-          lines.push(`   V${String(view).padEnd(3)} ${target.id.padEnd(20)} before ${rankStr(bestRank(b, [target.id])).padStart(4)}  after ${rankStr(bestRank(a, [target.id])).padStart(4)}  with "${cue}" ${rankStr(bestRank(c, [target.id])).padStart(4)}  "${q}"`);
+          const r = (ids: readonly string[]) => rankStr(bestRank(ids, [target.id])).padStart(4);
+          lines.push(`   V${String(view).padEnd(3)} ${target.id.padEnd(20)} preD10 ${r(p)}  (bn) ${r(b)}  after ${r(a)}  with "${cue}" ${r(c)}  "${q}"`);
         }
       }
     }
   }
-  console.log(`\n2. Authored questions (${lang}), hybrid with the stored query vectors, ${VIEWS.length} views: ${changed} of ${lists} top-${k} lists change (before -> after)`);
+  console.log(`\n2. Authored questions (${lang}), hybrid with the stored query vectors, ${VIEWS.length} views, ${lists} top-${k} lists:`);
+  console.log(`   preD10 -> (bn): ${changedD10} change`);
+  console.log(`   (bn) -> after: ${changedBo.plain} of ${changedBo.plainLists} change for questions naming no source, ${changedBo.named} of ${changedBo.namedLists} for questions naming one`);
+  for (const w of changedBo.which) console.log(`     changed: ${w}`);
   console.log(`3. Report-only (${lang}): with "${cue}" appended (the plain question's vector), ${changedCue} of ${lists} top-${k} lists differ from the plain question's`);
   console.log("   designed records at the tests' views (full ranks, top-k lifted):");
   for (const l of lines) console.log(l);

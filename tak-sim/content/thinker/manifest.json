@@ -161,7 +161,41 @@
       "namedSource": 0.5,
       "farMinutes": 10,
       "far": 0.15,
-      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it; the named-source rule's check since (bo), 25 Oct 2026), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+    },
+    "namedSource": {
+      "boost": 0.25,
+      "rule": "(bo) 25 Oct 2026 (SPEC/14 revision (bo), the review's B2; app/retrieval/named-source.ts): a source is named when the question has every word of its shown name in the session language (sourceName: 'EK12', 'VPK', 'SÄÄENNUSTE', 'Weather forecast', 'Volunteer fire brigade VOL1') or a code in it; words are whole, lowercased, a case ending after a colon dropped ('EK12:n', 'VPK:lta'); a Finnish word may be inflected: it begins with the name word less its last two letters ('sääennusteesta', 'johtopaikalta'), a name word of five letters or fewer and a code must be whole; an English word may be a plural or a possessive (S-stemmer); the clock rule's namedSource uses the same check. Every gated, collapsed candidate of a named source gets +boost and counts as matched. With no clock naming a record time, when the question's other words (the lexical query less the words naming a source) are all reportingVerbs or topicFreeWords, the named sources' candidates alone are returned newest first (then by id), as the D10 topic-free rule; otherwise the ranking is as before plus the boost, and the question's reportingVerbs words leave the lexical query (as cue words do). Chosen on the play-test development set (haku.csv, MRR@8) among newest-first {only for a topic-free rest, for any recency cue too} x boost {0.1, 0.25, 0.5, 1.0} x contentMatch {on, off}; the replay set (haku-replay.csv) held out",
+      "reportingVerbs": {
+        "fi": [
+          "ilmoittaa (ilmoitti, ilmoittanut, ilmoittavat …)",
+          "raportoida (raportoi, raportoinut …)",
+          "kertoa (kertoi, kertonut, kertoo, kerro, kerrottu …)",
+          "sanoa (sanoi, sanonut, sanoo, sanottu …)",
+          "kuulua (kuulunut, kuuluu: what has been heard from)",
+          "ja, tai, sekä (between two names: 'Mitä EK11 ja EK12 ilmoittivat?')"
+        ],
+        "en": [
+          "report (reported, reports, reporting)",
+          "say (says, said, saying)",
+          "tell (tells, told, telling)",
+          "hear (heard)",
+          "do, does, did (the question's auxiliary)",
+          "from (the latest from …)",
+          "and, or (between two names)"
+        ]
+      },
+      "topicFreeWords": {
+        "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tulleet|tapahtunut|saapu\\p{L}*|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|viest\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+        "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|message|messages|information|update|updates|news|happened|happening|come|came|arrived|received)$"
+      }
+    },
+    "contentMatch": {
+      "rule": "(bo) 25 Oct 2026 (app/retrieval/function-words.ts): a word of the question that is a functionWord (as written: lowercased, a case ending after a colon and an English possessive dropped) gives function tokens (its tokens that no other word of the question has); a candidate whose BM25 match is only on function tokens scores 0, when some candidate matches another token of the question; otherwise nothing changes. The lexical query keeps every word; the vector half and the passage are unchanged",
+      "functionWords": {
+        "fi": "on ovat oli olivat olla ole olen olet olemme olette ollut olleet olisi olisivat onko ovatko oliko olivatko onhan ei eivät en et emme ette eikö eivätkö ja tai sekä mutta että jos kun kuin vai eli joten koska jotta vaikka mikä mitä mitkä minkä missä mistä mihin millä miltä mille millainen millaista millaisia milloin miten kuinka kuka ketkä kenen kenelle keneltä kumpi paljonko montako se sen sitä siitä siinä siihen sille siltä sillä ne niiden niitä niistä niissä niihin niillä tämä tämän tätä tässä tästä tähän tällä nämä näiden tuo joka jota jonka jossa josta johon jolla jotka mitään jotain jotakin jokin joku kukaan mikään minä minun me meidän meille sinä sinun te teidän teille hän he heidän itse myös vielä jo sitten vain siis kyllä ihan aivan",
+        "en": "a an the is are was were be been being am has have had do does did will would can could should shall may might must of to in on at for by with from into about as and or but if than then so not no that this these those there here it its they them their we our us you your i my me he she his her what which who whom whose when where why how any some also too just"
+      }
     },
     "tieBreak": "newer observation first, then atom id",
     "neutralEval": {
@@ -297,7 +331,41 @@
       "namedSource": 0.5,
       "farMinutes": 10,
       "far": 0.15,
-      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+      "rule": "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; one after before/after/since/until/by/ennen or before jälkeen/lähtien/alkaen/asti/saakka/mennessä is relative and names no record time; every clock expression is removed from the lexical query; a candidate whose clock as shown (observedAt, floored to the minute) is within nearMinutes of a named clock gets +near, +namedSource more when the question names its source as Haku shows it in the session language (every word of the shown name, or a code in it; the named-source rule's check since (bo), 25 Oct 2026), within farMinutes +far; gated records within nearMinutes of a named clock are exempt from the routine collapse; a clock-matched candidate counts as matched"
+    },
+    "namedSource": {
+      "boost": 0.25,
+      "rule": "(bo) 25 Oct 2026 (SPEC/14 revision (bo), the review's B2; app/retrieval/named-source.ts): a source is named when the question has every word of its shown name in the session language (sourceName: 'EK12', 'VPK', 'SÄÄENNUSTE', 'Weather forecast', 'Volunteer fire brigade VOL1') or a code in it; words are whole, lowercased, a case ending after a colon dropped ('EK12:n', 'VPK:lta'); a Finnish word may be inflected: it begins with the name word less its last two letters ('sääennusteesta', 'johtopaikalta'), a name word of five letters or fewer and a code must be whole; an English word may be a plural or a possessive (S-stemmer); the clock rule's namedSource uses the same check. Every gated, collapsed candidate of a named source gets +boost and counts as matched. With no clock naming a record time, when the question's other words (the lexical query less the words naming a source) are all reportingVerbs or topicFreeWords, the named sources' candidates alone are returned newest first (then by id), as the D10 topic-free rule; otherwise the ranking is as before plus the boost, and the question's reportingVerbs words leave the lexical query (as cue words do). Chosen on the play-test development set (haku.csv, MRR@8) among newest-first {only for a topic-free rest, for any recency cue too} x boost {0.1, 0.25, 0.5, 1.0} x contentMatch {on, off}; the replay set (haku-replay.csv) held out",
+      "reportingVerbs": {
+        "fi": [
+          "ilmoittaa (ilmoitti, ilmoittanut, ilmoittavat …)",
+          "raportoida (raportoi, raportoinut …)",
+          "kertoa (kertoi, kertonut, kertoo, kerro, kerrottu …)",
+          "sanoa (sanoi, sanonut, sanoo, sanottu …)",
+          "kuulua (kuulunut, kuuluu: what has been heard from)",
+          "ja, tai, sekä (between two names: 'Mitä EK11 ja EK12 ilmoittivat?')"
+        ],
+        "en": [
+          "report (reported, reports, reporting)",
+          "say (says, said, saying)",
+          "tell (tells, told, telling)",
+          "hear (heard)",
+          "do, does, did (the question's auxiliary)",
+          "from (the latest from …)",
+          "and, or (between two names)"
+        ]
+      },
+      "topicFreeWords": {
+        "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tulleet|tapahtunut|saapu\\p{L}*|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|viest\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+        "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|message|messages|information|update|updates|news|happened|happening|come|came|arrived|received)$"
+      }
+    },
+    "contentMatch": {
+      "rule": "(bo) 25 Oct 2026 (app/retrieval/function-words.ts): a word of the question that is a functionWord (as written: lowercased, a case ending after a colon and an English possessive dropped) gives function tokens (its tokens that no other word of the question has); a candidate whose BM25 match is only on function tokens scores 0, when some candidate matches another token of the question; otherwise nothing changes. The lexical query keeps every word; the vector half and the passage are unchanged",
+      "functionWords": {
+        "fi": "on ovat oli olivat olla ole olen olet olemme olette ollut olleet olisi olisivat onko ovatko oliko olivatko onhan ei eivät en et emme ette eikö eivätkö ja tai sekä mutta että jos kun kuin vai eli joten koska jotta vaikka mikä mitä mitkä minkä missä mistä mihin millä miltä mille millainen millaista millaisia milloin miten kuinka kuka ketkä kenen kenelle keneltä kumpi paljonko montako se sen sitä siitä siinä siihen sille siltä sillä ne niiden niitä niistä niissä niihin niillä tämä tämän tätä tässä tästä tähän tällä nämä näiden tuo joka jota jonka jossa josta johon jolla jotka mitään jotain jotakin jokin joku kukaan mikään minä minun me meidän meille sinä sinun te teidän teille hän he heidän itse myös vielä jo sitten vain siis kyllä ihan aivan",
+        "en": "a an the is are was were be been being am has have had do does did will would can could should shall may might must of to in on at for by with from into about as and or but if than then so not no that this these those there here it its they them their we our us you your i my me he she his her what which who whom whose when where why how any some also too just"
+      }
     },
     "tieBreak": "newer observation first, then atom id",
     "index": "content/thinker/index.en.json",

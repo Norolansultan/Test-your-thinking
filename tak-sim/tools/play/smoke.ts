@@ -1,7 +1,7 @@
 /**
  * `npx tsx tools/play/smoke.ts [outDir]` — the play harness's smoke run (`tools/play/`): a scripted dumb policy plays a whole
  * session to its end in both audiences (expert in Finnish, public in English) — it waits, answers every item's first option (a
- * map item: the map's middle) with confidence 50, asks Haku one question in each period, records the same plan in every period
+ * map item: the map's middle; the map training's tasks likewise, its memory task's unit waited out) with confidence 50, asks Haku one question in each period, records the same plan in every period
  * and keeps it at the review — through the same commands the CLI runs (`runCommand`), in one live session; then it writes the run
  * (`actions.json`) and replays it from disk (`replayRun`) to check that the replay reaches the same end (the same virtual time and
  * the same log). Prints each audience's command count, virtual length and runtime. No PNGs (the CLI draws those).
@@ -14,6 +14,8 @@ import type { SessionSnapshot } from "../../app/session/snapshot.js";
 import { PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
 import { questionPhase } from "../../app/render/ui/explain/primer-flow.js";
 import { isMapItem } from "../../app/session/freeze-answers.js";
+import { MAP_TRAINING } from "../../app/session/map-training.js";
+import { isPointTask } from "../../app/session/map-training-spec.js";
 import { SOURCE_SECTION } from "../../app/session/questionnaire.js";
 import { PlaySession, type ActionRecord, type PlayConfig } from "./session.js";
 import { runCommand } from "./commands.js";
@@ -32,7 +34,13 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
       const attempts = session.primer!.progress[session.primer!.page]!.attempts;
       return ["primer-answer", String(Math.min(attempts + 1, PRIMER_CONTENT[session.config.lang].pages[session.primer!.page]!.question.options.length))];
     }
-    case "map_pretest": return ["pretest-answer", s.mapPretest!.itemId, s.mapPretest!.options[0]!.id];
+    case "map_pretest": { // the map training: the unit waited out, each task's first option or the extract's centre, its feedback left
+      const v = s.mapPretest!;
+      if (v.phase === "study") return ["wait", String(Math.max(1, session.o.mapPretestStudySecondsLeft()))];
+      if (v.phase === "feedback") return ["continue"];
+      const task = MAP_TRAINING.tasks.find((t) => t.id === v.taskId)!;
+      return isPointTask(task) ? ["pretest-answer", `${MAP_TRAINING.crop.size / 2},${MAP_TRAINING.crop.size / 2}`] : ["pretest-answer", "a"];
+    }
     case "briefing": case "training": case "practice_feedback": case "debrief": case "profile": return ["continue"];
     case "hinge_pause": return s.hingeCheck?.phase === "item" ? ["hinge-answer", "a"] : ["continue"];
     case "freeze": {

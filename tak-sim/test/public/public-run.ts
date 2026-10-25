@@ -1,6 +1,7 @@
 /**
  * Drives a whole study-shell session (SPEC/35 P1): consent, the AI literacy test (skipped), the preflight, the pre-session
- * item, the primer (public sessions), the map-reading pretest (each item's first option), the intro video, VP, the practice feedback,
+ * item, the primer (public sessions), the map training (each task's first option or the extract's centre, its feedback left at once,
+ * the memory task's unit waited out), the intro video, VP, the practice feedback,
  * the training, V1–V14 (or V1–V7 with `scope: "phaseA"`), the hinge,
  * the post-session questionnaire, the results step (SPEC/36: skipped here unless `optIn`), the commander profile (only with
  * `immediateProfile`), the debrief and the end. The real clock is the fake timers' `Date.now()` (the spec sets it to 0), so every
@@ -14,6 +15,8 @@ import type { PreflightEnv } from "../../app/session/preflight.js";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { conditionOfCell } from "../../app/session/preview.js";
 import { completeView } from "../session/session-run.js";
+import { MAP_TRAINING } from "../../app/session/map-training.js";
+import { isPointTask } from "../../app/session/map-training-spec.js";
 
 export const scenario = buildDemoScenario();
 
@@ -47,9 +50,23 @@ export async function passPrimer(o: SessionOrchestrator): Promise<void> {
   await o.finishPrimer();
 }
 
-/** Difficulty audit (23 Oct 2026): answers the map-reading pretest on screen, each item's first option at once, until it ends. */
+/**
+ * The map training (25 Oct 2026; was the map-reading pretest): one move on the task on screen — its question answered (a choice task's
+ * first option, a point task's extract centre), its feedback left at once, or the memory task's unit waited out (the timers advance by
+ * its exposure).
+ */
+export async function trainingStep(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
+  const v = snap().mapPretest!;
+  const task = MAP_TRAINING.tasks.find((t) => t.id === v.taskId)!;
+  if (v.phase === "study") { await vi.advanceTimersByTimeAsync(MAP_TRAINING.memoryMs); return; }
+  if (v.phase === "feedback") return o.leaveMapPretestFeedback(v.taskId);
+  const centre = MAP_TRAINING.crop.size / 2;
+  return o.answerMapPretest(v.taskId, isPointTask(task) ? { point: { x: centre, y: centre } } : { choiceId: task.options[0]!.id });
+}
+
+/** Runs the map training on screen to its end, as `trainingStep` moves. */
 export async function passPretest(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
-  while (snap().step === "map_pretest" && snap().mapPretest) await o.answerMapPretest(snap().mapPretest!.itemId, snap().mapPretest!.options[0]!.id);
+  while (snap().step === "map_pretest" && snap().mapPretest) await trainingStep(o, snap);
 }
 
 /**
@@ -75,7 +92,7 @@ export async function driveStep(o: SessionOrchestrator, snap: () => SessionSnaps
     case "preflight": await o.submitPreflight(GOOD_ENV); return;
     case "questionnaire": return o.submitQuestionnaire(s.questionnaire!.id === "pre" ? { "fatigue.start": 3 } : {});
     case "primer": return passPrimer(o);
-    case "map_pretest": return o.answerMapPretest(s.mapPretest!.itemId, s.mapPretest!.options[0]!.id); // each item's first option, at once
+    case "map_pretest": return trainingStep(o, snap); // the map training: each task answered, its feedback left at once
     case "briefing": return o.finishIntroVideo("ended");
     case "practice_feedback": return o.finishPracticeFeedback();
     case "training": return o.completeTraining();

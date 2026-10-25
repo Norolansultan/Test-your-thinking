@@ -2,7 +2,7 @@
  * The information rule (difficulty audit, 23 Oct 2026; `proposal.md` (a)): the tour's log, Haku and V1 steps and the public primer say
  * that the message log shows only part of the traffic and that the rest is in the records, found with Haku — and no tour or primer
  * sentence says any longer that the units' reports arrive in the message log. Generic (no scenario name), the same in both groups.
- * The measure tool has its tour step (`proposal-map.md` d5). The map pretest's and the feedback's frames name nothing of the scenario.
+ * The measure tool has its tour step (`proposal-map.md` d5). The feedback's frame names nothing of the scenario.
  */
 
 import { describe, expect, it } from "vitest";
@@ -61,10 +61,10 @@ describe("the information rule in the tour and the primer (difficulty audit (a))
     expect(UI.en.tour.steps.measure.body).toMatch(/R&B/);
   });
 
-  it("the pretest's and the feedback's frames name no place of the scenario", () => {
+  it("the feedback's frame names no place of the scenario (the map training's texts, which replaced the pretest's: map-training.spec.ts)", () => {
     for (const lang of ["fi", "en"] as const) {
       const t = DIFFICULTY_TEXT[lang];
-      const texts = [t.pretest.title, t.pretest.intro(6), t.feedback.title, t.feedback.intro, t.feedback.map, t.feedback.workedOut, t.feedback.head, t.feedback.headNoMark, t.feedback.closingHaku, t.feedback.closingThinker];
+      const texts = [t.feedback.title, t.feedback.intro, t.feedback.map, t.feedback.workedOut, t.feedback.head, t.feedback.headNoMark, t.feedback.closingHaku, t.feedback.closingThinker];
       for (const s of texts) expect(s).not.toMatch(/Haukilampi|Pike Pond|Mökkiranta|Lakeside|Lahdenkylä|Bay Village|Kuivakangas|Dry Heath/);
     }
   });

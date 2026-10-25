@@ -8,7 +8,7 @@
  * Commands (README.md has the costs and the limitations):
  *   start --audience expert|public --lang fi|en     look            continue          wait [seconds]
  *   haku "<question>"   haku-history   glossary <term>   help [glossary|roster|legend] [letter]   consult open|dismiss
- *   primer-answer <n>   primer-retry   primer-next   primer-back      pretest-answer <item> <option>
+ *   primer-answer <n>   primer-retry   primer-next   primer-back      pretest-answer <letter|x,y>
  *   freeze-answer <item> <option|x,y> <25|50|75|100>   freeze-submit
  *   spam-ready   spam-collapse   spam-expand   spam-answer <option> <confidence> | spam-answer <confidence>
  *   plan main=… posture=… secondary=… drones=… [departure=… reason=…]   confirm   revise

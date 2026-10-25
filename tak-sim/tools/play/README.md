@@ -2,7 +2,7 @@
 
 A CLI that lets an LLM "player" play the TAK wildfire command session turn by turn, as a participant would. It runs the **real
 session engine** headless — the app's `SessionOrchestrator` over `buildDemoScenario()`, with the options the app gives a study
-session (`?tuotanto`: study shell, AI-literacy test, intro video, map-reading pretest, practice feedback, guided tour, visible
+session (`?tuotanto`: study shell, AI-literacy test, intro video, map training (the pretest's step), practice feedback, guided tour, visible
 probes, SA levels hidden, nothing skippable) — in the **Haku group** (cell `radio`), on a **virtual clock**. The player sees what
 the participant's screen shows, in the session language, with the app's own strings; the live map as a PNG drawn by the app's own
 `MapView`. Expert (`--audience expert`) and public (`--audience public`, SPEC/35: primer, glossary, help card) sessions both run.
@@ -53,7 +53,7 @@ prompt, the period's end). Use `look` after any command to see the whole screen.
 | `freeze-answer <letter\|x,y> <confidence>` / `freeze-submit` | the freeze, one item at a time (the one on screen), no going back; a map item is answered in the freeze map PNG's pixel coordinates. Options are lettered a, b, c … and no item or option id is shown, as in the app (some ids name the key); runs played before 24 Oct 2026, which named the item and the option id, still replay | 10 / 2 |
 | `probe-answer no` · `probe-answer yes a,b` · `probe-answer <letter> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
 | `hinge-answer <letter>` | the hinge's question | 10 |
-| `pretest-answer <item> <option>` | the map-reading pretest (its extract as a PNG) | 20 |
+| `pretest-answer <letter \| x,y>` | the map training's task on screen, once (its extract as a PNG with an x,y grid); its feedback is left with `continue` (10) | 20 |
 | `primer-answer <n>`, `primer-retry`, `primer-next`, `primer-back` | the primer (public) | 10, 5, 20, 20 |
 | `glossary <term>`, `help [glossary\|roster\|legend] [letter]` | the glossary and the help card (public; logged as the app logs them) | 5, 10 |
 | `quest-answer <item> <option>` / `quest-submit` | the post-session questionnaire: the source-memory items are the player's; the rest is left blank (every item is optional) | 6 / 20 |
@@ -102,7 +102,7 @@ MapLibre, the tiles).
   (`template-answer.ts`): the top record's text, up to three sources with their clocks, its certainty. The study's answers are
   written by a model over hybrid retrieval and will differ; every Haku answer is labelled so.
 - **No real-time pressure** but the virtual-time costs: the player can think for as long as it likes between commands, and `look`
-  is free. The period's caps, the freeze's cap, the SPAM answer window and the pretest's four minutes run on the costs only.
+  is free. The period's caps, the freeze's cap, the SPAM answer window and the map training's five minutes run on the costs only.
 - The UI's micro-interactions are not simulated: hovers, pointer tracks, camera records (`viewport_changed`), the TAK shell's
   mount records, the window-size guard. The records the measures read are kept: Haku's `tab_selected` and pane records, the SPAM
   card's and freeze screen's answer changes, Contacts and Range & Bearing records, the legend toggle.

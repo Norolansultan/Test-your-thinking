@@ -21,8 +21,8 @@
  * SPEC/35 (21 Oct 2026): a public session's primer and commander profile, and a phase-A session's end after V7 (`public-session.ts`).
  * SPEC/36 (23 Oct 2026): every session's step "Personal results after the study" after the post-session questionnaire
  * (`results_optin`, `decideResultsOptIn`); the commander profile on screen only with `immediateProfile` (`?profiili=heti`).
- * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest before VP (`mapPretest`,
- * `map-pretest.ts`), the source-only practice feedback after VP (`practiceFeedback`, `practice-feedback.ts`), the practice SPAM
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest before VP (`mapPretest`; since 25 Oct
+ * 2026 the map training in its step, `map-training.ts`), the source-only practice feedback after VP (`practiceFeedback`, `practice-feedback.ts`), the practice SPAM
  * item's measuring task (`practice-measure.ts`), and the content-free "New records" badge on the Haku button (`recordsBadge`).
  */
 
@@ -69,7 +69,8 @@ import { ConsultNotice, consultToolOf, HAKU_SUGGESTED_QUESTION, hakuChipOffered,
 import { PlanConfidence } from "./plan-confidence.js";
 import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
 import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
-import { keptPretestAnswers, MapPretest, pretestSpentMs } from "./map-pretest.js";
+import { keptTraining, MapTraining, trainingSpentMs } from "./map-training.js";
+import type { TrainingAnswer } from "./map-training-spec.js";
 import { PRACTICE_FEEDBACK_SCREEN_ID, PRACTICE_HEAD_ITEM_ID, practiceFeedbackView, practiceHeadMarkOf, type PracticeFeedbackView } from "./practice-feedback.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
@@ -163,7 +164,8 @@ export interface SessionOptions {
   /**
    * Difficulty audit (23 Oct 2026, `proposal-map.md` c.2): the map-reading pretest after the pre-session item (and a public session's
    * primer), before the intro video and VP; with the study shell only. Off by default so the earlier specs run unchanged; the app turns
-   * it on in every session, and the header logs it (`mapPretest`).
+   * it on in every session, and the header logs it (`mapPretest`). Since 25 Oct 2026 the step holds the map training (`map-training.ts`,
+   * SPEC/15 (bj)).
    */
   readonly mapPretest?: boolean;
   /**
@@ -293,7 +295,7 @@ export class SessionOrchestrator {
   private readonly immediateProfile: boolean;
   /** Difficulty audit: the map-reading pretest (`SessionOptions.mapPretest`) and the practice feedback (`SessionOptions.practiceFeedback`). */
   private readonly mapPretestOn: boolean;
-  private readonly mapPretest: MapPretest;
+  private readonly mapPretest: MapTraining; // since 25 Oct 2026 the map training, in the pretest's step
   private readonly practiceFeedbackOn: boolean;
   private practiceFeedback: PracticeFeedbackView | null = null;
   private practiceHeadMark: LatLon | null = null; // the practice freeze's head mark, for the feedback's map task
@@ -358,10 +360,10 @@ export class SessionOrchestrator {
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: async () => { this.step = "preflight"; this.notify(); }, // its end record is durable: on to the preflight
     }, this.language);
-    this.mapPretest = new MapPretest({
+    this.mapPretest = new MapTraining({
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: () => this.toBriefing(), // its end record is durable: on to the intro video and VP
-    }, this.language);
+    });
   }
 
   subscribe(listener: Listener): () => void {
@@ -559,21 +561,30 @@ export class SessionOrchestrator {
     return this.showMapPretest();
   }
 
-  /** Shows the map-reading pretest (`map_pretest_started` first: the screen shows once it is durable); a resume keeps the answers logged. */
+  /**
+   * Shows the map training in the pretest's step (25 Oct 2026; `map_pretest_started` first: the screen shows once it is durable); a
+   * resume keeps the answers and the feedback left that are logged.
+   */
   private async showMapPretest(records: readonly LogRecord[] = [], resumed = false): Promise<void> {
     this.step = "map_pretest";
     this.shellShownMs = this.realMs();
-    await this.mapPretest.start(keptPretestAnswers(records), pretestSpentMs(records), resumed);
-    if (this.step === "map_pretest") this.notify(); // (a pretest whose every item was kept has ended and moved on already)
+    await this.mapPretest.start(keptTraining(records), trainingSpentMs(records), resumed);
+    if (this.step === "map_pretest") this.notify(); // (a training whose every task was kept has ended and moved on already)
   }
 
-  /** A pretest item answered and left (final); the last ends the pretest and the session goes on to the briefing. */
-  answerMapPretest(itemId: string, choiceId: string): Promise<void> {
+  /** A training task answered (once, final: logged before its feedback shows), with the measure tool's readings on it (m). */
+  answerMapPretest(itemId: string, answer: TrainingAnswer, measures: readonly number[] = []): Promise<void> {
     if (this.step !== "map_pretest") return Promise.reject(new Error(`answerMapPretest in step ${this.step}`));
-    return this.mapPretest.answer(itemId, choiceId);
+    return this.mapPretest.answer(itemId, answer, measures);
   }
-  /** Whole seconds left on the pretest's cap (its countdown). */
+  /** A training task's feedback left ("Next task"); the last ends the training and the session goes on to the briefing. */
+  leaveMapPretestFeedback(itemId: string): Promise<void> {
+    if (this.step !== "map_pretest") return Promise.reject(new Error(`leaveMapPretestFeedback in step ${this.step}`));
+    return this.mapPretest.leaveFeedback(itemId);
+  }
+  /** Whole seconds left on the training's cap (its countdown), and on the memory task's exposure. */
   mapPretestSecondsLeft(): number { return this.mapPretest.secondsLeft(); }
+  mapPretestStudySecondsLeft(): number { return this.mapPretest.studySecondsLeft(); }
 
   /** TUTORIAL -> RUNNING: the group-specific training is read; V1 starts at 13:20, virtual 0. */
   async completeTraining(): Promise<void> {
@@ -1728,7 +1739,7 @@ export class SessionOrchestrator {
       const records = this.resumeInfo?.records ?? [];
       await this.showAiLiteracy(keptAiLiteracyAnswers(records), aiLiteracySpentMs(records), true);
     }
-    else if (shell === "map_pretest") return this.showMapPretest(this.resumeInfo?.records ?? [], true); // the first unanswered item
+    else if (shell === "map_pretest") return this.showMapPretest(this.resumeInfo?.records ?? [], true); // the first task not finished
     else if (shell === "profile") await this.showProfile();
     else if (shell === "debrief") await this.showDebrief();
     else this.step = shell; // the consent, the preflight, the primer (from its first page), the results step (SPEC/36)

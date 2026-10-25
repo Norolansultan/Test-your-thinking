@@ -22,7 +22,7 @@ import type { AiLiteracyView } from "./ai-literacy.js";
 import type { ConsultPromptView } from "./consult-notice.js";
 import type { PlanConfidenceView } from "./plan-confidence.js";
 import type { PlanReviewView } from "./plan-review.js";
-import type { MapPretestView } from "./map-pretest.js";
+import type { MapTrainingView } from "./map-training.js";
 import type { PracticeFeedbackView } from "./practice-feedback.js";
 
 export type CyclePhase = "exploration" | "freeze" | "decision";
@@ -75,7 +75,7 @@ export type JudgementStep =
   | "profile"
   /** SPEC/36 (every session): "Personal results after the study", after the post-session questionnaire and before the profile or debrief. */
   | "results_optin"
-  /** Difficulty audit (23 Oct 2026): the map-reading pretest, after the pre-session item (and the primer) and before the intro video and VP. */
+  /** Difficulty audit (23 Oct 2026): the map-reading pretest — since 25 Oct 2026 the map training —, after the pre-session item (and the primer) and before the intro video and VP. */
   | "map_pretest"
   /** Difficulty audit: the practice feedback screen, after VP's end and before the training text (`practice-feedback.ts`). */
   | "practice_feedback";
@@ -225,8 +225,11 @@ export interface SessionSnapshot {
   readonly planConfidence: PlanConfidenceView | null;
   /** SPEC/32 §3: the plan review on screen (step `plan_review`, once `plan_review_shown` is durable), else null. Carries no key. */
   readonly planReview: PlanReviewView | null;
-  /** Difficulty audit (23 Oct 2026): the map-reading pretest's item on screen (step `map_pretest`), else null. Carries no key. */
-  readonly mapPretest: MapPretestView | null;
+  /**
+   * Difficulty audit (23 Oct 2026): the map-reading pretest's item on screen (step `map_pretest`), else null. Since 25 Oct 2026 the
+   * map training's task on screen and its phase (`map-training.ts`; the training shows each key in its feedback).
+   */
+  readonly mapPretest: MapTrainingView | null;
   /** Difficulty audit: the practice feedback screen (step `practice_feedback`), else null. Source-only for the practice freeze's items. */
   readonly practiceFeedback: PracticeFeedbackView | null;
   /**

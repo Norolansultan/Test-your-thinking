@@ -1,7 +1,7 @@
 /**
  * The play harness's images (`tools/play/`): each `ImageRequest` (`map-data.ts`) drawn in headless Chromium through Playwright and
  * written as a PNG. The live map is the app's own `MapView` (`map-page.ts`, bundled with esbuild into `<run>/.map-cache/`), served with the basemap tiles and MapLibre's worker from a local HTTP server on 127.0.0.1, so MapLibre
- * draws it exactly as the browser does (WebGL by SwiftShader). The freeze map, the pretest extract and the practice feedback's
+ * draws it exactly as the browser does (WebGL by SwiftShader). The freeze map, the map training's extract and the practice feedback's
  * head map are SVG over the same tiles. Nothing here touches the session: it only draws what the harness hands it.
  *
  * Playwright is not a dependency of the project: it is imported from `PLAY_PLAYWRIGHT` (default
@@ -13,8 +13,8 @@ import { createServer, type Server } from "node:http";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BASEMAP_TILE_PX, BASEMAP_TILES, basemapPx, tilesFor } from "../../app/render/ui/basemap-px.js";
-import { pretestSvg } from "../../app/render/ui/pretest-overlay.js";
-import { MAP_PRETEST } from "../../app/session/map-pretest.js";
+import { trainingSvg } from "../../app/render/ui/map-training-overlay.js";
+import { MAP_TRAINING } from "../../app/session/map-training.js";
 import { topoTileUrl } from "../../app/i18n/place-names.js";
 import type { GeoExtent } from "../../app/engine/primitives.js";
 import { extentOutlinePx, FREEZE_GRID_STEP_PX, FREEZE_MAP_MARGIN_PX, freezeFrame, freezeTiles } from "./freeze-grid.js";
@@ -108,7 +108,12 @@ function pageOf(r: ImageRequest, extent: Pick<GeoExtent, "south" | "north" | "we
       return { html: htmlPage(`<link rel="stylesheet" href="/maplibre-gl.css"><script>window.__PLAY_MAP__=${data}</script>`, `<div id="app"></div><script type="module" src="/map-page.js"></script>`), selector: "#play-map-root", width: r.data.widthPx, height: r.data.heightPx, waitMap: true };
     }
     case "freeze": { const f = freezeSvg(extent, r.lang); return { html: htmlPage("", f.svg), selector: "svg", width: f.width, height: f.height, waitMap: false }; }
-    case "pretest": return { html: htmlPage("", `<div style="width:720px;height:720px">${pretestSvg(MAP_PRETEST, topoTileUrl(`/maps/topo/${MAP_PRETEST.crop.tile}.webp`, r.lang))}</div>`), selector: "div", width: 720, height: 720, waitMap: false };
+    case "pretest": { // the map training's task (25 Oct 2026), with the harness's x,y grid
+      const task = MAP_TRAINING.tasks.find((t) => t.id === r.taskId)!;
+      const svg = trainingSvg(MAP_TRAINING, task, r.phase, topoTileUrl(`/maps/topo/${MAP_TRAINING.crop.tile}.webp`, r.lang), r.lang, r.answer, { grid: true });
+      const px = Number(/width="(\d+)"/.exec(svg)![1]);
+      return { html: htmlPage("", svg), selector: "svg", width: px, height: px, waitMap: false };
+    }
     case "head": return { html: htmlPage("", headSvg(r)), selector: "svg", width: 420, height: 420, waitMap: false };
   }
 }

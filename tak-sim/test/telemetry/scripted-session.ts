@@ -164,10 +164,11 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "profile_shown", detail: {} },
   // SPEC/36 (0.14.0): personal results after the study
   { kind: "results_optin", detail: { optedIn: true } },
-  // The difficulty audit's changes (0.15.0): the map-reading pretest and the practice feedback
-  { kind: "map_pretest_started", detail: { version: "map-pretest-2026-10-23", itemIds: ["pretest.p1.square"], timeLimitMs: 240_000, remainingMs: 240_000, resumed: false, keptItemIds: [] } },
-  { kind: "map_pretest_answer", detail: { itemId: "pretest.p1.square", choiceId: "B2", position: 1, rtMs: 12_000 } },
-  { kind: "map_pretest_completed", detail: { endReason: "completed", answeredCount: 1, missingItemIds: [], durationMs: 12_500 } },
+  // The difficulty audit's changes (0.15.0): the map-reading pretest — since 0.17.0 the map training in its step — and the practice feedback
+  { kind: "map_pretest_started", detail: { version: "map-training-2026-10-25", itemIds: ["training.t1.place"], timeLimitMs: 300_000, remainingMs: 300_000, resumed: false, keptItemIds: [] } },
+  { kind: "map_pretest_answer", detail: { itemId: "training.t1.place", position: 1, rtMs: 9_000, measures: [312], point: { x: 171.5, y: 494 }, errorM: 5 } },
+  { kind: "map_pretest_feedback_left", detail: { itemId: "training.t1.place", position: 1, dwellMs: 7_500 } },
+  { kind: "map_pretest_completed", detail: { endReason: "completed", answeredCount: 1, missingItemIds: [], durationMs: 16_500 } },
   { kind: "practice_feedback_shown", detail: { itemIds: ["freeze.practice.infra", "freeze.practice.forecast"] } },
   // Adopted before pilot 2 (0.16.0): the hinge's optional fatigue item
   { kind: "hinge_fatigue_rated", detail: { itemId: "fatigue.hinge", value: 4 } },

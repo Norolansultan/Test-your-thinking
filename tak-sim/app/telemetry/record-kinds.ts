@@ -37,7 +37,7 @@ import type {
   NavSlotChangedDetail, NavQuerySubmittedDetail, AiChatQuerySubmittedDetail, AiChatAnswerReceivedDetail,
 } from "./record-kinds-interaction.js";
 import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
-import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
+import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 import type { HingeFatigueRatedDetail } from "./record-kinds-pilot2.js";
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ export type {
 // SPEC/35 (0.13.0): the public-audience version's records, `record-kinds-public.ts`.
 export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 // The difficulty audit's changes (0.15.0): the map-reading pretest and the practice feedback screen, `record-kinds-difficulty.ts`.
-export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
+export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 // Adopted before pilot 2 (0.16.0): the hinge's fatigue item and the stratum, `record-kinds-pilot2.ts`.
 export type { HingeFatigueRatedDetail, Profession, Stratum } from "./record-kinds-pilot2.js";
 
@@ -846,6 +846,7 @@ export type TelemetryEvent =
   | { readonly kind: "map_pretest_started"; readonly detail: MapPretestStartedDetail }
   | { readonly kind: "map_pretest_answer"; readonly detail: MapPretestAnswerDetail }
   | { readonly kind: "map_pretest_completed"; readonly detail: MapPretestCompletedDetail }
+  | { readonly kind: "map_pretest_feedback_left"; readonly detail: MapPretestFeedbackLeftDetail } // 0.17.0: the map training
   | { readonly kind: "practice_feedback_shown"; readonly detail: PracticeFeedbackShownDetail }
   // Adopted before pilot 2 (24 Oct 2026, 0.16.0)
   | { readonly kind: "hinge_fatigue_rated"; readonly detail: HingeFatigueRatedDetail };
@@ -1075,7 +1076,14 @@ export type RecordKind = TelemetryEvent["kind"];
  * `influence.plan_views.*` / `influence.answers.*` after the source block. A session that never clicks the hinge item and has no
  * stratum writes the records of 0.15.0 apart from the questionnaires' item lists.
  */
-export const TELEMETRY_FORMAT_VERSION = "0.16.0";
+/*
+ * 0.17.0 (the map training, researcher decision 25 Oct 2026; SPEC/07 revision (bj)): the map-reading pretest's step becomes a short
+ * map training (seven tasks with feedback, `app/session/map-training.ts`) and keeps its kinds: `map_pretest_answer` is a task's FIRST
+ * answer, logged before its feedback — `choiceId` for a choice task, or `point` and `errorM` for a point task (so `choiceId` is optional
+ * now), with `measures` and, on the memory task, `memoryMs`; `map_pretest_feedback_left {itemId, position, dwellMs}` is added (a task's
+ * feedback left); `map_pretest_started.version` is "map-training-2026-10-25", its cap 300 000 ms. Every other record is unchanged.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.17.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1109,4 +1117,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "results_optin",
   "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown",
   "hinge_fatigue_rated",
+  "map_pretest_feedback_left",
 ];

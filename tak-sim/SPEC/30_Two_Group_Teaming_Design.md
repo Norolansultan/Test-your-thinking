@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **25 Oct 2026 (bk)** — H2 depends on information seeking again (researcher decision of 25 Oct 2026): §6 H2's primary is the gap on the 9 seek-dependent items (the audit's classes, fixed before pilot 2), all 23 items the sensitivity, the group × item-class interaction H2× a pre-stated secondary in the Holm family (`09` (bk)); §5.1 four phase-A items made seek-dependent by holding three non-critical records for seeking (`08` (bk), `18` (bk)); bf.5 re-run: 92 % at Δ +0.8 on the seek-dependent items, 51 % on all 23, 87 % for H2× (n = 100). Treatment revision before pilot 2. See the revision at the end.
 > - **25 Oct 2026 (bi)** — §4 only (R6, researcher decision of 25 Oct 2026; replay analysis §10.3 c, g): the consult notice comes at 70 s in a merged view (after the 65 s step boundary's burst, no longer 5 s before it) and shows only when reports arrived after the participant's last recorded plan (in a single-step view it is dropped after a plan recorded before 60 s; in a merged view after a plan or revision recorded after the boundary). Content-free and the same rule in both groups; the log format is unchanged. See the revision at the end.
 > - **24 Oct 2026 (bf)** — adopted before pilot 2 (researcher decisions of 24 Oct 2026): §4 the Haku group gets its own content-free suggested-question chip from V8 (both packages carry one chip); §2 the allocation is stratified by language × profession × leads others (the screener's stratum in the link, `?osite=`); §5.4 the post-session self-estimate and perceived-influence items, the sleep and shift covariates and the hinge's fatigue item; §11 H2 re-run with the difficulty audit's item classes (the effect on the 8 seek-dependent items only: 43 % at δ +0.8 on all 24 items, 92 % on the seek-dependent ones, n = 100). Treatment revision before pilot 2. See the revision at the end.
 > - **24 Oct 2026 (bg)** — the play-test decisions (`08` (bg), `09` (bg)): §5.1's freezes keep their mix; V2 `ek11_between` and V4 `head_unattended` re-worded, V10 `area_total_hour` → `area_growth_hour`; F7 outside every SA composite (H9 only); V5's two forecast items rest on a pushed headline too. See the revision at the end.
@@ -87,7 +88,8 @@ Seven facts from the session, each with one question: "Where did this come from 
 Two-sided, α = .05. One primary per paper; each paper's secondaries are one Holm family.
 
 **Paper 1 — phase A (V1–V7), guide vs Haku.**
-- **H2 (primary). Overconfidence.** Per participant, mean confidence minus proportion correct on the L2/L3 items of the V2, V4, V5, V7 freezes (24 items); compared between groups in a participant-level model with item random effects as specified in `09` (the gap estimator of `tools/power/h2-power.ts` is its stand-in). *Supersedes* the confidence × accuracy interaction as primary; resolution becomes H2r (secondary).
+- **H2 (primary). Overconfidence.** Per participant, mean confidence minus proportion correct on the L2/L3 items of the V2, V4, V5, V7 freezes (24 items); compared between groups in a participant-level model with item random effects as specified in `09` (the gap estimator of `tools/power/h2-power.ts` is its stand-in). *Supersedes* the confidence × accuracy interaction as primary; resolution becomes H2r (secondary). *(Revision (bk), 25 Oct 2026, pre-registered: H2's primary is the gap on the **seek-dependent** items of H2's 23 — the difficulty audit's classes `passive` partly or no, 9 items, the list fixed from the audit before pilot 2's data; the gap over all 23 items is the pre-stated sensitivity; and the group × item-class interaction (seek-dependent against passive, the person as their own control) is a pre-stated secondary, **H2×**, in the Holm family; `09` (bk), bf.5's re-run of 25 Oct 2026 (bk).)*
+- **H2× (secondary; revision (bk)). Seeking carries the effect.** The group × item-class interaction on the confidence–accuracy gap over the 23 items (`09` (bk) §4).
 - **H2t (secondary). Borrowed versus own.** H2 on the items whose key the AI had not stated to that participant (`aiStatedKey` false); and the group × stated interaction on accuracy and on confidence. The pre-stated reading: overconfidence concentrated in not-stated items is an illusion of understanding from teaming.
 - **H1 (secondary).** Accuracy on the same items.
 - **H-T (secondary). Hand-over.** The group difference in (team accuracy on the SPAM L2/L3 items) minus (own accuracy on the freeze L2/L3 items of phase A).
@@ -353,7 +355,21 @@ Null: 5 · 4 · 5 %. Making the items fairer (answerable from the log, D1/D3/D7)
 
 Null (Δ 0, all items): 7 · 5 · 5 %. Reference (the effect on every item): Δ +0.4 · +0.8 = 68 · 99 % at n = 100, 76 · 100 % at 120, 84 · 100 % at 150. Taking out the one seek-dependent item the panel has to rule on costs the powered test 10 points (85 → 75 % at Δ +0.8, n = 100; MDE Δ 0.76 → 0.87); n = 120 restores 82 %. The all-items gap is now hopeless for an effect on the seek-dependent items alone (22 %, MDE Δ 2.87). If the panel restores V4 `head_later` (`11` §7.34), the 24 Oct table applies again.
 
-4. **What follows (RC, before the lock).** Pre-register the gap on the seek-dependent items as H2's powered test — either as the primary (with all 24 items as the sensitivity) or as a pre-stated secondary in the Holm family — and state the minimum detectable effects above; the class list is fixed from the audit before pilot 2's data, never from them. The re-run is one command: when the scenario work regenerates the audit (`items.csv`), `npm run power:h2-items` reads the new classes (and a `lure` column if the audit adds one). Pilot 2 replaces the difficulty and effect assumptions (per-item accuracy by class, `09` (be)'s checks).
+**Re-run 25 Oct 2026 (bk) after four items were made seek-dependent (`08` (bk), `18` (bk); audit regenerated):** of H2's **23 items**, 14 are answerable without seeking, 7 partly, 2 not, so **9 are seek-dependent** (V2 `south_flank`, `area_40`, `junction_hour`, `head_later`; V5 `hose_short`, `reinforcements`; V7 `north_help`, `rekindle_sector`, `cp_safe`; was 5); 4 late (`south_flank` is no longer late: its 13.51 record is reachable from the view's start); 3 lure items (V2 `area_40`, `junction_hour`, V5 `area_hour`). `h2-items.ts` gains the **interaction** window (group × item class: the per-participant contrast gap(seek-dependent) − gap(passive), Welch t between the groups — the stand-in for `09` (bk) §4's model with a person random effect; its Δgap is the difference in differences) and an `--alpha` option. The same command, seed and model; the tables above are superseded by:
+
+| Window | Items | n = 100 | n = 120 | n = 150 | MDE n = 100 | MDE n = 120 | MDE n = 150 |
+|---|---|---|---|---|---|---|---|
+| **H2 primary: seek-dependent only** | 9 | 41 · **92** % | 47 · 96 % | 56 · 99 % | Δ 0.67 (+.107) | Δ 0.60 (+.096) | Δ 0.55 (+.087) |
+| Sensitivity: all H2 items | 23 | 18 · 51 % | 18 · 58 % | 22 · 67 % | Δ 1.19 (+.070) | Δ 1.10 (+.064) | Δ 0.95 (+.057) |
+| Without the late items | 19 | 23 · 61 % | 24 · 68 % | 27 · 80 % | Δ 1.01 (+.073) | Δ 0.94 (+.068) | Δ 0.81 (+.059) |
+| Without the late and lure items | 16 | 18 · 50 % | 19 · 58 % | 22 · 67 % | Δ 1.21 (+.078) | Δ 1.10 (+.072) | Δ 0.96 (+.063) |
+| Seek-dependent without lure items | 7 | 35 · 86 % | 40 · 91 % | 46 · 96 % | Δ 0.75 (+.117) | Δ 0.69 (+.108) | Δ 0.59 (+.093) |
+| **H2×: group × item class** (seek − passive, within person) | 9 + 14 | 34 · **87** % | 42 · 91 % | 50 · 96 % | Δ 0.73 (+.116) | Δ 0.67 (+.107) | Δ 0.59 (+.093) |
+| H2× at Holm's worst case (α .05 / 7 = .0071, `--alpha 0.00714`) | 9 + 14 | 12 · 63 % | 17 · 75 % | 22 · 86 % | Δ 0.95 (+.148) | Δ 0.86 (+.134) | Δ 0.76 (+.119) |
+
+Null (Δ 0, all items): 7 · 5 · 5 %. Reference (the effect on every item): Δ +0.4 · +0.8 = 69 · 100 % at n = 100, 76 · 100 % at 120, 84 · 100 % at 150. **Before (bk)** (the (bh) table above, with the interaction computed by the same command on the (bh) audit): seek-dependent 27 · 75 %, all items 9 · 22 %, interaction 26 · 73 % at n = 100 (MDE Δ 0.87, 2.87, 0.90). Four more seek-dependent items raise the primary from 75 to 92 % and the all-items sensitivity from 22 to 51 % at Δ +0.8 (n = 100), and bring the primary's MDE from Δ 0.87 to 0.67. The interaction's power is close to the primary's: the person's own confidence bias cancels in the contrast, while the 14 passive items add their noise. At Holm's worst case the interaction needs n ≈ 150 for 86 %; as a secondary it is tested at .05/7 only if it has the smallest p of the family.
+
+4. **What follows (RC, before the lock).** *(Done by revision (bk), 25 Oct 2026: the primary on the seek-dependent items, all items the sensitivity, H2× a pre-stated secondary; `09` (bk).)* Pre-register the gap on the seek-dependent items as H2's powered test — either as the primary (with all 24 items as the sensitivity) or as a pre-stated secondary in the Holm family — and state the minimum detectable effects above; the class list is fixed from the audit before pilot 2's data, never from them. The re-run is one command: when the scenario work regenerates the audit (`items.csv`), `npm run power:h2-items` reads the new classes (and a `lure` column if the audit adds one). Pilot 2 replaces the difficulty and effect assumptions (per-item accuracy by class, `09` (be)'s checks).
 
 ### bf.6 §8 additions
 
@@ -390,3 +406,35 @@ The replay (`docs/audits/2026-10-23-playtest/analysis.md` §10.3 c and g, §10.4
 - The replay's players confirmed 9 of 12 merged-view plans before the burst. For them the notice now comes after the burst and is true.
 
 Tests: `test/session/consult-notice.spec.ts` (R6 block), `test/scenario/freeze-at-view-end.spec.ts` (the moments), `test/session/english-study-session.spec.ts` and `test/public/expert-identity.spec.ts`, all updated deliberately. Pilot 2: report the notice's show rate per view and per group (`consult_prompt_shown` against the derivation above).
+
+## Revision 25 Oct 2026 (bk) — H2 depends on information seeking again
+
+Researcher decision of 25 Oct 2026. The study asks whether teaming with an AI that integrates for the seeker inflates the commander's confidence in what they understand (§1). After the play-test's fairness fixes ((bg), (bh)) only 5 of H2's 23 items needed seeking, so the pre-registered gap over all items was diluted (22 % at Δ +0.8, n = 100, bf.5). A treatment revision before pilot 2 (§2: sessions before it are not pooled with sessions after it).
+
+### bk.1 §6 — the pre-registration of H2
+
+`09` (bk) has the models. **Primary:** the gap on the seek-dependent items (the difficulty audit's `passive` partly or no; 9 items, the list fixed from the audit of 25 Oct 2026 before any pilot-2 data, never from data). **Sensitivity:** the gap over all 23 items. **Pre-stated secondary H2×:** group × item class over the 23 items, the passive items the within-person control. **Holm family (Paper 1's secondaries):** H2×, H2r, H2t, H1, H-T, H3, H9 (seven). MDEs: bf.5's (bk) table (primary Δ 0.67 at n = 100, 0.60 at 120, 0.55 at 150).
+
+### bk.2 §5.1 — four items made seek-dependent
+
+Three non-critical pushed records are held for seeking (recorded only, same text; `18` (bk)), and four phase-A items rest on recorded records (`08` (bk)): V2 `south_flank` (L2), V5 `hose_short` (L2), V5 `reinforcements` (L3, replaces `wind_shift`), V7 `north_help` (L2, re-keyed). Each keeps safety in the stream, is findable with two natural questions per language (lexical top 3 at its moment), and has a stale or partial pushed state as its non-searcher's default. The mixes hold (eight items per phase-A freeze, 2/2/4).
+
+| Seek-dependent H2 items | L2 | L3 | All |
+|---|---|---|---|
+| V2 | 1 (`south_flank`) | 3 (`area_40`, `junction_hour`, `head_later`) | 4 of 6 |
+| V4 | 0 | 0 | 0 of 5 |
+| V5 | 1 (`hose_short`) | 1 (`reinforcements`) | 2 of 6 |
+| V7 | 1 (`north_help`) | 2 (`rekindle_sector`, `cp_safe`) | 3 of 6 |
+| All | 3 of 8 | 6 of 15 | **9 of 23** (was 5); 14 passive |
+
+V4 stays fully passive (its keys rest on the crown run's safety lines; `08` bk.2). The target of 10–12 was not reached: no fifth item met all six criteria.
+
+### bk.3 §5.3 — the told split, re-checked
+
+Over H2's 23 items, by their key records and key statements: **stream-told** (every key record pushed before the freeze) 7 → **4** (`south_flank`, `hose_short` and `north_help` left it; the remaining four are V2 `ek11_between`, V4 `head_unattended`, V5 `lines_breached`, V7 `lull_meaning`); **AI-statable** (not stream-told, with key statements, so AI-told or neither by what the AI says) 16 → **19**; **not statable** 0 → 0. H2t's neither stratum can now hold up to 19 items; `h2-power.ts`'s H2t family still assumes 8 stream-told items (`STREAM_TOLD_ITEMS`; was already 7 by (bh)) — the re-run with pilot 2's rates ((be) §3) replaces it.
+
+### bk.4 Risks (for the pilot)
+
+- **Floor for non-searchers.** A participant who never searches meets 9 items whose default is a lure; Haku-group novices may sit near chance on them, which compresses the gap's range. Pilot 2's checks (`09` (be) §1) report accuracy by class and group; an item at or below chance in both groups is reviewed before the lock.
+- **Realism.** EK12's 14.08 report and EK11's 15.35 request are addressed to the command, and P2's dispatch is the command's own news: a real commander would hear them. In the simulation they join the many command-addressed reports that the 18-a-view cap already leaves in the records (logged, not announced), the same for both groups; the domain reviewer confirms that missing them in the stream is plausible under load (`18` (bk)).
+- **H2t strata** shift as in bk.3; the neither stratum grows.

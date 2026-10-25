@@ -9,9 +9,16 @@
 import type { InfoAtom } from "../scenario/types.js";
 import { STEP_SECONDS } from "../scenario/views.js";
 
-/** The atoms of every step up to and including `step` — references into `atoms`, order kept. */
+/**
+ * The atoms of every step up to and including `step` — references into `atoms`, order kept.
+ *
+ * Revision (bm), 25 Oct 2026: a "report filed" pointer (`InfoAtom.pointer`, `pointers.ts`) is never reachable. It is a radio line in the
+ * message log that says a report exists, not a record of the command post: it holds nothing to retrieve, and as the closest lexical
+ * match to its own follow-up question ("EK12:n tilanneilmoitus") it would push the report it points to down the list (the echo of the
+ * play-test, `docs/audits/2026-10-23-playtest/analysis.md` §10.3 d). Every other record is reachable exactly as before.
+ */
 export function reachableAtoms(atoms: readonly InfoAtom[], step: number): readonly InfoAtom[] {
-  return atoms.filter((a) => a.cycle <= step);
+  return atoms.filter((a) => a.cycle <= step && a.pointer === undefined);
 }
 
 /** What the gate needs of a view: where it starts and how many steps it covers (SPEC/26 §2). */

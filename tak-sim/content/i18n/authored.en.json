@@ -53,5 +53,17 @@
   "atom.demo.19.2": "New smoke and flames west of the point of origin, outside the old west edge, about 130 m from the point of origin. The old edge has flared up again.",
   "atom.demo.19.3": "SPOT, second pass at 19.30: the new fire west of the point of origin is about 0.3 ha, surface fire in the litter, flames 1–2 m. The smoke drifts south-east.",
   "atom.demo.20.0": "The night organisation takes over at 20.00. Situation recorded.",
-  "atom.demo.20.1": "The rekindle west of the point of origin is still burning, flames visible. The smoke drifts south-east towards Moss Bog."
+  "atom.demo.20.1": "The rekindle west of the point of origin is still burning, flames visible. The smoke drifts south-east towards Moss Bog.",
+  "atom.ptr.2.0": "EK14: situation update filed.",
+  "atom.ptr.3.0": "EK12: situation update filed.",
+  "atom.ptr.3.1": "DR3: perimeter survey complete, filed.",
+  "atom.ptr.7.0": "EK11: equipment order filed.",
+  "atom.ptr.7.1": "P2: resource status filed.",
+  "atom.ptr.7.2": "Drone team: flight status updated, filed.",
+  "atom.ptr.10.0": "EK14: instructions filed.",
+  "atom.ptr.10.1": "DR3: flight log filed.",
+  "atom.ptr.12.0": "KY23: instructions filed.",
+  "atom.ptr.14.0": "DR3: perimeter survey complete, filed.",
+  "atom.ptr.16.0": "OUT1: call for support filed.",
+  "atom.ptr.17.0": "SPOT: observations filed."
 }

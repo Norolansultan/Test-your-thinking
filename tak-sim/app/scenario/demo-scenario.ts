@@ -47,6 +47,7 @@ import { CYCLE_STORY, storyAtoms, type UnitId } from "./demo-story.js";
 import { buildBranchStatements } from "./branch-statements.js";
 import { buildFreezes, buildHingeCheck, buildPracticeFreeze, buildProbeSchedule, FREEZE_VIEWS, SPAM_ANSWER_TIMEOUT_MS, SPAM_SECOND_ITEMS, type SpamItem } from "./demo-probes.js";
 import { buildPracticeSpam } from "./practice-spam.js";
+import { pointerAtoms } from "./pointers.js";
 import { buildPracticeMeasure } from "./practice-measure.js";
 import { buildDecisionItems, buildPracticeBranchStatements, buildPracticeDecisionItem } from "./demo-decisions.js";
 
@@ -163,6 +164,10 @@ export function buildDemoScenario(): ScenarioContract {
       const radio = radioAtoms(step, start);
       atoms.push(...radio.atoms);
       delivered.push(...radio.pushed);
+      // Revision (bm): the step's "report filed" pointers (`pointers.ts`), pushed in the burst that makes their records reachable.
+      const pointers = pointerAtoms(step, (step - 1) * STEP_SECONDS - start);
+      atoms.push(...pointers.atoms);
+      delivered.push(...pointers.pushed);
     }
     for (const ev of SITE_SCENARIO.traffic.filter((t) => t.session_view === index && t.tier === "T1_pushed")) {
       delivered.push({ id: ev.id, t: ev.sim_time_s - start });

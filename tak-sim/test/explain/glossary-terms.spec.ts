@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { GLOSSARY_FILES, glossaryProblems, segmentsIn, type GlossaryFile } from "../../app/render/ui/explain/glossary.js";
 import { PLACE_NAMES_EN } from "../../app/i18n/place-names.js";
+import { UI_TEXT } from "../../app/i18n/ui.js";
 
 const { fi, en } = GLOSSARY_FILES;
 
@@ -16,9 +17,26 @@ describe("the glossary's terms (SPEC/35 §3 item 2)", () => {
     expect(fi.terms.map((t) => t.id)).toEqual(en.terms.map((t) => t.id));
   });
 
-  it("has 60–90 terms", () => {
+  // R12 (25 Oct 2026): "puolustuslinja (linjan pito)" split into the posture's defensive line and the secondary task's holding a
+  // line, 91 terms; SPEC/35 sets no number, so the bound (90 since the play-test's four terms) moves to 91 (SPEC/35 (bi)).
+  it("has 60–91 terms", () => {
     expect(fi.terms.length).toBeGreaterThanOrEqual(60);
-    expect(fi.terms.length).toBeLessThanOrEqual(90);
+    expect(fi.terms.length).toBeLessThanOrEqual(91);
+  });
+
+  it("R12: the plan's two 'line' choices are glossed by two different terms, in both languages", () => {
+    for (const lang of ["fi", "en"] as const) {
+      const termsIn = (text: string) => segmentsIn(lang, text).flatMap((s) => (s.kind === "term" ? [s.termId] : []));
+      expect(termsIn(UI_TEXT[lang].postures.barrier_line), lang).toContain("defensive_line");
+      expect(termsIn(UI_TEXT[lang].postures.barrier_line), lang).not.toContain("hold_line");
+      expect(termsIn(UI_TEXT[lang].secondaryTasks["task.hold-line"]), lang).toContain("hold_line");
+      expect(termsIn(UI_TEXT[lang].secondaryTasks["task.hold-line"]), lang).not.toContain("defensive_line");
+    }
+    // The English labels say which line: a new one ahead of the fire, or one that exists; the Finnish are unchanged (DRAFT).
+    expect(UI_TEXT.en.postures.barrier_line).toBe("Defensive line ahead of the fire, on a road or water");
+    expect(UI_TEXT.en.secondaryTasks["task.hold-line"]).toBe("Hold an existing line on a road or water");
+    expect(UI_TEXT.fi.postures.barrier_line).toBe("Puolustuslinja tien tai vesistön varaan");
+    expect(UI_TEXT.fi.secondaryTasks["task.hold-line"]).toBe("Linjan pito tiellä tai vesistöllä");
   });
 
   it("marks the Finnish definitions DRAFT in a top-level field (and the English, pending the domain check)", () => {

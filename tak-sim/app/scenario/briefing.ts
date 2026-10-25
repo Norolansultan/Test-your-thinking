@@ -110,7 +110,7 @@ export const SECONDARY_TASK_DEFINITIONS_FI: readonly string[] = [
 ];
 export const SECONDARY_TASK_DEFINITIONS_EN: readonly string[] = [
   "Direct attack on the fire's edge: putting out a spreading edge directly.",
-  "Holding the line on a road or water: holding a prepared line along a road or water.",
+  "Hold an existing line on a road or water: holding a prepared line along a road or water.", // R12 (25 Oct 2026): the label's new English
   "Mop-up and securing: putting out and watching an edge that has stopped spreading.",
 ];
 

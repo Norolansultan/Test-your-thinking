@@ -26,6 +26,7 @@ import { MAP_POINT_OPTION_ID } from "../../app/session/freeze-answers.js";
 import type { OpenThinkerTransport } from "../../app/session/thinker-transport.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { FORECAST_HEADLINE } from "../../app/scenario/freeze-bank.js";
+import { DISPATCH } from "../../app/scenario/freeze-bank-seek.js";
 import { runScriptedSession } from "../telemetry/scripted-session.js";
 import { completeView, scenario, startSession, type Running } from "../session/spec30-helpers.js";
 import { convertSessions, parseSessionFile, recordCycles } from "../../tools/skills/responses.js";
@@ -67,7 +68,12 @@ const GUIDE_CONTEXT: ReadonlyMap<number, { readonly digest: readonly string[]; r
   [6, { digest: [F7_PLANTED_ATOM_ID], recent: [] }],
 ]);
 /** V5's items the context reaches: the key by the digest, the key by the recent matches, and one with only one of its two key records. */
-const DIGEST_ITEM = "freeze.5.ek14_shelter", RECENT_ITEM = "freeze.5.infra", HALF_ITEM = "freeze.5.wind_shift";
+/**
+ * Revision (bk), 25 Oct 2026: V5's `wind_shift` (keys: the two recorded forecasts and P2's headline) was replaced at its place by the
+ * seek-dependent `reinforcements` (key: P2's recorded dispatch, `DISPATCH`). The half item is now that place: the fixture below gives it
+ * wind_shift's two forecast keys, so "one of two key records in the digest" stays the exact case under test.
+ */
+const DIGEST_ITEM = "freeze.5.ek14_shelter", RECENT_ITEM = "freeze.5.infra", HALF_ITEM = "freeze.5.reinforcements";
 /**
  * Play-test D7 (24 Oct 2026): V5's two forecast items also rest on P2's pushed 15.05 headline of the forecast now (`FORECAST_HEADLINE`), so in
  * the built bank no V5 L3 item's key reaches a participant only by the digest. The folds take the freeze content as a parameter, so this
@@ -265,7 +271,9 @@ describe("a driven guide-group session whose answers carry the model's context (
     expect(H2_PRIMARY_WINDOW.views).toContain(5);
     expect(items.find((i) => i.id === DIGEST_ITEM)!.fact_ids).toEqual(["evt.wx.03", FORECAST_HEADLINE]);
     expect(v5Item(RECENT_ITEM)).toMatchObject({ level: "L1", keyAtomIds: ["evt.c07.016"] });
-    expect(v5Item(HALF_ITEM).keyAtomIds).toEqual(["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE]);
+    // Revision (bk): the built bank's item at that place rests on P2's recorded dispatch; the fixture's on the two forecasts.
+    expect(v5Item(HALF_ITEM)).toMatchObject({ level: "L3", keyAtomIds: [DISPATCH], basisKind: "record", basisAtomIds: [DISPATCH] });
+    expect(DIGEST_ONLY_FREEZES.find((f) => f.cycle === 5)!.items.find((it) => it.id === HALF_ITEM)).toMatchObject({ keyAtomIds: ["evt.wx.03", "evt.wx.02"] });
   });
 
   it("the export writes the digest and recent rows into exposure.csv, and none into exposure_retrieved_only.csv", async () => {

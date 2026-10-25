@@ -32,7 +32,8 @@ describe("SPEC/26 §6: pushed volume per main view", () => {
     const recorded = scenario.atoms.filter((a) => a.id.startsWith("atom.demo.") && a.tier === "T2_system");
     // atom.demo.12.1: SPOT's second pass at 17.10 (phase-B rebuild round 2, 5 Oct 2026), the flare-up's size recorded only;
     // atom.demo.19.3: SPOT's second pass over the step-19 flare-up at 19.30 (fix pass 2, 7 Oct 2026), likewise.
-    expect(recorded.map((a) => a.id).sort()).toEqual(["atom.demo.11.0", "atom.demo.12.1", "atom.demo.16.0", "atom.demo.17.0", "atom.demo.17.1", "atom.demo.19.3"]);
+    // Revision (bk), 25 Oct 2026 (SPEC/30 (bk)): atom.demo.7.1, P2's dispatch, held for seeking (V5 `reinforcements`'s key record).
+    expect(recorded.map((a) => a.id).sort()).toEqual(["atom.demo.11.0", "atom.demo.12.1", "atom.demo.16.0", "atom.demo.17.0", "atom.demo.17.1", "atom.demo.19.3", "atom.demo.7.1"]);
     for (const a of recorded) {
       expect(a.provenance.deliveredAt).toBeNull();
       expect(pushed.has(a.id)).toBe(false);

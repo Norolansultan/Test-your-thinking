@@ -153,9 +153,10 @@ const SPECS: Readonly<Record<string, Spec>> = {
     fi: ["EK14[^.]{0,100}(?:vetäyty|turva-alue|turvaan|palaneelle alueelle|palaneen alueen)", "(?:vetäyty\\w*|turva-alue\\w*|turvaan)[^.]{0,60}EK14", "turvaan palaneelle alueelle"],
     en: ["EK14[^.]{0,100}(?:withdraw|pull(?:s|ed)? back|safety zone|to safety|burn(?:ed|t) area)", "(?:withdraw\\w*|safety zone)[^.]{0,60}EK14", "safety in the burn(?:ed|t) area"],
   },
-  "freeze.5.wind_shift": {
-    fi: ["pohjoisreuna\\w*[^.]{0,60}(?:aktivoi|kiihty|leviä|etene|painu)", "(?:aktivoi\\w*|kiihty\\w*)[^.]{0,60}pohjoisreuna", anchored("pohjoisreuna")],
-    en: ["north edge[^.]{0,60}(?:active|pick|spread|advanc|flare)", "(?:activ\\w*|pick\\w* up)[^.]{0,60}north edge", anchored("the north edge")],
+  // Revision (bk), 25 Oct 2026: replaces `wind_shift`. The key is the three alerted units; an answer naming them on their way states it.
+  "freeze.5.reinforcements": {
+    fi: ["(?:kolme|3)[^.]{0,40}(?:lisäyksik|yksikkö|pelastusyksik)", "(?:EK15|EK16|KY23)[^.]{0,80}(?:saapuu|saapumassa|johtopaik|tulossa|hälytet)", "lisäyksik\\w*[^.]{0,60}(?:hälytet|saapuu|tulossa)"],
+    en: ["three[^.]{0,40}(?:units?|reinforcements?)", "(?:EK15|EK16|KY23)[^.]{0,80}(?:arriv|due|command post|alerted|on (?:its|their) way)", "reinforcements?[^.]{0,60}(?:alerted|arriv|due|on (?:its|their) way)"],
   },
   "freeze.5.area_hour": { band: "ha" },
   // `31` F16: the English "cross … again" was tied to the road. SPEC/33 stage 9 (20 Oct 2026): re-authored with the item (embers across
@@ -170,9 +171,10 @@ const SPECS: Readonly<Record<string, Spec>> = {
     fi: ["reun\\w*[^.]{0,40}rauhoittu\\w*[^.]{0,60}(?:ei ole (?:vielä )?(?:ohi|sammunut)|palaa (?:yhä|edelleen))", "(?:tuul\\w*|reun\\w*)[^.]{0,60}(?:heikkene|rauhoittu)\\w*[^.]{0,60}palo ei ole (?:vielä )?(?:ohi|sammunut)", "reunat rauhoittuvat hetkeksi"],
     en: ["edges?[^.]{0,40}calm\\w*[^.]{0,60}(?:not (?:yet )?(?:over|out)|still burn)", "(?:wind|edges?)[^.]{0,60}(?:eas|calm|weaken)\\w*[^.]{0,60}(?:fire|it) is not (?:yet )?(?:over|out)"],
   },
+  // Revision (bk), 25 Oct 2026: re-keyed — what reaching EK14's line takes (a vehicle stops short of it, the kit is carried).
   "freeze.7.north_help": {
-    fi: ["EK14[^.]{0,80}(?:saa|saavat)[^.]{0,30}(?:lisää|apua|tuke)", "(?:KY21|VPK)[^.]{0,80}(?:avuksi|tueksi|vahvistuk)[^.]{0,40}(?:EK14|pohjoisreun)"],
-    en: ["EK14[^.]{0,80}(?:gets|get|receives?)[^.]{0,30}(?:more crews?|help|reinforcement|support)", "(?:KY21|VOL1)[^.]{0,80}(?:reinforc|help|support)\\w*[^.]{0,40}(?:EK14|north edge)"],
+    fi: ["(?:autolla|autoilla|paloautolla) ei pääse", "ei pääse (?:autolla|autoilla)", "(?:letku\\w*|kalusto\\w*)[^.]{0,40}(?:kannetaan|kannettava|kantakaa)", "(?:kannetaan|kannettava|kantakaa)[^.]{0,40}(?:letku|kalusto)"],
+    en: ["(?:cannot|can't|can not) (?:get|drive|reach)[^.]{0,60}(?:closer|the line|EK14)", "(?:no|a) vehicle (?:cannot|can't|can not|gets no) (?:get|reach|closer)", "(?:hose|equipment|kit)[^.]{0,40}(?:carried|carry)", "carr(?:y|ied)[^.]{0,40}(?:hose|equipment|kit)"],
   },
   "freeze.7.rekindle_sector": {
     fi: ["\\bL3\\b[^.]{0,80}(?:uudelleen|syty|kyt|riski)", "(?:uudelleen\\w*|syttyä|kyteä|kytee)[^.]{0,80}(?:\\bL3\\b|syttymäkohdan eteläreun)", "\\bL3\\W{1,3}etelä"],
@@ -289,11 +291,11 @@ const ELEMENTS: Readonly<Record<string, KeyStatements>> = {
   "freeze.5.lines_breached": { fi: ["Myllyoj", "ylity"], en: ["Mill Brook", "cross"] },
   "freeze.5.hose_short": { fi: ["EK11", "letku"], en: ["EK11", "hose"] },
   "freeze.5.ek14_shelter": { fi: ["EK14"], en: ["EK14"] },
-  "freeze.5.wind_shift": { fi: ["pohjoisreuna", "reuna"], en: ["north edge", "edge"] },
+  "freeze.5.reinforcements": { fi: ["lisäyksik", "yksikk", "EK15", "EK16", "KY23"], en: ["reinforcement", "units?", "EK15", "EK16", "KY23"] }, // revision (bk)
   "freeze.5.area_hour": { fi: ["palanut ala", "pinta-ala", "\\bha\\b|hehtaari"], en: ["burn(?:t|ed) area", "\\bha\\b|hectare"] },
   "freeze.5.road_jump": { fi: ["Koivuoj"], en: ["Birch Creek"] }, // SPEC/33 stage 9: was the Kuusimäki forest road
   "freeze.7.lull_meaning": { fi: ["tuul", "reun"], en: ["wind", "edge"] },
-  "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna"], en: ["EK14", "north edge"] },
+  "freeze.7.north_help": { fi: ["EK14", "pohjoisreuna", "pääse", "autolla"], en: ["EK14", "north edge", "reach", "vehicle"] }, // revision (bk): re-keyed
   "freeze.7.rekindle_sector": { fi: ["uudelleen", "syty", "kyt", "lohko"], en: ["flar", "rekindl", "smoulder", "sector"] },
   "freeze.7.cabins_reach": { fi: ["Mökkiran", "mök"], en: ["Lakeside Cottages", "cottage", "cabin"] },
   "freeze.7.cp_safe": { fi: ["johtopai"], en: ["command post"] },

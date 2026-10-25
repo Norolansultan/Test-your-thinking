@@ -34,6 +34,12 @@ interface BubbleSeed {
    * pushed, reachable by a search like every recorded record.
    */
   readonly asked?: true;
+  /**
+   * Revision (bk), 25 Oct 2026 (SPEC/30 (bk), H2 on the seek-dependent items): a beat that WAS pushed and is now recorded (T2, in Haku
+   * and the Thinker), so that an H2 item's key must be sought. The generator's push cap still counts it (`view-traffic.ts`
+   * `countsTowardCap`), so no other record moves into or out of the stream.
+   */
+  readonly heldForSeeking?: true;
   /** When it was observed, seconds into its step, where the text names a time (default 60 s × (index + 1)). */
   readonly atS?: number;
   /** The navigation category, where the default (the air for a drone or an aircraft, else the fire) would misfile it. */
@@ -44,8 +50,10 @@ interface BubbleSeed {
 const isDrone = (id: string): boolean => id === "DR1" || id === "DR2";
 /** A beat from the air (the spotter aircraft, the helicopter) or from above (the duty officer, the command post's situation picture): not a crew's. */
 const isAbove = (id: string): boolean => id === "SPOT" || id === "HELI1" || id === "P2" || id === "TILANNEKUVA";
-/** A story beat pushed to the message log: neither a routine beat demoted to the records nor a crew's answer when asked. */
-export const isPushedBeat = (b: Pick<BubbleSeed, "recorded" | "asked">): boolean => !b.recorded && !b.asked;
+/** A story beat pushed to the message log: neither a routine beat demoted to the records, nor a crew's answer when asked, nor held for seeking. */
+export const isPushedBeat = (b: Pick<BubbleSeed, "recorded" | "asked" | "heldForSeeking">): boolean => !b.recorded && !b.asked && !b.heldForSeeking;
+/** Revision (bk): the beats the generator's push cap counts — the pushed ones and those held for seeking (they were pushed before (bk)). */
+export const countsTowardCap = (b: Pick<BubbleSeed, "recorded" | "asked" | "heldForSeeking">): boolean => isPushedBeat(b) || b.heldForSeeking === true;
 
 export const CYCLE_STORY: Readonly<Record<CycleIndex, { readonly title: string; readonly bubbles: readonly BubbleSeed[] }>> = {
   // Fix pass 7 (9 Oct 2026, researcher's open item): EK11, the first-arriving officer, hands command over to the participant, the incident
@@ -56,6 +64,9 @@ export const CYCLE_STORY: Readonly<Record<CycleIndex, { readonly title: string; 
   // handover. The handover now says it: requested, at the region's other fire, P2's estimate 15.40 (HELI1 is first over the head at
   // 15.41, story 8.0, and DR1 and DR3 land for it at 15.39). Said in the handover rather than as a beat of its own: V1 pushes 18, the
   // generator's cap (`view-traffic.ts`), and one more beat would demote a generated V1 record to the records.
+  // Revision (bk) considered and rejected (25 Oct 2026): holding the helicopter's ETA for seeking under a V4 item on air support — an item
+  // that names the helicopter would make HELI1 salient before its step-9 line clearance, F7's truth record (a cue to H9; `demo-probes.ts`
+  // rule 5, `freeze-new-l3.spec.ts`). The handover is unchanged.
   1: { title: "Komennon siirto", bubbles: [{ authorUnitId: "EK11", text: "Johtovastuu siirretty teille. Kärki koilliseen. EK14 ja KY21 tulossa. Sammutushelikopteri pyydetty; se on alueen toisella palolla, P2:n arvio perillä noin klo 15.40." }, { authorUnitId: "DR1", text: "Kuva päivitetty. Reuna on ylittänyt tien R1 kärjen kohdalla, noin 50 m tien pohjoispuolella." }] },
   // Review 6 Oct 2026 (D2 b): the fuel ahead of the head is on record before the V2 freeze (first bubble: pushed at 60 s,
   // the freeze is at 105 s). Against the fuel truth: the head at 13:40 is ~400 m from mature spruce to the north-east
@@ -93,9 +104,11 @@ export const CYCLE_STORY: Readonly<Record<CycleIndex, { readonly title: string; 
   // Play-test D9 (b), 24 Oct 2026 (DRAFT Finnish): the reinforcements that arrive later were never dispatched on record. P2 at 15.30, after
   // EK11's request: the ETAs are their arrivals at the CP (EK15 radio 10, 16.22; EK16 and KY23 radio 11, 16.42–16.43). That the region
   // holds EK16 and KY23 on arrival is said when they arrive, as before.
+  // Revision (bk), 25 Oct 2026 (SPEC/30 (bk)): the dispatch is held for seeking (recorded, T2: the alerting system's entry, not radio),
+  // the key record of V5 `reinforcements`; the request (EK11's beat) stays pushed. The cap still counts it, so no other V5 record moves.
   7: { title: "Resurssit", bubbles: [
     { authorUnitId: "EK11", text: "Latvapalo laskeutunut Koivuojan koivikkoon, pintapalo jatkuu. Pyydetään lisäyksiköitä." },
-    { authorUnitId: "P2", atS: 600, nav: "yksikot", text: "Lisäyksiköitä hälytetty: EK15 saapuu johtopaikalle arviolta klo 16.20, EK16 ja KY23 arviolta klo 16.40." },
+    { authorUnitId: "P2", heldForSeeking: true, atS: 600, nav: "yksikot", text: "Lisäyksiköitä hälytetty: EK15 saapuu johtopaikalle arviolta klo 16.20, EK16 ja KY23 arviolta klo 16.40." },
   ] },
   // Fix pass 2–3 (FF11): the drone team reports that the helicopter has the airspace and its drones are down (fix pass 3:
   // was P2, who would not report the drones); EK14 is in the F3 radio dead zone at step 9, so the wind turn is the

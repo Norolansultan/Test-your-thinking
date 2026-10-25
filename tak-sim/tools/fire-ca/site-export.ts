@@ -17,7 +17,7 @@ import { dilate, FIRE_OUTLINE, latLonToMetres, traceMask, traceMaskWithHoles } f
 import { headPoint, liveHeadPoint, type CycleForcing, type ScenarioRunResult, type SiteModel } from "./run.js";
 import { MAIN_VIEW_COUNT, PRACTICE_STEP } from "../../app/scenario/views.js";
 import { toSiteView, type ViewResult } from "./views.js";
-import { capPushed, radioIntoViews, trafficIntoViews, type StepRadio } from "./view-traffic.js";
+import { capPushed, holdForSeeking, radioIntoViews, trafficIntoViews, type StepRadio } from "./view-traffic.js";
 import { tm35ToWgs84, wgs84ToTm35 } from "./tm35.js";
 import { sortedKeys } from "../../app/engine/deterministic-object.js";
 import { englishNames } from "../../app/i18n/place-names.js";
@@ -607,7 +607,7 @@ export function exportSiteScenario({ site, ignitionTm35, forcing, result, views 
     return { ...r, atOffsetS: 90 + 25 * slot[r.cycle]! };
   });
 
-  const wx = forecastTraffic(), op = patrolTraffic(), capped = capPushed(trafficIntoViews([...traffic, ...wx.events, ...op.events]), radioIntoViews(timed)); // forecasts and the mop-up patrol ((ah)): own ids, T2, not pushed
+  const wx = forecastTraffic(), op = patrolTraffic(), capped = holdForSeeking(capPushed(trafficIntoViews([...traffic, ...wx.events, ...op.events]), radioIntoViews(timed))); // forecasts and the mop-up patrol ((ah)): own ids, T2, not pushed; (bk): two records held for seeking
   const firstCycle = (id: string) => Math.min(...UNIT_PLAN[id]!.moves.map((mv) => mv.cycle));
   const half = 3500;
   const sw = fromSite({ x: -half, y: -half });

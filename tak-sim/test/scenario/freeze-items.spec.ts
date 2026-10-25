@@ -363,10 +363,12 @@ describe("the final fix pass's items (8 Oct 2026)", () => {
     expect(it.options.length).toBe(4);
   });
 
-  it("V5's wind-shift item says the wind blows FROM the south", () => {
-    const it = item(5, "wind_shift");
-    expect(it.promptFi).toMatch(/etelästä/);
-    expect(it.promptFi).not.toMatch(/etelään/);
-    expect(tr("en", it.promptFi)).toMatch(/from the south/);
+  // Revision (bk), 25 Oct 2026: V5 `wind_shift` (whose stem stated "if the wind blows FROM the south") is replaced by `reinforcements`,
+  // whose stem names neither the reinforcements' number, their units nor their arrival (the key and its record).
+  it("V5's reinforcements item (was wind_shift) names no unit, number or arrival in its stem", () => {
+    const it = item(5, "reinforcements");
+    expect(it.promptFi).not.toMatch(/EK1[56]|KY23|kolme|hälyt|arvio/i);
+    expect(tr("en", it.promptFi)).not.toMatch(/EK1[56]|KY23|three|alerted|due/i);
+    expect(scenario.freezes.find((f) => f.cycle === 5)!.items.map((x) => x.id)).not.toContain("freeze.5.wind_shift");
   });
 });

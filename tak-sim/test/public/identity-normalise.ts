@@ -24,6 +24,10 @@
  *   V6's waited for the SPAM item, as before) its `consult_prompt_shown` is mapped back: `atViewSeconds` to the 60 s moment, `tVirtual`
  *   to the first step (− 1200 s), `tWallOffsetMs` by the 10 s (scaled) it moved, and its place to just before the view's
  *   `step_boundary_reached`.
+ * - Revision (bk) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/30 (bk)): EK12's 14.08 report (V2) and EK11's 15.35 hose
+ *   request (V5) are held for seeking, so their `bubble_available` records (`BK_HELD`) are put back where the 0.12.0 run wrote them;
+ *   P2's dispatch (V5, a play-test beat) is recorded again, so it writes nothing to remove; V5's `missing` list names
+ *   `freeze.5.reinforcements` as `freeze.5.wind_shift` (the item it replaced at the same place).
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -36,9 +40,24 @@ import type { LogRecord } from "../../app/telemetry/log.js";
 import { sha256Hex } from "../../app/telemetry/sha256.js";
 
 const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "map_pretest_feedback_left", "practice_feedback_shown"]);
-/** The play-test's new pushed story beats (24 Oct 2026; `demo-story.ts`), and the view from which 0.12.0 listed each new nav source. */
-export const PLAYTEST_PUSHED: ReadonlySet<string> = new Set(["atom.demo.4.1", "atom.demo.6.2", "atom.demo.7.1", "atom.demo.12.2"]);
+/**
+ * The play-test's new pushed story beats (24 Oct 2026; `demo-story.ts`), and the view from which 0.12.0 listed each new nav source.
+ * Revision (bk) (25 Oct 2026) took the fourth, P2's dispatch in V5 (`atom.demo.7.1`), out of the stream again: it is recorded, so it
+ * writes no `bubble_available` and nothing is removed for it.
+ */
+export const PLAYTEST_PUSHED: ReadonlySet<string> = new Set(["atom.demo.4.1", "atom.demo.6.2", "atom.demo.12.2"]);
+/** Revision (bk): the play-test beat held for seeking since (bk) (recorded; it was pushed only between (bg) and (bk)). */
+export const BK_HELD_BEAT = "atom.demo.7.1";
 const PLAYTEST_SOURCE_FROM: Readonly<Record<string, number>> = { P2: 9, TILANNEKUVA: 11 };
+/**
+ * Revision (bk) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/30 (bk), SPEC/18 (bk)): two generated reports the 0.12.0 run
+ * delivered are held for seeking (recorded, `view-traffic.ts` HELD_FOR_SEEKING). Their deliveries are mapped back, each just after the
+ * pushed record the 0.12.0 run delivered before it (same moment, same wall offset) as it logged them (`tier` T1_pushed).
+ */
+export const BK_HELD: readonly { readonly atomId: string; readonly sourceId: string; readonly after: string }[] = [
+  { atomId: "evt.c03.021", sourceId: "EK12", after: "evt.c03.016" }, // V2: EK12's 14.08 report (south_flank)
+  { atomId: "evt.c07.032", sourceId: "EK11", after: "evt.c07.031" }, // V5: EK11's 15.35 hose request (hose_short)
+];
 
 /** 0.16.0's new questionnaire items (`app/session/questionnaire.ts` revision (bf)). */
 const ADDED_ITEM_IDS: ReadonlySet<string> = new Set([
@@ -74,6 +93,15 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     if (r.kind === "briefing_advanced" && d.screenId === "practice.feedback") continue;
     if (d.probeId === "probe.s.practice.b") continue;
     if (r.kind === "bubble_available" && PLAYTEST_PUSHED.has(d.atomId as string)) continue;
+    const held = r.kind === "bubble_available" ? BK_HELD.find((h) => h.after === d.atomId) : undefined;
+    if (held) {
+      kept.push(r, { ...r, detail: { ...d, atomId: held.atomId, sourceId: held.sourceId, tier: "T1_pushed" } });
+      continue;
+    }
+    if (r.kind === "freeze_submitted" && d.cycle === 5 && Array.isArray(d.missing)) {
+      kept.push({ ...r, detail: { ...d, missing: (d.missing as string[]).map((m) => (m === "freeze.5.reinforcements" ? "freeze.5.wind_shift" : m)) } });
+      continue;
+    }
     if (r.kind === "cycle_start" && Array.isArray(d.navSources)) {
       const cycle = d.cycle as number;
       kept.push({ ...r, detail: { ...d, navSources: (d.navSources as string[]).filter((s) => !(cycle < (PLAYTEST_SOURCE_FROM[s] ?? 0))) } });

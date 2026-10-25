@@ -399,7 +399,7 @@ function itemsMain(): void {
     bYes: argValue("--b-yes", m.bYes), bPartly: argValue("--b-partly", m.bPartly), bNo: argValue("--b-no", m.bNo), bLate: argValue("--b-late", m.bLate),
     partlyWeight: argValue("--partly-weight", m.partlyWeight), lateWeight: argValue("--late-weight", m.lateWeight),
   };
-  console.log(itemPowerReport(items, { ...DEFAULT_OPTIONS, reps: argValue("--reps", DEFAULT_OPTIONS.reps), seed: argValue("--seed", DEFAULT_OPTIONS.seed), model }));
+  console.log(itemPowerReport(items, { ...DEFAULT_OPTIONS, reps: argValue("--reps", DEFAULT_OPTIONS.reps), seed: argValue("--seed", DEFAULT_OPTIONS.seed), model, alpha: argValue("--alpha", 0.05) }));
 }
 
 if (process.argv.includes("--items")) itemsMain(); else main();

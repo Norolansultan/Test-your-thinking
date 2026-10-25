@@ -29,6 +29,8 @@ import { glossaryText, helpText } from "./help.js";
 import { MAP_MOVE_ALIASES, MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
 import { contactsCommand, measureCommand } from "./tak-tools.js";
 import { playerQuestItems, scalePoints } from "./screen-pages.js";
+import { MAP_TRAINING } from "../../app/session/map-training.js";
+import { isPointTask, type TrainingAnswer } from "../../app/session/map-training-spec.js";
 
 export interface CommandContext { readonly runDir: string; readonly withMap: boolean }
 
@@ -114,16 +116,7 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
       await session.spend(COST_S.consult);
       return `${UI_TEXT[session.config.lang].tak.paneTitle.haku} opened (ask with \`haku "<question>"\`).`;
     }
-    case "pretest-answer": {
-      need(s.step === "map_pretest" && s.mapPretest, "no pretest item is on screen");
-      const v = s.mapPretest!;
-      need(args[0] === v.itemId, `the item on screen is ${v.itemId} (no going back, no skipping ahead)`);
-      need(v.options.some((o) => o.id === args[1]), `options: ${v.options.map((o) => o.id).join(", ")}`);
-      await session.spend(COST_S.pretestAnswer);
-      if (session.snap().mapPretest?.itemId !== v.itemId) return "The pretest's time ran out before the answer.";
-      await session.act(() => session.o.answerMapPretest(v.itemId, args[1]!));
-      return look(session, ctx);
-    }
+    case "pretest-answer": return trainingAnswer(session, s, args, ctx);
     case "primer-answer": case "primer-retry": case "primer-next": case "primer-back": return primer(session, cmd, args, ctx);
     case "freeze-answer": return freezeAnswer(session, s, args, ctx);
     case "freeze-submit": {
@@ -248,6 +241,7 @@ async function proceed(session: PlaySession, s: SessionSnapshot): Promise<string
     return "Tour finished: the period's time runs.";
   }
   switch (s.step) {
+    case "map_pretest": return trainingNext(session, s);
     case "briefing": await session.spend(COST_S.introVideo); await session.act(() => o.finishIntroVideo("ended")); return "Intro video ended.";
     case "practice_feedback": await session.spend(COST_S.practiceFeedback); await session.act(() => o.finishPracticeFeedback()); return "Feedback left.";
     case "training": await session.spend(COST_S.training); await session.act(() => o.completeTraining()); return "Training text left: the task starts.";
@@ -323,6 +317,47 @@ async function askHaku(session: PlaySession, beforeCost: number, ask: () => Prom
   const turn = session.snap().aiChatHistory.at(-1);
   if (!(session.snap().step === "freeze")) await closeHakuPane(session);
   return [H("Haku answer — TEMPLATE FALLBACK (the proxy's no-model answer over lexical retrieval), not the study's model."), `${t.haku} · ${now.clockLabel}`, `> ${turn?.query ?? question}`, ...answerLines(session, answer)].join("\n");
+}
+
+/**
+ * The map training (25 Oct 2026; the pretest's step): `pretest-answer <letter>` or `pretest-answer <x>,<y>` (the image's grid: extract
+ * pixels, 4 m each) answers the task on screen once; its feedback follows (`look`), left with `continue` (or `pretest-answer next`).
+ * The memory task's unit is shown for its exposure first: `wait` it out.
+ */
+async function trainingAnswer(session: PlaySession, s: SessionSnapshot, args: readonly string[], ctx: CommandContext): Promise<string> {
+  need(s.step === "map_pretest" && s.mapPretest, "no map-training task is on screen");
+  const v = s.mapPretest!;
+  if (v.phase === "feedback" && (args[0] === "next" || args.length === 0)) return trainingNext(session, s);
+  need(v.phase === "answer", v.phase === "study" ? `the unit is still on the map: \`wait ${session.o.mapPretestStudySecondsLeft()}\`, then \`look\`` : "the feedback is on screen: `continue`");
+  const task = MAP_TRAINING.tasks.find((t) => t.id === v.taskId)!;
+  const arg = args[0] === v.taskId ? args[1] : args[0]; // the task id may lead (as the pretest's item id did)
+  let answer: TrainingAnswer;
+  if (isPointTask(task)) {
+    const [x, y] = (arg ?? "").split(",").map(Number);
+    const size = MAP_TRAINING.crop.size;
+    need(Number.isFinite(x) && Number.isFinite(y) && x! >= 0 && y! >= 0 && x! <= size && y! <= size, `pretest-answer <x>,<y> on the image's grid (0–${size}, 4 m a pixel)`);
+    answer = { point: { x: x!, y: y! } };
+  } else {
+    const ids = task.options.map((o) => o.id);
+    const chosen = optionByArg(ids, arg);
+    need(chosen !== null, `options: ${ids.map((_, i) => optionLetter(i)).join(", ")}`);
+    answer = { choiceId: chosen! };
+  }
+  await session.spend(COST_S.pretestAnswer);
+  const now = session.snap().mapPretest;
+  if (now?.taskId !== v.taskId || now.phase !== "answer") return "The training's time ran out before the answer.";
+  await session.act(() => session.o.answerMapPretest(v.taskId, answer));
+  return look(session, ctx);
+}
+
+/** The training's feedback read and left ("Next task" / "Done"). */
+async function trainingNext(session: PlaySession, s: SessionSnapshot): Promise<string> {
+  const v = s.mapPretest;
+  need(v && v.phase === "feedback", v?.phase === "study" ? "the unit is still on the map: `wait`" : "answer the task first (`pretest-answer …`)");
+  await session.spend(COST_S.pretestFeedback);
+  if (session.snap().mapPretest?.taskId !== v!.taskId) return "The training's time ran out.";
+  await session.act(() => session.o.leaveMapPretestFeedback(v!.taskId));
+  return v!.position === v!.taskCount ? "Map training done." : "Next task (`look`).";
 }
 
 async function primer(session: PlaySession, cmd: string, args: readonly string[], ctx: CommandContext): Promise<string> {

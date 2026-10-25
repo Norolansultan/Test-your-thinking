@@ -1,6 +1,7 @@
 /**
  * The screens the difficulty audit's changes add (23 Oct 2026; `docs/audits/2026-10-23-difficulty/proposal.md` (b.3),
- * `proposal-map.md` c.2, c.3): the map-reading pretest's frame and the practice feedback. The same for both groups except the
+ * `proposal-map.md` c.3): the practice feedback. (The map-reading pretest's frame lived here until 25 Oct 2026; the map training that
+ * replaced it has its own module, `map-training-texts.ts`.) The same for both groups except the
  * practice feedback's closing line, which names the tools the group has (as the training texts already do). Finnish DRAFT (native
  * check); English DRAFT. Generic: they name no place, unit, time or event of the scenario — the feedback's records, the head and the
  * measured distance are filled in from the practice view by `practice-feedback.ts`.
@@ -9,15 +10,6 @@
 import type { Lang } from "./lang.js";
 
 export interface DifficultyText {
-  readonly pretest: {
-    readonly title: string;
-    readonly intro: (items: number) => string;
-    readonly progress: (n: number, of: number) => string;
-    readonly timeLeft: (seconds: number) => string;
-    readonly next: string;
-    readonly finish: string;
-    readonly chooseFirst: string;
-  };
   readonly feedback: {
     readonly title: string;
     readonly intro: string;
@@ -42,15 +34,6 @@ export interface DifficultyText {
 
 export const DIFFICULTY_TEXT: Readonly<Record<Lang, DifficultyText>> = {
   fi: {
-    pretest: {
-      title: "Kartanlukutehtävä",
-      intro: (n) => `Vastaa ${n} kysymykseen alla olevasta karttaotteesta. Ote on eri alueelta kuin tuleva harjoitus, eikä siinä ole mitään tämän tilanteen tietoa. Vastaukset ovat lopullisia, eikä niitä pisteytetä sinulle. Aikaa on yhteensä neljä minuuttia.`,
-      progress: (n, of) => `Kysymys ${n} / ${of}`,
-      timeLeft: (s) => `Aikaa jäljellä ${Math.floor(s / 60)}.${String(s % 60).padStart(2, "0")}`,
-      next: "Seuraava",
-      finish: "Valmis",
-      chooseFirst: "Valitse vastaus ennen kuin jatkat.",
-    },
     feedback: {
       title: "Harjoituksen kysymykset: mistä tieto löytyi",
       intro: "Tämä ei kerro, mikä vastaus oli oikea, eikä harjoitusta pisteytetä. Se näyttää, mistä kunkin kysymyksen tieto oli löydettävissä.",
@@ -73,15 +56,6 @@ export const DIFFICULTY_TEXT: Readonly<Record<Lang, DifficultyText>> = {
     },
   },
   en: {
-    pretest: {
-      title: "Map-reading task",
-      intro: (n) => `Answer ${n} questions about the map extract below. The extract is from a different area from the coming practice and holds nothing about this situation. Your answers are final and are not scored for you. You have four minutes in all.`,
-      progress: (n, of) => `Question ${n} of ${of}`,
-      timeLeft: (s) => `Time left ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`,
-      next: "Next",
-      finish: "Done",
-      chooseFirst: "Choose an answer before going on.",
-    },
     feedback: {
       title: "The practice questions: where the information was",
       intro: "This does not tell you which answer was right, and the practice is not scored. It shows where each question's information could be found.",

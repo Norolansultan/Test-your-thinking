@@ -6,10 +6,12 @@
  * - `freeze`: a `map_point` freeze item's map — the plain basemap (no fire, no units, no overlay: the app's `FreezeMap`), cropped to
  *   the scenario's extent (where an answer may lie) with a labelled pixel grid, so the player can answer with x,y
  *   (`freeze-grid.ts` converts with the app's own basemap projection, `basemap-px.ts`);
- * - `pretest`: the map-reading pretest's extract with its grid and marks (`pretestSvg`, the app's markup);
+ * - `pretest`: the map training's task on its extract (`trainingSvg`, the app's markup: the question's marks, the memory task's unit or
+ *   blank map, the feedback's drawing) with a labelled pixel grid, so the player can answer with x,y;
  * - `head`: the practice feedback's head map (the basemap's tiles, the outline as the practice map drew it, the head, the mark).
  *
- * No answer key is ever in this data (the freeze map is the basemap and a grid; the pretest markup carries no key).
+ * No answer key of a scored item is ever in this data (the freeze map is the basemap and a grid; the training shows its own keys only
+ * in its feedback, as the app does).
  */
 
 import type { RenderableCycle, RenderableEnvelope } from "../../app/boundary/render-boundary.js";
@@ -19,6 +21,7 @@ import type { SectorPlan } from "../../app/scenario/plan-types.js";
 import type { SessionSnapshot } from "../../app/session/snapshot.js";
 import type { Audience } from "../../app/session/public-session.js";
 import type { Camera } from "../../app/render/map-frame.js";
+import type { TrainingAnswer, TrainingPhase } from "../../app/session/map-training-spec.js";
 
 /** The live map's size in the PNG, px: the TAK shell's map at a 1440 × 900 window with GeoChat open beside it (about 984 × 680). */
 export const LIVE_MAP_PX = { width: 1000, height: 680 } as const;
@@ -45,7 +48,7 @@ export interface MapPageData {
 export type ImageRequest =
   | { readonly kind: "live"; readonly path: string; readonly data: MapPageData }
   | { readonly kind: "freeze"; readonly path: string; readonly lang: Lang }
-  | { readonly kind: "pretest"; readonly path: string; readonly lang: Lang }
+  | { readonly kind: "pretest"; readonly path: string; readonly lang: Lang; readonly taskId: string; readonly phase: TrainingPhase; readonly answer: TrainingAnswer | null }
   | { readonly kind: "head"; readonly path: string; readonly lang: Lang; readonly head: { readonly mark: LatLon | null; readonly head: LatLon; readonly outline: readonly LatLon[] } };
 
 /** The live map's data from a snapshot: only the fields `MapView` and the TAK chrome read. */

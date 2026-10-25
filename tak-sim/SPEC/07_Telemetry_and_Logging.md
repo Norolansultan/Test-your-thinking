@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **25 Oct 2026 (bj)** — format **0.17.0** (the map training, `08` (bj)): the `map_pretest_*` kinds hold the training; `map_pretest_answer` is a task's first answer with `choiceId` or `point` + `errorM`, `measures`, `memoryMs`; `map_pretest_feedback_left` added. See the revision at the end.
 > - **24 Oct 2026 (bf)** — format **0.16.0** (adopted before pilot 2, `30` (bf)): `hinge_fatigue_rated` (the hinge's optional fatigue item); the header's `assignment.stratum` (profession × leads others); `ai_chat_query_submitted.viaChip` also with `tool: "haku"` (the Haku group's chip); new questionnaire item ids (pre: `sleep.hours`, `shift.recent`; post: `accuracy.perceived`, `influence.plan_views.*`, `influence.answers.*`); the allocation table's version 2. See the revision at the end.
 > - **23 Oct 2026 (be)** — format **0.15.0** (the difficulty audit, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest's `map_pretest_started` / `_answer` / `_completed`, the practice feedback's `practice_feedback_shown`; the header's `mapPretest` and `practiceFeedback`; VP's fifth freeze item and second SPAM item. The "New records" badge is not logged. Main views write the records of 0.14.0. See the revision at the end.
 > - **23 Oct 2026 (bc)** — format **0.14.0** (`36`, personal results after the study): `results_optin { optedIn }` in every session after the post-session questionnaire (never the address); the header's `immediateProfile`; `profile_shown` only with it. See the revision at the end.
@@ -719,3 +720,20 @@ Source: `30` (bf) (the chip in both groups, the strata, the post-session and pre
 - **The allocation table** (`content/assignment/allocation.json`) is version 2: rows carry `profession` and `leads`; `rowsSha256` b7da0140…64ec (was 4a4b080b…38f2). The server's `issued-codes.json` entries carry `stratum` (`fire_rescue.lead`, …); `POST /api/assign` takes `stratum` (required by a stratified table).
 - **Expert sessions:** a session that never uses the Haku chip or the hinge's item and has no stratum writes the records of 0.15.0 except the two questionnaires' item lists (`test/public/expert-identity.spec.ts`, updated deliberately: the normalisation removes the new items, the digests and the 515 records stand).
 - **Analysis only, never logged:** the awareness index (`awareness-measures.ts`), the guardrail fidelity report (`tools/review/fidelity-lib.ts`) and the certainty audit (`haku-certainty-audit.ts`), all computed from these records.
+
+## Revision 25 Oct 2026 (bj) — format 0.17.0: the map training
+
+Source: `08` (bj), `15` (bj). The map-reading pretest's step now holds the map training. Its kinds keep their names, so the step's records stay together (`app/telemetry/record-kinds-difficulty.ts`); the format version tells pretest records from training records.
+
+| Kind | Fields | When |
+|---|---|---|
+| `map_pretest_started` | as in 0.15.0; `version` "map-training-2026-10-25", `itemIds` the seven task ids, `timeLimitMs` 300 000; `keptItemIds` the tasks whose feedback was left before a resume | the training shown |
+| `map_pretest_answer` | `itemId`, `position`, `rtMs` (from the question's appearance; the memory task: from the blank map's), `measures` (the R&B readings on the task before the answer, m, in order; [] when unused). A choice task adds `choiceId`; a point task adds `point {x, y}` (extract pixels, 4 m each, 0.1 px) and `errorM` (its distance from the task's key, m, rounded); the memory task adds `memoryMs` (8 000) | a task's FIRST answer, logged before its feedback is shown; one per task |
+| `map_pretest_feedback_left` (new) | `itemId`, `position`, `dwellMs` | a task's feedback left ("Next task" / "Done") |
+| `map_pretest_completed` | as in 0.15.0 (`answeredCount`: the tasks answered) | the last feedback left, or the 5-minute cap |
+
+- **`choiceId` is optional from 0.17.0** (absent on a point task's answer). Logs before 0.17.0 have it on every answer.
+- **The keys:** the training's keys are in its content (`content/pretest/map-training.json`), because the training shows each one in its feedback. `errorM` is computed in the browser from them; nothing else is scored in the log.
+- **`session_resumed.resumedAt`** `map_pretest`: the first task not finished (`15` (bj)).
+- **Expert sessions:** the step writes 16 records (the pretest wrote 8) and takes the memory task's 8 s. `test/public/expert-identity.spec.ts` was updated deliberately: its normaliser removes the step's records and takes `map_pretest_completed.durationMs` out of every later record's wall offset. The three segment digests and the 502 normalised records stand (527 records in all).
+- Every other record is unchanged.

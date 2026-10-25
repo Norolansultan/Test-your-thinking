@@ -4,6 +4,7 @@
 
 > **Changelog**
 > - **25 Oct 2026 (bh)** — the play-test replay's decisions: V4 `head_later` exploratory, outside H2 (now 23 items) and every composite (pre-registration note); a pre-registered covariate "plan confirmed before the step boundary" in the two-step views' decision analyses; H9/H10 exposure expected low, logged in pilot 2, with a 15 % decision rule and its power consequence; the repeated R1 items analysed conditionally. See the revision at the end.
+> - **25 Oct 2026 (bj)** — the map training (`08` (bj)): its first-try pointing errors (task 1, the map on screen; task 7, from memory on the blank map) are the pre-registered per-person pointing baseline for the map-point freeze items, replacing the pretest covariate of (be) §2; its other first answers are descriptive; new pilot checks. See the revision at the end.
 > - **24 Oct 2026 (bf)** — adopted before pilot 2 (`30` (bf)): the chip in both packages (pre-registration note); the awareness index (perceived against logged influence) and the global self-estimate; sleep, shift and the three fatigue ratings as covariates only; the allocation strata (language, profession, leads others) as covariates in every confirmatory model; the guardrail fidelity report as the manipulation check, with DRAFT thresholds; the uncertainty audit's Haku extension; H2's power re-run with the audit's item classes and the proposal to pre-register the gap on the seek-dependent items. See the revision at the end.
 > - **24 Oct 2026 (bg)** — the play-test decisions: F7 (`freeze.12.f7`) scored for H9 only and excluded from every SA accuracy and calibration composite (pre-registered; `calibrationPairs`); the eight late phase-A items reported as "reading under load" with a pre-registered sensitivity analysis without them; the moved keys (V12 `head_now`, V10 `south_front_point`) and V10's truth-keyed growth item; told classes and power to re-run on pilot 2. See the revision at the end.
 > - **23 Oct 2026 (be)** — the difficulty audit (`docs/audits/2026-10-23-difficulty/`): pre-registered pilot-2 checks (seeking, key records reached, item discrimination, late items, map, the pretest, background groups, the badge, group parity); the map-reading pretest as a covariate only; `tools/power/h2-power.ts` to be re-run with pilot 2's told-class rates (power not changed now); three source-memory facts re-classed `pushed`. See the revision at the end.
@@ -1116,3 +1117,27 @@ Source: `docs/audits/2026-10-23-playtest/analysis.md` §10 and the researcher's 
 **4. The repeated R1 items are analysed conditionally (R11).** V2 `infra` (R1 unsafe at 14.06), V5 `infra` (R1 passable with care at 15.27) and SPAM V6.b (R1's change between 15.27 and 15.47) ask about the same stretch ("Kuivakankaan eteläpuolella"); an earlier one teaches what to look for later (a play-test player learned what to search from the freezes themselves, `analysis.md` §10.5). Pre-registered: V5 `infra` is analysed **conditional on V2 `infra`** (its accuracy by group given the earlier answer right or wrong, and given whether the participant's answers had reached a DR R1 road report before V2's freeze), and SPAM V6.b conditional on V5 `infra` alike; in H1's SA accuracy the three count once as a series — a pre-stated sensitivity replaces V5 `infra` and V6.b by their conditional residuals (or drops them). None is in H2's window (two L1 items and a SPAM item). The SPAM item's retrieval dependence (`RETRIEVAL_DEPENDENT_PROBE_IDS`) is reported with it.
 
 **5. Moved texts, no moved keys.** The L3 stems state the clock only (`08` bh.1); the horizon from the header's "now" is the audit's `horizon_min` (phase A's 20 minutes shorter than the old stems said; V4 `head_later` 0). VP `r1_arrival` asks a time of day (practice, unscored). V5 `area_hour`'s middle edge moved 140 → 130 ha with its key band unchanged by the reports; the panel's bands review uses the new edges. V10 `infra`'s option c changed (`with_care`; its key unchanged) and SPAM V3.b's options changed (its key's text unchanged; it is now one of two "sped up" options): their accuracy is not comparable with the play-test's or pilot 1's. The brook is Myllyoja / Mill Brook in both groups (parity unchanged).
+
+## Revision 25 Oct 2026 (bj) — the map training's pointing baseline replaces the pretest covariate
+
+Source: `08` (bj) (the map training replaces the map-reading pretest); the records are `07` (bj). A treatment revision before pilot 2: no data are pooled across it (`30` §2).
+
+**1. The covariate (pre-registered; replaces (be) §2).** Per participant, the map training's FIRST-try pointing errors (`map_pretest_answer.errorM`, metres, logged before the feedback is shown):
+- `point_visible`: task 1 (`training.t1.place`). The map is on screen; the participant finds a named place (a junction of two coded roads) and points at it.
+- `point_memory`: task 7 (`training.t7.memory`). A unit is shown on the map for 8 s, then marked on the blank memory-check map, drawn in the freeze map's style.
+
+Together they are a per-person pointing baseline. Both enter, as log(1 + error), every model of the map-point freeze items (`map_point` items: the error in metres, `haversineMetres` in `freezeItemScores`, and the hit within tolerance). This separates map handling (finding, pointing, placing from memory on a blank map) from situation awareness (knowing where the head or the unit is). On the map-dependent choice items (`items.csv` `map_dependence` required or helps) they enter only a sensitivity analysis.
+- A missing error (the cap ended the training first) is imputed with the sample median and flagged by an indicator; both are pre-registered.
+- Never an exclusion criterion; never shown as a score.
+
+**2. Descriptive only.** The other first answers are reported, not modelled: task 2's distance band, task 3's slope choice, task 4's fill point, task 5's "now" choice, task 6's projection error, and the measure tool's use (`measures`), by background group. Tasks 5 and 6 are an exploratory lead for the freezes' "now" and projection items.
+
+**3. Pilot checks** (they replace (be) §1's two pretest rows; thresholds DRAFT, RC):
+
+| Check | Target | Computed by |
+|---|---|---|
+| The training fits its cap | completion within the 5-minute cap ≥ 90 %; median length ≤ 5 min | `map_pretest_completed.endReason`, `durationMs` |
+| The memory baseline varies | task 7's error has an IQR ≥ 50 m over the first ten participants (else the build's rule sets a harder place before the lock) | `map_pretest_answer.errorM` (task 7) |
+| Map | the map-point error median ≤ the tolerance; map-point error correlated with `point_visible` and `point_memory` (reported, not a gate) | `haversineMetres` in `freezeItemScores`; `map_pretest_answer.errorM` |
+
+**4. What goes.** The pretest's score (0–6, against `map-pretest.key.json`) goes with the pretest. Any pilot sessions run with the pretest are not pooled with the training's.

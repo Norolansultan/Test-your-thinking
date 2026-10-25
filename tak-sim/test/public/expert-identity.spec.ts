@@ -34,6 +34,11 @@
  * comes after the step boundary's burst (70 s instead of 60 s). The driver records its plans after the minimum, so the notice shows
  * in every main view as before; the five merged views' `consult_prompt_shown` records that moved are mapped back
  * (`identity-normalise.ts`), and every other record is still the 0.12.0 run's byte for byte: the same three segment digests.
+ * Updated deliberately for the map training (25 Oct 2026, format 0.17.0; SPEC/08 (bj), SPEC/07 (bj)): the pretest's step now holds
+ * seven training tasks, each with its first answer and its feedback left — 16 records where the pretest wrote 8 (527) — and its memory
+ * task shows a unit for 8 s before the driver can answer, so every later record's wall offset is 8 s later. The normaliser removes the
+ * step's records (`map_pretest_feedback_left` added to them) and takes the training's `durationMs` out of the later offsets; the
+ * three segment digests and the 502 records stand.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -64,7 +69,7 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
   for (const cell of ["radio", "reasoning_once", "reasoning_intent"] as const) {
     it(`${cell}: the records are those of 0.12.0 except the header's new fields and the difficulty audit's deliberate additions`, async () => {
       const { o, records } = await wholeSession({ cell });
-      expect(records).toHaveLength(519); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12, the play-test's 4 pushed records (see the notes above)
+      expect(records).toHaveLength(527); // 0.12.0's 502, SPEC/36's `results_optin`, the difficulty audit's 12 (the map training's 16 in the pretest's 8), the play-test's 4 pushed records (see the notes above)
       const optIn = records.findIndex((r) => r.kind === "results_optin");
       expect(records[optIn]!.detail).toEqual({ optedIn: false });
       expect(records[optIn - 1]).toMatchObject({ kind: "questionnaire_submitted", detail: { questionnaireId: "post" } });
@@ -73,8 +78,8 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       // feedback after VP's end and before the training; the second practice item inside VP's SPAM delivery.
       const kinds = records.map((r) => r.kind);
       const pre = kinds.findIndex((k, i) => k === "questionnaire_submitted" && (records[i]!.detail as { questionnaireId: string }).questionnaireId === "pre");
-      expect(kinds.slice(pre + 1, pre + 9)).toEqual(["map_pretest_started", ...Array(6).fill("map_pretest_answer"), "map_pretest_completed"]);
-      expect(records[pre + 9]).toMatchObject({ kind: "briefing_advanced", detail: { screenId: "briefing.video" } });
+      expect(kinds.slice(pre + 1, pre + 17)).toEqual(["map_pretest_started", ...Array(7).fill(["map_pretest_answer", "map_pretest_feedback_left"]).flat(), "map_pretest_completed"]);
+      expect(records[pre + 17]).toMatchObject({ kind: "briefing_advanced", detail: { screenId: "briefing.video" } });
       const shown = kinds.indexOf("practice_feedback_shown");
       expect(records[shown - 2]).toMatchObject({ kind: "cycle_end", detail: { cycle: 0 } });
       expect(records[shown + 1]).toMatchObject({ kind: "briefing_advanced", detail: { screenId: "practice.feedback" } });

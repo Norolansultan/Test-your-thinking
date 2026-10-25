@@ -19,7 +19,7 @@ import { useLang } from "../i18n.js";
 import { PrimerScreen } from "./PrimerScreen.js";
 import { ProfileScreen } from "./ProfileScreen.js";
 import { ResultsOptInScreen } from "./ResultsOptInScreen.js";
-import { MapPretestScreen } from "./MapPretestScreen.js";
+import { MapTrainingScreen } from "./MapTrainingScreen.js";
 
 const page = { display: "flex", height: "100%", overflowY: "auto", justifyContent: "center", padding: "32px 24px", boxSizing: "border-box" } as const;
 const column = { maxWidth: 720, width: "100%", display: "flex", flexDirection: "column", gap: 14 } as const;
@@ -41,7 +41,7 @@ export function StudyShell({ snapshot, orchestrator }: { readonly snapshot: Sess
     case "primer": return <PrimerStep orchestrator={orchestrator} />;
     case "profile": return <ProfileStep orchestrator={orchestrator} />;
     case "results_optin": return <ResultsOptInStep orchestrator={orchestrator} />;
-    case "map_pretest": return <MapPretestScreen snapshot={snapshot} orchestrator={orchestrator} />; // difficulty audit (c.2)
+    case "map_pretest": return <MapTrainingScreen snapshot={snapshot} orchestrator={orchestrator} />; // the map training (25 Oct 2026; was the pretest, c.2)
     default: return null;
   }
 }

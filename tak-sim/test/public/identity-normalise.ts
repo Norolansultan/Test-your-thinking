@@ -35,7 +35,7 @@
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { sha256Hex } from "../../app/telemetry/sha256.js";
 
-const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown"]);
+const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "map_pretest_feedback_left", "practice_feedback_shown"]);
 /** The play-test's new pushed story beats (24 Oct 2026; `demo-story.ts`), and the view from which 0.12.0 listed each new nav source. */
 export const PLAYTEST_PUSHED: ReadonlySet<string> = new Set(["atom.demo.4.1", "atom.demo.6.2", "atom.demo.7.1", "atom.demo.12.2"]);
 const PLAYTEST_SOURCE_FROM: Readonly<Record<string, number>> = { P2: 9, TILANNEKUVA: 11 };
@@ -55,9 +55,14 @@ const CONSULT_AT_MERGED = PREVIEW(70);
 
 export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
   const kept: Rec[] = [];
+  // The map training's time (25 Oct 2026, 0.17.0: its memory task shows its unit for 8 s before the driver can answer) is taken out of
+  // every later record's wall offset, as the pretest it replaced took none (the driver answered it at once).
+  let shiftMs = 0;
   const boundaryAt = new Map<number, number>(); // a view's `step_boundary_reached`, its place in `kept`
-  for (const r of records) {
+  for (const r0 of records) {
+    const r = shiftMs > 0 ? { ...r0, tWallOffsetMs: r0.tWallOffsetMs - shiftMs } : r0;
     const d = r.detail as Record<string, unknown>;
+    if (r.kind === "map_pretest_completed") shiftMs += d.durationMs as number;
     if (r.kind === "step_boundary_reached") boundaryAt.set(d.cycle as number, kept.length);
     if (r.kind === "consult_prompt_shown" && d.atViewSeconds === CONSULT_AT_MERGED && boundaryAt.has(d.cycle as number)) {
       const at = boundaryAt.get(d.cycle as number)!;

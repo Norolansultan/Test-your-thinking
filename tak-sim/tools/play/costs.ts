@@ -34,8 +34,9 @@ export const COST_S = {
   primerAnswer: 10,
   primerRetry: 5,
   primerNext: 20,
-  /** The map-reading pretest: one item. */
+  /** The map training (was the pretest): one task answered; its feedback read. */
   pretestAnswer: 20,
+  pretestFeedback: 10,
   /** A freeze: one item answered and left ("Seuraava"), and the last button. */
   freezeAnswer: 10,
   freezeSubmit: 2,

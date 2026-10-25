@@ -2,7 +2,7 @@
 
 A CLI that lets an LLM "player" play the TAK wildfire command session turn by turn, as a participant would. It runs the **real
 session engine** headless — the app's `SessionOrchestrator` over `buildDemoScenario()`, with the options the app gives a study
-session (`?tuotanto`: study shell, AI-literacy test, intro video, map-reading pretest, practice feedback, guided tour, visible
+session (`?tuotanto`: study shell, AI-literacy test, intro video, map training (the pretest's step), practice feedback, guided tour, visible
 probes, SA levels hidden, nothing skippable) — in the **Haku group** (cell `radio`), on a **virtual clock**. The player sees what
 the participant's screen shows, in the session language, with the app's own strings; the live map as a PNG drawn by the app's own
 `MapView`. Expert (`--audience expert`) and public (`--audience public`, SPEC/35: primer, glossary, help card) sessions both run.
@@ -58,7 +58,7 @@ prompt, the period's end). Use `look` after any command to see the screen; it li
 | `probe-answer no` · `probe-answer yes a,b` · `probe-answer <letter> [confidence]` · `probe-answer <value>` | the visible probes (V13, V14) | 10 |
 | `hinge-answer <letter>` | the hinge's question | 10 |
 | `hinge-fatigue <1–7>` | the hinge's optional fatigue item, once its question is answered (one click; again: the last one counts; 25 Oct 2026, B2) | 3 |
-| `pretest-answer <item> <option>` | the map-reading pretest (its extract as a PNG) | 20 |
+| `pretest-answer <letter \| x,y>` | the map training's task on screen, once (its extract as a PNG with an x,y grid); its feedback is left with `continue` (10) | 20 |
 | `primer-answer <n>`, `primer-retry`, `primer-next`, `primer-back` | the primer (public) | 10, 5, 20, 20 |
 | `glossary <term>`, `help [glossary\|roster\|legend] [letter]` | the glossary and the help card (public; logged as the app logs them) | 5, 10 |
 | `quest-answer <item> <option\|number>` / `quest-submit` | the questionnaires (25 Oct 2026, B2): the pre-session form (fatigue 1–7, hours slept 0–24, and in an expert session the recent shift) and, after the session, the source-memory items, the self-estimate (0–100 %) and the group's influence items (periods 0–14; 0–100 in tens) are the player's; the rest of the post-session form is left blank (every item is optional) | 6 / 5 (pre), 20 (post) |
@@ -71,7 +71,7 @@ the questionnaire ("Personal results after the study") is answered no, neutrally
 
 The live map PNG is the app's own `MapView` in the TAK shell's mode (`map-page.ts`, bundled with esbuild, drawn by MapLibre in
 headless Chromium through Playwright): the basemap tiles, the reference overlay (sector outlines and names, roads, the bridge, the
-power line, the command post, the settlements, Korpioja's second label), the fire as reported (burnt area, burning zone, edges, head, spot fires, drone
+power line, the command post, the settlements, the brook's second label (Myllyoja)), the fire as reported (burnt area, burning zone, edges, head, spot fires, drone
 detections, earlier perimeters with their times), the projection with its labels, the units with their call signs and stacks,
 the TAK info card (clock, wind), the coordinate readout with the scale bar, and the legend (open: the harness's default, as the
 tour opens it; `map legend` collapses it). North is up; the app draws no north arrow. The camera is the app's opening frame at a
@@ -109,7 +109,7 @@ MapLibre, the tiles).
   (`template-answer.ts`): the top record's text, up to three sources with their clocks, its certainty. The study's answers are
   written by a model over hybrid retrieval and will differ; every Haku answer is labelled so.
 - **No real-time pressure** but the virtual-time costs: the player can think for as long as it likes between commands, and `look`
-  is free. The period's caps, the freeze's cap, the SPAM answer window and the pretest's four minutes run on the costs only.
+  is free. The period's caps, the freeze's cap, the SPAM answer window and the map training's five minutes run on the costs only.
 - The UI's micro-interactions are not simulated: hovers, pointer tracks, camera records (`viewport_changed`), the TAK shell's
   mount records, the window-size guard. The records the measures read are kept: Haku's `tab_selected` and pane records, the SPAM
   card's and freeze screen's answer changes, Contacts and Range & Bearing records, the legend toggle.

@@ -17,12 +17,12 @@
  *   - the shared generators and tests moved to `power-lib.ts`; GLM× uses its clustered fit (same model).
  *
  * What changed for SPEC/31 §3.6 and §3.12 (19 Oct 2026, RC for H2t): the told class is three-way. An item is STREAM-TOLD when every
- * key record was pushed before the freeze (8 of the 24: parity P-3), AI-TOLD when an answer stated its key otherwise, else NEITHER;
+ * key record was pushed before the freeze (8 of the 24 then: parity P-3; 4 of the 23 since revision (bk)), AI-TOLD when an answer stated its key otherwise, else NEITHER;
  * H2t's gap runs on the neither items and the stream-told stratum is reported. A third family (T3-…, seeds offset by
  * H2T3_SEED_OFFSET) re-runs the H2t scenarios with the first STREAM_TOLD_ITEMS items stream-told: recall of a pushed record, more
  * accurate for everyone (STREAM_ACC_SHIFT, an assumption), never AI-told (an AI restating it borrows nothing: the stream told it).
- * The AI states each other item with STATED_SHARE, so the AI-told stratum is 30 % of 16 items, not of 24, and the neither stratum at
- * most 16. Columns: the gap on all items (H2), on the neither items (H2t, three-way), on the not-AI-told items (stream-told ∪ neither:
+ * The AI states each other item with STATED_SHARE, so the AI-told stratum is 30 % of the not-stream-told items (16 of 24 then, 20 of
+ * 24 with 4 stream-told), and the neither stratum at most that many. Columns: the gap on all items (H2), on the neither items (H2t, three-way), on the not-AI-told items (stream-told ∪ neither:
  * the two-way H2t as before, now with the stream-told inside), and H2's sensitivity without the stream-told items (AI-told ∪ neither).
  * The 2 Oct and 19 Oct families keep their cells and seeds, so their rows reproduce.
  *
@@ -80,8 +80,13 @@ const STATED_SHARE = 0.3;
 const STATED_ACC_SHIFT = 1.5;
 /** T-cancel: stated-item bias, below Haku's, chosen so the pooled population Δgap is ≈ 0. */
 const CANCEL_STATED_DELTA = BASE_OVERCONFIDENCE - 0.9;
-/** SPEC/31 §3.6: the items whose every key record is pushed before the freeze (7 pushed + `fastest_spread`, parity P-3). */
-const STREAM_TOLD_ITEMS = 8;
+/**
+ * SPEC/31 §3.6: the items whose every key record is pushed before the freeze (parity P-3). Was 8 (7 pushed + `fastest_spread`); 7 by
+ * (bh); revision (bk) (25 Oct 2026, SPEC/30 bk.3) held `south_flank`'s, `hose_short`'s and `north_help`'s records for seeking, so 4 of
+ * H2's 23 items are stream-told (V2 `ek11_between`, V4 `head_unattended`, V5 `lines_breached`, V7 `lull_meaning`). Read only by the
+ * three-way H2t family (T3-…) of the default run; `--items` (`npm run power:h2-items`) does not use it.
+ */
+const STREAM_TOLD_ITEMS = 4;
 /** A stream-told item is recall of a pushed record: more accurate for everyone (logit; an assumption, not a pilot value). */
 const STREAM_ACC_SHIFT = 1.0;
 
@@ -131,7 +136,7 @@ const H2T_SCENARIOS: readonly Scenario[] = [
 ];
 const H2T_SEED_OFFSET = 10;
 
-/** SPEC/31 §3.6: the H2t family with the three-way split (8 stream-told items); seeds offset by H2T3_SEED_OFFSET. */
+/** SPEC/31 §3.6: the H2t family with the three-way split (`STREAM_TOLD_ITEMS` stream-told items); seeds offset by H2T3_SEED_OFFSET. */
 const H2T3_SCENARIOS: readonly Scenario[] = H2T_SCENARIOS.map((sc) => ({ ...sc, id: sc.id.replace(/^T-/, "T3-"), streamTold: STREAM_TOLD_ITEMS }));
 const H2T3_SEED_OFFSET = 20;
 
@@ -354,7 +359,7 @@ function main(): void {
     }
   });
 
-  // SPEC/31 §3.6 and §3.12: the three-way split (8 stream-told items).
+  // SPEC/31 §3.6 and §3.12: the three-way split (`STREAM_TOLD_ITEMS` stream-told items; 4 since revision (bk)).
   console.log(`\nSPEC/31 §3.6 — the three-way split: ${STREAM_TOLD_ITEMS} stream-told items (accuracy +${STREAM_ACC_SHIFT} logit, both groups), the AI states ${(100 * STATED_SHARE).toFixed(0)} % of the others to the guide group.`);
   console.log("\nPopulation effects, guide − Haku (500 + 500 × 40, 24 items):\n");
   console.log("| Scenario | Δgap, all items | Δgap, neither (H2t) | Δgap, not AI-told (two-way) | Δgap, without stream-told | Guide AI-told items: share of all, accuracy, confidence |");

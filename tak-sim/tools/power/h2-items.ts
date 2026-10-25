@@ -40,6 +40,11 @@
  * are the within-person control). Its Δgap is the difference in differences; under this model's effect (seek items only) it equals the
  * seek window's Δgap.
  *
+ * Revision (bn), 25 Oct 2026 (review S1; SPEC/09 (bn) §1): the sub-window S_rec (`seek_rec`), the seek-dependent items whose key or seek
+ * record is a recorded REPORT — the audit's `key_needs_search` true (V2 `south_flank`, V5 `hose_short`, `reinforcements`, V7
+ * `north_help`): the items on which an effect can run through what the AI tells, unlike the map and extrapolation items (`junction_hour`,
+ * `head_later`). The same model (the effect weight by `passive`), so S_rec's power is that of fewer items carrying the same effect.
+ *
  * Deterministic: a seeded xoshiro128** stream per sample size (`power-lib.ts`); no clock, no unseeded randomness.
  */
 
@@ -55,6 +60,8 @@ export interface ItemClass {
   readonly passive: Passive;
   readonly late: boolean;
   readonly lure: boolean;
+  /** Revision (bn): the audit's `key_needs_search` (a key record is recorded only: found by searching); false without the column. */
+  readonly recordKey?: boolean;
 }
 
 const H2_VIEWS = new Set(["V2", "V4", "V5", "V7"]);
@@ -68,7 +75,7 @@ export function h2ItemClasses(csv: string, lureIds: ReadonlySet<string> = new Se
   const [head, ...body] = parseCsv(csv);
   if (!head) throw new Error("items.csv: empty");
   const col = (name: string) => head.findIndex((h) => h.trim() === name);
-  const at = { id: col("id"), kind: col("kind"), view: col("view"), level: col("level"), passive: col("passive"), late: col("late_lt60s"), lure: col("lure"), scoredFor: col("scored_for") };
+  const at = { id: col("id"), kind: col("kind"), view: col("view"), level: col("level"), passive: col("passive"), late: col("late_lt60s"), lure: col("lure"), scoredFor: col("scored_for"), recordKey: col("key_needs_search") };
   for (const k of ["id", "kind", "view", "level", "passive", "late"] as const) if (at[k] < 0) throw new Error(`items.csv: no column for ${k}`);
   return body.flatMap((r): ItemClass[] => {
     if (r[at.kind] !== "freeze" || !H2_VIEWS.has(r[at.view] ?? "") || !["L2", "L3"].includes(r[at.level] ?? "")) return [];
@@ -77,7 +84,7 @@ export function h2ItemClasses(csv: string, lureIds: ReadonlySet<string> = new Se
     const passive = (r[at.passive] ?? "").trim();
     if (passive !== "yes" && passive !== "partly" && passive !== "no") throw new Error(`items.csv: ${r[at.id]} has passive "${passive}"`);
     const id = r[at.id]!;
-    return [{ id, view: r[at.view]!, level: r[at.level]!, passive, late: truthy(r[at.late]), lure: at.lure >= 0 ? truthy(r[at.lure]) : lureIds.has(id) }];
+    return [{ id, view: r[at.view]!, level: r[at.level]!, passive, late: truthy(r[at.late]), lure: at.lure >= 0 ? truthy(r[at.lure]) : lureIds.has(id), recordKey: at.recordKey >= 0 && truthy(r[at.recordKey]) }];
   });
 }
 
@@ -104,6 +111,8 @@ export interface Window {
 export const WINDOWS: readonly Window[] = [
   { id: "all", label: "all H2 items (as pre-registered)", keep: () => true },
   { id: "seek", label: "seek-dependent only (passive partly or no)", keep: (it) => it.passive !== "yes" },
+  // Revision (bn) (review S1): S_rec, the seek-dependent items whose key or seek record is a recorded report.
+  { id: "seek_rec", label: "S_rec: seek-dependent, key in a recorded report", keep: (it) => it.passive !== "yes" && it.recordKey === true },
   { id: "no_late", label: "without the late items", keep: (it) => !it.late },
   { id: "no_late_lure", label: "without the late and lure items", keep: (it) => !it.late && !it.lure },
   { id: "seek_no_lure", label: "seek-dependent without lure items", keep: (it) => it.passive !== "yes" && !it.lure },
@@ -221,7 +230,7 @@ export function itemPowerReport(items: readonly ItemClass[], o: ItemPowerOptions
   const alpha = o.alpha ?? 0.05;
   out.push(`H2 power with item classes (SPEC/09 (bf), (bk)) — ${o.reps} replicates per sample size, seed ${o.seed}, α = ${String(Number(alpha.toFixed(4))).replace(/^0/, "")} two-sided`, "");
   out.push(`Items read: ${items.length} (passive yes ${items.filter((i) => i.passive === "yes").length}, partly ${items.filter((i) => i.passive === "partly").length}, no ${items.filter((i) => i.passive === "no").length}; late ${items.filter((i) => i.late).length}; lure ${items.filter((i) => i.lure).length}).`);
-  out.push(`- seek-dependent: ${ids((i) => i.passive !== "yes")}`, `- late: ${ids((i) => i.late)}`, `- lure: ${ids((i) => i.lure)}`, "");
+  out.push(`- seek-dependent: ${ids((i) => i.passive !== "yes")}`, `- S_rec (key in a recorded report): ${ids((i) => i.passive !== "yes" && i.recordKey === true)}`, `- late: ${ids((i) => i.late)}`, `- lure: ${ids((i) => i.lure)}`, "");
   const m = o.model;
   out.push(`Model: b = ${m.bYes} / ${m.bPartly} / ${m.bNo} (passive yes / partly / no) + ${m.bLate} if late; effect weight 0 / ${m.partlyWeight} / 1, late at least ${m.lateWeight}.`, "");
   const grids = o.sizes.map((n, k) => powerGrid(items, n, o.deltas, o.reps, cellSeed(o.seed, k + 1, n), m, WINDOWS, alpha));

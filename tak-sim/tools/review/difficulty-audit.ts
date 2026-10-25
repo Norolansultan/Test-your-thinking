@@ -313,14 +313,18 @@ export function summaryMd(items: readonly AuditItem[]): string {
     "| View | Pushed to the log | Recorded only (Haku / Thinker), of the view's steps | Share pushed |", "|---|---|---|---|");
   for (const r of recordsPerView()) lines.push(`| ${r.view === 0 ? "VP" : `V${r.view}`} | ${r.pushed} | ${r.recorded} | ${pct(r.pushed, r.pushed + r.recorded)} |`);
   // Revision (bm), 25 Oct 2026: the pointers are among the pushed above; they carry no content, so no item's class rests on them.
-  lines.push("", "## \"Report filed\" pointers (revision (bm)): pushed, content-free, counted among the pushed above", "",
-    "| Pointer | View | Clock | Line | Record it points to | Kind | Items whose record it is |", "|---|---|---|---|---|---|---|");
+  // Revision (bn): the command centre's (JOKE) acknowledgements; the source each names and its window class (SPEC/09 (bn) §2).
+  lines.push("", "## Pointers (revisions (bm), (bn)): the command centre's acknowledgements, pushed, content-free, counted among the pushed above", "",
+    "| Pointer | View | Clock | Line | Source it names | Record it points to | Kind | Window | Items whose record it is |", "|---|---|---|---|---|---|---|---|---|");
   const s = buildDemoScenario();
+  const freezeViews = new Set(s.freezes.map((f) => f.cycle as number));
   for (const p of POINTERS) {
     const a = s.atoms.find((x) => x.id === p.id)!;
-    lines.push(`| \`${p.id}\` | V${viewOfStep(p.step)!.index} | ${clockAt(a.provenance.observedAt)} | ${p.fi} | \`${p.to}\` | ${p.kind} | ${p.serves.map((x) => `\`${x}\``).join(", ") || "—"} |`);
+    const v = viewOfStep(p.step)!;
+    const window = `${v.steps[0] === p.step ? "view start" : "step boundary"} → ${freezeViews.has(v.index) ? "freeze" : "view end"}`;
+    lines.push(`| \`${p.id}\` | V${v.index} | ${clockAt(a.provenance.observedAt)} | ${p.fi} | ${p.about} | \`${p.to}\` | ${p.kind} | ${window} | ${p.serves.map((x) => `\`${x}\``).join(", ") || "—"} |`);
   }
-  lines.push("", `Displaced from the stream to the records by the pointers (\`site-scenario.json\` \`pointerDisplaced\`, none an item's record): ${(SITE_SCENARIO.pointerDisplaced ?? []).map((x) => `\`${x}\``).join(", ")}.`);
+  lines.push("", `Displaced from the stream to the records by the pointers (\`site-scenario.json\` \`pointerDisplaced\`, none an item's record, no air asset's change of state, repeats first since (bn)): ${(SITE_SCENARIO.pointerDisplaced ?? []).map((x) => `\`${x}\``).join(", ")}.`);
   lines.push("", "## Items whose key rests on a map fact (or a fact on no surface) that no record states before the moment", "");
   for (const i of items.filter((x) => x.hand.mapUnstated)) lines.push(`- \`${i.id}\` (${i.level}): ${i.hand.note}`);
   lines.push("", `## Freeze items whose last key record arrives less than ${LATE_LEAD_S} s before the freeze`, "");

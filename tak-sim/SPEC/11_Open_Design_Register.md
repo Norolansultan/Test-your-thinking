@@ -3,6 +3,8 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **25 Oct 2026** — §7.35: the message log's history (options A–D, recommendation B, this period only); deferred by the researcher, to decide before pilot 2.
+> - **25 Oct 2026 (bn)** — §7.36: after the independent review — the panel's question on V5 `reinforcements`' level (L1 recall labelled L3) and on `north_help`; the native, domain and researcher items revision (bn) leaves. See §7.35.
 > - **25 Oct 2026 (bh)** — §7.34: after the play-test replay — the panel's V4 `head_later` question with the rate check (14.1 m/min pushed against the model's 38 m/min crown run), VP `r1_arrival`'s crossing time, the native, domain and researcher items the decisions R1–R11 leave; the Thinker index carried.
 > - **24 Oct 2026 (bg)** — §7.33: after the play-test — §7.18's V12 `head_now` item closed; the native, domain, researcher and panel items the play-test decisions leave; the Thinker index carried (rebuild before any session). See §7.33.
 > - **21 Oct 2026 (bc)** — §7.30, §7.31: game mode was removed on 21 Oct 2026 (`29` withdrawn; one simulation for everyone, the public-audience version `35` replaces it). The items that named it are revised: the demonstration stays gated during recruitment; the replay with expert comparison may still come after data collection, game mode does not.
@@ -1096,3 +1098,15 @@ Options:
   - a play-test.
 
 C as a small addition to B (some more routine chatter) is acceptable; C alone is not. **Status: deferred by the researcher (25 Oct 2026): decide later, before pilot 2.**
+
+### 7.36 After the independent review (25 Oct 2026, revision (bn); open for the panel, the native speaker, the domain reviewer and the researcher)
+
+The review's findings B1, S1–S10 are built or written into the plan (`08`, `09`, `15`, `18`, `30` (bn)). Open:
+
+1. **Panel.**
+   - **V5 `reinforcements`, its level.** The item is labelled L3 ("Mitä lisäyksiköitä palolle on saapunut klo 17.00 mennessä?", a projection to 17.00), but its key ("Kolme hälytettyä pelastusyksikköä") is read off P2's 15.30 dispatch: for a searcher it is L1 recall of a recorded fact, for a non-searcher an L3 projection from the pushed request. The label is kept (researcher's brief). Question to the panel: is it L1 (recall) or L3 (projection), and should it count in H2's L2/L3 window? A change of level is a dated amendment before the lock (`09` (bk) §1).
+   - **V7 `north_help`** (`08` (bn)): does "maastoauto" in EK14's pushed stream let an experienced officer infer, without the record, that a fire engine would not reach the line? (The class stays "no".)
+2. **Native speaker:** EK14's re-worded 16.35 line; EK11's "palasimme linjalle."; the twelve JOKE lines; `north_help`'s key, `hose_short`'s `withdrawn`, `reinforcements`' `none`; the records step's new example ("Mitä vesihuolto on kirjannut?") and last sentence; the feedback's closing line; the help card's roster note.
+3. **Domain reviewer:** JOKE's call sign and form ("<area> PEL-JOKE"); whether a command centre acknowledges reports on a group the incident commander hears and logs crew-to-crew lines; the fire engine stopping ~300 m short where a terrain unit's vehicle gets through; EK11's return to the line between 15.30 and 15.41 (`18` (bn), "For the reviewers").
+4. **Researcher (RC):** the 15 % exposure rule on retrieved-only exposure (`09` (bn) §4); S_rec as a sensitivity outside the Holm family (`09` (bn) §1).
+5. **Thinker index:** PROVISIONAL, carried (595 Finnish and 658 English vectors of 1016); run `npm run thinker:index` (both languages, the model) before any session.

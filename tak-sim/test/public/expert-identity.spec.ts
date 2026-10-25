@@ -49,6 +49,10 @@
  * fewer): 529. The normaliser removes the pointers' deliveries and puts the displaced ones back where 0.12.0 wrote them
  * (`identity-normalise.ts`); every other record is still the 0.12.0 run's: the same three digests. The pointer mark itself never
  * reaches the log (a `bubble_available` names the atom only).
+ * Updated deliberately for revision (bn) (25 Oct 2026, a STIMULUS change, format unchanged; SPEC/18 (bn)): the pointers are the command
+ * centre's acknowledgements (source JOKE, kept out of `navSources`), and V11 and V12 displace KY23's repeated reports instead of VD1's
+ * drops and pause; still 529 records, and the normaliser maps both back (`identity-normalise.ts` `BM_DISPLACED`, `BN_SOURCE`): the same
+ * three digests.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

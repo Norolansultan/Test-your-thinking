@@ -16,7 +16,8 @@ import { useAudience, type HelpCardSection } from "../audience-context.js";
 import { LangContext } from "../i18n.js";
 import type { Lang } from "../../../i18n/lang.js";
 import { unitCallSign } from "../../../i18n/place-names.js";
-import { UNIT_ROSTER, UNIT_ROSTER_EN } from "../unit-roster.js";
+import { sourceName } from "../../../i18n/text.js";
+import { SOURCE_ROSTER, SOURCE_ROSTER_EN, UNIT_ROSTER, UNIT_ROSTER_EN } from "../unit-roster.js";
 import { Legend, LEGEND_ROWS } from "../components/Legend.js";
 import { GLOSSARY_FILES, type GlossaryTerm } from "./glossary.js";
 
@@ -26,7 +27,9 @@ export const HELP_CARD_TEXT = {
     button: "Sanasto ja ohjeet", title: "Sanasto ja ohjeet", close: "Sulje",
     sections: { glossary: "Sanasto A–Ö", roster: "Yksiköt", legend: "Karttamerkit" } as Record<HelpCardSection, string>,
     letters: "Alkukirjain", all: "Kaikki",
-    rosterNote: "Kutsutunnuksen kirjaimet kertovat, mistä yksikkö on: EK oma pelastuslaitos, KY naapuripelastuslaitos, OUT alueen ulkopuolelta, DR drooniryhmä.",
+    // Revision (bn) (review S8): the note no longer names OUT (units from outside the region come later); the list shows whom the
+    // participant has met. DRAFT.
+    rosterNote: "Luettelossa ovat yksiköt, jotka ovat olleet kartalla tai viestilokissa. Kutsutunnuksen kirjaimet kertovat, mistä yksikkö on: EK oma pelastuslaitos, KY naapuripelastuslaitos, DR drooniryhmä.",
     crew: "Miehistö", from: "Mistä",
     legendNote: "Kartalla näkyvät kulloinkin vain ne merkit, joita siinä on.",
   },
@@ -34,7 +37,7 @@ export const HELP_CARD_TEXT = {
     button: "Glossary & help", title: "Glossary & help", close: "Close",
     sections: { glossary: "Glossary A–Z", roster: "Units", legend: "Map symbols" } as Record<HelpCardSection, string>,
     letters: "Initial letter", all: "All",
-    rosterNote: "A call sign's letters tell where the unit is from: EK own rescue department, KY neighbouring rescue department, OUT from outside the region, DR drone team.",
+    rosterNote: "The list shows the units that have been on the map or in the message log. A call sign's letters tell where the unit is from: EK own rescue department, KY neighbouring rescue department, DR drone team.",
     crew: "Crew", from: "From",
     legendNote: "The map shows only the symbols in use at the time.",
   },
@@ -65,16 +68,39 @@ export function glossaryList(terms: readonly GlossaryTerm[], letter: string | nu
 
 export interface RosterRow { readonly callSign: string; readonly type: string; readonly crew?: string | undefined; readonly from?: string | undefined; readonly detail?: string | undefined }
 
-/** The roster in the session language, in its own order (the briefing's). */
-export function rosterRows(lang: Lang): RosterRow[] {
+/**
+ * The roster in the session language, in its own order (the briefing's), then the radio sources that are not platforms (JOKE).
+ * Revision (bn), 25 Oct 2026 (review S8): with `seen`, only the units and sources the participant has met — on the map or heard in the
+ * message log (`rosterSeen`) — so the card does not tell that reinforcements will come (EK15, EK16, KY23, OUT1, OUT2, UGV1 and VD1 arrive
+ * later); without it (tests, tools), every row.
+ */
+export function rosterRows(lang: Lang, seen?: ReadonlySet<string>): RosterRow[] {
+  const row = (fi: (typeof UNIT_ROSTER)[string], en: (typeof UNIT_ROSTER_EN)[string] | undefined, callSign: string): RosterRow => (lang === "en" && en
+    ? { callSign, type: en.type, crew: en.crew, from: en.from, detail: en.detail }
+    : { callSign, type: fi.typeFi, crew: fi.crew, from: fi.fromFi, detail: fi.detailFi });
+  const shown = (id: string) => seen === undefined || seen.has(id);
   // determinism-lint-allow: a constant table's insertion order, display only; never fed to the session.
-  return Object.keys(UNIT_ROSTER).map((id) => {
-    const fi = UNIT_ROSTER[id]!;
-    const en = UNIT_ROSTER_EN[id];
-    return lang === "en" && en
-      ? { callSign: unitCallSign(lang, id), type: en.type, crew: en.crew, from: en.from, detail: en.detail }
-      : { callSign: unitCallSign(lang, id), type: fi.typeFi, crew: fi.crew, from: fi.fromFi, detail: fi.detailFi };
-  });
+  const units = Object.keys(UNIT_ROSTER).filter(shown).map((id) => row(UNIT_ROSTER[id]!, UNIT_ROSTER_EN[id], unitCallSign(lang, id)));
+  // determinism-lint-allow: a constant table's insertion order, display only; never fed to the session.
+  const sources = Object.keys(SOURCE_ROSTER).filter(shown).map((id) => row(SOURCE_ROSTER[id]!, SOURCE_ROSTER_EN[id], sourceName(lang, id)));
+  return [...units, ...sources];
+}
+
+/** What a snapshot holds of the units the participant has met: the map's units and aircraft now, and every message log sender so far. */
+export interface RosterSeenFrom {
+  readonly radioLog: readonly { readonly from: string }[];
+  readonly renderTree: { readonly cycleInfo: { readonly unitPositions: Readonly<Record<string, unknown>>; readonly aircraft: readonly { readonly platformId: string }[] } | null };
+}
+
+/** Revision (bn): the ids the roster shows (`rosterRows`'s `seen`): on the map now, or a sender in the message log. */
+export function rosterSeen(s: RosterSeenFrom): ReadonlySet<string> {
+  const ids = new Set<string>(s.radioLog.map((e) => e.from));
+  const c = s.renderTree.cycleInfo;
+  if (c) {
+    for (const id of Object.keys(c.unitPositions)) ids.add(id);
+    for (const a of c.aircraft) ids.add(a.platformId);
+  }
+  return ids;
 }
 
 /**
@@ -97,7 +123,8 @@ const tab = (active: boolean): JSX.CSSProperties => ({
   border: `1px solid ${active ? "#8ab4f8" : "#3a3f44"}`, background: active ? "#2b3a50" : "#20242a", color: "#e8eaed",
 });
 
-export function HelpCard({ variant = "panel" }: { readonly variant?: "panel" | "toolbar" }) {
+/** `seen` (revision (bn)): the units and sources the participant has met (`rosterSeen` of the session snapshot); the roster shows only those. */
+export function HelpCard({ variant = "panel", seen }: { readonly variant?: "panel" | "toolbar"; readonly seen?: ReadonlySet<string> | undefined }) {
   const { audience, onHelpCardOpened } = useAudience();
   const lang = useContext(LangContext);
   const [section, setSection] = useState<HelpCardSection | null>(null);
@@ -141,7 +168,7 @@ export function HelpCard({ variant = "panel" }: { readonly variant?: "panel" | "
             </div>
             <div role="tabpanel" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 14px 14px", fontSize: 13, lineHeight: 1.45 }}>
               {section === "glossary" && <GlossarySection lang={lang} letter={letter} onLetter={setLetter} />}
-              {section === "roster" && <RosterSection lang={lang} />}
+              {section === "roster" && <RosterSection lang={lang} seen={seen} />}
               {section === "legend" && (
                 <div>
                   <p style={{ margin: "0 0 8px", opacity: 0.8 }}>{T.legendNote}</p>
@@ -189,12 +216,12 @@ function GlossarySection({ lang, letter, onLetter }: { readonly lang: Lang; read
   );
 }
 
-function RosterSection({ lang }: { readonly lang: Lang }) {
+function RosterSection({ lang, seen }: { readonly lang: Lang; readonly seen: ReadonlySet<string> | undefined }) {
   const T = HELP_CARD_TEXT[lang];
   return (
     <div>
       <p style={{ margin: "0 0 8px", opacity: 0.8 }}>{T.rosterNote}</p>
-      {rosterRows(lang).map((r) => (
+      {rosterRows(lang, seen).map((r) => (
         <div key={r.callSign} style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: "2px 10px", padding: "6px 0", borderBottom: "1px solid #262b31" }}>
           <strong style={{ fontFamily: "monospace", fontSize: 13.5 }}>{r.callSign}</strong>
           <span>{r.type}</span>

@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `05_Probe_and_Freeze_Design.md` including amendment B1. All eight- and nine-cycle figures are replaced by the twenty-cycle schedule.
 
 > **Changelog**
+> - **25 Oct 2026 (bn)** — after the independent review: V7 `north_help` (B1: the record and the key agree with EK14's pushed stream — a fire engine stops short, EK14's terrain vehicle gets through; key "Paloauto ei pääse linjalle asti: …"), V5 `hose_short` (S5: option `burnt` → `withdrawn`, the pushed state, false at the freeze), V5 `reinforcements` (S8: `none` re-worded; the level question to the panel). Classes unchanged. See the revision at the end.
 > - **25 Oct 2026 (bk)** — four phase-A H2 items made seek-dependent (researcher decision 25 Oct 2026; `09` (bk), `30` (bk)): V2 `south_flank` (its 14.08 record held for seeking; option `lost` → `flames`, the stale pushed state), V5 `hose_short` (its 15.35 record held), V5 `reinforcements` (new L3, replaces `wind_shift` at its place), V7 `north_help` (re-keyed on EK14's access line, slug kept). Seek-dependent H2 items 5 → 9 of 23; each findable with two natural questions per language (`tools/review/seek-questions.ts`). DRAFT Finnish. See the revision at the end.
 > - **25 Oct 2026 (bh)** — the play-test replay's decisions (`analysis.md` §10.4, researcher 25 Oct 2026): every L3 stem states its clock only (R1); V4 `head_later` exploratory, outside H2 and the composites (R2); V10 `infra` asks a plain current state (R3); VP `r1_arrival` asks a time of day (R4); the brook Korpioja is Myllyoja / Mill Brook (R5); V5 `area_hour` re-banded with a 10 % guard (R8); SPAM V3.b's options differ in magnitude (R9); "ditch" → "brook", V14's basis figures, the contradiction prompt singular (B3, B4, B9). See the revision at the end.
 > - **25 Oct 2026 (bj)** — the map training replaces the map-reading pretest (researcher decision 25 Oct 2026): seven tasks in its slot on its neutral extract, each answered once with feedback (find a named place, measure a distance, fire and slope, water by road, the map against the log, project by the clock, the memory-check map); keys computed by `tools/review/map-training.ts`; tasks 1 and 7's first-try pointing errors a covariate (`09` (bj)). Replaces (be) §4. See the revision at the end.
@@ -1326,3 +1327,36 @@ Three of the four are now `retrievalDependent` (every key record recorded-only; 
 - Native check of the new Finnish (the stem and options of `reinforcements` and `north_help`, `south_flank`'s `flames`) and of the questions in `seek-questions.ts` (DRAFT).
 - Domain check: that a commander would ask EK14's access before sending help; that "kalusto kannetaan kaakosta" reads as the record's "kantakaa kaakosta"; that "Kolme hälytettyä pelastusyksikköä" is the plain reading of P2's dispatch (EK15, EK16, KY23) by 17.00.
 - The help card lists three reinforcement units without times, so `reinforcements` is "partly" passive, not "no": a non-searcher who reads it and trusts that alerted units arrive can reach the key.
+
+## Revision 25 Oct 2026 (bn) — three seek-dependent items corrected after the independent review (B1, S5, S8)
+
+Source: the independent review of 25 Oct 2026 (B1 blocker, S5, S8) and the researcher's brief; the records are `18` (bn), the analysis `09` (bn). Checked against `wildfire-sagat-probes` (`sagat_rules.md`): one element per query, distractors plausible states of the same element, answerable from what the participant could perceive, no query cueing another, the stem stating no answer. DRAFT Finnish (native and domain check). The difficulty audit's classes are unchanged (`items.csv`: `north_help` no, `hose_short` partly, `reinforcements` partly; key records, tiers, leads, findability the same), so H2's nine seek-dependent items stand (`09` (bk) §1).
+
+**V7 `north_help` (B1, blocker).** Its key record contradicted EK14's own pushed stream (EK14's terrain vehicle is at the line: radio 10.5, `evt.c10.005`), so an officer who integrated the stream correctly chose `burned` and was scored wrong. The record now says that a fire engine stops about 300 m short on the soft track and only EK14's own terrain vehicle reaches the line (`18` (bn)); the key names the fire engine:
+
+| Option | Was (fi / en) | Is (fi / en) |
+|---|---|---|
+| `carry` (key) | Autolla ei pääse linjalle asti: kalusto kannetaan kaakosta / A vehicle cannot reach the line: the kit is carried in from the south-east | **Paloauto ei pääse linjalle asti: kalusto kannetaan kaakosta / A fire engine cannot reach the line: the kit is carried in from the south-east** |
+| `burned` | Paloauto pääsee palaneen alueen kautta linjalle asti / A fire engine can drive through the burned area right up to the line | unchanged |
+| `track` | Ajoura kantaa raskaankin auton linjan viereen / The track carries even a heavy vehicle up to the line | unchanged |
+| `cut` | Linjalle ei pääse lainkaan, palo on katkaissut reitin / The line cannot be reached at all; the fire has cut the route | unchanged |
+
+The stem is unchanged. **Why the pushed stream decides neither the key nor `burned`:** the stream says that EK14's terrain vehicle went through the burned area and keeps the basin full at the line; it says nothing of a fire engine. `burned` (a fire engine through the burned area) is now a different claim from the stream's, the non-searcher's generalisation (`seek-items-retrieval.spec.ts` criterion c: the default, on radio 10.5); `cut` is ruled out by the stream (EK14 is on the line); `track` contradicts the record. The key is only in the record (`key_needs_search`; seek-dependent, passive "no"). The key statements gain the fire engine's patterns (`freeze-key-statements.ts`). **SAGAT check:** one element (whether a unit sent to EK14 can drive to its line); four states of it; answerable from the record that a JOKE acknowledgement names at 16.36 (`atom.ptr.10.0`), within a minute of it; no other item asks EK14's access. **Residual risk (for the panel):** a domain expert may infer from "maastoauto" that a fire engine would not get through, so a non-searcher can reach the key by knowledge; the class stays "no" (nothing pushed states it), and pilot 2's accuracy by group and seeking shows it. One English findability question changed (EK14's line no longer says "closer"): "How close can vehicles get to EK14?" → "Can vehicles get through to EK14's line?" (lexical rank 1 at step 10; `seek-questions.ts`).
+
+**V5 `hose_short` (S5).** The last pushed EK11 state before the freeze is radio 7.4 (the men pulled off the line, PP1 behind them), while the stem asks what limits EK11's work on the line. The recorded 15.35 request now says that the crew returned to the line (`18` (bn)), and the option that no record stated is replaced by the pushed state, false at the freeze:
+
+| Option | Was | Is |
+|---|---|---|
+| `burnt` → `withdrawn` | Kipinät ovat polttaneet letkulinjan poikki / Embers have burnt through the hose line | **Miehet on vedetty pistepalon takia pois linjalta / The crew has been pulled off the line because of the spot fire** |
+
+Key `hose` and the other options unchanged. The non-searcher's default is now `withdrawn` (radio 7.4), a lure: the searcher reads that the crew is back and short of hose. The push cap and the key record are unchanged (the request keeps its held slot).
+
+**V5 `reinforcements` (S8).** The help card's roster (public sessions) listed the three reinforcement units from the start and OUT1, OUT2, UGV1 and VD1 with "Saapui … mukana"; it no longer does (`18` (bn) §8.1). The `none` default is re-worded to the non-searcher's own belief (the request heard, no dispatch heard), a plausible lure for the 17.00 projection:
+
+| Option | Was | Is |
+|---|---|---|
+| `none` | Ei vielä yhtään: lisäyksiköitä on vasta pyydetty / None yet: reinforcements have only been requested | **Ei yhtään: lisäyksiköitä on pyydetty, mutta niitä ei ole lähetetty / None: reinforcements have been asked for, but none have been sent** |
+
+(The wording avoids "vastattu", which shares a stem with the pointers' "vastaanotettu", and "hälytet-", the key statements' pattern.) The class stays "partly": the help card's listing no longer gives a reason, but a standard response time can be projected from the pushed request without the dispatch. **The level:** the item is labelled L3 (a projection to 17.00), but its key is the recall of P2's dispatch (an L1 fact read off a record); the label is kept, and the question is put to the panel (`11` §7.35).
+
+**Not changed:** V2 `south_flank` (its `dry` lure can penalise a partial search, `09` (bn) §5); SPAM V3.b (its key record is `atom.ptr.3.1`'s and a lure for `area_40` unless the 13.55 survey is read, `09` (bn) §5).

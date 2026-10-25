@@ -43,6 +43,7 @@ import {
   type ScenarioContract,
   type Tier,
 } from "./types.js";
+import { POINTER_SENDER } from "./pointers.js";
 import { STEP_SECONDS } from "./views.js";
 
 export type ValidatorCheckId =
@@ -324,8 +325,10 @@ export const H9_H10_RECORD_IDS: readonly string[] = [
 
 // #17 — revision (bm), 25 Oct 2026: a "report filed" pointer (`InfoAtom.pointer`, `pointers.ts`) is pushed in exactly one view, in its
 // record's step, at or after the record's clock; the record exists and is recorded (pushed nowhere); it is no H9/H10 record; no pointer
-// comes from an H9/H10 record's source within a step of it (an obvious pointer), nor from a source whose only records are those; and no
-// freeze item's key or basis is a pointer (a pointer holds no content).
+// names an H9/H10 record's source within a step of it (an obvious pointer), nor a source whose only records are those; and no freeze
+// item's key or basis is a pointer (a pointer holds no content). Revision (bn) (review S4): every pointer is the command centre's
+// acknowledgement (`POINTER_SENDER`, "JOKE", no H9/H10 source), so the source checks apply to the source it names — the pointed
+// record's own source.
 function checkPointers(s: ScenarioContract): ValidationFailure[] {
   const failures: ValidationFailure[] = [];
   const pushedIn = new Map<string, number>();
@@ -342,11 +345,14 @@ function checkPointers(s: ScenarioContract): ValidationFailure[] {
     if (to.cycle !== p.cycle) failures.push(f("pointers", `"${p.id}" (step ${p.cycle}) points to "${to.id}" of step ${to.cycle}: not reachable when the pointer arrives`));
     if (p.provenance.observedAt < to.provenance.observedAt) failures.push(f("pointers", `"${p.id}" is said before "${to.id}" was observed`));
     if (H9_H10_RECORD_IDS.includes(to.id)) failures.push(f("pointers", `"${p.id}" points to "${to.id}", an H9/H10 record`));
+    if (p.provenance.sourceId !== POINTER_SENDER) failures.push(f("pointers", `"${p.id}" is said by ${p.provenance.sourceId}, not the command centre ${POINTER_SENDER}`));
+    if (banned.some((b) => b.provenance.sourceId === POINTER_SENDER)) failures.push(f("pointers", `the command centre ${POINTER_SENDER} is the source of an H9/H10 record`));
+    const named = to.provenance.sourceId;
     for (const b of banned) {
-      if (b.provenance.sourceId === p.provenance.sourceId && Math.abs(b.cycle - p.cycle) <= 1) failures.push(f("pointers", `"${p.id}" comes from ${p.provenance.sourceId}, the source of H9/H10's "${b.id}" in step ${b.cycle}`));
+      if (b.provenance.sourceId === named && Math.abs(b.cycle - p.cycle) <= 1) failures.push(f("pointers", `"${p.id}" names ${named}, the source of H9/H10's "${b.id}" in step ${b.cycle}`));
     }
-    const own = s.atoms.filter((a) => a.provenance.sourceId === p.provenance.sourceId && !a.pointer);
-    if (own.length === 0 || own.every((a) => H9_H10_RECORD_IDS.includes(a.id))) failures.push(f("pointers", `"${p.id}" comes from ${p.provenance.sourceId}, a source with no records but H9/H10's`));
+    const own = s.atoms.filter((a) => a.provenance.sourceId === named && !a.pointer);
+    if (own.every((a) => H9_H10_RECORD_IDS.includes(a.id))) failures.push(f("pointers", `"${p.id}" names ${named}, a source with no records but H9/H10's`));
     if (freezeAtoms.has(p.id)) failures.push(f("pointers", `"${p.id}" is a freeze item's key or basis record`));
   }
   return failures;

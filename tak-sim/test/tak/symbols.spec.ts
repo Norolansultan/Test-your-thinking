@@ -60,7 +60,7 @@ describe("chatRoomOf (SPEC/28 §5: rooms by source, not by sector)", () => {
   it.each([
     ["EK11", "ground"], ["EK16", "ground"], ["KY23", "ground"], ["OUT2", "ground"], ["VPK", "ground"], ["UGV1", "ground"],
     ["DR1", "air"], ["DR3", "air"], ["VD1", "air"], ["SPOT", "air"], ["HELI1", "air"], ["DRONERYHMÄ", "air"],
-    ["P2", "command"], ["P3", "command"], ["TILANNEKUVA", "command"], ["HÄTÄKESKUS", "command"], ["JÄLKIVARTIO", "command"],
+    ["P2", "command"], ["P3", "command"], ["TILANNEKUVA", "command"], ["HÄTÄKESKUS", "command"], ["JÄLKIVARTIO", "command"], ["JOKE", "command"],
     ["SAA", "support"], ["POLIISI", "support"], ["JOHTOPAIKKA", "support"], ["register", "support"], ["", "support"],
   ] as const)("%s → %s", (source, room) => {
     expect(chatRoomOf(source)).toBe(room);

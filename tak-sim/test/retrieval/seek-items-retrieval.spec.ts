@@ -39,12 +39,13 @@ function bestRank(question: string, step: number, records: readonly string[], la
 
 /**
  * Criterion c: what a non-searcher holds from the stream at the moment, and the option it makes (a lure). V2: EK12's 13.20 report
- * (flames 2–3 m, moving east); V5 hose: PP1 behind EK11, the men pulled off the line (the sparks lure); V5 reinforcements: EK11's
+ * (flames 2–3 m, moving east); V5 hose: PP1 behind EK11, the men pulled off the line (revision (bn): the `withdrawn` lure, false at the
+ * freeze: the recorded 15.35 request says the crew is back on the line); V5 reinforcements: EK11's
  * request for more units (none yet); V7: EK14 through the burned area to its new line in its terrain vehicle.
  */
 const STREAM_DEFAULT: Readonly<Record<string, { readonly option: string; readonly record: string }>> = {
   "freeze.2.south_flank": { option: "flames", record: "evt.c01.004" },
-  "freeze.5.hose_short": { option: "burnt", record: "atom.radio.7.4" },
+  "freeze.5.hose_short": { option: "withdrawn", record: "atom.radio.7.4" }, // revision (bn): the pushed withdrawal itself, false at the freeze
   "freeze.5.reinforcements": { option: "none", record: "atom.demo.7.0" },
   "freeze.7.north_help": { option: "burned", record: "atom.radio.10.5" },
 };

@@ -10,7 +10,7 @@ import { HakuPanel } from "./Drawers.js";
 import { OpenAnswerView } from "./OpenAnswerView.js";
 import { ConsultNotice } from "./ConsultNotice.js";
 import { Glossed } from "../explain/Glossed.js";
-import { HelpCard } from "../explain/HelpCard.js";
+import { HelpCard, rosterSeen } from "../explain/HelpCard.js";
 import { useQueryTelemetry } from "../useQueryTelemetry.js";
 import type { QueryField } from "../../../telemetry/record-kinds-interaction.js";
 
@@ -291,7 +291,7 @@ function MessageLog({ snapshot }: { readonly snapshot: SessionSnapshot; readonly
         <span>{t.messageLog} ({snapshot.radioLog.length})</span>
       </div>
       {/* SPEC/35 §3: the help card's row under the log's header (outside its dimmed style), public sessions only — nothing for experts. */}
-      <HelpCard />
+      <HelpCard seen={rosterSeen(snapshot)} />
       <div style={scrollArea}>
         {snapshot.radioLog.length === 0 && <div style={{ opacity: 0.4, fontSize: 12.5 }}>{t.noMessages}</div>}
         {snapshot.radioLog.map((entry, i) => <MessageLogRow key={i} entry={entry} />)}

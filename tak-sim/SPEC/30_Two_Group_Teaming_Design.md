@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **25 Oct 2026 (bn)** — after the independent review: the pointers' sender (JOKE) and three items' wording, parity unchanged; `h2-items.ts` gains S_rec (`09` (bn) §1) and the dated re-run (S_rec MDE Δ 0.95 at n = 100; the other rows reproduce (bk)'s). See the revision at the end.
 > - **25 Oct 2026 (bm)** — the "report filed" pointers (`18` (bm), `09` (bm)): the same twelve pushed lines in both groups; no item's class, key record or told class changes, so bf.5's (bk) table stands (`npm run power:h2-items` re-run: the same tables). `h2-power.ts`'s `STREAM_TOLD_ITEMS` 8 → 4 (bk.3): only the three-way H2t family moves (H2t at a small effect 49 · 43 % → 58 · 48 %). See the revision at the end.
 > - **25 Oct 2026 (bk)** — H2 depends on information seeking again (researcher decision of 25 Oct 2026): §6 H2's primary is the gap on the 9 seek-dependent items (the audit's classes, fixed before pilot 2), all 23 items the sensitivity, the group × item-class interaction H2× a pre-stated secondary in the Holm family (`09` (bk)); §5.1 four phase-A items made seek-dependent by holding three non-critical records for seeking (`08` (bk), `18` (bk)); bf.5 re-run: 92 % at Δ +0.8 on the seek-dependent items, 51 % on all 23, 87 % for H2× (n = 100). Treatment revision before pilot 2. See the revision at the end.
 > - **25 Oct 2026 (bi)** — §4 only (R6, researcher decision of 25 Oct 2026; replay analysis §10.3 c, g): the consult notice comes at 70 s in a merged view (after the 65 s step boundary's burst, no longer 5 s before it) and shows only when reports arrived after the participant's last recorded plan (in a single-step view it is dropped after a plan recorded before 60 s; in a merged view after a plan or revision recorded after the boundary). Content-free and the same rule in both groups; the log format is unchanged. See the revision at the end.
@@ -458,3 +459,24 @@ Researcher decision of 25 Oct 2026 (`18` (bm), `09` (bm)): twelve short pushed r
 | Null | 5 · 5 % (4 · 6) | 5 · 5 % (4 · 6) | 5 · 5 % (4 · 5) | 5 · 6 % (4 · 5) |
 
 Population Δgap (500 + 500): small +0.041 all items, +0.066 neither; medium +0.082, +0.122; cancellation +0.011, +0.064. **Reading:** fewer stream-told items leave more items in the "neither" stratum, so H2t at a small effect gains 9 points (49 → 58 % at 50 / 50) and the cancellation case 5; the all-items gap in this family loses 4–5 points, because fewer items carry the stream's accuracy lift in both groups. (az)'s reading 1 holds in kind: H2t is powered for a medium effect (98 %), not a small one. These are planning values; pilot 2's `toldClass` and `aiStatedKey` rates replace them before the lock ((be) §3).
+
+## Revision 25 Oct 2026 (bn) — after the independent review: the pointers' sender, three items, S_rec's power
+
+### bn.1 §4–§5 — parity
+
+The pointers are now the command centre's acknowledgements (JOKE, `18` (bn)): the same twelve lines at the same moments in both groups; four decoys re-chosen (the reals' sender mix and windows); two displaced records changed (KY23's repeats in V11 and V12 instead of VD1's drops and pause). V5 `hose_short`, `reinforcements` and V7 `north_help` changed wording (`08` (bn)); EK14's 16.35 line and EK11's 15.35 request were re-worded. The help card's roster (public sessions) lists units only once met. No item's class, key record, tier or told class changed, so bk.3's told split stands (stream-told 4, AI-statable 19).
+
+### bn.2 §11 — S_rec and the dated re-run
+
+`h2-items.ts` gains the window `seek_rec` (S_rec, `09` (bn) §1: the seek-dependent items whose key or seek record is a recorded report, the audit's `key_needs_search`: V2 `south_flank`, V5 `hose_short`, `reinforcements`, V7 `north_help`). **Re-run 25 Oct 2026 (bn)** on the regenerated audit (`npm run power:h2-items`; 1000 replicates per sample size, seed 20261024, the (bk) model: b −1 / 0 / 0.5 by passive yes / partly / no, + 0.5 if late; the effect on the seek-dependent items only; Δ on the confidence logit, the population Δgap in parentheses; 80 % power for the MDE). The rows other than S_rec reproduce bf.5's (bk) table exactly (the same draws):
+
+| Window | Items | n = 100 | n = 120 | n = 150 | MDE n = 100 | MDE n = 120 | MDE n = 150 |
+|---|---|---|---|---|---|---|---|
+| **S: H2 primary, seek-dependent** | 9 | 41 · **92** % | 47 · 96 % | 56 · 99 % | Δ 0.67 (+.107) | Δ 0.60 (+.096) | Δ 0.55 (+.087) |
+| **S_rec: key in a recorded report** (pre-stated sensitivity) | 4 | 23 · 67 % | 29 · 74 % | 32 · 85 % | Δ 0.95 (+.148) | Δ 0.88 (+.138) | Δ 0.75 (+.119) |
+| All 23 H2 items (sensitivity) | 23 | 18 · 51 % | 18 · 58 % | 22 · 67 % | Δ 1.19 (+.070) | Δ 1.10 (+.064) | Δ 0.95 (+.057) |
+| **H2×: group × item class** (seek − passive, within person) | 9 + 14 | 34 · 87 % | 42 · 91 % | 50 · 96 % | Δ 0.73 (+.116) | Δ 0.67 (+.107) | Δ 0.59 (+.093) |
+| H2× at Holm's worst case (α .0071, `--alpha 0.00714`) | 9 + 14 | 12 · 63 % | 17 · 75 % | 22 · 86 % | Δ 0.95 (+.148) | Δ 0.86 (+.134) | Δ 0.76 (+.119) |
+| S_rec at α .0071 (for reference; S_rec is outside the family) | 4 | 8 · 38 % | 10 · 46 % | 11 · 61 % | Δ 1.28 (+.190) | Δ 1.14 (+.172) | Δ 0.98 (+.151) |
+
+Power columns: Δ +0.4 · +0.8. Null (Δ 0, all items): 7 · 5 · 5 %. Reference (the effect on every item): 69 · 100 % at n = 100, 76 · 100 % at 120, 84 · 100 % at 150. **Reading:** S_rec is where the AI's effect can run through what it tells (`09` (bn) §1); with four items it detects only a large effect at n = 100 (Δ 0.95, a gap of about +.15 on those items), so it is a sensitivity, not a test of its own. The (bm) STREAM_TOLD_ITEMS re-run (bm.2) is unaffected.

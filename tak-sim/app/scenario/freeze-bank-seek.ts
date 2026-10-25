@@ -7,7 +7,8 @@
  *
  * - V2 `south_flank` (L2): EK12's 14.08 report held for seeking; the stale 13.20 state is a distractor (`flames`, was `lost`).
  * - V5 `reinforcements` (L3, replaces `wind_shift`): P2's dispatch held for seeking (the request stays pushed).
- * - V7 `north_help` (L2, re-keyed, slug kept): EK14's line access, on record only in its lateral line to EK15.
+ * - V7 `north_help` (L2, re-keyed, slug kept): EK14's line access, on record only in its lateral line to EK15. Revision (bn) (review B1):
+ *   the record and the key say that a FIRE ENGINE stops short (EK14's own terrain vehicle reaches the line, as its pushed stream says).
  *
  * Every converted item keeps safety in the stream (no crew danger, withdrawal, entrapment or live-line warning moves), is findable with two
  * natural questions per language (`tools/review/seek-questions.ts`, `test/retrieval/seek-items-retrieval.spec.ts`), and has a stale or
@@ -26,7 +27,10 @@ import { storyId, trafficId } from "./freeze-keys.js";
  * reinforcement P2 names at the CP by step 11 (radio), the out-of-region tankers not before step 16.
  */
 export const DISPATCH = storyId(7, /^Lisäyksiköitä hälytetty: EK15 saapuu johtopaikalle arviolta klo 16\.20, EK16 ja KY23 arviolta klo 16\.40/);
-export const EK14_ACCESS = trafficId(10, /^EK15, EK14: meille ei pääse autolla lähemmäs kuin \d+ m, ajoura on pehmeä\. Jos tuotte letkua, kantakaa kaakosta/);
+// Revision (bn) (review B1): EK14's line says that a fire engine stops about 300 m short on the soft track and only EK14's own terrain
+// vehicle reaches the line (it was "meille ei pääse autolla lähemmäs kuin 300 m", which the pushed stream contradicted: radio 10.5 and
+// evt.c10.005 have EK14's terrain vehicle at the line); `traffic-lateral.ts`, `access: "offroad"`.
+export const EK14_ACCESS = trafficId(10, /^EK15, EK14: paloautolla pääsee meistä noin \d+ metrin päähän, siitä eteenpäin ajoura on liian pehmeä\. Vain meidän maastoauto kulkee linjalle asti\. Jos tuotte letkua, kantakaa viimeinen pätkä kaakosta/);
 const REINFORCEMENTS_KEY = (() => {
   const arrival = (id: string) => SITE_SCENARIO.radio.find((r) => r.from === id && /^\w+: saavuimme /.test(r.text))?.cycle ?? Number.POSITIVE_INFINITY;
   const by11 = ["EK15", "EK16", "KY23"].filter((id) => arrival(id) <= 11).length;
@@ -61,7 +65,9 @@ export const REINFORCEMENTS: ItemDef = choice({
   // (the `none` state). Truth: EK15 at the CP at 16.22 (radio 10), EK16 and KY23 at 16.42–16.43 (radio 11), held for the region on arrival.
   slug: "reinforcements", level: "L3", goal: "resources", keySteps: [7, 11], promptFi: `Mitä lisäyksiköitä palolle on saapunut ${withinHorizonFi(5, 11)}?`,
   options: [
-    ["three", "Kolme hälytettyä pelastusyksikköä"], ["none", "Ei vielä yhtään: lisäyksiköitä on vasta pyydetty"],
+    // Revision (bn) (review S8; DRAFT, native check): `none` is the non-searcher's own belief (the request heard, no dispatch heard),
+    // not a bare "only requested" an officer would not project to 17.00 (was "Ei vielä yhtään: lisäyksiköitä on vasta pyydetty").
+    ["three", "Kolme hälytettyä pelastusyksikköä"], ["none", "Ei yhtään: lisäyksiköitä on pyydetty, mutta niitä ei ole lähetetty"],
     ["one", "Yksi säiliöauto naapuriasemalta"], ["heavy", "Raskaat säiliöyksiköt alueen ulkopuolelta"],
   ], key: REINFORCEMENTS_KEY,
   keyAtomIds: [DISPATCH], rule: "cited", basisKind: "record", basisAtomIds: [DISPATCH],
@@ -73,11 +79,16 @@ export const NORTH_HELP: ItemDef = choice({
   // KY21's and VPK's move means for EK14", whose stem stated the moves and so the key). The slug is kept (a logged id; still help for the
   // north edge). What sending a unit to EK14's line involves is on record only in EK14's lateral line to EK15 (`EK14_ACCESS`, T4); pushed
   // is EK14's own move through the burned area in its terrain vehicle (radio 10.5) — the `burned` state a non-searcher holds.
+  // Revision (bn), 25 Oct 2026 (review B1; DRAFT, native and domain check): the record and the key now agree with EK14's pushed stream —
+  // EK14's own terrain vehicle reaches the line (radio 10.5, evt.c10.005: it keeps the basin full there) while a fire engine, the unit one
+  // would send (EK15, waiting at the CP), stops about 300 m short on the soft track. The key names the fire engine (was "Autolla ei pääse
+  // linjalle asti", which the stream contradicted, so an officer integrating it chose `burned`); `burned` is a different claim from the
+  // stream's (a fire engine, not EK14's terrain vehicle, gets through the burned area), so the stream decides neither it nor the key.
   slug: "north_help", level: "L2", goal: "resources", promptFi: "Mitä toisen yksikön lähettäminen EK14:n avuksi pohjoisreunalle vaatii viimeisimpien tietojen mukaan?",
   options: [
-    ["carry", "Autolla ei pääse linjalle asti: kalusto kannetaan kaakosta"], ["burned", "Paloauto pääsee palaneen alueen kautta linjalle asti"],
+    ["carry", "Paloauto ei pääse linjalle asti: kalusto kannetaan kaakosta"], ["burned", "Paloauto pääsee palaneen alueen kautta linjalle asti"],
     ["track", "Ajoura kantaa raskaankin auton linjan viereen"], ["cut", "Linjalle ei pääse lainkaan, palo on katkaissut reitin"],
   ], key: "carry",
   keyAtomIds: [EK14_ACCESS], rule: "cited",
-  basis: "revision (bk), seek-dependent: EK14's lateral line to EK15 (recorded, T4): a vehicle gets no closer to its line than about 300 m, the track is soft, hose is carried in from the south-east; pushed are only EK14's moves (radio 10.1, 10.5: through the burned area in its own terrain vehicle, the `burned` state) and EK15 waiting at the CP for a task; the route is not cut (EK14 is on the line)",
+  basis: "revision (bn), seek-dependent: EK14's lateral line to EK15 (recorded, T4): a fire engine gets to about 300 m from EK14, the track is too soft beyond that, only EK14's own terrain vehicle reaches the line, hose is carried the last stretch in from the south-east; pushed are only EK14's moves (radio 10.1, 10.5: through the burned area in its own terrain vehicle, which keeps its basin full at the line, evt.c10.005) and EK15 waiting at the CP for a task: they say nothing of a fire engine (the `burned` lure generalises from EK14's terrain vehicle); the route is not cut (EK14 is on the line)",
 });

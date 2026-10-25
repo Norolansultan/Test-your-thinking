@@ -16,8 +16,8 @@ const AUDIT_CSV = readFileSync(new URL("../../docs/audits/2026-10-23-difficulty/
 
 /** A synthetic audit table with the audit's columns: 24 H2 items in the 23 Oct 2026 classes (16 yes, 6 partly, 2 no; 5 late), and rows outside the window. */
 const HEAD = "id,kind,view,level,goal,format,basis_kind,retrieval_dependent,prompt_en,key_en,moment_s,key_records,hand_basis_records,all_key_pushed,key_needs_search,latest_lead_s,late_lt60s,channels,passive,map_dependence,map_fact_unstated,seek_channel,note";
-const row = (id: string, view: string, level: string, passive: string, late: boolean, kind = "freeze") =>
-  `${id},${kind},${view},${level},g,choice,,false,"Prompt, with a comma",key,60,,,false,false,,${late},a,${passive},none,false,,note`;
+const row = (id: string, view: string, level: string, passive: string, late: boolean, kind = "freeze", needsSearch = false) =>
+  `${id},${kind},${view},${level},g,choice,,false,"Prompt, with a comma",key,60,,,false,${needsSearch},,${late},a,${passive},none,false,,note`;
 const CLASSES: readonly (readonly [string, boolean])[] = [
   ...Array.from({ length: 5 }, () => ["yes", true] as const), ...Array.from({ length: 11 }, () => ["yes", false] as const),
   ...Array.from({ length: 6 }, () => ["partly", false] as const), ...Array.from({ length: 2 }, () => ["no", false] as const),
@@ -25,7 +25,8 @@ const CLASSES: readonly (readonly [string, boolean])[] = [
 const VIEWS = ["V2", "V4", "V5", "V7"];
 const CSV = [
   HEAD,
-  ...CLASSES.map(([passive, late], k) => row(`freeze.${k}`, VIEWS[k % 4]!, k % 3 === 0 ? "L2" : "L3", passive, late)),
+  // Revision (bn): three of the eight seek-dependent items have their key in a recorded report (`key_needs_search`): S_rec.
+  ...CLASSES.map(([passive, late], k) => row(`freeze.${k}`, VIEWS[k % 4]!, k % 3 === 0 ? "L2" : "L3", passive, late, "freeze", k >= 16 && k < 19)),
   row("freeze.l1", "V2", "L1", "yes", false), row("freeze.10.x", "V10", "L3", "no", false), row("probe.s.cycle_3.b", "V3", "L2", "no", false, "spam"),
 ].join("\n");
 const LURES = new Set(["freeze.17", "freeze.22", "freeze.6"]);
@@ -45,6 +46,8 @@ describe("the H2 window from the audit's items.csv", () => {
     expect(items).toHaveLength(23);
     expect(items.map((i) => i.id)).not.toContain("freeze.4.head_later");
     expect(new Set(items.map((i) => i.view))).toEqual(new Set(VIEWS));
+    // Revision (bn) (review S1): S_rec, the seek-dependent items whose key is in a recorded report (the audit's key_needs_search).
+    expect(items.filter((i) => i.passive !== "yes" && i.recordKey).map((i) => i.id)).toEqual(["freeze.2.south_flank", "freeze.5.hose_short", "freeze.5.reinforcements", "freeze.7.north_help"]);
   });
 
   it("leaves out a row the audit marks scored outside the composites (`scored_for`, play-test R2)", () => {
@@ -82,7 +85,7 @@ describe("the power grid", () => {
     const a = powerGrid(items, 50, deltas, 120, 7);
     expect(powerGrid(items, 50, deltas, 120, 7)).toEqual(a);
     expect(a.map((c) => c.window)).toEqual(WINDOWS.map((w) => w.id));
-    expect(a.map((c) => c.items)).toEqual([24, 8, 19, 16, 6, 24]); // revision (bk): the interaction contrasts the 8 seek-dependent with the 16 passive
+    expect(a.map((c) => c.items)).toEqual([24, 8, 3, 19, 16, 6, 24]); // revision (bk): the interaction contrasts the 8 seek-dependent with the 16 passive; (bn): S_rec 3
     const [all, seek] = [a[0]!, a[1]!];
     expect(all.power[0]!).toBeLessThan(0.15);
     expect(all.power[2]!).toBeGreaterThan(all.power[1]!);

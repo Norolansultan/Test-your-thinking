@@ -54,9 +54,14 @@ export const COST_S = {
   probeAnswer: 10,
   /** The consult notification's buttons. */
   consult: 2,
-  /** The post-session questionnaire: one source item; the rest of the form (left blank) and the submission. */
+  /** B1 (25 Oct 2026): clicking the Haku group's suggested-question chip (no typing; the answer is read as `hakuRead`). */
+  chip: 2,
+  /** B2 (25 Oct 2026): the hinge's optional fatigue item (one click). */
+  hingeFatigue: 3,
+  /** The questionnaires: one item answered; the post-session form's submission (the rest left blank), the pre-session form's. */
   questAnswer: 6,
   questSubmit: 20,
+  questSubmitPre: 5,
 } as const;
 
 /** `wait` without a number waits this long (it stops earlier when something comes up). */

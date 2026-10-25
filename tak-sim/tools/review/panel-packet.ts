@@ -186,7 +186,7 @@ export function questions(): Question[] {
   return [
     { id: "coa.F1a", view: "V9–V14", answer: YND,
       fi: "Kun suunnitelma lähettää miehistön linjauksen jälkeen uudelleen syttyneelle tai leimahtaneelle reunalle tehtävänä \"Jälkisammutus ja varmistus\" tai \"Linjan pito tiellä tai vesistöllä\" (ei \"Suora hyökkäys palon reunaan\") ja miehistö työskentelee reunalla palaneelta alueelta käsin: onko työ suomalaisessa käytössä suoraa hyökkäystä palon reunaan?",
-      en: "When a plan sends a crew to an edge that has rekindled or flared up since the directive, with the task \"Mop-up and securing\" or \"Holding the line on a road or water\" (not \"Direct attack on the fire's edge\"), and the crew works the edge from the burned area: is that work, in Finnish usage, a direct attack on the fire's edge?" },
+      en: "When a plan sends a crew to an edge that has rekindled or flared up since the directive, with the task \"Mop-up and securing\" or \"Hold an existing line on a road or water\" (not \"Direct attack on the fire's edge\"), and the crew works the edge from the burned area: is that work, in Finnish usage, a direct attack on the fire's edge?" },
     { id: "coa.F1b", view: "V9–V14", answer: YND,
       fi: "Pysyykö sama työ linjauksen \"ei suoraa hyökkäystä palon reunaan\" sisällä? (Sen järkevyyden arvioit arviointilomakkeella.)",
       en: "Does the same work stay within the directive's \"no direct attack on the fire's edge\"? (Its soundness you give on the rating sheet.)" },

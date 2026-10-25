@@ -12,12 +12,14 @@ import { templateThinkerAnswer, type ThinkerResponse } from "../../app/session/t
 import { loadSystemPrompt, THINKER_MODEL_ID } from "../../server/thinker/config.js";
 import { handleThinkerRequest, type ThinkerDeps } from "../../server/thinker/handler.js";
 import { AUTHORED_QUESTIONS } from "../../tools/thinker/authored-questions.js";
-import { frozenEmbedder, retrieveAt, scenario, vectorIndex } from "./thinker-fixtures.js";
+import { ageReferenceOf } from "../../server/thinker/model.js";
+import { frozenEmbedder, retrieveAt, scenario, stepAtViewStart, vectorIndex } from "./thinker-fixtures.js";
 
 const QUESTION = AUTHORED_QUESTIONS.broadBog[0];
 const V7_START = scenario.cycles.find((c) => c.index === 7)!.startsAtVirtual;
 const BODY = { sessionId: "test-session", condition: "substitutive", view: 7, virtualTimeS: V7_START, question: QUESTION, cell: "reasoning_once" };
-const SAME_RECORDS_TEMPLATE = templateThinkerAnswer(retrieveAt(7, QUESTION).map((r) => toRenderable(r.atom)));
+// B6 (SPEC/14 revision (bi), 25 Oct 2026): the template counts the shown record's age to the model's reference, the end of the step.
+const SAME_RECORDS_TEMPLATE = templateThinkerAnswer(retrieveAt(7, QUESTION).map((r) => toRenderable(r.atom)), "fi", "standard", ageReferenceOf(stepAtViewStart(7)));
 
 function depsWith(client: GoogleGenAI | null, logs: Record<string, unknown>[]): ThinkerDeps {
   return {

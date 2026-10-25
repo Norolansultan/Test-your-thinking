@@ -18,6 +18,12 @@
  *   the 0.12.0 run first listed them (P2 V9, TILANNEKUVA V11); V10's `missing` list names `area_growth_hour` as `area_total_hour`
  *   (the recast item, SPEC/08 (bg) bg.3). The two new T3 answers (EK11 14.08, EK16 18.45) are delivered only when asked and the
  *   driver asks no unit, so they write nothing here; the header's new text and the re-worded stems are not logged.
+ * - R6 (25 Oct 2026, SPEC/30 §4 (bi), a TIMING change, format unchanged): in a merged view the consult notice comes 5 s after the
+ *   step boundary (70 s, scaled) instead of at 60 s, after the second step's burst. The driver records its plans after the minimum,
+ *   so the notice still shows in every main view; in the merged views where it showed at its own moment (V2, V4, V11, V12, V14;
+ *   V6's waited for the SPAM item, as before) its `consult_prompt_shown` is mapped back: `atViewSeconds` to the 60 s moment, `tVirtual`
+ *   to the first step (− 1200 s), `tWallOffsetMs` by the 10 s (scaled) it moved, and its place to just before the view's
+ *   `step_boundary_reached`.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -42,10 +48,23 @@ const ADDED_ITEM_IDS: ReadonlySet<string> = new Set([
 
 type Rec = { readonly seq: number; readonly tVirtual: unknown; readonly tWallOffsetMs: number; readonly kind: string; readonly detail: unknown };
 
+/** R6: the driver's 5 s preview minimum (`APP_OPTIONS`) scales the 120 s view: the 60 s moment and the merged views' 70 s one. */
+const PREVIEW = (s: number) => (s * 5) / 120;
+const CONSULT_AT = PREVIEW(60);
+const CONSULT_AT_MERGED = PREVIEW(70);
+
 export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
   const kept: Rec[] = [];
+  const boundaryAt = new Map<number, number>(); // a view's `step_boundary_reached`, its place in `kept`
   for (const r of records) {
     const d = r.detail as Record<string, unknown>;
+    if (r.kind === "step_boundary_reached") boundaryAt.set(d.cycle as number, kept.length);
+    if (r.kind === "consult_prompt_shown" && d.atViewSeconds === CONSULT_AT_MERGED && boundaryAt.has(d.cycle as number)) {
+      const at = boundaryAt.get(d.cycle as number)!;
+      const moved = Math.round((CONSULT_AT_MERGED - CONSULT_AT) * 1000);
+      kept.splice(at, 0, { ...r, tVirtual: (r.tVirtual as number) - 1200, tWallOffsetMs: r.tWallOffsetMs - moved, detail: { ...d, atViewSeconds: CONSULT_AT } });
+      continue;
+    }
     if (ADDED_KINDS.has(r.kind)) continue;
     if (r.kind === "briefing_advanced" && d.screenId === "practice.feedback") continue;
     if (d.probeId === "probe.s.practice.b") continue;

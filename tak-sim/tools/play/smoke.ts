@@ -1,10 +1,12 @@
 /**
  * `npx tsx tools/play/smoke.ts [outDir]` — the play harness's smoke run (`tools/play/`): a scripted dumb policy plays a whole
  * session to its end in both audiences (expert in Finnish, public in English) — it waits, answers every item's first option (a
- * map item: the map's middle) with confidence 50, asks Haku one question in each period, records the same plan in every period
- * and keeps it at the review — through the same commands the CLI runs (`runCommand`), in one live session; then it writes the run
+ * map item: the map's middle) with confidence 50, asks Haku one question in each period (from V8 by the Haku chip, B1), records the
+ * same plan in every period and keeps it at the review, answers the questionnaires' player items and the hinge's fatigue item (B2)
+ * — through the same commands the CLI runs (`runCommand`), in one live session; then it writes the run
  * (`actions.json`) and replays it from disk (`replayRun`) to check that the replay reaches the same end (the same virtual time and
- * the same log). Prints each audience's command count, virtual length and runtime. No PNGs (the CLI draws those).
+ * the same log). Prints each audience's command count, virtual length, runtime, and how many views showed the consult notice and
+ * how many chip questions were asked. No PNGs (the CLI draws those).
  */
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -15,6 +17,7 @@ import { PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
 import { questionPhase } from "../../app/render/ui/explain/primer-flow.js";
 import { isMapItem } from "../../app/session/freeze-answers.js";
 import { SOURCE_SECTION } from "../../app/session/questionnaire.js";
+import { playerQuestItems, scalePoints } from "./screen-pages.js";
 import { PlaySession, type ActionRecord, type PlayConfig } from "./session.js";
 import { runCommand } from "./commands.js";
 import { replayRun, RUN_FORMAT, type RunFile } from "./run.js";
@@ -34,7 +37,7 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
     }
     case "map_pretest": return ["pretest-answer", s.mapPretest!.itemId, s.mapPretest!.options[0]!.id];
     case "briefing": case "training": case "practice_feedback": case "debrief": case "profile": return ["continue"];
-    case "hinge_pause": return s.hingeCheck?.phase === "item" ? ["hinge-answer", "a"] : ["continue"];
+    case "hinge_pause": return s.hingeCheck?.phase === "item" ? ["hinge-answer", "a"] : s.hingeFatigue?.value === null ? ["hinge-fatigue", "4"] : ["continue"];
     case "freeze": {
       const items = s.freeze!.items;
       const state = session.freezeState();
@@ -50,9 +53,12 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
     }
     case "plan_confidence": return s.planConfidence ? ["plan-confidence", "50"] : ["wait", "1"];
     case "plan_review": return s.planReview ? ["review", "keep"] : ["wait", "1"];
-    case "questionnaire": {
-      const item = s.questionnaire!.items.find((i) => i.section === SOURCE_SECTION && !session.quest.has(i.id));
-      return item ? ["quest-answer", item.id, "records"] : ["quest-submit"];
+    case "questionnaire": { // B2: every item the player answers; a source item "records", another choice its first option, a scale or a number its middle
+      const item = playerQuestItems(s.questionnaire!).find((i) => !session.quest.has(i.id));
+      if (!item) return ["quest-submit"];
+      const value = item.kind === "choice" ? (item.section === SOURCE_SECTION ? "records" : item.options[0]!)
+        : item.kind === "scale" ? String(scalePoints(item)[Math.floor(scalePoints(item).length / 2)]) : item.kind === "number" ? String(Math.round((item.min + item.max) / 2)) : "";
+      return ["quest-answer", item.id, value];
     }
     default: break;
   }
@@ -61,7 +67,7 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
   if (s.spam?.phase === "confidence") return ["spam-answer", "50"];
   if (s.consultPrompt) return ["consult", "dismiss"];
   if (s.step === "allocation" && !s.decisionHeld) {
-    if (!asked.has(s.currentCycle)) { asked.add(s.currentCycle); return ["haku", "Mikä on tilanne?"]; }
+    if (!asked.has(s.currentCycle)) { asked.add(s.currentCycle); return s.hakuChip ? ["chip"] : ["haku", "Mikä on tilanne?"]; } // B1: the chip from V8
     const drones = s.allocation.droneTeams.length > 0 ? ["drones=carry_on"] : [];
     const d = session.planDraft();
     if (d.mainEffort === null) return ["plan", "main=L2", "posture=direct_attack", "secondary=none", ...drones];
@@ -96,13 +102,15 @@ async function smoke(config: PlayConfig, dir: string): Promise<string> {
   const t2 = process.hrtime.bigint();
   if (again.length !== records.length || replayed.clock.now() !== session.clock.now()) throw new Error(`smoke: the replay diverged (${again.length} vs ${records.length} records)`);
   const ms = (a: bigint, b: bigint) => Math.round(Number(b - a) / 1e6);
-  return `${config.audience}/${config.lang}: ${actions.length} commands, ${records.length} log records, virtual ${Math.round(session.clock.now() / 1000)} s, session_completed ${records.some((r) => r.kind === "session_completed")}; played in ${ms(t0, t1)} ms, replayed from disk in ${ms(t1, t2)} ms`;
+  const consult = records.filter((r) => r.kind === "consult_prompt_shown").map((r) => `V${(r.detail as { cycle: number }).cycle}`);
+  const chips = records.filter((r) => r.kind === "ai_chat_query_submitted" && (r.detail as { viaChip?: boolean }).viaChip === true).length;
+  return `${config.audience}/${config.lang}: ${actions.length} commands, ${records.length} log records, virtual ${Math.round(session.clock.now() / 1000)} s, session_completed ${records.some((r) => r.kind === "session_completed")}; played in ${ms(t0, t1)} ms, replayed from disk in ${ms(t1, t2)} ms; consult notice in ${consult.length} views (${consult.join(" ")}), ${chips} chip questions`;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const out = resolve(process.argv[2] ?? join("tools", "play", ".smoke"));
   rmSync(out, { recursive: true, force: true });
-  for (const config of [{ audience: "expert", lang: "fi", waitStopsOnMessages: true }, { audience: "public", lang: "en", waitStopsOnMessages: true }] as const) {
+  for (const config of [{ audience: "expert", lang: "fi", waitStopsOnMessages: true, questionnairesPlayed: true }, { audience: "public", lang: "en", waitStopsOnMessages: true, questionnairesPlayed: true }] as const) {
     process.stdout.write(`${await smoke(config, join(out, `${config.audience}-${config.lang}`))}\n`);
   }
 }

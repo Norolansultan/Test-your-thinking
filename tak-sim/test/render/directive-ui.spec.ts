@@ -19,7 +19,7 @@ describe("the posture's wording", () => {
     });
     expect(UI_TEXT.en.postures).toEqual({
       direct_attack: "Direct attack on the fire's edge",
-      barrier_line: "Defensive line on a road or water",
+      barrier_line: "Defensive line ahead of the fire, on a road or water", // R12 (25 Oct 2026): said apart from the held line
       protect_values: "Protecting settlements",
     });
     expect(Object.keys(UI_TEXT.fi.postures).sort()).toEqual([...MAIN_EFFORT_POSTURES].sort());

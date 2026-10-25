@@ -270,7 +270,8 @@ export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Pr
   // SPEC/30 §10: an answer from a build other than the pinned one is a model error (the template answer, as for any model error).
   const guarded = guardModelVersion(deps, p.req.sessionId, await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: ageReferenceOf(p.step) }), variant));
   const outcome = guarded.outcome;
-  const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant);
+  // B6 (SPEC/14 revision (bi)): the template counts record ages to the same reference as the model's record lines.
+  const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant, ageReferenceOf(p.step));
   const response: ThinkerResponse = {
     answer,
     retrieved: p.records.map((r) => ({ id: r.atom.id, score: r.score })),

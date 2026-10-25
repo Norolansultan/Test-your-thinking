@@ -458,7 +458,8 @@ const FI: UiText = {
       // Revision (ae): the briefing page is gone; its role, recorded-run, autonomous-asset and period sentences open the tour (`briefing.ts`).
       welcome: { title: "Tutustu näkymään", body: TOUR_SETTING_FI + " Käydään läpi, mistä löydät tiedot ja miten vastaat. Harjoitusta ei pisteytetä, eikä sen aika kulu tämän esittelyn aikana." },
       status: { title: "Tilarivi", body: "Ylärivillä näet tilanteen kellonajan, jakson ja yksiköt. Kussakin jaksossa on aikaa enintään kaksi ja puoli minuuttia; viimeiset 20 sekuntia lasketaan tässä." },
-      fire: { title: "Palo kartalla", body: "Kartalla näkyy palon viimeisin kartoitettu reuna ja palanut alue. Aiemmat rajaukset näkyvät ohuempina viivoina." },
+      // B7 (SPEC/28 (bi), 25 Oct 2026): the map draws the edge as mapped at the period's start (SPEC/26 §2); the log can be newer. DRAFT, native check.
+      fire: { title: "Palo kartalla", body: "Kartalla näkyy palon reuna sellaisena kuin se oli kartoitettu jakson alussa, sekä palanut alue. Viestilokin ilmoitukset voivat olla tätä uudempia. Aiemmat rajaukset näkyvät ohuempina viivoina." },
       projection: { title: "Leviämisennuste", body: "Värivyöhykkeet näyttävät, mihin ennuste arvioi palon leviävän: lähin vyöhyke 0–10 minuutissa, uloimmat myöhemmin. " + PROJECTION_CAVEAT_FI },
       legend: { title: "Selite", body: "Selite kertoo karttamerkinnät: palon reunat, palaneen alueen, pistepalot, droonien lämpöhavainnot ja ennusteen vyöhykkeet." },
       wind: { title: "Tuuli", body: "Tuulen suunta ja keskinopeus säähavaintoasemalta." },
@@ -629,10 +630,12 @@ const EN: UiText = {
   allocationHint: "Record your allocation by sector. Confirming it ends the period.",
   mainEffortLabel: "Crews' main effort",
   postureLabel: "Main effort posture",
-  postures: { direct_attack: "Direct attack on the fire's edge", barrier_line: "Defensive line on a road or water", protect_values: "Protecting settlements" },
+  // R12 (25 Oct 2026, SPEC/35 (bi)): the two "line" choices said apart — a new line ahead of the fire (the posture) against an existing
+  // line held (the secondary task); the Finnish labels unchanged. Glossary: defensive_line, hold_line.
+  postures: { direct_attack: "Direct attack on the fire's edge", barrier_line: "Defensive line ahead of the fire, on a road or water", protect_values: "Protecting settlements" },
   secondaryLabel: "Secondary sector",
   noSecondary: "No secondary sector",
-  secondaryTasks: { "task.direct-attack": "Direct attack on the fire's edge", "task.hold-line": "Holding the line on a road or water", "task.mopup": "Mop-up and securing" },
+  secondaryTasks: { "task.direct-attack": "Direct attack on the fire's edge", "task.hold-line": "Hold an existing line on a road or water", "task.mopup": "Mop-up and securing" },
   dronesLabel: "Drone teams' task",
   dronesCarryOn: "No new task",
   droneTasks: { "task.thermal-survey": "Thermal imaging", "task.perimeter-map": "Mapping the fire edge", "task.watch": "Watching the sector" },
@@ -655,7 +658,8 @@ const EN: UiText = {
     steps: {
       welcome: { title: "Get to know the screen", body: TOUR_SETTING_EN + " Let's go through where you find the information and how you answer. The practice is not scored, and its time does not run during this introduction." },
       status: { title: "Status bar", body: "The top bar shows the situation's time, the period and the units. Each period has at most two and a half minutes; the last 20 seconds are counted down here." },
-      fire: { title: "The fire on the map", body: "The map shows the fire's latest mapped edge and the burnt area. Earlier perimeters are shown as thinner lines." },
+      // B7 (SPEC/28 (bi), 25 Oct 2026): was "the fire's latest mapped edge", untrue after a merged view's step boundary.
+      fire: { title: "The fire on the map", body: "The map shows the fire's edge as mapped at the start of the period, and the burnt area. Reports in the message log can be newer. Earlier perimeters are shown as thinner lines." },
       projection: { title: "Spread projection", body: "The coloured bands show where the projection expects the fire to spread: the nearest band within 0–10 minutes, the outer ones later. " + PROJECTION_CAVEAT_EN },
       legend: { title: "Legend", body: "The legend explains the map symbols: the fire edges, the burnt area, spot fires, the drones' heat detections and the projection's bands." },
       wind: { title: "Wind", body: "The wind direction and mean speed from the weather station." },

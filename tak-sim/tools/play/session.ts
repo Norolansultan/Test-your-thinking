@@ -14,8 +14,9 @@
  * What the screen keeps that the orchestrator does not (the plan form's draft, the freeze screen's item and drafts, the primer's
  * page, the questionnaire's ticks) lives here, as the app's components keep it. The steps a participant only clicks through
  * without content to judge — consent (accepted, attested), the AI-literacy test (skipped, as its button allows), the preflight (a
- * passing desktop browser), the pre-session fatigue item (4, the scale's middle) and the results step (no) — are completed
- * neutrally by `autoAdvance`.
+ * passing desktop browser) and the results step (no) — are completed neutrally by `autoAdvance`; so is the pre-session form (fatigue
+ * 4, the scale's middle) in runs started before 25 Oct 2026. Since then the pre-session form, the post-session self-estimate and
+ * influence items and the hinge's fatigue item are the player's (B2, `PlayConfig.questionnairesPlayed`).
  */
 
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
@@ -41,6 +42,12 @@ export interface PlayConfig {
    * never saw a new message (the snapshot shares the live list), and replay keeps that rule for them so their recorded times hold.
    */
   readonly waitStopsOnMessages?: boolean;
+  /**
+   * B2 (25 Oct 2026): the pre-session form (fatigue, sleep, the recent shift) is the player's, answered with `quest-answer` and sent with
+   * `quest-submit` (runs started from 25 Oct 2026). Runs started before it had the form completed neutrally (fatigue 4, the rest blank),
+   * and replay keeps that for them so their recorded times hold.
+   */
+  readonly questionnairesPlayed?: boolean;
 }
 
 /** One command the player issued: what, when (virtual ms at its start) and the virtual ms each of its costs spent. */
@@ -106,7 +113,8 @@ export class PlaySession {
   /** The primer: the option chosen right on each page (the app marks it), and when the page on show was entered (its dwell). */
   primerRight: Map<number, number> = new Map();
   primerEnteredMs = 0;
-  quest: Map<string, string> = new Map();
+  /** The questionnaire on screen: the player's answers so far (an option id, or a number for a scale or number item). */
+  quest: Map<string, string | number> = new Map();
   /** The Haku pane is open in place of GeoChat (`commands.ts` opens it for a question and closes it after). */
   hakuPaneOpen = false;
   /** The live map's camera as the participant left it in a view (`map`); a new view opens on the opening frame again. */
@@ -205,7 +213,7 @@ export class PlaySession {
       if (s.step === "consent") { await this.o.decideConsent(true, true); this.autoNotes.push("Consent: accepted (auto)."); }
       else if (s.step === "ai_literacy") { await this.o.skipAiLiteracy(); this.autoNotes.push("AI literacy questionnaire: skipped with its own button (auto)."); }
       else if (s.step === "preflight") { await this.o.submitPreflight(PASSING_ENV); this.autoNotes.push("Browser check: passed (auto)."); }
-      else if (s.step === "questionnaire" && s.questionnaire?.id === "pre") { await this.o.submitQuestionnaire({ "fatigue.start": NEUTRAL_FATIGUE }); this.autoNotes.push(`Pre-session item (fatigue): ${NEUTRAL_FATIGUE} of 1–7 (auto).`); }
+      else if (s.step === "questionnaire" && s.questionnaire?.id === "pre" && this.config.questionnairesPlayed !== true) { await this.o.submitQuestionnaire({ "fatigue.start": NEUTRAL_FATIGUE }); this.autoNotes.push(`Pre-session item (fatigue): ${NEUTRAL_FATIGUE} of 1–7 (auto).`); }
       else if (s.step === "results_optin") { await this.o.decideResultsOptIn(false); this.autoNotes.push("Personal results after the study: no (auto)."); }
       else if (s.step === "complete" && !this.completed) { this.completed = true; await this.o.completeSession(); }
       else return;

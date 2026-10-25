@@ -26,7 +26,8 @@ export const LATEST_RULE =
   "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): " +
   "every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; " +
   "added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; " +
-  "addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first";
+  "addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first; " +
+  "B5 (25 Oct 2026, SPEC/14 (bi)): cue phrases of up to four words; a previous word inside a recency phrase ('since my last plan', 'edellisen suunnitelmani jälkeen') cancels nothing";
 
 export const CLOCK_RULE =
   "D10 (24 Oct 2026): clocks hh.mm / hh:mm (00-23, two-digit minutes; optional 'klo', 'kello', 'at'; not before a unit such as 'ha') in the question; " +

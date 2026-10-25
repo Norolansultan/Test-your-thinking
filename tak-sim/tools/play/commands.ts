@@ -18,7 +18,8 @@ import { DEPARTURE_NOTE_FROM_VIEW, DEPARTURE_REASONS, MAIN_EFFORT_POSTURES, PLAN
 import { PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
 import { back, choose, next, retry } from "../../app/render/ui/explain/primer-flow.js";
 import { tourSteps } from "../../app/render/ui/tour.js";
-import { SOURCE_SECTION } from "../../app/session/questionnaire.js";
+import type { QuestionnaireItem } from "../../app/session/questionnaire.js";
+import { studyTextFor } from "../../app/i18n/public-texts.js";
 import { displayAnswerText } from "../../app/session/chat-display.js";
 import { COST_S, DEFAULT_WAIT_S, MAX_WAIT_S } from "./costs.js";
 import { noticed, PlayError, VIEW_STEPS, type PlaySession } from "./session.js";
@@ -27,6 +28,7 @@ import { gl, logRow, lookText, optionByArg, optionLetter } from "./screen.js";
 import { glossaryText, helpText } from "./help.js";
 import { MAP_MOVE_ALIASES, MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
 import { contactsCommand, measureCommand } from "./tak-tools.js";
+import { playerQuestItems, scalePoints } from "./screen-pages.js";
 
 export interface CommandContext { readonly runDir: string; readonly withMap: boolean }
 
@@ -54,7 +56,20 @@ export async function runCommand(session: PlaySession, cmd: string, args: readon
 async function dispatch(session: PlaySession, cmd: string, args: readonly string[], ctx: CommandContext): Promise<string> {
   const s = session.snap();
   switch (cmd) {
-    case "look": return look(session, ctx);
+    case "look": {
+      // B10 (25 Oct 2026): the message log's new rows only, with a count of the earlier ones; `look --all` lists the whole log.
+      need(args.every((a) => a === "--all" || a === "all"), "look [--all]");
+      return look(session, ctx, args.length > 0);
+    }
+    case "chip": return chip(session);
+    case "hinge-fatigue": {
+      need(s.step === "hinge_pause" && s.hingeFatigue !== null, "the hinge's fatigue item is not on screen");
+      const v = Number(args[0]);
+      need(Number.isInteger(v) && v >= 1 && v <= 7, "hinge-fatigue <1–7> (optional; again: the last one counts)");
+      await session.spend(COST_S.hingeFatigue);
+      await session.act(() => session.o.rateHingeFatigue(v));
+      return `${STUDY_TEXT_OF(session).questionnaire.items["fatigue.start"]!.prompt} ${v} ✓`;
+    }
     case "continue": return proceed(session, s);
     case "wait": {
       const seconds = args[0] === undefined ? DEFAULT_WAIT_S : Number(args[0]);
@@ -174,18 +189,21 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
       return look(session, ctx);
     }
     case "quest-answer": {
-      need(s.step === "questionnaire" && s.questionnaire?.id === "post", "the post-session questionnaire is not on screen");
-      const item = s.questionnaire!.items.find((i) => i.id === args[0] && i.section === SOURCE_SECTION);
-      need(item && item.kind === "choice", "quest-answer <source item id> <option id> (the source-memory items only)");
-      need(item!.kind === "choice" && item!.options.includes(args[1] ?? ""), `options: ${item!.kind === "choice" ? item!.options.join(", ") : ""}`);
-      session.quest.set(args[0]!, args[1]!);
+      need(s.step === "questionnaire" && s.questionnaire, "no questionnaire is on screen");
+      // B2 (25 Oct 2026): every item of the pre-session form; the post-session form's source-memory, self-estimate and influence items.
+      const items = playerQuestItems(s.questionnaire!);
+      const item = items.find((i) => i.id === args[0]);
+      need(item, `quest-answer <item id> <option id | number>; the items: ${items.map((i) => i.id).join(", ")}`);
+      const value = questValue(item!, args[1]);
+      need(value !== null, questHint(item!));
+      session.quest.set(item!.id, value!);
       await session.spend(COST_S.questAnswer);
-      return `${args[0]}: ${args[1]}`;
+      return `${item!.id}: ${value}`;
     }
     case "quest-submit": {
-      need(s.step === "questionnaire" && s.questionnaire?.id === "post", "the post-session questionnaire is not on screen");
-      await session.spend(COST_S.questSubmit);
-      const answers: Record<string, string> = {};
+      need(s.step === "questionnaire" && s.questionnaire, "no questionnaire is on screen");
+      await session.spend(s.questionnaire!.id === "pre" ? COST_S.questSubmitPre : COST_S.questSubmit);
+      const answers: Record<string, string | number> = {};
       for (const [id, v] of session.quest) answers[id] = v;
       await session.act(() => session.o.submitQuestionnaire(answers));
       return look(session, ctx);
@@ -194,11 +212,31 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
   }
 }
 
-function look(session: PlaySession, ctx: CommandContext): string {
+function look(session: PlaySession, ctx: CommandContext, wholeLog = false): string {
   session.looks += 1;
-  const { text, images } = lookText(session, ctx.runDir, session.looks, ctx.withMap);
+  const { text, images } = lookText(session, ctx.runDir, session.looks, ctx.withMap, wholeLog);
   session.images = images;
   return text;
+}
+
+/** The session's study-shell texts (the questionnaire's wording), as `StudyShell` takes them. */
+const STUDY_TEXT_OF = (session: PlaySession) => studyTextFor(session.config.lang, { audience: session.o.audience, scope: session.o.scope });
+
+/** B2: a questionnaire answer typed for `item` — an offered option id, or a whole number on its scale or in its range; null when not. */
+function questValue(item: QuestionnaireItem, raw: string | undefined): string | number | null {
+  if (raw === undefined) return null;
+  if (item.kind === "choice") return item.options.includes(raw) ? raw : null;
+  const v = Number(raw);
+  if (item.kind === "scale") return scalePoints(item).includes(v) ? v : null;
+  if (item.kind === "number") return Number.isInteger(v) && v >= item.min && v <= item.max ? v : null;
+  return null;
+}
+
+function questHint(item: QuestionnaireItem): string {
+  if (item.kind === "choice") return `${item.id}: one of ${item.options.join(", ")}`;
+  if (item.kind === "scale") return `${item.id}: one of ${scalePoints(item).join(", ")}`;
+  if (item.kind === "number") return `${item.id}: a whole number ${item.min}–${item.max}`;
+  return `${item.id} is not answered in the harness`;
 }
 
 /** One button that leaves a screen: the tour, the intro video, the practice feedback, the training, the hinge, the debrief. */
@@ -253,17 +291,33 @@ function answerLines(session: PlaySession, a: { answerFi: string; basisFi: strin
 
 /** Haku's chat: the pane opened, the question typed (the time it takes runs), sent, answered after the latency floor, read. */
 async function haku(session: PlaySession, question: string): Promise<string> {
+  need(question.length > 0, `haku "<question>"`);
+  return askHaku(session, COST_S.hakuType, () => session.o.askAiChat(question), question);
+}
+
+/**
+ * B1 (25 Oct 2026): the Haku group's suggested-question chip above Haku's input (V8–V14, SPEC/30 bf.1), clicked: exactly its question
+ * through Haku's normal path, logged `viaChip` (`askHakuChip`), as `RightPanel`'s chip does. A click, not typing. The harness plays the
+ * Haku group, so the guide's Thinker chip (`suggestedQuestion`) never shows here; it is printed if it ever does, with no command.
+ */
+async function chip(session: PlaySession): Promise<string> {
+  const s = session.snap();
+  need(s.hakuChip, "no suggested question is on screen (the Haku group's chip is in Haku's pane from V8)");
+  return askHaku(session, COST_S.chip, () => session.o.askHakuChip(), UI_TEXT[session.config.lang].consult.hakuChip);
+}
+
+/** One Haku question: the pane opened, `beforeCost` (typing, or the chip's click) spent, sent, answered, read; back to GeoChat. */
+async function askHaku(session: PlaySession, beforeCost: number, ask: () => Promise<{ answerFi: string; basisFi: string; certaintyFi: string; wouldChangeIfFi: string }>, question: string): Promise<string> {
   const s = session.snap();
   const t = UI_TEXT[session.config.lang];
-  need(question.length > 0, `haku "<question>"`);
   need(s.tour === null, "finish the tour first (`continue`)");
   need(["exploration", "allocation", "awaiting_view_end"].includes(s.step) && !s.toolsLocked, "Haku is not usable on this screen");
   await openHakuPane(session);
-  await session.spend(COST_S.hakuType);
+  await session.spend(beforeCost);
   const now = session.snap();
-  if (!["exploration", "allocation", "awaiting_view_end"].includes(now.step) || now.toolsLocked || now.currentCycle !== s.currentCycle) return `${t.questionNotSent} (The screen changed while you typed: \`look\`.)`;
+  if (!["exploration", "allocation", "awaiting_view_end"].includes(now.step) || now.toolsLocked || now.currentCycle !== s.currentCycle) return `${t.questionNotSent} (The screen changed meanwhile: \`look\`.)`;
   const startMs = session.clock.now();
-  const answer = await session.act(() => session.o.askAiChat(question));
+  const answer = await session.act(ask);
   const waited = (session.clock.now() - startMs) / 1000;
   await session.spend(Math.max(0, COST_S.hakuRead - waited));
   const turn = session.snap().aiChatHistory.at(-1);

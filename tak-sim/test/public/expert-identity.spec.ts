@@ -30,6 +30,10 @@
  * views' `navSources`, and V10's recast item has a new id. The normaliser maps exactly those back (`identity-normalise.ts`), and every
  * other record is still the 0.12.0 run's byte for byte: the same three segment digests. The re-worded stems and options, the freeze
  * header's text and the two new answers given only when a unit is asked write no record here.
+ * Updated deliberately for R6 (25 Oct 2026, a TIMING change, format unchanged; SPEC/30 §4 (bi)): in a merged view the consult notice
+ * comes after the step boundary's burst (70 s instead of 60 s). The driver records its plans after the minimum, so the notice shows
+ * in every main view as before; the five merged views' `consult_prompt_shown` records that moved are mapped back
+ * (`identity-normalise.ts`), and every other record is still the 0.12.0 run's byte for byte: the same three segment digests.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

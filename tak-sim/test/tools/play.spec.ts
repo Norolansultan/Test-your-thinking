@@ -37,21 +37,28 @@ async function playToV4(): Promise<{ readonly outputs: string[]; readonly logChe
   try {
     for (let guard = 0; session.snap().currentCycle < 4 && guard < 600; guard++) {
       session.begin(null);
-      const look = await runCommand(session, "look", [], ctx);
+      // B10 (25 Oct 2026): every other look is `look --all` (the whole log); the others list only the rows since the last look.
+      const whole = guard % 2 === 0;
+      const seenBefore = session.seenLog;
+      const look = await runCommand(session, "look", whole ? ["--all"] : [], ctx);
       outputs.push(look);
       const s = session.snap();
       if (["exploration", "allocation", "awaiting_view_end"].includes(s.step) && s.tour === null) {
-        // The message log in `look`: exactly the snapshot's rows, in order, as `MessageLogRow` shows them.
+        // The message log in `look`: exactly the snapshot's rows (the new ones, or all), in order, as `MessageLogRow` shows them.
         const lines = look.split("\n");
         const start = lines.findIndex((l) => l.startsWith("-- GeoChat · All Chat Rooms"));
-        const rows = lines.slice(start + 1, start + 1 + s.radioLog.length).map((l) => l.slice(2));
-        expect(rows).toHaveLength(s.radioLog.length);
-        s.radioLog.forEach((e, i) => {
+        const seen = Math.min(seenBefore, s.radioLog.length);
+        const expected = whole ? s.radioLog : s.radioLog.slice(seen);
+        let at = start + 1;
+        if (!whole && seen > 0) { expect(lines[at]).toBe(`» ${seen} earlier message(s) not repeated (\`look --all\` lists the whole log).`); at++; }
+        const rows = lines.slice(at, at + expected.length).map((l) => l.slice(2));
+        expect(rows).toHaveLength(expected.length);
+        expected.forEach((e, i) => {
           expect(rows[i]!.startsWith(e.clockLabel)).toBe(true);
           expect(rows[i]).toContain(`${sourceName("en", e.from)}: `);
           expect(rows[i]!.endsWith(e.id ? recordIn("en", e.id, e.text) : tr("en", e.text))).toBe(true);
         });
-        expect(lines[start + 1 + s.radioLog.length]).not.toMatch(/^\s{2}\d/); // nothing more listed
+        expect(lines[at + expected.length]).not.toMatch(/^[ *] \d/); // nothing more listed
         logChecks++;
       }
       const [cmd, ...args] = dumbPolicy(session, asked);
@@ -164,6 +171,111 @@ describe("the freeze map's grid", () => {
     expect(back.lat).toBeCloseTo(60.85, 5);
     expect(back.lon).toBeCloseTo(27.35, 5);
     expect("error" in freezePointAt(1, 1, extent)).toBe(true);
+  });
+});
+
+/** Plays with the smoke's dumb policy until `until` holds (a `look` is not needed for the policy). */
+async function playUntil(session: PlaySession, until: (s: ReturnType<PlaySession["snap"]>) => boolean): Promise<void> {
+  const ctx = { runDir: "/nonexistent", withMap: false };
+  const asked = new Set<number>();
+  for (let guard = 0; !until(session.snap()) && guard < 2000; guard++) {
+    const [cmd, ...args] = dumbPolicy(session, asked);
+    session.begin(null);
+    await runCommand(session, cmd, args, ctx);
+  }
+  expect(until(session.snap())).toBe(true);
+}
+
+describe("the replay's harness fixes (25 Oct 2026)", () => {
+  const ctx = { runDir: "/nonexistent", withMap: false };
+  const run = async (session: PlaySession, cmd: string, args: string[] = []) => { session.begin(null); return runCommand(session, cmd, args, ctx); };
+  const inView = (s: ReturnType<PlaySession["snap"]>) => ["exploration", "allocation", "awaiting_view_end"].includes(s.step) && s.tour === null;
+
+  it("B10: `look` lists only the messages since the last look, after a count of the earlier ones; `look --all` lists the whole log", async () => {
+    const session = await PlaySession.create({ audience: "expert", lang: "en", waitStopsOnMessages: true, questionnairesPlayed: true });
+    try {
+      await playUntil(session, (s) => s.currentCycle === 1 && inView(s) && s.radioLog.length > 3);
+      const first = await run(session, "look");
+      const n = session.snap().radioLog.length;
+      expect(first).toContain(`-- GeoChat · All Chat Rooms (${n}) --`);
+      const again = await run(session, "look");
+      expect(again).toContain(`» ${n} earlier message(s) not repeated (\`look --all\` lists the whole log).`);
+      expect(again).toContain("» No new messages since your last look.");
+      const row = /^[ *] \d\d[.:]\d\d/;
+      expect(again.split("\n").filter((l) => row.test(l))).toEqual([]);
+      const all = await run(session, "look", ["--all"]);
+      expect(all.split("\n").filter((l) => row.test(l))).toHaveLength(n);
+      await expect(run(session, "look", ["--everything"])).rejects.toThrow(/look \[--all\]/);
+      expect(readFileSync("tools/play/README.md", "utf8")).toContain("`look --all`");
+    } finally { session.dispose(); }
+  });
+
+  it("B1: the Haku chip is on screen in V8–V14 exactly when the app shows it, and `chip` asks it through Haku's path (`viaChip`)", async () => {
+    const session = await PlaySession.create({ audience: "expert", lang: "en", waitStopsOnMessages: true, questionnairesPlayed: true });
+    try {
+      const chipLine = "Search · Suggested question: [What is new in this period's records?] → `chip`";
+      await playUntil(session, (s) => s.currentCycle === 7 && inView(s));
+      expect(session.snap().hakuChip).toBe(false);
+      expect(await run(session, "look")).not.toContain(chipLine);
+      await expect(run(session, "chip")).rejects.toThrow(/no suggested question/);
+      await playUntil(session, (s) => s.currentCycle === 8 && inView(s));
+      expect(session.snap().hakuChip).toBe(true);
+      expect(await run(session, "look")).toContain(chipLine);
+      const out = await run(session, "chip");
+      expect(out).toContain("> What is new in this period's records?");
+      expect(out).toContain("TEMPLATE FALLBACK");
+      const submitted = (await session.o.logRecords()).filter((r) => r.kind === "ai_chat_query_submitted" && (r.detail as { viaChip?: boolean }).viaChip === true);
+      expect(submitted.map((r) => (r.detail as { view: number; text: string; tool: string }))).toEqual([expect.objectContaining({ view: 8, text: "What is new in this period's records?", tool: "haku" })]);
+      expect(session.snap().suggestedQuestion).toBe(false); // the guide's chip is never the Haku group's
+    } finally { session.dispose(); }
+  }, 30_000);
+
+  it("B2: the pre-session form, the post-session self-estimate and influence items and the hinge's fatigue item are the player's", async () => {
+    const session = await PlaySession.create({ audience: "expert", lang: "en", waitStopsOnMessages: true, questionnairesPlayed: true });
+    try {
+      // The pre-session form is on screen, not completed for the player (consent and the AI literacy test still are).
+      expect(session.snap()).toMatchObject({ step: "questionnaire", questionnaire: { id: "pre" } });
+      const pre = await run(session, "look");
+      for (const id of ["fatigue.start", "sleep.hours", "shift.recent"]) expect(pre).toContain(`[${id}]`);
+      await expect(run(session, "quest-answer", ["sleep.hours", "25"])).rejects.toThrow(/sleep.hours: a whole number 0–24/);
+      await expect(run(session, "quest-answer", ["fatigue.start", "8"])).rejects.toThrow(/one of 1, 2, 3, 4, 5, 6, 7/);
+      await run(session, "quest-answer", ["fatigue.start", "3"]);
+      await run(session, "quest-answer", ["sleep.hours", "7"]);
+      await run(session, "quest-answer", ["shift.recent", "no"]);
+      await run(session, "quest-submit");
+      const submittedPre = (await session.o.logRecords()).find((r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "pre")!;
+      expect((submittedPre.detail as { answers: { itemId: string; value: unknown }[] }).answers).toEqual([
+        { itemId: "fatigue.start", value: 3 }, { itemId: "sleep.hours", value: 7 }, { itemId: "shift.recent", value: "no" },
+      ]);
+      // The hinge's optional fatigue item, once its check is answered.
+      await playUntil(session, (s) => s.step === "hinge_pause" && s.hingeFatigue !== null);
+      expect(await run(session, "look")).toContain("`hinge-fatigue <1–7>`");
+      await run(session, "hinge-fatigue", ["5"]);
+      expect((await session.o.logRecords()).filter((r) => r.kind === "hinge_fatigue_rated").map((r) => r.detail)).toEqual([{ itemId: "fatigue.hinge", value: 5 }]);
+      // The post-session form: the source-memory items and the self-estimate and the Haku group's influence items.
+      await playUntil(session, (s) => s.step === "questionnaire" && s.questionnaire?.id === "post");
+      const post = await run(session, "look");
+      for (const id of ["accuracy.perceived", "influence.plan_views.haku", "influence.answers.haku"]) expect(post).toContain(`[${id}]`);
+      expect(post).not.toContain("[influence.plan_views.thinker]");
+      await run(session, "quest-answer", ["accuracy.perceived", "60"]);
+      await run(session, "quest-answer", ["influence.answers.haku", "30"]);
+      await expect(run(session, "quest-answer", ["influence.answers.haku", "35"])).rejects.toThrow(/one of 0, 10, 20/);
+      await run(session, "quest-submit");
+      const post2 = (await session.o.logRecords()).find((r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "post")!;
+      const answers = new Map((post2.detail as { answers: { itemId: string; value: unknown }[] }).answers.map((a) => [a.itemId, a.value]));
+      expect(answers.get("accuracy.perceived")).toBe(60);
+      expect(answers.get("influence.answers.haku")).toBe(30);
+      expect(answers.get("influence.plan_views.haku")).toBeNull(); // optional: left blank
+    } finally { session.dispose(); }
+  }, 30_000);
+
+  it("B2: a run started before 25 Oct 2026 still has its pre-session form completed neutrally, so it replays as played", async () => {
+    const session = await PlaySession.create({ audience: "expert", lang: "en", waitStopsOnMessages: true });
+    try {
+      expect(session.snap().step).not.toBe("questionnaire");
+      const pre = (await session.o.logRecords()).find((r) => r.kind === "questionnaire_submitted")!;
+      expect((pre.detail as { answers: { itemId: string; value: unknown }[] }).answers[0]).toEqual({ itemId: "fatigue.start", value: 4 });
+    } finally { session.dispose(); }
   });
 });
 

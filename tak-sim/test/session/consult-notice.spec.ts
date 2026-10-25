@@ -3,7 +3,8 @@
  * never the practice view; its tool by the group (Haku for `radio`, the Thinker for both Thinker cells); shown once
  * `consult_prompt_shown` is durable (I5); opened or dismissed by the participant, or dismissed by the view's end; held
  * by an open SPAM item or a freeze and shown when that closes, at the actual moment; out of sight while a visible probe
- * locks the tools; once per run of a view, and again in a view replayed after a resume.
+ * locks the tools; once per run of a view, and again in a view replayed after a resume. R6 (25 Oct 2026, SPEC/30 §4 (bi)): 70 s in a
+ * merged view (after its step boundary), and only when reports came in after the participant's last recorded plan.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +48,7 @@ describe("the consult notification (SPEC/30 §4)", () => {
 
   it.each([["reasoning_intent", "thinker"], ["reasoning_once", "thinker"], ["radio", "haku"]] as const)("%s: its button opens %s — consult_prompt_opened, then the notice goes", async (cell, tool) => {
     const { o, snap } = await atView(2, cell);
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(70_000); // R6 (25 Oct 2026): V2 is a merged view, so the notice comes at 70 s, after its boundary
     expect(snap().consultPrompt).toEqual({ tool });
     await expect(o.openConsultPrompt()).resolves.toBe(tool);
     expect(snap().consultPrompt).toBeNull();
@@ -119,8 +120,8 @@ describe("the consult notification (SPEC/30 §4)", () => {
     expect(ofKind(records, "consult_prompt_shown", 3).map((x) => x.detail)).toEqual([{ cycle: 3, atViewSeconds: 75, tool: "haku" }]);
     expect(indexOfKind(records, "spam_closed", 3)).toBeLessThan(indexOfKind(records, "consult_prompt_shown", 3));
 
-    const other = await atView(6); // V6: the ready prompt left up over 60 s does not hold it
-    await vi.advanceTimersByTimeAsync(60_000);
+    const other = await atView(6); // V6: the ready prompt left up over 70 s (a merged view's moment, R6) does not hold it
+    await vi.advanceTimersByTimeAsync(70_000);
     expect(other.snap()).toMatchObject({ spam: { phase: "ready" }, consultPrompt: { tool: "haku" } });
   });
 
@@ -208,5 +209,65 @@ describe("the consult notification (SPEC/30 §4)", () => {
     expect(shown.filter((i) => i < resumedAt)).toHaveLength(1);
     expect(shown.filter((i) => i > resumedAt)).toHaveLength(1);
     expect(ofKind(all.slice(resumedAt), "consult_prompt_dismissed", 1).map((r) => r.detail)).toEqual([{ cycle: 1, tool: "haku", cause: "view_end" }]);
+  });
+});
+
+describe("R6 (SPEC/30 §4 (bi), 25 Oct 2026): after a merged view's boundary, and only when reports came in after the last plan", () => {
+  const consultRecords = async (o: { logRecords(): Promise<readonly { kind: string; detail: unknown }[]> }, cycle: number) =>
+    (await o.logRecords()).filter((r) => r.kind.startsWith("consult_prompt_") && (r.detail as { cycle: number }).cycle === cycle);
+  /** Records the plan at the decision panel's opening (20 s), as a participant who confirms early does. */
+  const planAt20 = async (r: { o: { submitAllocation(p: typeof PLAN): Promise<void> } }) => {
+    await vi.advanceTimersByTimeAsync(20_000);
+    await r.o.submitAllocation(PLAN);
+  };
+
+  it("a merged view: at 70 s, 5 s after the step boundary and its burst, not at 60 s", async () => {
+    const { o, snap } = await atView(4);
+    await vi.advanceTimersByTimeAsync(69_999);
+    expect(snap().consultPrompt).toBeNull();
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(snap().consultPrompt).toEqual({ tool: "haku" });
+    const records = await o.logRecords();
+    expect(ofKind(records, "consult_prompt_shown", 4).map((r) => r.detail)).toEqual([{ cycle: 4, atViewSeconds: 70, tool: "haku" }]);
+    expect(indexOfKind(records, "step_boundary_reached", 4)).toBeLessThan(indexOfKind(records, "consult_prompt_shown", 4));
+  });
+
+  it.each(["radio", "reasoning_intent"] as const)("%s, a single-step view: a plan recorded before 60 s leaves nothing new, so no notice and no record", async (cell) => {
+    const r = await atView(3, cell);
+    await planAt20(r);
+    await vi.advanceTimersByTimeAsync(45_000); // past 60 s
+    expect(r.snap().consultPrompt).toBeNull();
+    expect(await consultRecords(r.o, 3)).toEqual([]);
+    await runOutView(r.o, r.snap);
+    expect(await consultRecords(r.o, 3)).toEqual([]); // nothing at the view's end either: it never showed
+  });
+
+  it.each(["radio", "reasoning_intent"] as const)("%s, a merged view: a plan recorded before the boundary is followed by its reports, so the notice shows at 70 s", async (cell) => {
+    const r = await atView(2, cell);
+    await planAt20(r);
+    await vi.advanceTimersByTimeAsync(50_000); // to 70 s
+    await settle();
+    expect(r.snap().consultPrompt).toEqual({ tool: cell === "radio" ? "haku" : "thinker" });
+    expect(ofKind(await r.o.logRecords(), "consult_prompt_shown", 2).map((x) => (x.detail as { atViewSeconds: number }).atViewSeconds)).toEqual([70]);
+  });
+
+  it("a merged view: a revision recorded after the boundary leaves nothing new at 70 s", async () => {
+    const r = await atView(2);
+    await planAt20(r);
+    await vi.advanceTimersByTimeAsync(46_000); // 66 s: the boundary's reports are in
+    await r.o.reviseAllocation();
+    await r.o.submitAllocation(PLAN); // the revision, recorded after them
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(r.snap().consultPrompt).toBeNull();
+    expect(await consultRecords(r.o, 2)).toEqual([]);
+  });
+
+  it("no plan in this view yet: the view's own reports came after the previous view's plan, so it shows (60 s)", async () => {
+    const { o, snap } = await atView(8); // a single-step view without a freeze; the previous plan was V7's
+    await vi.advanceTimersByTimeAsync(60_000);
+    await settle();
+    expect(snap().consultPrompt).toEqual({ tool: "haku" });
+    expect(ofKind(await o.logRecords(), "consult_prompt_shown", 8).map((r) => r.detail)).toEqual([{ cycle: 8, atViewSeconds: 60, tool: "haku" }]);
   });
 });

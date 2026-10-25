@@ -2,7 +2,8 @@
  * What a question says about time (SPEC/14 revision D10, 24 Oct 2026; `app/retrieval/query-cues.ts`):
  * the recency cues in Finnish and English with their inflections, the words that are NOT cues, the
  * previous cues that cancel them, clock parsing (points, relative clocks, quantities that are not
- * clocks) and the lexical query with the words the rules used taken out.
+ * clocks) and the lexical query with the words the rules used taken out. B5 (SPEC/14 revision (bi), 25 Oct 2026): "new" before
+ * a word for records, and "since my last plan" as a time relative to the plan.
  */
 
 import { describe, expect, it } from "vitest";
@@ -85,7 +86,8 @@ describe("recency cues, English", () => {
     "Are they in danger now that the wind has turned?", // "now that" is a conjunction
     "Is the snow known?",
     "A new fire has started south-east of the origin.",
-    "What are the new reports?", // "new" alone is not a cue (documented)
+    "Where are the new crews?", // "new" alone is not a cue; "new reports" is since B5 (25 Oct 2026)
+    "What new fire has started?", // B5: "what new" is a cue, but not before "fire"
     "Lastly, how much water is left?",
   ])("'%s' does not", (q) => {
     expect(latest(q, "en")).toBe(false);
@@ -94,6 +96,74 @@ describe("recency cues, English", () => {
   it("'previous' and 'earlier' cancel it", () => {
     expect(latest("What did the previous perimeter mapping say, and what is the latest?", "en")).toBe(false);
     expect(latest("What did VOL1 say earlier, and where is it now?", "en")).toBe(false);
+  });
+});
+
+describe("B5 (SPEC/14 revision (bi), 25 Oct 2026): 'new' before a word for records, and the time since the last plan", () => {
+  it.each([
+    ["Mitä uusia ilmoituksia on tullut?", "fi"],
+    ["Onko uusia raportteja?", "fi"],
+    ["Onko uusia kirjauksia L3:sta?", "fi"],
+    ["Uudet tiedot kärjestä?", "fi"],
+    ["Onko uusia tietoja?", "fi"],
+    ["Uusimmat viestit?", "fi"],
+    ["Onko tullut uusia viestejä?", "fi"],
+    ["What new reports have come in?", "en"],
+    ["Any new records?", "en"],
+    ["Are there new messages from DR3?", "en"],
+    ["Is there new information about the head?", "en"],
+    ["What new has come in?", "en"],
+    ["What are the new reports?", "en"],
+  ] as const)("'%s' asks for the latest state", (q, lang) => {
+    expect(latest(q, lang)).toBe(true);
+  });
+
+  it.each([
+    ["Syttymäkohdan kaakkoispuolelle on syttynyt uusi palo.", "fi"],
+    ["Onko kipinöistä syntynyt uusia paloja linjan yli?", "fi"],
+    ["Onko uusi palo kasvanut?", "fi"],
+    ["How fast is the new fire spreading?", "en"],
+    ["What new fire has started?", "en"],
+    ["Is there a new weather forecast for the evening?", "en"], // "new" before a forecast: not a word for records (not decided)
+  ] as const)("'%s' does not", (q, lang) => {
+    expect(latest(q, lang)).toBe(false);
+  });
+
+  it("'since my last plan' is a time relative to the plan: no previous cue, and the question asks for the latest", () => {
+    for (const [q, lang, cue] of [
+      ["Mitä uusia ilmoituksia on tullut edellisen suunnitelmani jälkeen?", "fi", "edellisen suunnitelmani jälkeen"],
+      ["Mitä on tapahtunut edellisen suunnitelman jälkeen?", "fi", "edellisen suunnitelman jälkeen"],
+      ["Uusia ilmoituksia edellisen suunnitelmasi jälkeen", "fi", "edellisen suunnitelmasi jälkeen"], // the consult notice's own words
+      ["What has come in since my last plan?", "en", "since my last plan"],
+      ["What has happened since the last plan?", "en", "since the last plan"],
+      ["New reports since your last plan", "en", "since your last plan"], // the consult notice's own words
+      ["Anything since my previous plan?", "en", "since my previous plan"],
+    ] as const) {
+      const c = queryCues(q, lang);
+      expect(c.latest, q).toBe(true);
+      expect(c.cueWords, q).toContain(cue);
+    }
+    // Its words leave the lexical query, as a relative clock's do.
+    expect(tokenise(queryCues("Onko tiestä R1 uusia ilmoituksia edellisen suunnitelmani jälkeen?").lexicalQuery)).toEqual(["onko", "tiest", "r1"]);
+    expect(tokenise(queryCues("What has DR3 reported since my last plan?", "en").lexicalQuery, "en")).toEqual(["what", "ha", "dr3", "repor"]);
+    // A previous cue outside the plan phrase still cancels.
+    expect(latest("Mitä edellinen kehäkartoitus näytti edellisen suunnitelmani jälkeen?")).toBe(false);
+    expect(latest("What did the previous survey say since my last plan?", "en")).toBe(false);
+    // "edellisen" before anything but the plan is a previous cue, as before.
+    expect(latest("Mitä uusia ilmoituksia edellisen kehäkartoituksen jälkeen?")).toBe(false);
+  });
+
+  it("the topic-free rule fires for the decided questions and the notice's own words", () => {
+    for (const [q, lang] of [
+      ["Mitä uusia ilmoituksia on tullut?", "fi"],
+      ["What new reports have come in?", "en"],
+      ["Uusia ilmoituksia edellisen suunnitelmasi jälkeen", "fi"],
+      ["New reports since your last plan", "en"],
+      ["Onko uusia viestejä saapunut?", "fi"],
+      ["Any new messages since my last plan?", "en"],
+    ] as const) expect(queryCues(q, lang).topicFree, q).toBe(true);
+    expect(queryCues("Onko uusia ilmoituksia tiestä R1?").topicFree).toBe(false);
+    expect(queryCues("What new reports have come in from DR3?", "en").topicFree).toBe(false);
   });
 });
 

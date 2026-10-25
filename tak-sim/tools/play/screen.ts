@@ -2,9 +2,10 @@
  * The play harness's screen (`tools/play/`): what `look` prints — the screen on show as text, in the session language with the
  * app's own strings (`UI_TEXT`, `tr`, `recordIn`, `sourceName`, the plan panel's `planSummary`), and the image requests for it.
  * Inside a view: the status strip (clock, period, the countdown when the app shows one, the units), the directive strip (V8 on),
- * Haku's "Uusia kirjauksia" badge, the consult notice, the SPAM card, a visible probe, the decision strip (the plan form, the plan
- * recorded, the plan's confidence, the plan review) and the whole message log (GeoChat, "All Chat Rooms", the TAK shell's default
- * pane), the rows that arrived since the last `look` marked; then the live map's PNG. During a freeze only the freeze screen (the
+ * Haku's "Uusia kirjauksia" badge, the Haku group's suggested-question chip (V8–V14, B1), the consult notice, the SPAM card, a visible
+ * probe, the decision strip (the plan form, the plan recorded, the plan's confidence, the plan review, the hinge's fatigue item) and the
+ * message log (GeoChat, "All Chat Rooms", the TAK shell's default pane): the rows that arrived since the last `look`, after a count of
+ * the earlier ones (B10, 25 Oct 2026; `look --all` lists every row); then the live map's PNG. During a freeze only the freeze screen (the
  * app blanks the map and the log): its current item, and for a map item the basemap with a pixel grid. The full-screen pages are
  * `screen-pages.ts`. Harness lines (how to answer, the period's elapsed seconds) are in English and marked `»`; the few screen
  * descriptions the app has no string for (the tour's name, the held decision strip) are in the session language only
@@ -19,7 +20,7 @@ import type { RadioLogEntry, SessionSnapshot } from "../../app/session/snapshot.
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { recordIn, sourceName, tr } from "../../app/i18n/text.js";
 import { unitCallSign } from "../../app/i18n/place-names.js";
-import { chapterLabel } from "../../app/i18n/public-texts.js";
+import { chapterLabel, studyTextFor } from "../../app/i18n/public-texts.js";
 import { MAIN_VIEW_COUNT, VIEW_MAX_SECONDS, PRACTICE_VIEW_MAX_SECONDS } from "../../app/scenario/views.js";
 import { DEPARTURE_NOTE_FROM_VIEW, DEPARTURE_REASONS, MAIN_EFFORT_POSTURES, PLAN_DRONE_TASK_IDS, SECONDARY_TASK_IDS } from "../../app/scenario/plan-types.js";
 import { onSceneLine, planFromDraft, planSummary } from "../../app/render/ui/components/DecisionPanels.js";
@@ -68,7 +69,7 @@ const SCREEN_WORDS: Readonly<Record<Lang, { readonly practiceTour: string; reado
 };
 
 /** The screen on show, its image requests (paths under `runDir/screens/`, numbered by `n`). Marks the log's rows as seen. */
-export function lookText(session: PlaySession, runDir: string, n: number, withMap: boolean): { readonly text: string; readonly images: ImageRequest[] } {
+export function lookText(session: PlaySession, runDir: string, n: number, withMap: boolean, wholeLog = false): { readonly text: string; readonly images: ImageRequest[] } {
   const s = session.snap();
   const name = (what: string) => join(runDir, "screens", `${String(n).padStart(3, "0")}-${what}.png`);
   if (s.step === "freeze" && s.freeze) return freezeText(session, s, name("freeze-map"), withMap);
@@ -76,7 +77,7 @@ export function lookText(session: PlaySession, runDir: string, n: number, withMa
   if (page) return page;
   const camera = session.camera();
   const images: ImageRequest[] = withMap ? [{ kind: "live", path: name("map"), data: liveMapData(s, session.scenario.extent, session.config.audience, camera, session.legendOpen, session.rb && session.rb.view === s.currentCycle ? { from: session.rb.from, to: session.rb.to } : null) }] : [];
-  const lines = [...statusLines(session, s), ...interactionLines(session, s), "", ...logLines(session, s)];
+  const lines = [...statusLines(session, s), ...interactionLines(session, s), "", ...logLines(session, s, wholeLog)];
   const frame = camera ? `your own frame, about ${widthMetres(camera)} m across` : `the app's opening frame, about ${widthMetres(openingOf(session.scenario.extent))} m across`;
   if (withMap) lines.push("", H(`Map (TAK, north up, ${frame}; \`map alue|7km|2km|in|out|reset [center=x,y]\` moves it, \`map legend\` shows or hides the legend): ${images[0]!.path}`));
   session.seenLog = s.radioLog.length;
@@ -112,6 +113,9 @@ function interactionLines(session: PlaySession, s: SessionSnapshot): string[] {
   }
   out.push("", `${t.tak.toolbar.haku}${s.recordsBadge ? ` [${t.recordsBadge}]` : ""}${s.toolsLocked ? ` (${t.spam.toolsLocked})` : ""}  ·  ${t.tak.paneTitle.geochat}`);
   if (session.config.audience === "public") out.push(H("Glossary & help (public): `glossary <term>` for a ‹marked› word, `help [glossary|roster|legend]`."));
+  // B1 (25 Oct 2026): the Haku group's suggested question, above Haku's input (V8–V14), exactly when the app shows it (`hakuChip`).
+  if (s.hakuChip) out.push(`${t.tak.paneTitle.haku} · ${t.consult.chipLabel}: [${t.consult.hakuChip}] → \`chip\``);
+  if (s.suggestedQuestion) out.push(`Thinker · ${t.consult.chipLabel}: [${t.consult.chip}]`, H("The guide group's chip; this harness plays the Haku group and has no Thinker command."));
   if (s.consultPrompt) out.push(`[${t.consult.notice}]  ${t.consult.openHaku} → \`consult open\` · ${t.consult.close} → \`consult dismiss\``);
   if (s.spam) out.push("", ...spamLines(session, s));
   if (s.visibleProbe) out.push("", ...probeLines(session, s));
@@ -182,6 +186,11 @@ function decisionLines(session: PlaySession, s: SessionSnapshot): string[] {
         out.push(gl(session, tr(lang, check.promptFi)), ...check.options.map((o, i) => `  ${optionLetter(i)}) ${gl(session, tr(lang, o.labelFi))}${check.chosen === o.id ? "  ◀" : ""}`));
         if (check.phase === "item") out.push(t.hingeCheck.note, H("`hinge-answer <letter>`."));
       }
+      // B2 (25 Oct 2026): the hinge's optional fatigue item (SPEC/15 (bf)), the questionnaires' wording, once the check is answered.
+      if (s.hingeFatigue) {
+        const f = studyTextFor(lang, { audience: session.o.audience, scope: session.o.scope }).questionnaire.items["fatigue.start"]!;
+        out.push(f.prompt, `  ${[1, 2, 3, 4, 5, 6, 7].map((v) => `${v}${s.hingeFatigue!.value === v ? " ◀" : ""}`).join(" | ")}  (${f.low} … ${f.high})`, t.hingeCheck.fatigueOptional, H("`hinge-fatigue <1–7>` (one click; again: the last one counts)."));
+      }
       if (!check || check.phase === "answered") out.push(`[${t.continue}] → \`continue\``);
       return out;
     }
@@ -214,12 +223,24 @@ function planFormLines(session: PlaySession, s: SessionSnapshot): string[] {
   return out;
 }
 
-function logLines(session: PlaySession, s: SessionSnapshot): string[] {
+/**
+ * The message log (GeoChat, "All Chat Rooms"). B10 (25 Oct 2026): by default only the rows that came in since the last `look`, after a
+ * count of the earlier ones (the app keeps the whole log on screen; reprinting it every time buried the new rows); `wholeLog`
+ * (`look --all`) lists every row, the new ones marked.
+ */
+function logLines(session: PlaySession, s: SessionSnapshot, wholeLog: boolean): string[] {
   const t = UI_TEXT[session.config.lang];
+  const seen = Math.min(session.seenLog, s.radioLog.length);
+  const fresh = s.radioLog.length - seen;
   const out = [`-- ${t.tak.paneTitle.geochat} · ${t.tak.geochat.rooms.all} (${s.radioLog.length}) --`];
   if (s.radioLog.length === 0) out.push(t.noMessages);
-  s.radioLog.forEach((e, i) => out.push(`${i >= session.seenLog ? "* " : "  "}${logRow(session, e)}`));
-  if (s.radioLog.length > session.seenLog) out.push(H(`* = new since your last look (${s.radioLog.length - session.seenLog}).`));
+  if (wholeLog) s.radioLog.forEach((e, i) => out.push(`${i >= seen ? "* " : "  "}${logRow(session, e)}`));
+  else {
+    if (seen > 0) out.push(H(`${seen} earlier message(s) not repeated (\`look --all\` lists the whole log).`));
+    s.radioLog.slice(seen).forEach((e) => out.push(`* ${logRow(session, e)}`));
+    if (fresh === 0 && seen > 0) out.push(H("No new messages since your last look."));
+  }
+  if (fresh > 0) out.push(H(`* = new since your last look (${fresh}).`));
   out.push(t.tak.geochat.readOnly);
   return out;
 }

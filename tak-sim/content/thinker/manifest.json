@@ -112,7 +112,7 @@
       "latest": {
         "relevance": 0.5,
         "graded": 0.3,
-        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first",
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first; B5 (25 Oct 2026, SPEC/14 (bi)): cue phrases of up to four words; a previous word inside a recency phrase ('since my last plan', 'edellisen suunnitelmani jälkeen') cancels nothing",
         "recencyCues": {
           "fi": [
             "viimeisin, viimeinen, viime, viimeksi (all inflections)",
@@ -122,7 +122,9 @@
             "nyt (nytkin, nythän …)",
             "nykyinen, nykytilanne (nyky-)",
             "tämänhetkinen",
-            "tällä hetkellä"
+            "tällä hetkellä",
+            "uusia, uudet, uusimmat + ilmoitu-, raport-, kirjau-, tieto- (tiedot), viest- (B5)",
+            "edellisen (viime, viimeisen, viimeisimmän) suunnitelma(n/ni/si) jälkeen: a time relative to the plan, never a previous cue (B5)"
           ],
           "en": [
             "latest",
@@ -132,7 +134,10 @@
             "last",
             "now (not 'now that')",
             "at the moment, at present",
-            "any new, anything new, what's new"
+            "any new, anything new, what's new",
+            "new report(s), new record(s), new message(s), new information (B5)",
+            "what new (not 'what new fire') (B5)",
+            "since (after) my / your / the / our last (previous, latest) plan: a time relative to the plan, never a previous cue (B5)"
           ]
         },
         "previousCues": {
@@ -145,8 +150,8 @@
           ]
         },
         "topicFreeWords": {
-          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tapahtunut|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
-          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|information|update|updates|news|happened|happening)$"
+          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tulleet|tapahtunut|saapu\\p{L}*|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|viest\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|message|messages|information|update|updates|news|happened|happening|come|came|arrived|received)$"
         }
       }
     },
@@ -243,7 +248,7 @@
       "latest": {
         "relevance": 0.5,
         "graded": 0.3,
-        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first",
+        "rule": "D10 (24 Oct 2026), when the question asks for the latest state (a recency cue and no previous cue, app/retrieval/query-cues.ts): every relevant candidate (base score at least relevance x the best base score) gets graded x its observation time scaled 0-1 between the oldest and the newest relevant candidate; added to the ordinary boost; the cue words are removed from the lexical query; the vector half and the query vector are unchanged; addendum (24 Oct 2026): a latest-state question with no clock whose other words all name no topic (topicFreeWords) returns the gated, collapsed candidates newest first; B5 (25 Oct 2026, SPEC/14 (bi)): cue phrases of up to four words; a previous word inside a recency phrase ('since my last plan', 'edellisen suunnitelmani jälkeen') cancels nothing",
         "recencyCues": {
           "fi": [
             "viimeisin, viimeinen, viime, viimeksi (all inflections)",
@@ -253,7 +258,9 @@
             "nyt (nytkin, nythän …)",
             "nykyinen, nykytilanne (nyky-)",
             "tämänhetkinen",
-            "tällä hetkellä"
+            "tällä hetkellä",
+            "uusia, uudet, uusimmat + ilmoitu-, raport-, kirjau-, tieto- (tiedot), viest- (B5)",
+            "edellisen (viime, viimeisen, viimeisimmän) suunnitelma(n/ni/si) jälkeen: a time relative to the plan, never a previous cue (B5)"
           ],
           "en": [
             "latest",
@@ -263,7 +270,10 @@
             "last",
             "now (not 'now that')",
             "at the moment, at present",
-            "any new, anything new, what's new"
+            "any new, anything new, what's new",
+            "new report(s), new record(s), new message(s), new information (B5)",
+            "what new (not 'what new fire') (B5)",
+            "since (after) my / your / the / our last (previous, latest) plan: a time relative to the plan, never a previous cue (B5)"
           ]
         },
         "previousCues": {
@@ -276,8 +286,8 @@
           ]
         },
         "topicFreeWords": {
-          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tapahtunut|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
-          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|information|update|updates|news|happened|happening)$"
+          "fi": "^(?:mitä|mikä|mitkä|onko|ovatko|on|ovat|ollut|olleet|tullut|tulleet|tapahtunut|saapu\\p{L}*|kuuluu|tällä|tämän|jakso\\p{L}*|kirja\\p{L}*|ilmoitu\\p{L}*|raport\\p{L}*|viest\\p{L}*|tieto|tiedot|tietoja|uutisi\\p{L}*|mitään|jotain)$",
+          "en": "^(?:what|what's|whats|is|are|was|were|has|have|been|there|in|this|the|a|any|anything|period|period's|periods|record|records|recorded|report|reports|reported|message|messages|information|update|updates|news|happened|happening|come|came|arrived|received)$"
         }
       }
     },

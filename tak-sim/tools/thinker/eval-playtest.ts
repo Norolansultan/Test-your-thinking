@@ -6,6 +6,8 @@
  * 1. **Play-test questions** (`playtest-cases.ts`, `docs/audits/2026-10-23-playtest/haku.csv`):
  *    the rank of the right record, LEXICAL only — as the play harness and the demo bridge run Haku
  *    (the browser's local fallback). These questions have no stored query vector.
+ *    1b. The same for the replay's questions (`haku-replay.csv`, analysis §10): the HELD-OUT set (SPEC/14 revision (bi), B5,
+ *    25 Oct 2026); nothing is chosen on it.
  * 2. **Authored questions** (`authored-questions.ts`) with their stored query vectors
  *    (`content/thinker/authored-queries*.json`): HYBRID, as the proxy runs it, at every view's
  *    start gate; how many top-k lists change, and the designed records' ranks at the tests' views.
@@ -28,7 +30,7 @@ import { clockAt, recordText } from "../../app/session/template-answer.js";
 import { AUTHORED_QUERIES_FILE, AUTHORED_QUERIES_FILE_EN, repoPath } from "../../server/thinker/config.js";
 import { authoredQuestionsOf } from "./authored-questions.js";
 import { gateStepOfView, readIndexFile, scenario } from "./eval-common.js";
-import { bestRank, loadPlaytestCases, rankSummary, withoutD10 } from "./playtest-cases.js";
+import { bestRank, loadPlaytestCases, PLAYTEST_HAKU_FILE, PLAYTEST_REPLAY_HAKU_FILE, rankSummary, withoutD10 } from "./playtest-cases.js";
 
 const ALL = Number.MAX_SAFE_INTEGER;
 const VIEWS = scenario.cycles.map((c) => c.index).filter((v) => v >= 1);
@@ -39,9 +41,10 @@ function ranked(question: string, step: number, lang: RetrievalLang, config: Hyb
   return hybridRetrieve(question, reachableAtoms(scenario.atoms, step), vector, { ...config, topK: ALL }, lang).map((r) => r.atom.id);
 }
 
-function playtest(verbose: boolean): void {
-  const cases = loadPlaytestCases();
-  console.log(`\n1. Play-test questions (${cases.length} with an identifiable right record), lexical only, rank of the right record (- = not ranked)`);
+function playtest(verbose: boolean, file: string, title: string): void {
+  const cases = loadPlaytestCases(file);
+  console.log(`\n${title} (${file}: ${cases.length} with an identifiable right record), lexical only, rank of the right record (- = not ranked)`);
+  console.log(`   cue: L latest-state, C a clock, T topic-free (the newest records); before = without D10, after = the declared configuration`);
   console.log(`   ${"case".padEnd(5)} ${"lang".padEnd(4)} ${"step".padStart(4)} cue   ${"before".padStart(6)} ${"after".padStart(6)}  question`);
   const before: number[] = [];
   const after: number[] = [];
@@ -53,7 +56,7 @@ function playtest(verbose: boolean): void {
     const a = bestRank(top, c.targets);
     before.push(b);
     after.push(a);
-    const tag = `${cues.latest ? "L" : "-"}${cues.clocks.length > 0 ? "C" : "-"}`;
+    const tag = `${cues.latest ? "L" : "-"}${cues.clocks.length > 0 ? "C" : "-"}${cues.topicFree ? "T" : "-"}`;
     console.log(`   ${c.id.padEnd(5)} ${c.lang.padEnd(4)} ${String(c.step).padStart(4)} ${tag.padEnd(5)} ${rankStr(b).padStart(6)} ${rankStr(a).padStart(6)}  ${c.question.slice(0, 90)}`);
     if (verbose) {
       for (const id of top.slice(0, 3)) {
@@ -148,7 +151,8 @@ function indexHashes(): void {
   }
 }
 
-playtest(process.argv.includes("--verbose"));
+playtest(process.argv.includes("--verbose"), PLAYTEST_HAKU_FILE, "1. Play-test questions, development set");
+playtest(process.argv.includes("--verbose"), PLAYTEST_REPLAY_HAKU_FILE, "1b. Replay questions, held-out set");
 authored("fi");
 authored("en");
 indexHashes();

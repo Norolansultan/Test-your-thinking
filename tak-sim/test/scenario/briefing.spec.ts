@@ -182,7 +182,7 @@ describe("`31` participant texts (19 Oct 2026; DRAFT, Finnish for the native rev
       for (const d of defs) expect(UI_TEXT[lang].tour.steps.decision.body, lang).toContain(d);
     }
     expect(UI_TEXT.fi.secondaryTasks["task.hold-line"]).toBe("Linjan pito tiellä tai vesistöllä");
-    expect(UI_TEXT.en.secondaryTasks["task.hold-line"]).toBe("Holding the line on a road or water");
+    expect(UI_TEXT.en.secondaryTasks["task.hold-line"]).toBe("Hold an existing line on a road or water"); // R12 (25 Oct 2026)
   });
 
   it("radio DF-01 (c): the setting and the tour's welcome say that the units' answers to the command post's questions appear in the records, in both languages and both groups", () => {

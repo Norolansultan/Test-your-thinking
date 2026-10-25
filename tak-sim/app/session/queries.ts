@@ -34,7 +34,7 @@ import type { LogRecord, SessionLog } from "../telemetry/log.js";
 import type { AiChatAnswerReceivedDetail } from "../telemetry/record-kinds-interaction.js";
 import thinkerManifest from "../../content/thinker/manifest.json" with { type: "json" };
 import { conditionOfCell } from "./preview.js";
-import { PRACTICE_VIEW_INDEX } from "../scenario/views.js";
+import { PRACTICE_VIEW_INDEX, STEP_SECONDS } from "../scenario/views.js";
 import type { OpenStructuredAnswer } from "./open-answer.js";
 import type { AiChatTurn, OpenThinkerTurn, RadioLogEntry } from "./snapshot.js";
 import type { TemplateAnswer } from "./template-answer.js";
@@ -350,7 +350,8 @@ export class SessionQueries {
     // The session language's lexical half (SPEC/14 revision (v)): English passages and tokeniser in English.
     const retrieved = hybridRetrieve(query, this.searchableCorpus(), null, undefined, lang);
     return {
-      answer: templateThinkerAnswer(retrieved.map((r) => toRenderable(r.atom)), lang),
+      // B6 (SPEC/14 revision (bi)): record ages counted to the end of the current step, as the proxy's (`ageReferenceOf`).
+      answer: templateThinkerAnswer(retrieved.map((r) => toRenderable(r.atom)), lang, "standard", this.ctx.currentStep() * STEP_SECONDS),
       retrieved: retrieved.map((r) => ({ id: r.atom.id, score: r.score })),
       modelId: thinkerManifest.model.id,
       promptHash: manifestPromptHash(lang, prompt),

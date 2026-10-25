@@ -277,10 +277,12 @@ export function aiVerdictsOf(answerText: string, lang: "fi" | "en", question?: s
 
 /**
  * The deterministic template answer over retrieved records, in the wire shape (SPEC/14 revision (q)
- * step 6). For the strategy-guided variant it carries `linjaus` `ei_arvioitu` (D2).
+ * step 6). For the strategy-guided variant it carries `linjaus` `ei_arvioitu` (D2). `ageRefS` (B6, SPEC/14 revision (bi)): the
+ * period's end the record ages are counted to (the end of the question's step, as the model's ages); a shown record more than
+ * 30 minutes older is "uncertain (record from hh.mm)".
  */
-export function templateThinkerAnswer(records: readonly RenderableAtom[], lang: "fi" | "en" = "fi", variant: ThinkerPromptVariant = "standard"): ThinkerAnswer {
-  const t = buildTemplateAnswer(records, lang);
+export function templateThinkerAnswer(records: readonly RenderableAtom[], lang: "fi" | "en" = "fi", variant: ThinkerPromptVariant = "standard", ageRefS?: number): ThinkerAnswer {
+  const t = buildTemplateAnswer(records, lang, ageRefS);
   const four = { vastaus: t.answerFi, perusteet: t.basisFi, varmuus: t.certaintyFi, muuttaisi: t.wouldChangeIfFi };
   return variant === "intent" ? { ...four, linjaus: LINJAUS_NOT_ASSESSED } : four;
 }

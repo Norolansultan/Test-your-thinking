@@ -16,6 +16,11 @@ import { THINKER_RETRIEVAL_CONFIG, type HybridConfig, type RetrievalLang } from 
 import { repoPath } from "../../server/thinker/config.js";
 
 export const PLAYTEST_HAKU_FILE = "docs/audits/2026-10-23-playtest/haku.csv";
+/**
+ * The replay's Haku questions (analysis §10, 24 Oct 2026), in `haku.csv`'s layout: the HELD-OUT set. Nothing was chosen on it;
+ * SPEC/14 revision (bi) (B5, 25 Oct 2026) reports it beside the development set.
+ */
+export const PLAYTEST_REPLAY_HAKU_FILE = "docs/audits/2026-10-23-playtest/haku-replay.csv";
 
 /** One play-test question with the record(s) that should come first. */
 export interface PlaytestCase {
@@ -93,8 +98,8 @@ export function playtestCases(csv: string): PlaytestCase[] {
   return out;
 }
 
-export function loadPlaytestCases(): PlaytestCase[] {
-  return playtestCases(readFileSync(repoPath(PLAYTEST_HAKU_FILE), "utf8"));
+export function loadPlaytestCases(file: string = PLAYTEST_HAKU_FILE): PlaytestCase[] {
+  return playtestCases(readFileSync(repoPath(file), "utf8"));
 }
 
 /** The declared configuration with D10 taken out (the retrieval before 24 Oct 2026): the "before" of the evaluation. */

@@ -1,8 +1,9 @@
 /**
  * The practice view's search lesson and map tasks (difficulty audit, 23 Oct 2026; `proposal.md` (b.2), (b.3); `proposal-map.md` c.3):
- * the feedback screen after VP is SOURCE-ONLY for the practice questions (where the information was; never which option was right, so
- * SPEC/32 §1 holds), shows the head mark beside the head the practice map drew, and the measured distance; it comes after VP's end
- * and before the training, is logged, is resumed into, and is absent without the option. The measuring task's key is computed.
+ * the feedback screen after VP is SOURCE-ONLY for the practice questions (where the information was; so SPEC/32 §1 holds), but for the
+ * records item, which since revision (bl) (25 Oct 2026) also shows what a search would have given with the practice's right answer
+ * (`practice-feedback-lesson.spec.ts`); it shows the head mark beside the head the practice map drew, and the measured distance; it comes
+ * after VP's end and before the training, is logged, is resumed into, and is absent without the option. The measuring task's key is computed.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,7 +20,7 @@ const scenario = buildDemoScenario();
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-describe("the practice feedback's content (source-only)", () => {
+describe("the practice feedback's content (source-only, but for the records item's lesson)", () => {
   const view = practiceFeedbackView(scenario, { lat: 60.85, lon: 27.351 });
 
   it("says where each practice question's information was: the log, the records (Haku, with an example question), the map, or worked out", () => {
@@ -33,13 +34,22 @@ describe("the practice feedback's content (source-only)", () => {
     for (const i of view.items.filter((x) => x.source === "log")) expect(i.records.length, i.itemId).toBeGreaterThan(0);
   });
 
-  it("never names an option or says which was right: no option label of any practice item is on the screen's data or texts", () => {
-    const shown = JSON.stringify(view.items) + JSON.stringify(DIFFICULTY_TEXT);
+  it("names no option and says nothing of a right answer, but for the records item's search lesson (revision (bl), practice and unscored): its key only, no distractor", () => {
+    const frame = JSON.stringify(DIFFICULTY_TEXT);
+    const lessonItem = view.items.find((i) => i.lesson !== null)!;
+    expect(lessonItem.itemId).toBe("freeze.practice.forecast");
     for (const it of scenario.practice.freeze.items) for (const o of it.options) {
-      expect(shown, `${it.id} ${o.id}`).not.toContain(o.labelFi);
-      expect(shown, `${it.id} ${o.id} (en)`).not.toContain(tr("en", o.labelFi));
+      expect(frame, `${it.id} ${o.id} in the texts`).not.toContain(o.labelFi);
+      expect(frame, `${it.id} ${o.id} (en) in the texts`).not.toContain(tr("en", o.labelFi));
+      for (const item of view.items) {
+        const shown = JSON.stringify(item);
+        const keyOfLessonItem = item === lessonItem && it.id === item.itemId && o.correct;
+        if (keyOfLessonItem) { expect(shown, `${it.id} ${o.id}: its key is shown`).toContain(o.labelFi); continue; }
+        expect(shown, `${item.itemId} shows ${it.id} ${o.id}`).not.toContain(o.labelFi);
+        expect(shown, `${item.itemId} shows ${it.id} ${o.id} (en)`).not.toContain(tr("en", o.labelFi));
+      }
     }
-    expect(shown).not.toMatch(/"correct"|oikea vastaus|right answer was/i);
+    expect(JSON.stringify(view.items) + frame).not.toMatch(/"correct"|"key"|oikea vastaus|right answer was/i);
   });
 
   it("the head is the practice map's drawn head (its furthest point downwind), within 50 m of the practice key; never a later fire", () => {

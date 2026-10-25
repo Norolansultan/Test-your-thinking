@@ -18,6 +18,9 @@
  *   `ek14_shelter` comes before `wind_shift` and no longer names the forecast (F07); polarity-balanced options (F15); distractors (F06,
  *   F24); `relief_next` keyed on pushed arrival records (F19); basis figures computed here (F22).
  * No item names a tool, and no option names anything not knowable at its view (`freeze-items.spec.ts`, `freeze-bank.spec.ts`).
+ * Revision (bk), 25 Oct 2026 (SPEC/30 (bk)): four phase-A items are made seek-dependent — V2 `south_flank`, V5 `reinforcements` (was
+ * `wind_shift`) and V7 `north_help` (re-keyed) in `freeze-bank-seek.ts`, and V5 `hose_short`, whose key record is held for seeking
+ * (`tools/fire-ca/view-traffic.ts`).
  */
 
 import { SITE_SCENARIO } from "./site-scenario.js";
@@ -30,6 +33,7 @@ import {
 } from "./freeze-keys.js";
 import { CYCLE_STORY } from "./demo-story.js";
 import { clockOf, R1_ARRIVAL, R1_ARRIVAL_IDS, V5_AREA, V5_AREA_EDGES, V5_AREA_IDS, V5_SURVEY } from "./freeze-readings.js";
+import { NORTH_HELP, REINFORCEMENTS, SOUTH_FLANK } from "./freeze-bank-seek.js";
 
 const F = SITE_SCENARIO.features;
 
@@ -49,8 +53,6 @@ const RADIO = {
   koivuojaStop: radioId(7, /^Palo pysähtyi Koivuojan kohdalle/),
   koivuojaSparks: radioId(8, /^Kipinät lensivät Koivuojan yli/),
   ky21North: radioId(10, /^KY21, lohkon L3 johtaja: .*siirrän .*KY21:n ja VPK:n nyt pohjoisreunalle/), // fix pass 3: the L3 sector leader moves KY21 and VPK (FF11)
-  vpkNorth: radioId(10, /^VPK: lohkonjohtaja KY21:n käskystä siirrymme nyt pohjoisreunalle/),
-  ek14North: radioId(10, /^EK14: siirrymme pohjoisreunalle Karhujärven suuntaan/),
   ek14Arrives: radioId(2, /^EK14: saavuimme pohjoisreunalle/),
   ky21Arrives: radioId(3, /^KY21: saavuimme syttymäkohdan eteläreunalle/),
 };
@@ -220,23 +222,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: [RADIO.ek11Ridge, "atom.demo.3.0", trafficId(3, /^EK11, Kuivakangas: olemme kärjen oikealla sivustalla/)], rule: "cited",
       basis: "integrates EK11's move to the new ignition on the esker (radio 3.0, pushed), the new smoke ~100 m from the head (story 3.0, pushed) and EK11's own place ~50 m from the head on its right flank (14.03, pushed): the crew nearest the head, between the head and a fire ahead of it, can be cut off (EK11's recorded 14.05 radio: it will not go between them). The distractors: the esker's dry pine heath speeds the head (10.8 m/min at 14.00–14.20, DR1), its new fire burns (no escape route there; EK11's is to the burned area), and nothing reports it out",
     }),
-    choice({
-      // `31` F10: replaces fuel_ahead (DR1's 'tiheä kuusikko' recalled, and a cue to spruce_behaviour); two EK12 reports integrated.
-      // FOR THE RESEARCHER (20 Oct 2026, the phase-A flame table): EK12's 14.06 report now states the table's "liekit 2–3 m" (was
-      // "0,3–1 m"), while its 14.08 report still says "matalaa paloa" (a descriptor, not a band) and the key's option reads "Reuna pysyy
-      // matalana". The key is unchanged ("held_low"; the other options stay false); whether the option or the item is re-worded is yours.
-      slug: "south_flank", level: "L2", goal: "containment", promptFi: "Mitä EK12:n ilmoitukset kertovat kärjen eteläsivustan tilanteesta?",
-      options: [
-        ["held_low", "Reuna pysyy matalana, mutta kärki pääsee ohi"], ["stopped", "Kärki on pysäytetty EK12:n linjaan"],
-        ["lost", "Sivusta on menetetty, palo leviää etelään"], ["dry", "Vesi on loppunut, ja linja on keskeytetty"],
-      ], key: "held_low",
-      // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the generated EK12 reports changed with the fire. By the V2 freeze EK12 has pushed
-      // two: 13.20 (flames 2–3 m on its stretch, the head ~300 m to its north) and 14.08 (surface fire in dry pine heath, flames 1–2 m, its
-      // 680 m line with pressure enough); the "lipsuu paikoin" (13.48) and "kärki menee ohitsemme" (13.51) reports are recorded, step 2.
-      // The key is unchanged.
-      keyAtomIds: [trafficId(1, /^EK12, kärki, eteläsivusta: olemme olleet täällä.*kärki noin \d+ m meistä pohjoiseen/), trafficId(3, /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta, liekit 1–2 m\. Letkulinja \d+ m, paine riittää/)], rule: "cited",
-      basis: "integrates EK12's two pushed reports: the head some 300 m north of its stretch, running past it to the north-east (13.20), and its own stretch a surface fire in dry pine heath, flames 1–2 m, the 680 m line with pressure enough (14.08): the flank is held low while the head runs on past it; recorded: 'kärki etenee koilliseen meidän ohi, omalla pätkällämme matalaa paloa' (13.51); EK13 refilled EK12's basin at 14.01 (recorded; gate R: 13.54 before the shuttle drove on the road graph, and the re-seeded step 2 no longer has the 13.48 'lipsuu paikoin' line)",
-    }),
+    SOUTH_FLANK, // revision (bk): `freeze-bank-seek.ts`
     choice({
       slug: "area_40", level: "L3", goal: "containment", keySteps: [3, 4], promptFi: `Kuinka suuri koko palanut ala on ${horizonFi(2, 4)}?`,
       options: [["lt20", "Alle 20 hehtaaria"], ["m20_35", "20–35 hehtaaria"], ["m35_50", "35–50 hehtaaria"], ["gt50", "Yli 50 hehtaaria"]], key: V2_AREA.id,
@@ -372,8 +358,10 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["hose", "Letkua on liian vähän kärjen perässä pysymiseen"], ["water", "Vesi loppuu, koska vesiajo ei ehdi linjalle"],
         ["tired", "Miehistö on uupunut ja tarvitsee heti vaihdon"], ["burnt", "Kipinät ovat polttaneet letkulinjan poikki"],
       ], key: "hose",
+      // Revision (bk), 25 Oct 2026 (SPEC/30 (bk)): seek-dependent. EK11's 15.35 hose request is held for seeking (`view-traffic.ts`
+      // HELD_FOR_SEEKING; recorded, T2); pushed stay the 15.24 report and PP1's withdrawal (radio 7.4, the `burnt` lure's basis).
       keyAtomIds: [trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/), trafficId(7, /^EK11, Koivuoja: linjaa jo 600 m, varaletkua alle 200 m/)], rule: "cited",
-      basis: `integrates EK11's pushed step-7 reports: the head runs past it to the north-east (15.24) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35): the line cannot follow the head; EK11's tank is at ${EK11_TANK_V5.value} % (asked-only, 15.25; gate R: read from the record, was 63 % before the road-graph shuttle) and the water shuttle runs, so water is not the limit`,
+      basis: `integrates EK11's step-7 reports: the head runs past it to the north-east (15.24, pushed) and its 600 m line has under 200 m of hose in reserve, more hose asked for (15.35, recorded since revision (bk)): the line cannot follow the head; EK11's tank is at ${EK11_TANK_V5.value} % (asked-only, 15.25; gate R: read from the record, was 63 % before the road-graph shuttle) and the water shuttle runs, so water is not the limit`,
     }),
     choice({
       // SPEC/30 §5.1 (DRAFT, domain review). `31` F07: before wind_shift, and the stem no longer names the forecast turn (it told everyone of
@@ -387,12 +375,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: ["evt.wx.03", FORECAST_HEADLINE], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03", FORECAST_HEADLINE],
       basis: "SPEC/30 §5.1 (DRAFT): the forecast (evt.wx.03, recorded 15.03: SW → S → SE at 15.30–16.00; its headline pushed by P2 at 15.05 in V4, play-test D7); EK14's step-8 radio (pushed in V6): it withdraws to R1 in the middle of the burned area, the safety zone, because the turned wind leaves the north flank downwind. No record to step 7 says EK14 withdraws",
     }),
-    choice({
-      slug: "wind_shift", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Mikä palon reuna aktivoituu ${withinHorizonFi(5, 9)}, jos tuuli alkaa puhaltaa etelästä?`,
-      options: [["north", "Pohjoisreuna"], ["south", "Eteläreuna"], ["west", "Syttymäkohdan puoleinen länsiosa"], ["none", "Ei mikään, vain kärki etenee"]], key: "north",
-      keyAtomIds: ["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE], rule: "cited", basisKind: "record", basisAtomIds: ["evt.wx.03", "evt.wx.02", FORECAST_HEADLINE],
-      basis: "the forecast (evt.wx.03, V4: SW -> S at 15.30-16.00, its headline pushed by P2 at 15.05, play-test D7; evt.wx.02 the front) and CA step 9 (wind from 140°): the new growth outside the head is in L1, north; CYCLE_STORY 9 'pohjoisreuna aktivoitunut'",
-    }),
+    REINFORCEMENTS, // revision (bk): `freeze-bank-seek.ts`
     // Fix pass 5 (8 Oct 2026, researcher decision): replaces rate_next. The area NOW is on record (the map, DR3's 15:35 survey); the hour's growth is the projection.
     choice({
       slug: "area_hour", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Kuinka suuri koko palanut ala on ${horizonFi(5, 9)}?`,
@@ -439,16 +422,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: ["atom.demo.10.0", trafficId(10, /^EK11, Koivuoja: pieni liekki sammalessa/)] /* safety re-check (ah): the drawn wording changed (was 'hehkuvaa kariketta ja pientä liekkiä'), same report */, rule: "cited",
       basis: "EK11: the wind easing and turning, smoke decreasing, sector 2 under control and sector 1 nearly (not out); EK11 at Koivuoja: small flames in the moss, still moving; the edges calm, the fire still burns (the CA flares up at the origin at step 12)",
     }),
-    choice({
-      // `31` F10: replaces why_north (KY21's 'Karhujärven mökit uhattuna' recalled); three moves integrated for the north edge's crew.
-      slug: "north_help", level: "L2", goal: "resources", promptFi: "Mitä KY21:n ja VPK:n siirto merkitsee pohjoisreunalla työskentelevälle EK14:lle?",
-      options: [
-        ["help", "EK14 saa pohjoisreunalle lisää miehistöä"], ["alone", "EK14 jää edelleen yksin pohjoisreunalle"],
-        ["head", "EK14 vapautuu kärkeen Koivuojalle"], ["road", "EK14:n linja siirretään tielle R1"],
-      ], key: "help",
-      keyAtomIds: [RADIO.ky21North, RADIO.vpkNorth, RADIO.ek14North], rule: "cited",
-      basis: "integrates KY21's and VPK's pushed moves to the north edge (radio 10.3, 10.4) with EK14's pushed move along it towards Karhujärvi (radio 10.1): the north edge, held by EK14 alone since 13.41, gets two more crews",
-    }),
+    NORTH_HELP, // revision (bk): `freeze-bank-seek.ts`
     choice({
       slug: "rekindle_sector", level: "L3", goal: "containment", keySteps: [10, 12], promptFi: `Missä lohkossa uudelleensyttymisen riski on suurin ${withinHorizonFi(7, 12)}?`,
       options: [["L1", "L1 Pohjoinen"], ["L2", "L2 Koillinen"], ["L3", "L3 Etelä"], ["L4", "L4 Länsi"]], key: firstDetachedFrontAfter(9)!.sector!, // fix pass 4: from the freeze's now (step 10 on)

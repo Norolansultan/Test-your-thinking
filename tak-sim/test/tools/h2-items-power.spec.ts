@@ -1,7 +1,8 @@
 /**
  * The H2 power re-run with the difficulty audit's item classes (`tools/power/h2-items.ts`, `npm run power:h2-items`; SPEC/09 (bf)):
  * the H2 window read from the audit's `items.csv` with its classes, item-specific difficulty, an effect only on seek-dependent items,
- * the windows (all, seek-dependent, without late, without late and lure), deterministic power curves and the minimum detectable effect.
+ * the windows (all, seek-dependent, without late, without late and lure), deterministic power curves and the minimum detectable effect;
+ * revision (bk), 25 Oct 2026: the group × item-class interaction (SPEC/09 (bk)'s pre-stated secondary).
  */
 
 import { readFileSync } from "node:fs";
@@ -81,7 +82,7 @@ describe("the power grid", () => {
     const a = powerGrid(items, 50, deltas, 120, 7);
     expect(powerGrid(items, 50, deltas, 120, 7)).toEqual(a);
     expect(a.map((c) => c.window)).toEqual(WINDOWS.map((w) => w.id));
-    expect(a.map((c) => c.items)).toEqual([24, 8, 19, 16, 6]);
+    expect(a.map((c) => c.items)).toEqual([24, 8, 19, 16, 6, 24]); // revision (bk): the interaction contrasts the 8 seek-dependent with the 16 passive
     const [all, seek] = [a[0]!, a[1]!];
     expect(all.power[0]!).toBeLessThan(0.15);
     expect(all.power[2]!).toBeGreaterThan(all.power[1]!);
@@ -91,6 +92,23 @@ describe("the power grid", () => {
     expect(all.dGap[2]! / seek.dGap[2]!).toBeLessThan(0.5);
   });
 
+  it("revision (bk): the group × item-class interaction (seek − passive gap within person) is near α at Δ 0 and carries the seek window's Δgap", () => {
+    const deltas = [0, 0.8, 1.6];
+    const a = powerGrid(items, 50, deltas, 200, 11);
+    const seek = a.find((c) => c.window === "seek")!, inter = a.find((c) => c.window === "interaction")!;
+    expect(inter.power[0]!).toBeLessThan(0.15);
+    expect(inter.power[2]!).toBeGreaterThan(inter.power[1]!);
+    // The effect sits on the seek-dependent items only, so the difference in differences is the seek window's Δgap.
+    expect(inter.dGap[2]! / seek.dGap[2]!).toBeGreaterThan(0.85);
+    expect(inter.dGap[2]! / seek.dGap[2]!).toBeLessThan(1.15);
+    expect(Math.abs(inter.dGap[0]!)).toBeLessThan(0.02);
+    // At the Holm worst case of a secondary in Paper 1's family of seven (α .05 / 7) the same draws reject less often.
+    const holm = powerGrid(items, 50, deltas, 200, 11, DEFAULT_MODEL, WINDOWS, 0.05 / 7).find((c) => c.window === "interaction")!;
+    expect(holm.dGap).toEqual(inter.dGap);
+    holm.power.forEach((p, k) => expect(p).toBeLessThanOrEqual(inter.power[k]!));
+    expect(holm.power[1]!).toBeLessThan(inter.power[1]!);
+  });
+
   it("the report names the classes, both tables and the uniform-effect reference", () => {
     const report = itemPowerReport(items, { reps: 30, seed: 1, model: DEFAULT_MODEL, sizes: [50], deltas: [0, 0.4, 0.8, 1.6, 3.0] });
     expect(report).toContain("Items read: 24 (passive yes 16, partly 6, no 2; late 5; lure 3).");
@@ -98,5 +116,6 @@ describe("the power grid", () => {
     expect(report).toContain("**Minimum detectable effect at 80 % power**");
     expect(report).toContain("Reference (the effect on every item");
     expect(report).toContain("| all H2 items (as pre-registered) | 24 |");
+    expect(report).toContain("| group × item class (seek − passive, within person) | 24 |");
   });
 });

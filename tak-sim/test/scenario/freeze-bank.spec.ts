@@ -237,7 +237,7 @@ const CHECKS: Readonly<Record<string, Check>> = {
   area_40: { subject: /palanut ala/i, value: /palanut ala noin (\d+(?:,\d+)?) ha/gi },
   // Play-test D5 (24 Oct 2026; was area_total_hour): the hour's growth — no record states what the area grows by over an hour from 17.40.
   area_growth_hour: { states: /(?:kasva|kasvaa|uutta alaa)\w*[^.]*(?:tunnin|seuraavan|klo 18)[^.]*\d+(?:,\d+)?\s*ha/i },
-  wind_shift: { states: /pohjoisreuna\w* (aktivoi|kiihty)/i },
+  reinforcements: { states: /(?:EK15|EK16|KY23)[^.]*(?:saavuimme|saapui|saapunut|valmiina johtopaikalla)/i }, // (bk), was wind_shift: no arrival before V5's freeze
   rekindle_sector: { states: /syttyi uudelleen|syttynyt uudelleen|uudelleensyttymä/i },
   cabins_reach: { states: /mökeill|mökit palav|palo (on )?mökeillä/i },
   front_r2_80: { subject: /R2/i },
@@ -359,12 +359,13 @@ describe("the cited keys hold against the data", () => {
     expect(key(4, "fastest_spread")).toBe("L2");
   }, 30_000);
 
-  it("V5 wind shift: once the wind backs to the south (step 9), the fire grows in L1, the north", () => {
+  // Revision (bk): V5 `wind_shift` (keyed "north" on this growth) is gone; the CA fact stays checked as V5 `ek14_shelter`'s basis.
+  it("V5: once the wind backs to the south (step 9), the fire grows in L1, the north (ek14_shelter's basis)", () => {
     expect(siteStep(9).wind.fromDeg).toBeGreaterThanOrEqual(135); // review fixes (ah): SE 140 at 16:00 (was S–SE 160); still backed south of SW
     expect(siteStep(9).wind.fromDeg).toBeLessThanOrEqual(200);
     expect(growthBySector(9)["L1"] ?? 0).toBeGreaterThan(1);
     expect(growthBySector(7)["L1"] ?? 0).toBeLessThan(0.5);
-    expect(key(5, "wind_shift")).toBe("north");
+    expect(key(5, "ek14_shelter")).toBe("shelter");
   }, 30_000);
 
   it("V12 longest shift: EK11's crew has the most hours of the four options by step 17", () => {
@@ -396,7 +397,7 @@ describe("the cited keys hold against the data", () => {
     expect(keys(4, "head_unattended")).toEqual(["atom.radio.6.0", "atom.radio.6.1"]);
     expect(keys(5, "lines_breached")).toEqual(["atom.radio.7.2"]); // SPEC/33 stage 9: the Myllyoja (was Korpioja) crossing only; gate R (R1): 7.2, VPK's return from W1 (7.0) now goes out in step 7
     expect(keys(7, "ky21_where")).toEqual(["atom.radio.10.3"]);
-    expect(keys(7, "north_help")).toEqual(["atom.radio.10.3", "atom.radio.10.4", "atom.radio.10.1"]);
+    expect(keys(7, "north_help")).toEqual([]); // revision (bk): re-keyed on EK14's lateral access line (was radio 10.3, 10.4, 10.1)
     expect(keys(14, "shift_change")).toEqual(["atom.radio.19.3", "atom.radio.19.1"]); // the relief on the line (EK11 shift change 19.3, VPK move 19.1)
     expect(keys(14, "road_crossed")).toEqual(["atom.radio.18.4", "atom.radio.19.2", "atom.radio.19.0"]); // the stop, the crossing, EK16 to R2
     expect(keys(14, "residents")).toEqual(["atom.radio.18.6", "atom.radio.19.1"]); // the police on the two households (18.6 since `31` D8 put EK16's LCES line at 18.5), VPK back to R2
@@ -479,11 +480,10 @@ describe("the numeric L3 keys are REPORT-keyed (fix pass 6, D4) on DELIVERED rep
     expect(reportedDetachedClosingAt(13, 15, R2_LINE)).toBeCloseTo(reportedDetachedToLineM(13, R2_LINE) - siteStep(13).observedHead.rateMpm * 60, 6);
   });
 
-  it("map and direction items stay truth-keyed: the heads, the rekindle's sector, the cabins, the wind-shifted edge", () => {
+  it("map and direction items stay truth-keyed: the heads, the rekindle's sector, the cabins (V5's wind-shifted edge item is gone, (bk))", () => {
     expect(item(2, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(5));
     expect(item(12, "head_later").mapKey!.point).toEqual(truthHeadAtEndOf(20));
     expect(key(7, "rekindle_sector")).toBe(firstDetachedFrontAfter(9)!.sector);
-    expect(key(5, "wind_shift")).toBe("north");
   });
 
   it("`31` F01: V4's growth item is gone — the reports' growth and the crown run's could share no band (the reports lag the run four-fold)", () => {

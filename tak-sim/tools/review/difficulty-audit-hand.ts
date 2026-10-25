@@ -13,6 +13,11 @@
  * exploratory (R2); V5 `area_hour` re-banded (R8); V10 `infra` with DR2's plain "ajettavissa" and a false option c (R3); SPAM V3.b's
  * magnitudes (R9); V14 `se_front_r2`'s figures (B4); the brook Myllyoja / Mill Brook (R5). No class changed.
  *
+ * Updated 25 Oct 2026 for revision (bk) (researcher decision; SPEC/30 (bk), SPEC/09 (bk)): four passive-yes H2 items made seek-dependent —
+ * V2 `south_flank` (EK12's 14.08 report held for seeking; "partly"), V5 `hose_short` (EK11's 15.35 hose request held for seeking;
+ * "partly"), V5 `reinforcements` (replaces `wind_shift`; P2's dispatch held for seeking; "partly") and V7 `north_help` (re-keyed on EK14's
+ * lateral access line; "no"). Each row's note gives the pushed state a non-searcher holds (the default) and why it is not the key.
+ *
  * - `channels`: (a) pushed to the message log; (b) drawn on the map without action (fire, units, rate marks, projection, wind arrow);
  *   (c) only by seeking (Haku or the Thinker: the records); (d) inference across sources or domain knowledge; (e) map reading that no
  *   record does for the participant (distances by the scale bar, which feature lies where, placing a point on the blank freeze map).
@@ -52,7 +57,8 @@ export const HAND: Readonly<Record<string, HandRow>> = {
   // V2 (merged, steps 2–3; freeze at 105 s; step-3 records arrive at 65 s)
   "freeze.2.infra": row("c,d", "partly", "none", "DR1's road reports are recorded only (sensor log); pushed are only V1's 'the edge crossed road R1 at the head' and 3–4 m flames, which suggest but do not state the road's state", { seek: "Haku: DR1 road report (R1 south of Dry Heath)", anyOf: true, extra: ["atom.demo.1.1"] }),
   "freeze.2.ek11_between": row("a,d", "yes", "helps", "integrates three step-3 pushed records that arrive at the step boundary (65 s), 40 s before the freeze; since play-test D3 the stem states neither the new fire nor EK11's place (it asks what the esker's situation means for the crews nearest the head)"),
-  "freeze.2.south_flank": row("a,d", "yes", "none", "EK12's 13.20 (V1) and 14.08 (65 s) pushed reports"),
+  // Revision (bk): "partly", was "yes" (EK12's 13.20 and 14.08 pushed reports).
+  "freeze.2.south_flank": row("a,c,d", "partly", "none", "revision (bk): the key ('the edge is kept low, the head gets past') is EK12's recorded 13.51 report, and its 14.08 report is held for seeking (recorded); the latest PUSHED EK12 report is 13.20's (V1: flames 2–3 m, moving east, the head ~300 m north), which the distractor `flames` states — a non-searcher's default; 'the head gets past' can be inferred from 13.20, 'kept low' not", { seek: "Haku: EK12's 13.51 and 14.08 reports (\"EK12 kärki eteläsivusta\")", anyOf: true, extra: ["evt.c01.004"] }),
   "freeze.2.area_40": row("c,d,e", "no", "helps", "no area figure is pushed by V2 and the map prints none: a non-searcher must estimate hectares from the drawn polygons with the scale bar; the growth series (13.55 13.8 ha, 14.15 18.3 ha) is recorded only", { seek: "Haku: DR3 perimeter surveys 13.55 and 14.15" }),
   "freeze.2.spruce_behaviour": row("a,d", "yes", "none", "the pushed 'dense spruce ~500 m ahead' (story 2.0) and the stem name the stand; the key is domain knowledge (spruce + wind -> crown fire, embers): novices lack it", { extra: ["atom.demo.2.0"] }),
   "freeze.2.junction_hour": row("b,d,e", "partly", "required", "no record states the fire's distance to the R1/R2 junction; extrapolate the drawn head along its direction with the scale bar and the pushed rate (DR1 7.1 m/min); the map's ~950 m now is the lure", { mapUnstated: true }),
@@ -73,9 +79,11 @@ export const HAND: Readonly<Record<string, HandRow>> = {
   // Play-test audit fix (24 Oct 2026): "partly", was "no" — the pushed EK11 15.03 and EK12 15.07 R1 reports support "passable with care".
   "freeze.5.infra": row("a,c,d", "partly", "none", "DR2's 15.27 road report (the key) is recorded only, but EK11's pushed 15.03 (glowing litter and small flames on R1 in the burned area) and EK12's pushed 15.07 (a small flame in the moss on R1) support 'passable with care'; both play-test players answered it without the key record", { seek: "Haku: DR2 road report (R1 south of Dry Heath)", extra: ["evt.c06.008", "evt.c06.020"] }),
   "freeze.5.lines_breached": row("a,d", "yes", "helps", "the pushed Mill Brook crossing (radio 7.2) and EK11's place"),
-  "freeze.5.hose_short": row("a,d", "yes", "none", "EK11's two pushed step-7 reports"),
+  // Revision (bk): "partly", was "yes" (EK11's two pushed step-7 reports).
+  "freeze.5.hose_short": row("a,c,d", "partly", "none", "revision (bk): EK11's 15.35 hose request ('linjaa jo 600 m, varaletkua alle 200 m') is held for seeking (recorded); pushed stay EK11's 15.24 'the head runs past us' and 'we drag hose behind us' (15.2x), its earlier pushed water shortages (V2, V3) and the spot fire behind it (radio 7.4) — a non-searcher's default is `water` or `burnt`, not the hose", { seek: "Haku: EK11's 15.35 request (\"Mitä EK11 tarvitsee?\")" }),
   "freeze.5.ek14_shelter": row("a,d", "yes", "helps", "play-test D7: the turn of the wind that leaves the north edge downwind is in P2's pushed 15.05 headline of the 15.00 forecast (V4's second step; was recorded only); the full forecast stays recorded; the map's wind arrow still shows south-west", { seek: "Haku: weather forecast update 15.00 (the full text)" }),
-  "freeze.5.wind_shift": row("d,e", "yes", "helps", "the stem states the premise ('if the wind starts blowing from the south'); the key is which edge then runs: knowledge and the map's orientation", { stemSuffices: true }),
+  // Revision (bk): replaces `wind_shift` ("yes": the stem stated the premise).
+  "freeze.5.reinforcements": row("a,c,d", "partly", "none", "revision (bk): P2's 15.30 dispatch (EK15 at about 16.20, EK16 and KY23 at about 16.40) is held for seeking (recorded); pushed is only EK11's 'Pyydetään lisäyksiköitä' (15.20), which the distractor `none` ('only requested so far') states — a non-searcher's default; the help card lists three reinforcement units without times", { seek: "Haku: P2's dispatch (\"Milloin lisäyksiköt saapuvat?\")" }),
   "freeze.5.area_hour": row("a,d", "yes", "none", "DR3's pushed 15.35 survey: 76.4 ha with 35.8 ha new in 20 minutes; arithmetic over three steps (~184 ha; the fire model slows to ~148 ha); play-test R8: bands 90/130/190, the truth 18 ha from an edge (was 8)"),
   "freeze.5.road_jump": row("a,d", "yes", "helps", "the pushed 'stopped at Birch Creek' is the lure; the key needs knowledge that the pushed crown-run embers cross a brook"),
   "freeze.5.head_now": row("b,e", "yes", "required", "the drawn head; placed on the blank basemap"),
@@ -84,7 +92,8 @@ export const HAND: Readonly<Record<string, HandRow>> = {
   "freeze.7.infra": row("a,c", "yes", "none", "the key record (water supply log) is recorded only, but EK12's pushed radio 10.0 says it is refilling at W3", { seek: "Haku: water supply log", extra: ["atom.radio.10.0"] }),
   "freeze.7.ky21_where": row("a", "yes", "none", "KY21's pushed radio; the map symbol still shows the south edge by design (the map is the lure)"),
   "freeze.7.lull_meaning": row("a,d", "yes", "none", "the pushed sector summary and EK11's report"),
-  "freeze.7.north_help": row("a,d", "yes", "helps", "three pushed moves to the north edge"),
+  // Revision (bk): re-keyed, "no" (was "yes": three pushed moves to the north edge).
+  "freeze.7.north_help": row("c,d", "no", "none", "revision (bk): what reaching EK14's line takes is only in EK14's lateral line to EK15 (recorded, T4: vehicles get no closer than ~300 m, soft track, hose carried in from the south-east); pushed is EK14's own move through the burned area in its terrain vehicle (radio 10.5), which the distractor `burned` states — a non-searcher's default", { seek: "Haku: EK14's line to EK15 (\"Miten EK14:n linjalle pääsee?\")" }),
   "freeze.7.rekindle_sector": row("a,d,e", "partly", "helps", "verification item: pushed only that KY21 and VOL1 leave the south edge (L3); the WNW turn is in the recorded forecasts and VPK's doubt comes in V8; the old south edge's sector from the map codes and the tour's sector text", { seek: "Haku: forecasts (16.00), VOL1's 'south edge calmed' (recorded)", extra: ["atom.radio.10.3"] }),
   "freeze.7.cabins_reach": row("a,d,e", "yes", "helps", "DR3's pushed north-edge rate 5.3 m/min and a distance read from the map (~1.7 km) or the old pushed 2.1 km", { extra: ["evt.c10.008", "evt.c01.008"] }),
   "freeze.7.cp_safe": row("b,d,e", "partly", "required", "no record states the fire's distance to the command post (~760 m) before V8: the scale bar and the wind arrow; the turn away from the CP is in the recorded forecast", { mapUnstated: true, seek: "Haku: forecast 16.00" }),

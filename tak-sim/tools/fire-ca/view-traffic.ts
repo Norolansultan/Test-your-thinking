@@ -19,7 +19,7 @@
 import type { SiteRadio } from "../../app/scenario/site-scenario.js";
 import { LOAD_BEARING_T4_IDS, type InteractionEvent } from "../../app/scenario/types.js";
 import { MAIN_VIEWS, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
-import { CYCLE_STORY, isPushedBeat } from "../../app/scenario/demo-story.js";
+import { CYCLE_STORY, countsTowardCap } from "../../app/scenario/demo-story.js";
 import type { CycleIndex } from "../../app/engine/primitives.js";
 import type { MoveReason } from "./deployment.js";
 
@@ -89,9 +89,12 @@ export const PUSH_CAP_PER_VIEW = 18;
 /** Which generated pushed items are recorded first when a view is over the cap: routine status and feeds before warnings and size-ups. */
 const DEMOTE_ORDER: readonly InteractionEvent["event_type"][] = ["status", "water_drop", "detection", "observation", "report", "request", "coordination", "weather", "task_update", "warning", "size_up"];
 
-/** Story beats a view pushes (`demo-story.ts` `isPushedBeat`: every beat neither `recorded` nor a crew's answer when `asked`). */
+/**
+ * Story beats a view pushes (`demo-story.ts` `countsTowardCap`: every beat neither `recorded` nor a crew's answer when `asked`; a beat held
+ * for seeking, revision (bk), still counts, so the cap demotes exactly what it did before (bk)).
+ */
 function storyPushed(view: number): number {
-  return MAIN_VIEWS.find((v) => v.index === view)?.steps.reduce((s, st) => s + (CYCLE_STORY[st as CycleIndex]?.bubbles.filter(isPushedBeat).length ?? 0), 0) ?? 0;
+  return MAIN_VIEWS.find((v) => v.index === view)?.steps.reduce((s, st) => s + (CYCLE_STORY[st as CycleIndex]?.bubbles.filter(countsTowardCap).length ?? 0), 0) ?? 0;
 }
 
 /**
@@ -117,4 +120,28 @@ export function capPushed<R extends SiteRadio>(traffic: readonly InteractionEven
     if (over > 0) throw new Error(`capPushed: view ${v.index} stays ${over} over the push cap after demoting all generated traffic`);
   }
   return { traffic: traffic.map((e) => (demote.has(e.id) ? { ...e, tier: "T2_system" as const } : e)), radio: [...radio] };
+}
+
+/**
+ * Revision (bk), 25 Oct 2026 (researcher decision; SPEC/30 (bk), SPEC/18 (bk)): generated records held for seeking — pushed before (bk),
+ * now recorded (T2, in Haku and the Thinker) so that an H2 freeze item's key must be sought. Each is a routine, non-critical report (a
+ * flank's status, a hose request); no safety line leaves the stream. Applied AFTER `capPushed`, which counted them as pushed, so no other
+ * record moves into or out of the stream. Each pattern must match exactly one pushed record of its step (else the build fails).
+ */
+export const HELD_FOR_SEEKING: readonly { readonly step: number; readonly re: RegExp; readonly item: string }[] = [
+  // V2 `south_flank`: EK12's 14.08 flank status (its 13.51 report, already recorded, states the key; its 13.20 one in V1 is the pushed lure).
+  { step: 3, re: /^EK12, kärki, eteläsivusta: pintapaloa kuivaa männikkökangasta, liekit 1–2 m\. Letkulinja \d+ m, paine riittää\./, item: "freeze.2.south_flank" },
+  // V5 `hose_short`: EK11's 15.35 hose request (logistics; its 15.24 "the head runs past us" stays pushed).
+  { step: 7, re: /^EK11, Koivuoja: linjaa jo \d+ m, varaletkua alle \d+ m\./, item: "freeze.5.hose_short" },
+];
+
+/** Revision (bk): the records `HELD_FOR_SEEKING` names, recorded (T2) instead of pushed. */
+export function holdForSeeking<R extends SiteRadio>(capped: { traffic: InteractionEvent[]; radio: R[] }): { traffic: InteractionEvent[]; radio: R[] } {
+  const held = new Set<string>();
+  for (const h of HELD_FOR_SEEKING) {
+    const hits = capped.traffic.filter((e) => e.cycle === h.step && e.tier === "T1_pushed" && h.re.test(e.content));
+    if (hits.length !== 1) throw new Error(`holdForSeeking (${h.item}): step ${h.step} pattern ${h.re} matches ${hits.length} pushed records`);
+    held.add(hits[0]!.id);
+  }
+  return { traffic: capped.traffic.map((e) => (held.has(e.id) ? { ...e, tier: "T2_system" as const } : e)), radio: capped.radio };
 }

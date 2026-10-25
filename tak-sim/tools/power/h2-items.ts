@@ -4,11 +4,12 @@
  *
  *   npm run power:h2-items            # = npx tsx tools/power/h2-power.ts --items docs/audits/2026-10-23-difficulty/items.csv
  *   npx tsx tools/power/h2-power.ts --items <items.csv> [--reps 1000] [--seed 20261024] [--partly-weight 1] [--late-weight 0]
- *     [--b-yes -1] [--b-partly 0] [--b-no 0.5] [--b-late 0.5]
+ *     [--b-yes -1] [--b-partly 0] [--b-no 0.5] [--b-late 0.5] [--alpha 0.05]   (revision (bk): --alpha 0.00714 is the Holm worst case
+ *     of a secondary in Paper 1's family of seven, SPEC/09 (bk))
  *
  * Why: the audit classed each freeze item by whether its key reaches a participant without seeking (`passive` yes / partly / no) and
- * whether its last key record arrives less than 60 s before the freeze (`late_lt60s`). 16 of the 24 H2 items are answerable without
- * seeking. If the guide's overconfidence effect works through what the AI tells the seeker (SPEC/30 §5.3), it sits on the
+ * whether its last key record arrives less than 60 s before the freeze (`late_lt60s`). 16 of the 24 H2 items were answerable without
+ * seeking (23 Oct 2026; 18 of 23 by play-test R2; 14 of 23 since revision (bk), which made four items seek-dependent). If the guide's overconfidence effect works through what the AI tells the seeker (SPEC/30 §5.3), it sits on the
  * seek-dependent items only, and the pre-registered gap over all 24 items dilutes it. This module computes that effective power.
  *
  * The window: the audit's `items.csv` rows that are freeze items of V2, V4, V5 or V7 at L2 or L3 (H2's 24; 23 since play-test R2, 25 Oct
@@ -31,6 +32,13 @@
  * Windows: all 24 (H2 as pre-registered); seek-dependent only (partly ∪ no); without the late items; without the late and lure items;
  * seek-dependent without lure items. Each replicate draws once and is scored on every window and every Δ (common random numbers),
  * so the power curve over Δ is smooth and the minimum detectable effect (80 %) is read off it by linear interpolation.
+ *
+ * Revision (bk), 25 Oct 2026 (SPEC/09 (bk), SPEC/30 (bk)): H2's primary test is the gap on the seek-dependent items (window `seek`), the
+ * sensitivity the gap over all items (`all`), and the pre-stated secondary the group × item-class interaction (`interaction`): the
+ * per-participant contrast gap(seek-dependent) − gap(passive yes), Welch t between the groups — the stand-in for the participant-level
+ * model with a person random effect, in which a participant's own confidence bias and ability cancel in the contrast (the passive items
+ * are the within-person control). Its Δgap is the difference in differences; under this model's effect (seek items only) it equals the
+ * seek window's Δgap.
  *
  * Deterministic: a seeded xoshiro128** stream per sample size (`power-lib.ts`); no clock, no unseeded randomness.
  */
@@ -90,6 +98,8 @@ export interface Window {
   readonly id: string;
   readonly label: string;
   readonly keep: (it: ItemClass) => boolean;
+  /** A within-person contrast (revision (bk)): the participant's score is gap(keep) − gap(minus). */
+  readonly minus?: (it: ItemClass) => boolean;
 }
 export const WINDOWS: readonly Window[] = [
   { id: "all", label: "all H2 items (as pre-registered)", keep: () => true },
@@ -97,6 +107,8 @@ export const WINDOWS: readonly Window[] = [
   { id: "no_late", label: "without the late items", keep: (it) => !it.late },
   { id: "no_late_lure", label: "without the late and lure items", keep: (it) => !it.late && !it.lure },
   { id: "seek_no_lure", label: "seek-dependent without lure items", keep: (it) => it.passive !== "yes" && !it.lure },
+  // Revision (bk): the pre-stated secondary, group × item class (seek-dependent vs passive yes) with the person as its own control.
+  { id: "interaction", label: "group × item class (seek − passive, within person)", keep: (it) => it.passive !== "yes", minus: (it) => it.passive === "yes" },
 ];
 
 export interface PowerCell {
@@ -111,13 +123,15 @@ export interface PowerCell {
 
 /**
  * Power over the Δ grid for every window at one sample size (per group). One replicate draws the item bank, the participants and the
- * noise once; every Δ and every window is scored on the same draws.
+ * noise once; every Δ and every window is scored on the same draws. `alpha` (two-sided; revision (bk)): a Holm family's worst-case
+ * threshold, e.g. .05 / 7 for a secondary.
  */
-export function powerGrid(items: readonly ItemClass[], nPerGroup: number, deltas: readonly number[], reps: number, seed: number, m: ItemModel = DEFAULT_MODEL, windows: readonly Window[] = WINDOWS): PowerCell[] {
+export function powerGrid(items: readonly ItemClass[], nPerGroup: number, deltas: readonly number[], reps: number, seed: number, m: ItemModel = DEFAULT_MODEL, windows: readonly Window[] = WINDOWS, alpha = 0.05): PowerCell[] {
   const rng = new Rng(seed);
   const J = items.length, P = 2 * nPerGroup;
   const base = items.map((it) => itemBase(it, m)), w = items.map((it) => effectWeight(it, m));
   const members = windows.map((win) => items.flatMap((it, j) => (win.keep(it) ? [j] : [])));
+  const minus = windows.map((win) => (win.minus ? items.flatMap((it, j) => (win.minus!(it) ? [j] : [])) : null));
   const hits = windows.map(() => deltas.map(() => 0)), gapSums = windows.map(() => deltas.map(() => 0));
   const logitP = new Float64Array(P * J), y = new Uint8Array(P * J), noise = new Float64Array(P * J), u = new Float64Array(P);
   const conf = new Float64Array(J);
@@ -142,22 +156,25 @@ export function powerGrid(items: readonly ItemClass[], nPerGroup: number, deltas
           const k = i * J + j;
           conf[j] = toScale(logistic(logitP[k]! + BASE_OVERCONFIDENCE + (g === 1 ? delta * w[j]! : 0) + u[i]! + noise[k]!));
         }
-        for (let wi = 0; wi < members.length; wi++) {
-          const js = members[wi]!;
-          if (js.length === 0) continue;
+        const gapOf = (js: readonly number[]) => {
           let c = 0, yy = 0;
           for (const j of js) { c += conf[j]!; yy += y[i * J + j]!; }
-          gaps[wi]![g].push((c - yy) / js.length);
+          return (c - yy) / js.length;
+        };
+        for (let wi = 0; wi < members.length; wi++) {
+          const js = members[wi]!, ms = minus[wi];
+          if (js.length === 0 || (ms && ms.length === 0)) continue;
+          gaps[wi]![g].push(ms ? gapOf(js) - gapOf(ms) : gapOf(js));
         }
       }
       gaps.forEach(([h, s], wi) => {
-        if (h.length > 1 && s.length > 1 && welchP(h, s) < 0.05) hits[wi]![di]!++;
+        if (h.length > 1 && s.length > 1 && welchP(h, s) < alpha) hits[wi]![di]!++;
         gapSums[wi]![di]! += mean(s) - mean(h);
       });
     }
   }
   return windows.map((win, wi) => ({
-    window: win.id, items: members[wi]!.length, nPerGroup,
+    window: win.id, items: members[wi]!.length + (minus[wi]?.length ?? 0), nPerGroup,
     power: hits[wi]!.map((h) => h / reps), dGap: gapSums[wi]!.map((s) => s / reps),
   }));
 }
@@ -187,6 +204,8 @@ export interface ItemPowerOptions {
   readonly model: ItemModel;
   readonly sizes: readonly number[];
   readonly deltas: readonly number[];
+  /** Two-sided α (revision (bk): a Holm worst case for the secondary); absent: .05. */
+  readonly alpha?: number;
 }
 export const DEFAULT_OPTIONS: ItemPowerOptions = {
   reps: 1000, seed: 20261024, model: DEFAULT_MODEL, sizes: [50, 60, 75],
@@ -199,12 +218,13 @@ const pctOf = (x: number) => `${(100 * x).toFixed(0)} %`;
 export function itemPowerReport(items: readonly ItemClass[], o: ItemPowerOptions = DEFAULT_OPTIONS): string {
   const out: string[] = [];
   const ids = (f: (it: ItemClass) => boolean) => items.filter(f).map((it) => it.id.replace(/^freeze\./, "")).join(", ") || "—";
-  out.push(`H2 power with item classes (SPEC/09 (bf)) — ${o.reps} replicates per sample size, seed ${o.seed}, α = .05 two-sided`, "");
+  const alpha = o.alpha ?? 0.05;
+  out.push(`H2 power with item classes (SPEC/09 (bf), (bk)) — ${o.reps} replicates per sample size, seed ${o.seed}, α = ${String(Number(alpha.toFixed(4))).replace(/^0/, "")} two-sided`, "");
   out.push(`Items read: ${items.length} (passive yes ${items.filter((i) => i.passive === "yes").length}, partly ${items.filter((i) => i.passive === "partly").length}, no ${items.filter((i) => i.passive === "no").length}; late ${items.filter((i) => i.late).length}; lure ${items.filter((i) => i.lure).length}).`);
   out.push(`- seek-dependent: ${ids((i) => i.passive !== "yes")}`, `- late: ${ids((i) => i.late)}`, `- lure: ${ids((i) => i.lure)}`, "");
   const m = o.model;
   out.push(`Model: b = ${m.bYes} / ${m.bPartly} / ${m.bNo} (passive yes / partly / no) + ${m.bLate} if late; effect weight 0 / ${m.partlyWeight} / 1, late at least ${m.lateWeight}.`, "");
-  const grids = o.sizes.map((n, k) => powerGrid(items, n, o.deltas, o.reps, cellSeed(o.seed, k + 1, n), m));
+  const grids = o.sizes.map((n, k) => powerGrid(items, n, o.deltas, o.reps, cellSeed(o.seed, k + 1, n), m, WINDOWS, alpha));
   const at = (d: number) => o.deltas.indexOf(d);
   out.push("**Power, effect on seek-dependent items only** (Δ on the confidence logit, as δ in `h2-power.ts`):", "");
   out.push(`| Window | Items | ${o.sizes.map((n) => `Δ 0.4 · 0.8, n = ${2 * n}`).join(" | ")} |`, `|---|---|${o.sizes.map(() => "---").join("|")}|`);
@@ -224,7 +244,7 @@ export function itemPowerReport(items: readonly ItemClass[], o: ItemPowerOptions
   out.push("", `Null (Δ 0), all items: ${grids.map((g, k) => `${pctOf(g[0]!.power[0]!)} at n = ${2 * o.sizes[k]!}`).join(", ")}.`);
   // The reference: the same items, every one carrying the effect and one difficulty (b 0, late items + bLate): SPEC/30 §11's assumption.
   const everyItem = items.map((it) => ({ ...it, passive: "no" as const }));
-  const ref = o.sizes.map((n, k) => powerGrid(everyItem, n, [0.4, 0.8], o.reps, cellSeed(o.seed, 50 + k, n), { ...m, bNo: 0 }, [WINDOWS[0]!])[0]!);
+  const ref = o.sizes.map((n, k) => powerGrid(everyItem, n, [0.4, 0.8], o.reps, cellSeed(o.seed, 50 + k, n), { ...m, bNo: 0 }, [WINDOWS[0]!], alpha)[0]!);
   out.push("", `Reference (the effect on every item, one difficulty b 0 + ${m.bLate} if late; SPEC/30 §11's assumption): Δ 0.4 · 0.8 = ${ref.map((c, k) => `${pctOf(c.power[0]!)} · ${pctOf(c.power[1]!)} at n = ${2 * o.sizes[k]!}`).join("; ")}.`, "");
   return out.join("\n");
 }

@@ -114,5 +114,7 @@ MapLibre, the tiles).
   mount records, the window-size guard. The records the measures read are kept: Haku's `tab_selected` and pane records, the SPAM
   card's and freeze screen's answer changes, Contacts and Range & Bearing records, the legend toggle.
 - The intro video's content and the primer's illustrations are not available as text. The guided tour is printed whole (its
-  pointers at screen elements are not shown). The Video and Overlay Manager panes are not offered.
+  pointers at screen elements are not shown), with the records step after Haku's; the practice feedback prints, for the item found by
+  search, the lesson (the example question, the record, the practice's right answer) and the player's own answer, in the session's
+  language (25 Oct 2026, (bl); the lines are the screen's own, `searchLessonLines`). The Video and Overlay Manager panes are not offered.
 - The live map is drawn at one window size; the opening frame (and so what the first look shows) depends on it, as in the app.

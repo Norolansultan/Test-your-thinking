@@ -20,7 +20,10 @@ import { isMapItem } from "../../app/session/freeze-answers.js";
 import { MAP_TRAINING } from "../../app/session/map-training.js";
 import { isPointTask } from "../../app/session/map-training-spec.js";
 import { SOURCE_SECTION } from "../../app/session/questionnaire.js";
+import { UI_TEXT } from "../../app/i18n/ui.js";
+import { searchLessonLines } from "../../app/session/practice-feedback.js";
 import { playerQuestItems, scalePoints } from "./screen-pages.js";
+import { lookText } from "./screen.js";
 import { PlaySession, type ActionRecord, type PlayConfig } from "./session.js";
 import { runCommand } from "./commands.js";
 import { replayRun, RUN_FORMAT, type RunFile } from "./run.js";
@@ -85,14 +88,39 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
   return ["wait", "10"];
 }
 
+/**
+ * Revision (bl), 25 Oct 2026: the two training screens print the additions in the session language — the practice tour's records step
+ * (listed with its title and text) and the practice feedback's search lesson with the participant's own answer (the policy answered the
+ * item). A read of the screen, as `look` makes it: nothing is recorded and no session state changes (only which log rows `look` has shown).
+ */
+function checkTrainingScreen(session: PlaySession, dir: string): "tour" | "feedback" | null {
+  const s = session.snap(), lang = session.config.lang;
+  if (s.tour === "practice") {
+    const step = UI_TEXT[lang].tour.steps.hakuRecords;
+    if (!lookText(session, dir, 0, false).text.includes(`${step.title}\n${step.body}`)) throw new Error(`smoke: the practice tour does not list the records step in ${lang}`);
+    return "tour";
+  }
+  if (s.step === "practice_feedback") {
+    const lesson = s.practiceFeedback?.items.find((i) => i.lesson !== null)?.lesson;
+    const lines = lesson ? searchLessonLines(lang, lesson) : null;
+    const text = lookText(session, dir, 0, false).text;
+    if (!lines || lines.yours === null || !text.includes(lines.lesson) || !text.includes(lines.yours)) throw new Error(`smoke: the practice feedback does not print the search lesson and the answer in ${lang}`);
+    return "feedback";
+  }
+  return null;
+}
+
 async function smoke(config: PlayConfig, dir: string): Promise<string> {
   const t0 = process.hrtime.bigint(); // the tool's own runtime, printed only; never read by the session
   const session = await PlaySession.create(config);
   const actions: ActionRecord[] = [];
   const asked = new Set<number>();
+  const screensChecked = new Set<string>();
   try {
     for (let guard = 0; session.snap().step !== "complete"; guard++) {
       if (guard > 2000) throw new Error(`smoke: no end (at ${session.snap().step})`);
+      const checked = checkTrainingScreen(session, dir);
+      if (checked) screensChecked.add(checked);
       const [cmd, ...args] = dumbPolicy(session, asked);
       const atMs = session.clock.now();
       session.begin(null);
@@ -113,7 +141,8 @@ async function smoke(config: PlayConfig, dir: string): Promise<string> {
   const ms = (a: bigint, b: bigint) => Math.round(Number(b - a) / 1e6);
   const consult = records.filter((r) => r.kind === "consult_prompt_shown").map((r) => `V${(r.detail as { cycle: number }).cycle}`);
   const chips = records.filter((r) => r.kind === "ai_chat_query_submitted" && (r.detail as { viaChip?: boolean }).viaChip === true).length;
-  return `${config.audience}/${config.lang}: ${actions.length} commands, ${records.length} log records, virtual ${Math.round(session.clock.now() / 1000)} s, session_completed ${records.some((r) => r.kind === "session_completed")}; played in ${ms(t0, t1)} ms, replayed from disk in ${ms(t1, t2)} ms; consult notice in ${consult.length} views (${consult.join(" ")}), ${chips} chip questions`;
+  if (screensChecked.size !== 2) throw new Error(`smoke: the tour and the practice feedback were not both checked (${[...screensChecked].join(", ")})`);
+  return `${config.audience}/${config.lang}:${actions.length} commands, ${records.length} log records, virtual ${Math.round(session.clock.now() / 1000)} s, session_completed ${records.some((r) => r.kind === "session_completed")}; played in ${ms(t0, t1)} ms, replayed from disk in ${ms(t1, t2)} ms; consult notice in ${consult.length} views (${consult.join(" ")}), ${chips} chip questions; printed in ${config.lang}: the tour's records step, the feedback's search lesson and answer`;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

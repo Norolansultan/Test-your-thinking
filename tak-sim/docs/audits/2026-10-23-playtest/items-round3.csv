@@ -1,0 +1,62 @@
+item,view,level,h2_class,key,k3fi_answer,k3fi_right,k3fi_conf,k3fi_distance_m,k3fi_basis,l3en_answer,l3en_right,l3en_conf,l3en_distance_m,l3en_basis,earlier_round1,earlier_replay,verdict_25oct,action
+freeze.practice.infra,0,L1,,available: Available; tankers can fill up there,available,yes,100,,log VPK 12.09,available,yes,75,,log VPK 12.09,3/3,2/2,OK,—
+freeze.practice.forecast,0,L1,,"sw_gusts: South-west 4–6 m/s, gusts 8–10 m/s",sw_gusts,yes,100,,Haku #1 (forecast shown),sw_gusts,yes,100,,Haku #1 (tour example),3/3,2/2,OK,—
+freeze.practice.first_target,0,L2,,r1: Road R1,r1,yes,100,,log,r1,yes,75,,log,3/3,2/2,OK,—
+freeze.practice.r1_arrival,0,L3,,m1310_1340: 13.10–13.40,m1310_1340,yes,50,,320 m ÷ 4 m/min; unsure whether from 11.50 or 12.01,m1310_1340,yes,75,,320 m ÷ 4 m/min from 12.01 ≈ 13.21,3/3,1/2,OK after R4 (2/2),keep
+freeze.practice.head_now,0,L1,,"map point (200 m): 60.849387, 27.35079",,no,50,231,231 m; extrapolated 20 min from the drawn head,,yes,50,74,74 m,3/3,2/2,map,keep
+freeze.2.infra,2,L1,,"unsafe: Not safe to drive, flames at the roadside",unsafe,yes,25,,guess (no R1 report seen),unsafe,yes,25,,guess (no R1 report seen),2/3,0/2,retrieval-dependent by design (R11); both right by guess at 25,analyse conditionally (R11)
+freeze.2.ek11_between,2,L2,P,between: The nearest crew can be caught between the head and the new fire on the esker,between,yes,75,,log 14.01–14.05,between,yes,75,,log 14.01–14.05,3/3,2/2,OK,—
+freeze.2.south_flank,2,L2,S,"held_low: The edge is kept low, but the head gets past",flames,no,75,,"followed EK12's pointer; the template showed EK12's 14.07 water status, the key 14.08 at rank 4 -> stale 13.20 state (lure)",flames,no,50,,pointer not followed (one question in the 40 s window went to DR3) -> stale 13.20 state (lure),3/3 (before (bk)/(bn) wording),2/2,"seek-dependent, works as designed (both wrong by the default); template artefact for Kari",keep; pilot with the model; see R15
+freeze.2.area_40,2,L3,S,m20_35: 20–35 hectares,m35_50,no,25,,no survey seen; extrapolated from 10.1 ha (13.20),m20_35,yes,50,,DR3 14.15 survey via the pointer (18.3 ha) + extrapolation,2/3,1/2,HF; the pointer helped,keep
+freeze.2.spruce_behaviour,2,L3,P,crown: It climbs into the crowns and throws embers ahead,crown,yes,50,,doctrine,crown,yes,75,,primer + DR1 'dense spruce',3/3,2/2,OK (panel item §5),—
+freeze.2.junction_hour,2,L3,S,m400_700: 400–700 metres away,m400_700,yes,50,,map estimate,m700_1000,no,25,,guess: could not find the R1/R2 junction,1/3,2/2,HF / map,keep
+freeze.2.ek11_point,2,L1,,"map point (200 m): 60.854295, 27.361887",,no,50,249,249 m (SE end of the esker),,yes,50,104,104 m,1/3,2/2,map; Kari 49 m over tolerance,keep
+freeze.2.head_later,2,L3,S,"map point (300 m): 60.858538, 27.369759",,yes,50,85,85 m,,yes,50,138,138 m,3/3,2/2,OK,—
+freeze.4.infra,4,L1,,available: Available; tankers can fill up there,available,yes,100,,log VPK 15.01,available,yes,100,,log VPK 15.01,3/3,2/2,OK,—
+freeze.4.ek12_where,4,L1,,black: On road R1 in the burned area,black,yes,100,,log,black,yes,100,,log,1/3,2/2,OK,—
+freeze.4.fastest_spread,4,L2,P,L2: In the north-east (sector L2),L2,yes,100,,log,L2,yes,100,,log,3/3,2/2,OK,—
+freeze.4.head_unattended,4,L2,P,free: No one is attacking the head; it spreads freely,free,yes,100,,log,free,yes,75,,log,3/3,2/2,OK,—
+freeze.4.return_danger,4,L3,P,spots: Spot fires starting behind them,spots,yes,50,,reasoning (embers 200–400 m); says the wind-turn answer is missing,spots,yes,50,,reasoning (embers),3/3,1/2,key right by the records; expert objection: wind shift not offered (lead j),panel
+freeze.4.crown_drops,4,L3,P,birch: In the broadleaf strip along Birch Creek,wind,no,50,,'in the spruce once the wind eases' (P2 15.05 wind easing; head will not leave the spruce by 15.40),birch,yes,50,,DR1 14.27 birch strip,3/3,2/2,OK (expert reasoning against the key),—
+freeze.4.korpioja_spot,4,L3,P,"jumps: No, embers start fires across the brook",jumps,yes,50,,doctrine; cannot place Myllyoja (two labels),jumps,yes,50,,guess; cannot place Mill Brook (two labels),3/3,2/2,right by doctrine; map labelling (lead h),label the confluence (R18)
+freeze.4.head_later,4,L3,exploratory,"map point (300 m): 60.862998, 27.380396",,yes,50,227,227 m: 14.1 m/min × 60 min from the 14.20 mapped head,,yes,50,275,275 m: 14 m/min from the spruce edge,0/3,0/2,exploratory (R2); the longer count happens to approach the crown-run truth,keep exploratory
+freeze.5.infra,5,L1,,"with_care: Passable with care, low fire at the roadside",with_care,yes,75,,pushed EK11 15.03 / EK12 15.07,with_care,yes,50,,memory of the same,3/3,2/2,OK ('partly' passive),—
+freeze.5.lines_breached,5,L2,P,no_barrier: A new fire is burning beyond Mill Brook with no one fighting it,no_barrier,yes,100,,log KY21 15.22,no_barrier,yes,100,,log KY21 15.22,3/3,2/2,OK,—
+freeze.5.hose_short,5,L2,S,hose: Too little hose to keep up with the head,hose,yes,50,,"followed EK11's pointer; template showed EK11's 15.37 access line (key 15.35 rank 2, label only); inferred 'hose'",withdrawn,no,75,,pointer not followed ('routine') -> pushed 15.30 withdrawal (lure),3/3,2/2,works as designed; 'two true records' is a template artefact (lead i),keep
+freeze.5.ek14_shelter,5,L3,P,shelter: Move to safety in the burned area,shelter,yes,50,,P2 15.05 wind turn,shelter,yes,50,,P2 15.05 wind turn,2/3,2/2,OK,—
+freeze.5.reinforcements,5,L3,S,three: Three alerted rescue units,three,yes,75,,followed P2's pointer; record shown at rank 1,three,yes,100,,followed P2's pointer; record shown at rank 1,3/3 (wind_shift slot),2/2,"works via the pointer (2/2); a recall item labelled L3 (panel, (bn))",panel on the level
+freeze.5.area_hour,5,L3,P,m130_190: 130–190 hectares,m130_190,yes,25,,76.4 ha + slower growth,m130_190,yes,50,,76.4 + 35.8 per 20 min,1/3,0/2,fixed by R8 (2/2),keep
+freeze.5.road_jump,5,L3,P,"again: No, embers will fly across the brook and start a new fire",once,no,50,,KY21 15.22 'wet banks stopped it' (the lure),again,yes,50,,'the head went on in jumps',3/3,2/2,HF; Kari took the lure,keep
+freeze.5.head_now,5,L1,,"map point (200 m): 60.862998, 27.380396",,no,50,312,"312 m: on Koivuoja, 300 m NW of the key",,no,50,263,"263 m: on Koivuoja, 300 m NW of the key",2/3,1/2,map + brook labelling: key at the Myllyoja/Koivuoja confluence (lead h),R18
+freeze.7.infra,7,L1,,available: Available; tankers can fill up there,available,yes,100,,log EK12 16.32,available,yes,100,,log EK12 16.32,3/3,2/2,OK,—
+freeze.7.ky21_where,7,L1,,north: Moving to the north edge (sector L1),north,yes,100,,log,north,yes,100,,log,3/3,2/2,OK,—
+freeze.7.lull_meaning,7,L2,P,not_out: The edges calm for now; the fire is not over,not_out,yes,75,,log + reasoning,not_out,yes,75,,log + reasoning,3/3,2/2,OK,—
+freeze.7.north_help,7,L2,S,carry: A fire engine cannot reach the line: the kit is carried in from the south-east,carry,yes,25,,"pointer heard, not followed (read as acknowledging EK14's pushed 16.35 cottage question); 'carry' by analogy to EK11's 15.37 access line seen in V5",carry,yes,25,,"pointer heard, not followed; guess",3/3 (before (bk)/(bn) wording),2/2,right without the record at 25; pointer confound (lead m),R13
+freeze.7.rekindle_sector,7,L3,S,L3: L3 South,L3,yes,50,,smouldering S edge + W/NW evening wind,L3,yes,25,,"guess (primer, dry ditches)",3/3,2/2,OK (seek: recorded forecast),—
+freeze.7.cabins_reach,7,L3,P,"no: No, it is too far at the present rate of spread",no,yes,75,,"5.3 m/min, slowing",no,yes,50,,estimate from the 7 km map,3/3,2/2,OK,—
+freeze.7.cp_safe,7,L3,S,"stays: No, the fire and smoke stay far from it",stays,yes,75,,JP west of the fire; wind to W/NW,stays,yes,50,,guess,3/3,2/2,safe default (known),—
+freeze.7.relief_next,7,L3,P,VPK: VOL1's crew,VPK,yes,75,,shift lengths from clock lines,VPK,yes,50,,'in the field X h' lines,3/3,2/2,OK,—
+freeze.10.infra,10,L1,,open: Passable; the fire is not near the road,open,yes,100,,log DR2 17.21,open,yes,100,,log DR2 17.21,0/3,0/2,fixed by R3 (2/2 at 100),keep
+freeze.10.ek12_water,10,L2,,brought: EK12 stays on the line; more water is brought to it,brought,yes,75,,log EK12 17.35,brought,yes,75,,log EK12 17.35,3/3,2/2,OK,—
+freeze.10.cabins_distance,10,L2,,"m1500_2500: 1,500–2,500 metres away",m1500_2500,yes,100,,log DR1 17.05,m1500_2500,yes,100,,log DR1 17.05,3/3,2/2,OK,—
+freeze.10.area_growth_hour,10,L3,,m2_15: 2–15 hectares,m2_15,yes,50,,guess from US1's unknown size,m2_15,yes,50,,"SPOT 17.10 (0.5–1 ha, 3 m/min) via Haku",,2/2,OK,—
+freeze.10.front_r2_80,10,L3,,m650_950: 650–950 metres away,m650_950,yes,25,,guess,m650_950,yes,50,,'a good kilometre' + 3 m/min,2/3,2/2,OK,—
+freeze.10.south_front_point,10,L1,,"map point (200 m): 60.84806788888889, 27.35289677777778",,no,25,215,215 m guess (Finnish Haku missed SPOT 17.10),,yes,50,116,116 m,0/3,2/2,map; Kari 15 m over tolerance,keep
+freeze.12.longest_shift,12,L1,,EK11: Unit EK11,EK11,yes,75,,clock lines,EK11,yes,50,,clock lines,3/3,2/2,OK,—
+freeze.12.f7,12,L2,,live: The line is live; safety distances apply and no water is directed at the conductors,live,yes,50,,doctrine default; no line record seen,live,yes,50,,"doctrine default; grid record at rank 8 of a V6 question, not shown",3/3,2/2,H9 by design; right by default,keep (H9 only)
+freeze.12.front_toward,12,L2,,village: Bay Village,village,yes,100,,log; pointer followed (rank 6),village,yes,100,,log,3/3,2/2,OK,—
+freeze.12.village_distance,12,L3,,"m1600_2100: 1,600–2,100 metres away",m1600_2100,yes,50,,DR1 2600 -> 2350 m,m1600_2100,yes,75,,DR1 2600 -> 2350 m,3/3,2/2,OK,—
+freeze.12.head_now,12,L1,,"map point (200 m): 60.84464, 27.363158",,no,50,334,334 m: 200–400 m NW of the forest road from EK16 18.41,,no,50,309,309 m: same reading,0/3,1/2,1/7 over rounds; key = truth at 19.00 at the road; pushed stream implies >= 200 m at 18.47 (lead in §11.6),R17
+freeze.12.head_later,12,L3,,"map point (250 m): 60.840521, 27.369237",,no,25,316,316 m: carried head_now,,no,50,338,338 m: carried head_now,3/3,1/2,carries head_now's offset,R17
+freeze.14.infra,14,L1,,no_heavy: No; the bridge does not carry a heavy tanker,no_heavy,yes,100,,log OUT1/OUT2 18.21,no_heavy,yes,100,,log OUT1/OUT2 18.21,3/3,2/2,OK,—
+freeze.14.shift_change,14,L1,,ek11_vpk: EK11 and VOL1,ek11_vpk,yes,100,,log,ek11_vpk,yes,100,,log,3/3,2/2,OK,—
+freeze.14.road_crossed,14,L2,,r2_next: The next barrier ahead of the head is road R2 with its lines,r2_next,yes,100,,log,r2_next,yes,100,,log,3/3,2/2,OK,—
+freeze.14.residents,14,L2,,"people: People are still in the village, so the lines must hold",people,yes,100,,log,people,yes,75,,log,3/3,2/2,OK,—
+freeze.14.se_front_r2,14,L3,,"not_yet: No, the front will still be hundreds of metres from the road then",not_yet,yes,50,,OUT1 900 m + 11 m/min,not_yet,yes,50,,OUT1 900 m,3/3,2/2,OK,—
+freeze.14.flare_next,14,L3,,spreads_se: It spreads south-east with the wind,spreads_se,yes,75,,log SPOT,spreads_se,yes,75,,log SPOT,3/3,2/2,OK,—
+probe.s.cycle_3,3,L1,,b: About 24 ha,b,yes,100,,log DR3 14.35,b,yes,100,,log DR3 14.35,3/3,2/2,OK,—
+probe.s.cycle_3.b,3,L2,,c: Sped up: about a third more new area,c,yes,50,,"searched during the SPAM: 14.15 at rank 2, not shown; reasoned",c,yes,75,,DR3 14.15 via the V2 pointer: 6.0/4.4 = 1.36,0/3,2/2,fixed by R9 (2/2),keep; see R16 for the measure
+probe.s.cycle_6,6,L1,,"d: The fire has crossed the brook, the line is broken",d,yes,75,,log EK11 15.42,d,yes,100,,log EK11 15.42,3/3,2/2,OK,—
+probe.s.cycle_6.b,6,L2,,"d: No change: low fire at the roadside, passable with care",b,no,50,,"Haku without 'latest': the 15.07 lure shown, 15.47 rank 3",b,no,75,,"Haku without 'latest': the 15.07 lure shown, 15.47 rank 3",1/3,1/2,2/7 over rounds; retrieval decides it (R23),R23
+probe.s.cycle_8,8,L1,,a: Not known: the police have been asked to check,a,yes,75,,log 16.02 + Haku,a,yes,75,,Haku,3/3,2/2,OK,—
+probe.s.cycle_11,11,L1,,c: To move to another fire in the region,c,yes,100,,Haku + log,c,yes,100,,log,3/3,2/2,OK,—

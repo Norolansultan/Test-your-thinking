@@ -416,3 +416,9 @@ Minimal fix (R1): keep only "klo X" / "klo X mennessä" (`horizonFi`, `withinHor
 **Faster than people:** 9/12 plans confirmed before the burst probably overstates the stale-plan rate.
 
 **Limits:** one run per cell; template Haku over lexical retrieval; DRAFT harness costs. The verdicts in `items-replay.csv` and `haku-replay.csv` are DRAFT.
+
+---
+
+## 11. Round 3 on the search-training version (25 Oct 2026)
+
+Continued in `analysis-round3.md` (keeps this file under 500 lines), with `items-round3.csv`, `haku-round3.csv` and `pointers-round3.csv`.

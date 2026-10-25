@@ -88,8 +88,11 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
  *   paloa tien reunassa (liekit alle 0,3 m), ajettavissa varoen" — R1's answer changes between V2 ("unsafe") and V5, so the second
  *   R1 item is not a repeat of a fixed fact.
  * - V7 (step 10), W3 by R3:n silta (Kotkanjoki), on its west bank (revision (al)): available. EK12 fills there at 16:27 (step 10).
- * - V10 (step 13), R2: drivable, the fire not near it. Pushed at step 13: "Huoltotie R2 vielä
- *   ajettavissa, palo noin kilometrin päässä tiestä"; the rekindled front nears R2 only at steps 19–20.
+ * - V10 (step 13), R2: drivable, the fire not near it. Pushed at step 13: "Huoltotie R2 ajettavissa, uusi palo runsaan kilometrin
+ *   päässä tiestä" (play-test R3, 25 Oct 2026: "vielä" dropped, it read as "still, for now"); the rekindled front nears R2 only at
+ *   steps 19–20. Option c is a clearly false current state (R3): "passable with care, low fire at the roadside" — the nearest fire is the
+ *   new front ~1.1 km away (the old burned area, ~490 m, is held and cold). Not "smoke on the road": DR3's recorded 17.21 plume line has
+ *   smoke settling east of the fire (visibility 200–500 m there), so a smoke state would not be clearly false.
  * - V12 (steps 16–17): F7, above.
  * - V14 (steps 19–20), R3 bridge: does not carry a heavy tanker. OUT1 and OUT2 stop at its east end,
  *   "raskas säiliö ei pääse sillan yli" (step 16), and detour by the main road (step 17).
@@ -125,7 +128,8 @@ const WATER_PROMPT_FI = {
 } as const;
 /**
  * `31` F18 (19 Oct 2026): the stretch named — the drone road reports describe R1 south of Kuivakangas, while other stretches differ (play-test
- * D8, 24 Oct 2026: the esker's foot, where the flank met R1 at 14.46–14.48, is its own stretch now, "Kuivakankaan kohdalla").
+ * D8, 24 Oct 2026: the esker's foot, where the flank met R1 at 14.46–14.48, is its own stretch; play-test R7, 25 Oct 2026: named by the
+ * R2 junction, "vajaa kilometri R2:n risteyksestä länteen", so "Kuivakangas" names one R1 stretch only, `tools/fire-ca/traffic-drones.ts`).
  */
 const R1_PROMPT_FI = "Mikä on tien R1 tila Kuivakankaan eteläpuolella viimeisimpien tietojen mukaan?";
 const R2_PROMPT_FI = "Mikä on tien R2 tila vesiajon reittinä tällä hetkellä?";
@@ -146,7 +150,9 @@ const INFRA_OPTIONS: Readonly<Record<InfraTopic, readonly (readonly [string, str
   ],
   r2: [
     ["open", "Ajettavissa, palo ei ole tien lähellä"],
-    ["threatened", "Ajettavissa toistaiseksi, mutta palo uhkaa tietä"],
+    // Play-test R3 (25 Oct 2026): was ["threatened", "Ajettavissa toistaiseksi, mutta palo uhkaa tietä"], which paraphrased the pushed
+    // "vielä ajettavissa" (0/5 play-test runs, all chose it). A clearly false current state instead (the R1 slot's wording).
+    ["with_care", "Ajettavissa varoen, matalaa paloa tien reunassa"],
     ["cut", "Ei ajettavissa, palo on katkaissut tien"],
     ["blocked", "Ei ajettavissa, kaatuneet puut tukkivat tien"],
   ],
@@ -445,8 +451,13 @@ export const SPAM_SECOND_AUTHORED: Readonly<Record<number, SpamAuthored>> = {
   3: {
     prompt: "Miten palon kasvu on muuttunut kahden viimeisimmän kehäkartoituksen välillä?",
     // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): the surveys now give 4,4 then 6,0 ha new (were 2,6 then 4,8: "nearly twice").
+    // Play-test R9 (researcher 25 Oct 2026; DRAFT, native check): the options differ in magnitude, two of them "sped up", so the pushed rising
+    // rate alone (7,1 → 10,8 m/min) does not decide it and the recorded 14.15 survey (4,4 ha new) is needed; was the only increase option
+    // against "unchanged", "a third less" and "stopped". A quantity: shown in ascending order (`scale`), the key third (c, as before).
+    // The key is checked against the two surveys (`SPAM_3B_RATIO`).
     key: "Kiihtynyt, uutta alaa noin kolmanneksen enemmän",
-    distractors: ["Pysynyt ennallaan, uutta alaa yhtä paljon", "Hidastunut, uutta alaa noin kolmanneksen vähemmän", "Pysähtynyt, uutta alaa ei tullut lainkaan"],
+    distractors: ["Hidastunut, uutta alaa vähemmän", "Ennallaan, uutta alaa suunnilleen yhtä paljon", "Kiihtynyt, uutta alaa noin kaksi kertaa niin paljon"],
+    scale: ["Hidastunut, uutta alaa vähemmän", "Ennallaan, uutta alaa suunnilleen yhtä paljon", "Kiihtynyt, uutta alaa noin kolmanneksen enemmän", "Kiihtynyt, uutta alaa noin kaksi kertaa niin paljon"],
     saLevel: 2, contentKind: "situation",
   },
   6: {
@@ -493,6 +504,18 @@ export const SPAM_SECOND_KEY_ATOMS: Readonly<Record<number, readonly string[]>> 
   ],
   6: [spamRecordId(7, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, palo noin 10 m tiestä — matalaa paloa tien reunassa .*ajettavissa varoen/), spamRecordId(8, /^DR2 tiehavainto: tie R1 Kuivakankaan eteläpuolella, .*ajettavissa varoen/)],
 };
+
+/**
+ * Play-test R9 (25 Oct 2026): V3.b's key from the records — the 14.35 survey's new area over the 14.15 survey's. "About a third more" holds
+ * while the ratio lies in 1.2–1.5 (nearer 4/3 than 1, "about the same", or 2, "about twice"); a regenerated fire outside it fails the build.
+ */
+export const SPAM_3B_RATIO = (() => {
+  const added = (id: string) => Number(/\((\d+,\d) ha uutta/.exec(SITE_SCENARIO.traffic.find((t) => t.id === id)!.content)![1]!.replace(",", "."));
+  const [before, latest] = SPAM_SECOND_KEY_ATOMS[3]!.map(added) as [number, number];
+  const ratio = latest / before;
+  if (ratio < 1.2 || ratio > 1.5) throw new Error(`SPAM V3.b: the surveys give ${before} then ${latest} ha new (×${ratio.toFixed(2)}), not "about a third more"; re-author the key`);
+  return { before, latest, ratio };
+})();
 
 /**
  * `31` F18, F30 (analysis only): the probes whose key records are all recorded-only — answerable only with the tools, so they measure
@@ -600,7 +623,8 @@ export const U_OPEN_AT_SECONDS = VIEW_MIN_SECONDS - FREEZE_LATEST_BEFORE_END_S;
  * DRAFT: SPEC/08 §8.3 asks that the distractors be checked against pilot participants' open answers.
  */
 export const CONTRADICTION_BACKUP_AUTHORED = {
-  prompt: "Mitkä seuraavista raporttipareista, jos mitkään, olivat ristiriidassa keskenään?",
+  // Play-test B9 (25 Oct 2026): singular, one pair is the key (was "Mitkä … jos mitkään, olivat ristiriidassa keskenään?"). DRAFT, native check.
+  prompt: "Mikä seuraavista raporttipareista, jos mikään, oli keskenään ristiriitainen?",
   key: "SPOT: pohjoisreuna leimahtanut uudelleen, uutta savua — EK14: oma linjamme pitää, ei muutosta",
   distractors: [
     "EK16: kärki etenee kaakkoon noin 10 m/min — DR2: kaakkoisrintama etenee noin 11,5 m/min", // SPEC/33 stage 9: 11,5 on the rebuilt map (revision (aj): 10,1; was 10,6)

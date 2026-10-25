@@ -63,7 +63,7 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   ...fromIgn("RAHKASUO", [u(TD, "BOG_S_POINTS"), u(DD, "panel.V14", "flare-up runs to Rahkasuo's drained peat"), u(DEP, "at:R2_BOG / at:FR_MID")], "SPEC/18 §5 BOG-S: drained peat 0.6–1.8 km S/SE"),
   ...fromIgn("R2", [u(FK, "R2_LINE"), u(FBB, "freeze.10.front_r2_80"), u(FBB, "freeze.14.road_crossed"), u(FBB, "freeze.14.se_front_r2"), u(DP, "freeze.10.infra"), u(PE, "premise.V14.P2")], "SPEC/18 §5 R2: along the E side"),
   ...fromIgn("HONKAHARJU_ROAD", [u(FBB, "freeze.14.road_crossed"), u(DD, "panel.V12"), u(DD, "panel.V13"), u(PE, "premise.V12.P2")], "phase-B line on the forest road S of the rekindle (deployment.ts FR_*)"),
-  ...fromIgn("KORPIOJA", [u(FB, "freeze.4.korpioja_spot"), u(FB, "RADIO.sparksKorpioja")], "the brook N of the crown run, crossed by spotting in step 7"),
+  ...fromIgn("MYLLYOJA", [u(FB, "freeze.4.korpioja_spot"), u(FB, "RADIO.sparksMyllyoja")], "the brook N of the crown run, crossed by spotting in step 7"),
   ...fromIgn("KOIVUOJA", [u(DP, "spam.6"), u(FB, "freeze.4.crown_drops")]),
   ...fromIgn("POWER_LINE", [u(DP, "freeze.12.f7"), u(TR, "grid operator")], "SPEC/18 §5 PL, SPEC/33 (bc): 20 kV distribution line on wooden poles (was 110 kV), NE–SW, ~1.5 km E"),
   ...fromIgn("BRIDGE", [u(DP, "freeze.14.infra"), u(DEP, "OUT1/OUT2 step 16")], "SPEC/18 §5 BRIDGE: timber bridge, load limit 16 t, ~3 km E"),
@@ -100,7 +100,11 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   { id: "adjacency.R2_end.LAHDENKYLA", type: "adjacency", measure: "distance", features: ["R2", "LAHDENKYLA"], tol: { kind: "range", max: 300 }, usedBy: [u(DEP, "R2_S 'tielle R2 Lahdenkylän suuntaan'"), u(FBB, "freeze.12.front_toward")] },
   { id: "adjacency.HONKAHARJU_ROAD.R2", type: "adjacency", measure: "distance", features: ["HONKAHARJU_ROAD", "anchor.R2_FR"], tol: { kind: "range", max: 5 }, usedBy: [u(DEP, "R2_FR"), u(TR, "LOG_LANDING")] },
   { id: "adjacency.KARHU_ROAD.R1", type: "adjacency", measure: "distance", features: ["KARHU_ROAD", "R1"], tol: { kind: "range", max: 20 }, usedBy: [u(TW, "W1 via R1")] },
-  { id: "adjacency.KOIVUOJA.KORPIOJA", type: "adjacency", measure: "distance", features: ["KOIVUOJA", "KORPIOJA"], tol: { kind: "range", max: 50 }, usedBy: [u("tools/topo-map/terrain.ts", "Koivuoja ends in Korpioja")] },
+  // Play-test R7 (25 Oct 2026): the R1 stretch the step-5 DR1/DR3 road reports name "vajaa kilometri R2:n risteyksestä länteen" lies on
+  // R1, just under a kilometre (~840 m, ±15 %) from the junction. No figure in the text: "800 m" with "R2" read as V10 front_r2_80's key.
+  onRoad("R1_STRETCH_W_OF_R2", "R1", [u(TD, "STRETCHES")]),
+  { id: "distance.R1_R2.R1_STRETCH_W_OF_R2", type: "distance", measure: "distance", features: ["anchor.R1_R2", "R1_STRETCH_W_OF_R2"], usedBy: [u(TD, "STRETCHES"), up(BUNDLE, "vajaa kilometri R2:n risteyksestä länteen|just under a kilometre west of the R2 junction", "DR1 14.46, DR3 14.48 (play-test R7)")] },
+  { id: "adjacency.KOIVUOJA.MYLLYOJA", type: "adjacency", measure: "distance", features: ["KOIVUOJA", "MYLLYOJA"], tol: { kind: "range", max: 50 }, usedBy: [u("tools/topo-map/terrain.ts", "Koivuoja ends in Myllyoja")] },
   { id: "adjacency.BIRCH.KOIVUOJA", type: "adjacency", measure: "distance", features: ["BIRCH", "KOIVUOJA"], tol: { kind: "range", max: 150 }, usedBy: [u(FB, "freeze.4.crown_drops", "the birch strip along the brook"), u(DEP, "edge:BIRCH 'Koivuojan koivikkoon'")] },
   { id: "adjacency.POND_W2.LAHDENKYLA", type: "adjacency", measure: "distance", features: ["W2_POND", "LAHDENKYLA"], tol: { kind: "range", max: 400 }, usedBy: [u(TW, "W2 'Lahdenkylän lampi'")] },
   // --- Crossings -----------------------------------------------------------------------------------------------------------------
@@ -112,8 +116,8 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   { id: "crosses.R1.POWER_LINE", type: "crosses", measure: "crossing_count", features: ["R1", "POWER_LINE"], usedBy: [u(DP, "freeze.12.f7"), u(TR, "smoke under the line, cycle 6")] },
   { id: "crosses.HONKAHARJU_ROAD.POWER_LINE", type: "crosses", measure: "crossing_count", features: ["HONKAHARJU_ROAD", "POWER_LINE"], usedBy: [u(DEP, "FR_E (revision (al))")] },
   { id: "distance.FR_E.POWER_LINE", type: "distance", measure: "distance", features: ["anchor.FR_E", "POWER_LINE"], tol: { kind: "range", min: 60 }, usedBy: [u(DEP, "FR_E", "~127 m from the line, outside its 36 m corridor")] },
-  { id: "crosses.KORPIOJA.KARHUJARVI", type: "crosses", measure: "crossing_count", features: ["KORPIOJA", "KARHUJARVI"], tol: { kind: "range", min: 2 }, usedBy: [u("tools/topo-map/terrain.ts", "Korpioja flows through Karhujärvi")] },
-  { id: "crosses.R1.KORPIOJA", type: "crosses", measure: "crossing_count", features: ["R1", "KORPIOJA"], usedBy: [u(FB, "freeze.4.korpioja_spot", "the brook is north of R1, between the head and the north")] },
+  { id: "crosses.MYLLYOJA.KARHUJARVI", type: "crosses", measure: "crossing_count", features: ["MYLLYOJA", "KARHUJARVI"], tol: { kind: "range", min: 2 }, usedBy: [u("tools/topo-map/terrain.ts", "Myllyoja flows through Karhujärvi")] },
+  { id: "crosses.R1.MYLLYOJA", type: "crosses", measure: "crossing_count", features: ["R1", "MYLLYOJA"], usedBy: [u(FB, "freeze.4.korpioja_spot", "the brook is north of R1, between the head and the north")] },
   // --- Sectors (bearing wedges from IGN) -----------------------------------------------------------------------------------------
   sector("LAHDENKYLA", [u(DD, "VILLAGE_SECTOR"), u(DD, "panel.V14")]),
   { id: "sector_margin.LAHDENKYLA", type: "within_sector", measure: "sector_margin", features: ["LAHDENKYLA"], tol: { kind: "range", min: 20 }, usedBy: [u(DD, "VILLAGE_SECTOR")] },
@@ -125,7 +129,7 @@ export const RELATION_SPECS: readonly RelationSpec[] = [
   sector("RAHKASUO", [u(TP, "at:BOG_S L3-Etelä")]),
   // --- Names the scenario derives from the map ------------------------------------------------------------------------------------
   { id: "text_mention.HONKAHARJU_ROAD.name", type: "text_mention", measure: "nearest_label", features: ["HONKAHARJU_ROAD"], params: { styles: ["terrain", "place", "bog", "water"] }, usedBy: [u(CR, "barriers(): 'metsäautotien (Honkaharju)'"), u(FBB, "RADIO.roadStop / RADIO.roadCrossed"), u(DP, "CONTRADICTION_BACKUP_AUTHORED")] },
-  ...["Karhujärvi", "Haukilampi", "Kotkanjoki", "Koivuoja", "Korpioja", "Lahdenkylä", "Mökkiranta", "Rahkasuo", "Kuivakangas", "Kuusimäki", "Honkaharju"].map((name): RelationSpec => ({
+  ...["Karhujärvi", "Haukilampi", "Kotkanjoki", "Koivuoja", "Myllyoja", "Lahdenkylä", "Mökkiranta", "Rahkasuo", "Kuivakangas", "Kuusimäki", "Honkaharju"].map((name): RelationSpec => ({
     id: `text_mention.label.${name}`, type: "text_mention", measure: "label_present", features: [], params: { text: name, en: PLACE_NAMES_EN[name] }, usedBy: [u("app/i18n/place-names.ts", name, "named in the scenario's records, questions and directive")],
   })),
   // --- Fire against the map (the CA run on this map's grids; the band keys' own checks in freeze-bank*.ts) ------------------------

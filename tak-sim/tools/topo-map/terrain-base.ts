@@ -82,12 +82,12 @@ export const RIVER_VALLEY: Valley = {
     { x: 2900, y: 8100 }, { x: 2100, y: 10400 },
   ], 3),
 };
-/** Korpilaakso: Korpioja's valley from Karhujärvi to Kotkanjoki (VALLEY-N), winding between the knolls. */
+/** Korpilaakso: Myllyoja's valley from Karhujärvi to Kotkanjoki (VALLEY-N), winding between the knolls. */
 export const KORPI_VALLEY: Valley = {
   name: "Korpilaakso", z0: 80.5, z1: 76.8, floorHalf: 130, wall: 420,
   line: chaikin([{ x: -1300, y: 1930 }, { x: -950, y: 1720 }, { x: -700, y: 1470 }, { x: -250, y: 1660 }, { x: 250, y: 1420 }, { x: 800, y: 1650 }, { x: 1350, y: 1390 }, { x: 1900, y: 1630 }, { x: 2350, y: 1400 }, { x: 2800, y: 1560 }], 3),
 };
-/** Koivuoja's shallow valley, NW → SE along the grain into Korpioja. */
+/** Koivuoja's shallow valley, NW → SE along the grain into Myllyoja. */
 export const KOIVU_VALLEY: Valley = {
   name: "Koivuoja", z0: 84, z1: 78.2, floorHalf: 50, wall: 280,
   line: chaikin([{ x: 480, y: 2800 }, { x: 900, y: 2520 }, { x: 1050, y: 2150 }, { x: 1450, y: 1900 }, { x: 1620, y: 1640 }, { x: 1940, y: 1580 }], 3),

@@ -86,7 +86,8 @@ describe("the profile screen", () => {
 
   it("the participant's values: calibration numbers, the checking share, the tool counts, the reviews", () => {
     const text = strings(ProfileScreen({ lang: "en", records: sessions()["guide"]!, onDone: () => undefined })).join(" ");
-    expect(text).toContain("Your average confidence was 75%; 66% of your answers were correct.");
+    // 21 of the 31 counted answers right (was 21 of 32, 66 %): V4's exploratory head_later, wrong here, is not counted (play-test R2).
+    expect(text).toContain("Your average confidence was 75%; 68% of your answers were correct.");
     expect(text).toContain("Questions to the Thinker: 3");
     expect(text).toContain("Searches in Search (Haku): 3");
     expect(text).toContain("You changed your plan at 1 of 3 plan reviews.");

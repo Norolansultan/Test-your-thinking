@@ -20,6 +20,11 @@
  * that step's later-stamped records says "viimeisimpien tietojen mukaan" for "nyt"; the L3 horizons stay counted from `nowStepOf`, and
  * each stem states its target clock next to the horizon (`horizonFi`, `withinHorizonFi`: "40 minuutin kuluttua (klo 14.40)"), the clock the
  * key is read at (`stepEndClockFi`), so no horizon is ambiguous.
+ *
+ * Play-test R1 (researcher, 25 Oct 2026; SPEC/08 (bh)): every L3 stem states the clock only ("klo 14.40", "klo 15.40 mennessä"). The
+ * minutes counted from `nowStepOf` (the START of the header's span in phase A, its END in phase B) contradicted the header's "now" (the
+ * span's end) by one step in phase A. No key changes: the clock is the one the key is read at. `minutesAhead` still gives the interval the
+ * key reads (analysis); the horizon from the header's "now" is the audit's `horizon_min` (`difficulty-audit.ts`).
  */
 
 import type { LatLon } from "../engine/primitives.js";
@@ -60,6 +65,8 @@ interface BaseDef {
   readonly basisSteps?: readonly number[];
   /** Analysis only (`31` proposal (a)): `FreezeItem.family`. */
   readonly family?: NonNullable<FreezeItem["family"]>;
+  /** Analysis only (play-test R2, 25 Oct 2026): `FreezeItem.scoredFor` — scored outside H2 and every SA composite. */
+  readonly scoredFor?: NonNullable<FreezeItem["scoredFor"]>;
 }
 
 export interface ChoiceDef extends BaseDef {
@@ -139,17 +146,18 @@ export function stepEndClockFi(step: number): string {
 }
 
 /**
- * Play-test D1 (24 Oct 2026): an L3 horizon with the clock it ends at, from the base the key uses (the freeze's now, `minutesAhead`, to the
- * END of `step`, `stepEndClockFi`): "40 minuutin kuluttua (klo 14.40)".
+ * An L3 horizon as the clock the key is read at, the END of `step` (`stepEndClockFi`): "klo 14.40". Play-test R1 (25 Oct 2026): the clock
+ * only (D1 had "40 minuutin kuluttua (klo 14.40)", whose minutes ran from the start of the header's span in phase A). `view` is checked: the
+ * step must lie after the freeze's now (`minutesAhead` throws otherwise).
  */
-export const horizonFi = (view: number, step: number): string => `${inMinutesFi(minutesAhead(view, step))} (klo ${stepEndClockFi(step)})`;
-/** Play-test D1: "seuraavan tunnin aikana (klo 15.00 mennessä)". */
-export const withinHorizonFi = (view: number, step: number): string => `${withinMinutesFi(minutesAhead(view, step))} (klo ${stepEndClockFi(step)} mennessä)`;
+export const horizonFi = (view: number, step: number): string => { minutesAhead(view, step); return `klo ${stepEndClockFi(step)}`; };
+/** Play-test R1: "klo 15.00 mennessä" (was "seuraavan tunnin aikana (klo 15.00 mennessä)"). */
+export const withinHorizonFi = (view: number, step: number): string => `${horizonFi(view, step)} mennessä`;
 
 /** Play-test D1 (24 Oct 2026): the head "now" as the header defines it, the period's latest reports (V5 and V12; VP keeps the plain stem). */
 export const HEAD_NOW_LATEST_FI = "Merkitse kartalle palon kärki viimeisimpien tietojen mukaan.";
 
-/** The head-later map prompt (fix pass 3: relative to the freeze's now; play-test D1: with the clock, "… tunnin kuluttua (klo 15.00)."). */
+/** The head-later map prompt (fix pass 3: relative to the freeze's now; play-test R1: the clock only, "… on klo 15.00."). */
 export const headLaterFi = (view: number, step: number) => `Merkitse kartalle, missä palon kärki on ${horizonFi(view, step)}.`;
 
 /** An ordinal band id: `lt<n>`, `m<lo>_<hi>` or `gt<n>`. */
@@ -182,6 +190,7 @@ export function toItem(idPrefix: string, d: ItemDef): FreezeItem {
     ...(d.basisKind ? { basisKind: d.basisKind } : {}),
     ...(d.basisAtomIds ? { basisAtomIds: d.basisAtomIds } : {}),
     ...(d.family ? { family: d.family } : {}),
+    ...(d.scoredFor ? { scoredFor: d.scoredFor } : {}),
   };
   const base = { id: `${idPrefix}.${d.slug}`, level: d.level, promptFi: d.promptFi, goal: d.goal, keyAtomIds: d.keyAtomIds, ...meta };
   if (d.kind === "map_point") return withKeyStatements({ ...base, kind: "map_point", options: [], mapKey: { point: d.point, toleranceM: d.toleranceM }, ...(d.projectionPoint ? { projectionPoint: d.projectionPoint } : {}) });

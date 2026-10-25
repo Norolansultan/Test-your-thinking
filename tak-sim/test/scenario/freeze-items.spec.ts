@@ -224,9 +224,9 @@ describe("the infrastructure slot", () => {
     expect(corpus.some((e) => e.cycle >= 5 && e.cycle <= 6 && /täytti säiliön, Haukilampi/.test(e.content))).toBe(true);
     expect(corpus.some((e) => e.cycle === -3 && /vettä saa Haukilammelta \(W1\)/.test(e.content))).toBe(true);
     expect(firstStepWith(/täytti säiliön, R3:n silta \(Kotkanjoki\)/)).toBeLessThanOrEqual(lastStep(7));
-    // R2 (2 Oct 2026, the rekindle at the origin): still passable at V10, reported at step 13; the front nears it at step 19; never cut.
-    expect(firstStepWith(/Huoltotie R2 vielä ajettavissa/)).toBe(13);
-    expect(firstStepWith(/Huoltotie R2 vielä ajettavissa/)).toBeLessThanOrEqual(lastStep(10));
+    // R2 (2 Oct 2026, the rekindle at the origin): passable at V10, reported at step 13 (play-test R3: "ajettavissa", was "vielä ajettavissa"); the front nears it at step 19; never cut.
+    expect(firstStepWith(/Huoltotie R2 ajettavissa/)).toBe(13);
+    expect(firstStepWith(/Huoltotie R2 ajettavissa/)).toBeLessThanOrEqual(lastStep(10));
     expect(firstStepWith(/etenee kohti huoltotietä R2/)).toBe(19); // EK12 (phase-B rebuild, 4 Oct 2026; was EK14 "lähestyy … noin 200 m")
     expect(corpus.some((e) => /(tie|tien|tietä|huoltotie\w*) R2\b/.test(e.content) && /katkais|poikki/.test(e.content))).toBe(false);
     // The bridge: first reported at step 16, so it is asked only after (V14).

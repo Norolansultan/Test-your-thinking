@@ -21,10 +21,12 @@
  * labelled at their points. Not done (they reverse researcher decisions; RC): the water points W1–W3 (d3) and this overlay on the
  * memory-check map (d6).
  *
- * Play-test D8 (24 Oct 2026): a second label for the brook Korpioja ("Alder Creek"), whose only name on the basemap sits by
- * Mökkiranta, ~2.8 km west of where the crown run crosses it. It sits on the drawn brook at the nearest stretch east of the
- * crossing that keeps the distances below (the brook IS V13's old north edge at the crossing), its text just above the line
- * (`overlayAnchor`), clear of the "L2 Koillinen" code below it. Finnish DRAFT.
+ * Play-test D8 (24 Oct 2026): a second label for the brook Myllyoja ("Mill Brook"; Korpioja / "Alder Creek" until play-test R5,
+ * 25 Oct 2026), whose only name on the basemap sits by Mökkiranta, ~2.8 km west of where the crown run crosses it. It sits on the
+ * drawn brook at the nearest stretch east of the crossing that keeps the distances below (the brook IS V13's old north edge at the
+ * crossing), its text just above the line (`overlayAnchor`), clear of the "L2 Koillinen" code below it. Finnish DRAFT.
+ * Play-test R7 (25 Oct 2026): the two R1 stretches the drone road reports name get no overlay label — both lie 40–250 m from V13's old
+ * north edge, inside the 400 m this overlay keeps clear; the records name the second stretch by the R2 junction instead (SPEC/12 (bh)).
  *
  * No label sits near the old fire's north edge or V13's US2 (`test/render/map-overlay.spec.ts` holds every one
  * ≥ 600 m from both), none marks a safety zone, escape route or fuel, and none changes with the view.
@@ -124,7 +126,7 @@ export function overlayLabels(lang: "fi" | "en"): OverlayLabel[] {
     if (at) out.push({ key: l.key, at, kind: "settlement", html: `<span style="${TEXT};font-style:italic">${esc(lang === "en" ? l.en : l.fi)}</span>` });
   }
   const brook = lang === "en" ? englishNames(OVERLAY.brook.fi) : OVERLAY.brook.fi;
-  out.push({ key: "brook:korpioja", at: OVERLAY.brook.at, kind: "brook", html: `<span style="${TEXT};font-style:italic;font-weight:500">${esc(brook)}</span>` });
+  out.push({ key: "brook:myllyoja", at: OVERLAY.brook.at, kind: "brook", html: `<span style="${TEXT};font-style:italic;font-weight:500">${esc(brook)}</span>` });
   for (const r of regionFires()) {
     const name = lang === "en" ? `${r.nameEn}, ${r.haEn}` : `${r.nameFi}, ${r.haFi}`;
     out.push({ key: `region:${r.id}`, at: r.at, kind: "region", html: `${REGION_SVG}<span style="${TEXT};margin-left:3px">${esc(name)}</span>` });

@@ -15,22 +15,36 @@ import {
   sessionStarted, start, syntheticFreeze, viewEnded,
 } from "./fixtures.js";
 
-const PHASE_A = buildFreezes().filter((f) => f.cycle <= 7); // V2, V4, V5, V7: 32 items
+// V2, V4, V5, V7: 32 items, all answered in the logs below; 31 count (play-test R2, 25 Oct 2026: V4's `head_later` is exploratory,
+// index 15 here, the last of V4's eight, `scoredFor: "exploratory"`, outside the calibration as F7 is).
+const PHASE_A = buildFreezes().filter((f) => f.cycle <= 7);
 
 describe("calibration (real freeze bank, phase A)", () => {
-  it("well calibrated: 75 % right; sure when right, unsure when wrong (good resolution)", () => {
+  it("the exploratory item is answered but not counted (play-test R2)", () => {
+    const items = PHASE_A.flatMap((f) => f.items);
+    expect(items).toHaveLength(32);
+    expect(items.filter((it) => it.scoredFor).map((it) => [items.indexOf(it), it.id, it.scoredFor])).toEqual([[15, "freeze.4.head_later", "exploratory"]]);
+    expect(commanderProfile(freezeLog(PHASE_A, () => true, () => 100)).calibration.answers).toBe(31);
+  });
+
+  it("well calibrated: ~75 % right; sure when right, unsure when wrong (good resolution)", () => {
     const records = freezeLog(PHASE_A, (i) => i % 4 !== 0, (_i, ok) => (ok ? 100 : 25));
     const c = commanderProfile(records).calibration;
-    expect(c).toMatchObject({ status: "ok", answers: 32, percentCorrect: 75, band: "well" });
-    expect(c.meanConfidence).toBeCloseTo(81.25);
-    expect(c.gapPoints).toBeCloseTo(6.25);
+    // 23 of the 31 counted answers right (the exploratory item, right at 100, is left out; it was 24 of 32, 75 %).
+    expect(c).toMatchObject({ status: "ok", answers: 31, band: "well" });
+    expect(c.percentCorrect).toBeCloseTo((100 * 23) / 31);
+    expect(c.meanConfidence).toBeCloseTo((23 * 100 + 8 * 25) / 31);
+    expect(c.gapPoints).toBeCloseTo((23 * 100 + 8 * 25) / 31 - (100 * 23) / 31);
     expect(c.resolution).toMatchObject({ status: "ok", band: "higher_when_right" });
     expect(c.resolution.diffPoints).toBeCloseTo(75);
   });
 
-  it("overconfident: half right, always 100", () => {
+  it("overconfident: about half right, always 100", () => {
     const c = commanderProfile(freezeLog(PHASE_A, (i) => i % 2 === 0, () => 100)).calibration;
-    expect(c).toMatchObject({ status: "ok", percentCorrect: 50, meanConfidence: 100, gapPoints: 50, band: "over" });
+    // 16 of the 31 counted answers right (the exploratory item, index 15, was wrong).
+    expect(c).toMatchObject({ status: "ok", meanConfidence: 100, band: "over" });
+    expect(c.percentCorrect).toBeCloseTo((100 * 16) / 31);
+    expect(c.gapPoints).toBeCloseTo(100 - (100 * 16) / 31);
     expect(c.resolution).toMatchObject({ status: "ok", diffPoints: 0, band: "about_same" });
   });
 
@@ -166,7 +180,7 @@ describe("phase-A sessions and missing data", () => {
     }
     const p = commanderProfile(b.records);
     expect(p.phaseBReached).toBe(false);
-    expect(p.calibration).toMatchObject({ status: "ok", answers: 32, band: "well" });
+    expect(p.calibration).toMatchObject({ status: "ok", answers: 31, band: "well" }); // 32 answered, V4's exploratory head_later not counted (R2)
     expect(p.checking).toMatchObject({ status: "ok", decisions: 7, checked: 7, band: "often" });
     expect(p.toolUse).toMatchObject({ hakuSearches: 7, guideQuestions: 0, reviews: null });
   });

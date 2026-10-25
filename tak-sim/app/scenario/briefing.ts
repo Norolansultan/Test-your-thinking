@@ -206,7 +206,7 @@ export function openThinkerTextFor(cell: Cell, lang: "fi" | "en"): string {
  * history. Both groups, the practice tour's `sectors` step. DRAFT, for native and domain review.
  */
 export const SECTORS_FI: readonly string[] = [
-  "L1 Pohjoinen: Tie R1:n pohjoispuoli: kangasmetsää, Haukilampi ja Korpiojan laakso; Karhujärven rannassa Mökkirannan mökit ja niille johtava soratie.",
+  "L1 Pohjoinen: Tie R1:n pohjoispuoli: kangasmetsää, Haukilampi ja Myllyojan laakso; Karhujärven rannassa Mökkirannan mökit ja niille johtava soratie.",
   "L2 Koillinen: Tie R1 itään R1/R2-risteykseen ja sen pohjoispuoli: Kuivakankaan harju, Kuusimäen kuusikko ja Koivuojan laakso; kauempana idässä Kotkanjoki.",
   "L3 Etelä: Syttymäkohdan eteläpuoli: Honkaharjun matala hiekkaselänne ja sen metsäautotie, Rahkasuo ja tie R2; kauempana kaakossa Lahdenkylä.",
   "L4 Länsi: Syttymäkohdan länsipuoli: kangasmetsää ja Iso-Rahkasuo; lännempänä tie R3 etelään johtopaikalta.",
@@ -294,7 +294,7 @@ export const TOOLS_THINKER_INTENT_AGAIN_EN = TOOLS_THINKER_AGAIN_EN + " " + THIN
 
 /** The sector descriptions in English (revision (al); English place names as `app/i18n/place-names.ts`). */
 export const SECTORS_EN: readonly string[] = [
-  "L1 North: North of road R1: heath forest, Pike Pond and the Alder Creek valley; on the shore of Bear Lake, the Lakeside Cottages and the gravel road to them.",
+  "L1 North: North of road R1: heath forest, Pike Pond and the Mill Brook valley; on the shore of Bear Lake, the Lakeside Cottages and the gravel road to them.",
   "L2 North-east: Road R1 east to the R1/R2 junction and the ground north of it: the Dry Heath esker, the spruce stand on Spruce Hill and the Birch Creek valley; further east, Eagle River.",
   "L3 South: South of the point of origin: the low Pine Ridge sand rise and its forest road, Moss Bog and road R2; further south-east, Bay Village.",
   "L4 West: West of the point of origin: heath forest and Great Moss Bog; further west, road R3 running south from the command post.",

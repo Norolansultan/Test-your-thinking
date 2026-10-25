@@ -70,9 +70,9 @@ describe("the table", () => {
   });
 
   it("englishNames is idempotent and leaves English alone", () => {
-    const s = "Vehicle location VPK: north flank, Karhujärvi side. Embers flew over the Korpioja brook; the Mökkiranta cabins; spot fire PP1, rekindle US2.";
+    const s = "Vehicle location VPK: north flank, Karhujärvi side. Embers flew over the Myllyoja brook; the Mökkiranta cabins; spot fire PP1, rekindle US2.";
     const once = englishNames(s);
-    expect(once).toBe("Vehicle location VOL1: north flank, Bear Lake side. Embers flew over Alder Creek; the Lakeside Cottages; spot fire SF1, rekindle RK2.");
+    expect(once).toBe("Vehicle location VOL1: north flank, Bear Lake side. Embers flew over Mill Brook; the Lakeside Cottages; spot fire SF1, rekindle RK2.");
     expect(englishNames(once)).toBe(once);
     expect(codeIn("en", "US1")).toBe("RK1");
     expect(codeIn("fi", "US1")).toBe("US1");
@@ -117,6 +117,6 @@ describe("the English texts", () => {
 
   it("use the English names where the Finnish names a place", () => {
     const all = englishTexts.map(([, t]) => t).join("\n");
-    for (const name of ["Bear Lake", "Pike Pond", "Eagle River", "Birch Creek", "Alder Creek", "Bay Village", "Lakeside Cottages", "Moss Bog", "Dry Heath", "Spruce Hill", "Pine Ridge"]) expect(all, name).toContain(name);
+    for (const name of ["Bear Lake", "Pike Pond", "Eagle River", "Birch Creek", "Mill Brook", "Bay Village", "Lakeside Cottages", "Moss Bog", "Dry Heath", "Spruce Hill", "Pine Ridge"]) expect(all, name).toContain(name);
   });
 });

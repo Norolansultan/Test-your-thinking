@@ -15,7 +15,7 @@
     },
     "V10": {
       "P1": { "status": "contradicted", "atomIds": ["atom.demo.12.0", "evt.c13.010", "evt.c13.034"], "fromVirtualS": 15330, "note": "the rekindle of SPOT 17.01 is confirmed as a separate fire by DR2's thermal image 17.25 and DR3's mapping 17.35 (recorded), still with no crew or line on it; fromVirtualS is DR3's, the last of the three" },
-      "P2": { "status": "not_contradicted", "note": "the new fire runs east along the old south edge with R2 still passable about 1 km ahead (DR2 17.21)" }
+      "P2": { "status": "not_contradicted", "note": "the new fire runs east along the old south edge with R2 passable about 1 km ahead (DR2 17.21)" }
     },
     "V11": {
       "P1": { "status": "not_contradicted", "note": "the crews take lines on the forest road and R2 ahead of the south-east front (pushed), so the 17.00 rekindle now has lines ahead of it; no new fire or rekindle since" },

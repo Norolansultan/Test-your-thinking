@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { BRIDGE_S, COMMAND_POINT, roadIndexById, ROADS } from "../roads.js";
 import { BRIDGE, BROOKS, ESKER_CENTRE, HAMLET_S, LAKES, polar, RIVER, VILLAGE } from "../terrain.js";
 import { FEATURES } from "../../fire-ca/deployment.js";
+import { R1_STRETCH_W_OF_R2 } from "../../fire-ca/traffic-drones.js";
 import { wgs84ToTm35 } from "../../fire-ca/tm35.js";
 import { parseAsciiGrid } from "../../fire-ca/ascii-grid.js";
 import { sortedEntries, sortedKeys } from "../../../app/engine/deterministic-object.js";
@@ -59,6 +60,8 @@ export const FEATURE_CATALOGUE: readonly FeatureDef[] = [
   { id: "CP", kind: "command_point", fi: "johtopaikka", en: "command post", match: "johtopaik|command post", sources: [RD, DEP, "content/site/site.json"] },
   { id: "R1", kind: "road_gravel", fi: "tie R1", en: "road R1", match: "\\bR1\\b", sources: [RD, TF, "tools/fire-ca/traffic-drones.ts"] },
   { id: "R2", kind: "road_gravel", fi: "tie R2", en: "road R2", match: "\\bR2\\b", sources: [RD, TF, "tools/fire-ca/traffic-drones.ts"] },
+  // Play-test R7 (25 Oct 2026): the drone road reports' R1 stretch named by its distance from the R2 junction (no name of its own).
+  { id: "R1_STRETCH_W_OF_R2", kind: "road_point", fi: "tie R1 vajaa kilometri R2:n risteyksestä länteen", en: "road R1 just under a kilometre west of the R2 junction", sources: ["tools/fire-ca/traffic-drones.ts"] },
   { id: "R3_W", kind: "road_gravel", fi: "tie R3 (länsi)", en: "road R3 (west)", match: "\\bR3\\b", sources: [RD, TF] },
   { id: "R3_E", kind: "road_gravel", fi: "tie R3 (itä, silta)", en: "road R3 (east, bridge)", match: "\\bR3\\b", sources: [RD, TF] },
   { id: "MAANTIE_S", kind: "road_main", fi: "maantie", en: "main road", match: "maantie|main road", sources: [RD, TF, PL] },
@@ -69,7 +72,7 @@ export const FEATURE_CATALOGUE: readonly FeatureDef[] = [
   { id: "KOTKANJOKI", kind: "river", fi: "Kotkanjoki", en: "Eagle River", match: "Kotkanjo|Eagle River", sources: [T, TF, PN] },
   { id: "BRIDGE", kind: "bridge", fi: "R3:n silta (Kotkanjoki)", en: "the R3 bridge (Eagle River)", match: "silta|sillan|bridge", sources: [T, RD, DEP, TF] },
   { id: "BRIDGE_S", kind: "bridge", fi: "Hiekkalan tien silta", en: "Sandy Hamlet road bridge", sources: [RD, TF] },
-  { id: "KORPIOJA", kind: "brook", fi: "Korpioja", en: "Alder Creek", match: "Korpioj|Alder Creek", sources: [T, TF, PN, "tools/fire-ca/crossings.ts"] },
+  { id: "MYLLYOJA", kind: "brook", fi: "Myllyoja", en: "Mill Brook", match: "Myllyoj|Mill Brook", sources: [T, TF, PN, "tools/fire-ca/crossings.ts"] },
   { id: "KOIVUOJA", kind: "brook", fi: "Koivuoja", en: "Birch Creek", match: "Koivuoj|Birch Creek", sources: [T, TF, PN, "tools/fire-ca/crossings.ts", DEP] },
   { id: "KARHUJARVI", kind: "lake", fi: "Karhujärvi", en: "Bear Lake", match: "Karhujärv|Bear Lake", sources: [TB, TF, PN, DEP] },
   { id: "HAUKILAMPI", kind: "lake", fi: "Haukilampi", en: "Pike Pond", match: "Haukila[mn]|Pike Pond", sources: [TB, TF, PN, DEP] },
@@ -195,12 +198,13 @@ export function loadBuiltMap(withFire = true): BuiltMap {
   const f: Record<string, Geom> = {
     IGN: pt({ x: 0, y: 0 }),
     CP: pt(COMMAND_POINT),
+    R1_STRETCH_W_OF_R2: pt(R1_STRETCH_W_OF_R2),
     R1: road("R1"), R2: road("R2"), R3_W: road("R3_W"), R3_E: road("R3_E"), MAANTIE_S: road("MAANTIE_S"), MAANTIE_N: road("MAANTIE_N"),
     KARHU_ROAD: road("KARHU_ROAD"), PEAT_ROAD: road("PEAT_ROAD"), HONKAHARJU_ROAD: road("HONKAHARJU_ROAD"),
     // Kotkanjoki whole, through the lakes on its course (topo-features.json draws only its runs outside them).
     KOTKANJOKI: ln(RIVER),
     BRIDGE: pt(BRIDGE), BRIDGE_S: pt(BRIDGE_S),
-    KORPIOJA: brook("Korpioja"), KOIVUOJA: brook("Koivuoja"),
+    MYLLYOJA: brook("Myllyoja"), KOIVUOJA: brook("Koivuoja"),
     KARHUJARVI: lake("Karhujärvi"), HAUKILAMPI: lake("Haukilampi"),
     W2_POND: { kind: "polygon", rings: t.ponds.map(line) },
     LAHDENKYLA: pt(VILLAGE),

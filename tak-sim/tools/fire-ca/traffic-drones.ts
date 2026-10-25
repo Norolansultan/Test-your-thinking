@@ -63,6 +63,8 @@ const NAMED_ROADS: readonly { readonly fi: string; readonly pts: readonly P[] }[
   // id (SPEC/33 §3), not by its index in ROADS, which a rebuilt road network renumbers.
   { fi: "metsäautotie (Honkaharju)", pts: densify(roadById("honkaharju").line) },
 ];
+/** Play-test R7 (25 Oct 2026): the R1 stretch named by its distance from the R2 junction (the geometry contract binds the distance, ~840 m). */
+export const R1_STRETCH_W_OF_R2: P = { x: 660, y: 450 };
 /**
  * Named stretches of R1 and R2 (fix pass 2, 7 Oct 2026, FF2): a road report names the stretch it saw, so two
  * drones over two stretches of one road cannot read as contradicting each other (DR1 "R1 passable, fire 200 m"
@@ -76,7 +78,11 @@ const STRETCHES: readonly { readonly road: string; readonly at: P; readonly fi: 
   // DR3 saw the flank on R1 here (3–4 m flames, unsafe) while DR2 saw R1 ~310 m further west (low fire, with care), and all three
   // named "Kuivakankaan eteläpuolella": one stretch reading unsafe and passable in the same two minutes. Only those two step-5 reports
   // move here; the DR2 series V5 `infra` and SPAM V6.b read (15.07 the designed stale lure, 15.27, 15.47) keeps its name.
-  { road: "tie R1", at: { x: 660, y: 450 }, fi: "Kuivakankaan kohdalla", en: "by Kuivakangas" },
+  // Play-test R7 (researcher 25 Oct 2026): named by the R2 junction, ~840 m east along R1 (was "Kuivakankaan kohdalla" / "by Kuivakangas"):
+  // two stretch names on one map label, ~210 m apart, sent a play-test player to the wrong reports, and neither stretch can carry an overlay
+  // label (both lie 40–250 m from V13's old north edge, SPEC/12 (al)). The junction is on the map (R1 meets the labelled R2), so this
+  // stretch is found with the scale bar, and "Kuivakangas" now names one R1 stretch only, the DR2 series'.
+  { road: "tie R1", at: R1_STRETCH_W_OF_R2, fi: "vajaa kilometri R2:n risteyksestä länteen", en: "just under a kilometre west of the R2 junction" },
   { road: "tie R1", at: { x: 1150, y: 415 }, fi: "Kuusimäen kohdalla", en: "by Kuusimäki" },
   { road: "tie R1", at: { x: 1500, y: 420 }, fi: "R2:n risteyksessä", en: "at the R2 junction" },
   { road: "tie R1", at: { x: 2100, y: 410 }, fi: "R2:n risteyksen itäpuolella", en: "east of the R2 junction" },

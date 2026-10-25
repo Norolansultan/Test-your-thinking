@@ -25,10 +25,11 @@ import { sortedEntries } from "../engine/deterministic-object.js";
 import { choice, HEAD_NOW_LATEST_FI, headLaterFi, horizonFi, point, withinHorizonFi, type ItemDef } from "./freeze-bank-core.js";
 import { PHASE_B_BANK } from "./freeze-bank-b.js";
 import {
-  deliveredAreaAt, deliveredPointDistanceAt, distanceM, distanceToLineM, distanceToTruthM, firstDetachedFrontAfter, headNow, keyBand, projectionHeadAtEndOf, R1_LINE, radioId, siteStep,
+  deliveredAreaAt, deliveredPointDistanceAt, distanceM, distanceToTruthM, firstDetachedFrontAfter, headNow, keyBand, projectionHeadAtEndOf, radioId, siteStep,
   storyId, trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
 } from "./freeze-keys.js";
 import { CYCLE_STORY } from "./demo-story.js";
+import { clockOf, R1_ARRIVAL, R1_ARRIVAL_IDS, V5_AREA, V5_AREA_EDGES, V5_AREA_IDS, V5_SURVEY } from "./freeze-readings.js";
 
 const F = SITE_SCENARIO.features;
 
@@ -44,7 +45,7 @@ const RADIO = {
   // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): no forest road crosses the crown run's path at Kuusimäki any more, so the step-7
   // "Kipinät lensivät metsäautotien (Kuusimäki) yli" crossing and its step-8 repeat are gone; the step-7 Koivuoja stop and the step-8
   // ember crossing of Koivuoja carry V5's two crossing items instead.
-  sparksKorpioja: radioId(7, /^Kipinät lensivät Korpiojan yli/),
+  sparksMyllyoja: radioId(7, /^Kipinät lensivät Myllyojan yli/),
   koivuojaStop: radioId(7, /^Palo pysähtyi Koivuojan kohdalle/),
   koivuojaSparks: radioId(8, /^Kipinät lensivät Koivuojan yli/),
   ky21North: radioId(10, /^KY21, lohkon L3 johtaja: .*siirrän .*KY21:n ja VPK:n nyt pohjoisreunalle/), // fix pass 3: the L3 sector leader moves KY21 and VPK (FF11)
@@ -75,13 +76,6 @@ const f0 = (n: number) => n.toFixed(0);
 /** A report-keyed key's figures for its basis text (F22): the delivered value, its margin, and the truth's value and band. */
 const figures = (k: KeyBand, unit: string, fmt = f1) => `~${fmt(k.value)} ${unit}, ${fmt(k.margin)} ${unit} from the nearest band edge; the CA's truth ~${fmt(k.truthValue!)} ${unit}, ${k.truthId === k.id ? "the same band" : `band ${k.truthId}`}`;
 
-/** VP: the minutes the head needs to reach R1 at its reported rate (the W2 head and its rate mark). */
-const R1_ARRIVAL = (() => {
-  const s = siteStep(-3);
-  const m = distanceToLineM(headNow(-3), R1_LINE);
-  const minutes = m / s.observedHead.rateMpm;
-  return { m, rate: s.observedHead.rateMpm, minutes, key: minutes < 15 ? "lt15" : minutes < 30 ? "m15_30" : minutes < 60 ? "m30_60" : "gt60" };
-})();
 
 /**
  * V2 (now 14.00; REPORT-keyed, D4; `31` rule (1)): the burnt area 40 minutes on (14.40, the end of step 4) through the reported fire the
@@ -92,17 +86,9 @@ const R1_ARRIVAL = (() => {
  */
 export const V2_AREA = keyBand(deliveredAreaAt(1, 2, 4), [20, 35, 50], ["lt20", "m20_35", "m35_50", "gt50"], 2, "V2 area_40", { value: siteStep(4).areaHa, minMargin: 2 });
 
-/**
- * V5 (now 15.20; REPORT-keyed, D4): the burnt area an hour on (16.20, the end of step 9): the pushed 15.35 perimeter survey (DR3: the
- * area and the last 20 minutes' new area, comparing the 15.00 and 15.20 images) carried on for three steps. The map draws step 7 too.
- */
-const V5_SURVEY = {
-  area: trafficFigure(7, /^DR3 kehäkartoitus valmis klo 15\.35: palanut ala noin (\d+,\d) ha/),
-  added: trafficFigure(7, /^DR3 kehäkartoitus valmis klo 15\.35: .*\((\d+,\d) ha uutta/),
-};
-// SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): edges 90/140/190 (were 80/110/140, where the survey's 76.4 + 3 × 35.8 ≈ 184 ha and the
-// truth's ~148 ha both fell in the open top band, which has no key statements); both now in 140–190, the map now (~77 ha) under 90.
-export const V5_AREA = keyBand(V5_SURVEY.area.value + 3 * V5_SURVEY.added.value, [90, 140, 190], ["lt90", "m90_140", "m140_190", "gt190"], 5, "V5 area_hour", { value: siteStep(9).areaHa, minMargin: 5 });
+// V5 `area_hour`'s key (`V5_SURVEY`, `V5_AREA`) and VP `r1_arrival`'s (`R1_ARRIVAL`) are in `freeze-readings.ts` with their guards
+// (play-test R4, R8). SPEC/33 stage 9 (20 Oct 2026) had moved V5's edges to 90/140/190 (were 80/110/140); R8 moves 140 to 130.
+export { V5_AREA } from "./freeze-readings.js";
 
 /**
  * V2 (SPEC/30 §5.1; REPORT-keyed, D4; `31` rule (1)): the reported fire's distance to the R1/R2 junction (where the water-shuttle road
@@ -201,11 +187,12 @@ export const PRACTICE_BANK: readonly ItemDef[] = [
     basis: "EK11: the head runs north-east towards R1, 340 m away; Mökkiranta 2.1 km north-west, Lahdenkylä 3.0 km south-east",
   }),
   choice({
-    // `31` F27: one form, "kuluttua", in every option (the distractors said "-ssa"). The horizon is the answer itself (a time to arrival).
-    slug: "r1_arrival", level: "L3", goal: "containment", keySteps: [-3, -3], promptFi: "Kuinka pian palon kärki saavuttaa tien R1, jos se etenee nykyistä vauhtia?",
-    options: [["lt15", "Alle 15 minuutin kuluttua"], ["m15_30", "15–30 minuutin kuluttua"], ["m30_60", "30–60 minuutin kuluttua"], ["gt60", "Yli tunnin kuluttua"]], key: R1_ARRIVAL.key,
+    // Play-test R4 (researcher 25 Oct 2026; DRAFT, native check): a time of day (was "Kuinka pian …", minutes from now, whose 60-minute edge
+    // the readings straddled). The horizon is the answer itself; the three readings and their guard are in `freeze-readings.ts`.
+    slug: "r1_arrival", level: "L3", goal: "containment", keySteps: [-3, -3], promptFi: "Mihin aikaan palon kärki saavuttaa tien R1, jos se etenee nykyistä vauhtia?",
+    options: [[R1_ARRIVAL_IDS[0], "Ennen klo 12.50"], [R1_ARRIVAL_IDS[1], "Klo 12.50–13.10"], [R1_ARRIVAL_IDS[2], "Klo 13.10–13.40"], [R1_ARRIVAL_IDS[3], "Klo 13.40 jälkeen"]], key: R1_ARRIVAL.key,
     keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [-3],
-    basis: `the drawn W2 head's distance to R1 (~${f0(R1_ARRIVAL.m)} m) ÷ its drawn rate (${R1_ARRIVAL.rate} m/min) ≈ ${f0(R1_ARRIVAL.minutes)} min; the CA head is at R1 at 13.20 (step 1)`,
+    basis: `three readings inside 13.10–13.40 (checked at build): EK11's pushed 12.01 'noin ${R1_ARRIVAL.pushedM} m' at 'noin ${R1_ARRIVAL.pushedRate} m/min' ≈ ${clockOf(R1_ARRIVAL.pushed)}; the drawn W2 head (12.00) ~${f0(R1_ARRIVAL.drawnM)} m ÷ its drawn ${R1_ARRIVAL.drawnRate} m/min ≈ ${clockOf(R1_ARRIVAL.drawn)}; the fire model at R1 at ${clockOf(R1_ARRIVAL.truth)} (step 1's fire; 34 m short at 13.00 in the CA run, so it crosses in 13.00–13.20)`,
   }),
 ];
 
@@ -319,7 +306,7 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
       keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: ["atom.demo.6.0"],
       basis: "`31` F01 (DRAFT, RC; domain review): spotting 200–400 m ahead is on record (story 6.0, pushed); when the crown fire drops at Koivuoja (15.20) EK11 returns to the line and spot fire PP1 starts behind it beside its route to the vehicle, so it pulls its men out (step 7: DR1 15.31, EK11 15.30, pushed in V5). No record to step 6 names a spot fire behind a crew",
     }),
-    // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Korpioja is a map name, on record from step 7; Koivuoja (the brook and its birch
+    // SPEC/30 §5.1 (19 Oct 2026). DRAFT, domain review. Myllyoja is a map name, on record from step 7; Koivuoja (the brook and its birch
     // strip) is on record from step 4 since the play-test decisions (DR1 14.27, pushed in V3: D3).
     choice({
       // A consequence the envelope does not draw: where the crown run leaves the spruce (the broadleaf strip along the brook).
@@ -335,19 +322,25 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     }),
     choice({
       // A barrier that fails: the brook between the head and the north, crossed by spotting during the crown run. `31` F15: two per polarity.
-      slug: "korpioja_spot", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Pysäyttääkö Korpioja palon kärjen etenemisen ${withinHorizonFi(4, 7)}?`,
+      // Play-test R5 (25 Oct 2026): the brook is Myllyoja / Mill Brook (was Korpioja / Alder Creek, confusable with Koivuoja / Birch Creek);
+      // the slug keeps the old name (a logged id).
+      slug: "korpioja_spot", level: "L3", goal: "containment", keySteps: [6, 7], promptFi: `Pysäyttääkö Myllyoja palon kärjen etenemisen ${withinHorizonFi(4, 7)}?`,
       options: [
         ["jumps", "Ei, kipinät sytyttävät paloja ojan yli"], ["around", "Ei, kärki kiertää ojan latvan kautta"],
         ["stops", "Kyllä, kärki pysähtyy ojan rantaan"], ["wind", "Kyllä, kun tuuli kääntyy ennen ojaa"],
       ], key: "jumps",
       keyAtomIds: [], rule: "cited", basisKind: "knowledge",
-      basis: "SPEC/30 §5.1 (DRAFT): EK12's step-7 radio 'Kipinät lensivät Korpiojan yli, uusi palo toisella puolella' (pushed in V5); the CA crown run passes Korpioja's line during step 6 with a detached spot beyond it. Korpioja is a map name, on record from step 7",
+      basis: "SPEC/30 §5.1 (DRAFT): EK12's step-7 radio 'Kipinät lensivät Myllyojan yli, uusi palo toisella puolella' (pushed in V5); the CA crown run passes Myllyoja's line during step 6 with a detached spot beyond it. Myllyoja is a map name, on record from step 7",
     }),
     point({
       // 2 Oct 2026: 15:20 (the end of the crown run, V4's own horizon), was 15:40 — with the 30 m/min run and the
       // 15:20 spot fires the 15:40 head lies ~450 m beyond the freeze map's frame (fire + 1.1 km). RESEARCHER CHECK.
+      // Play-test R2 (researcher 25 Oct 2026; SPEC/09 (bh), panel question `11` §7.27): scored as exploratory, outside H2 and every SA
+      // composite, until the expert panel decides: 0/5 play-test runs (378–792 m short, all to the south-west); the key implies ~38 m/min
+      // while the pushed rate is 14.1 m/min (DR3 15.05). Its clock, 15.20, is the end of the header's span (the "now" of `08` (bg)).
       slug: "head_later", level: "L3", goal: "containment", keySteps: [6, 6], promptFi: headLaterFi(4, 6), point: truthHeadAtEndOf(6), projectionPoint: projectionHeadAtEndOf(4, 6),
-      keyAtomIds: [], rule: "computed", basisKind: "ca_truth", basis: "the CA truth head at the end of step 6 (15:20, the crown run); projectionPoint: V4's 40-minute isochrone (a breach view)",
+      scoredFor: "exploratory",
+      keyAtomIds: [], rule: "computed", basisKind: "ca_truth", basis: "the CA truth head at the end of step 6 (15:20, the crown run); projectionPoint: V4's 40-minute isochrone (a breach view); exploratory, outside H2 and the SA composites (play-test R2)",
     }),
   ],
   5: [
@@ -362,15 +355,15 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     choice({
       // `31` F10, F25: replaces spot_cause (the crossing mechanism, EK12's record recalled, and stated by V4 korpioja_spot's key);
       // comprehension of the crossing for containment. SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review):
-      // the forest-road crossing at Kuusimäki is gone, so the item relates the one crossing (Korpioja) to where the crews are; it states
+      // the forest-road crossing at Kuusimäki is gone, so the item relates the one crossing (Myllyoja) to where the crews are; it states
       // nothing about Koivuoja, which `road_jump` asks about.
-      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä Korpiojan ylitys merkitsee viimeisimpien tietojen mukaan palon rajaamiselle?", // play-test D1 (was "nyt")
+      slug: "lines_breached", level: "L2", goal: "containment", promptFi: "Mitä Myllyojan ylitys merkitsee viimeisimpien tietojen mukaan palon rajaamiselle?", // play-test D1 (was "nyt")
       options: [
-        ["no_barrier", "Korpiojan takana palaa uusi palo, jota kukaan ei sammuta"], ["put_out", "Ylityskohta on jo sammutettu, ja Korpioja rajaa palon"],
+        ["no_barrier", "Myllyojan takana palaa uusi palo, jota kukaan ei sammuta"], ["put_out", "Ylityskohta on jo sammutettu, ja Myllyoja rajaa palon"],
         ["ek11", "EK11 pitää ylityskohdan Koivuojan linjaltaan käsin"], ["dies", "Uusi palo sammuu itsestään ojan kosteaan rantaan"],
       ], key: "no_barrier",
-      keyAtomIds: [RADIO.sparksKorpioja, trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/)], rule: "cited",
-      basis: "integrates the pushed step-7 crossing (radio 7.2: a new fire on the far side of Korpioja, no crew near, nothing done) with where the crews are (EK11 at Koivuoja, pushed 15.24; EK12 and EK14 on R1 and the north edge): the fire beyond Korpioja burns with nobody on it, and the brook no longer bounds the fire",
+      keyAtomIds: [RADIO.sparksMyllyoja, trafficId(7, /^EK11, Koivuoja: kärki menee ohitsemme koilliseen/)], rule: "cited",
+      basis: "integrates the pushed step-7 crossing (radio 7.2: a new fire on the far side of Myllyoja, no crew near, nothing done) with where the crews are (EK11 at Koivuoja, pushed 15.24; EK12 and EK14 on R1 and the north edge): the fire beyond Myllyoja burns with nobody on it, and the brook no longer bounds the fire",
     }),
     choice({
       // `31` F10: replaces units_enough (EK11's request for more units recalled); two EK11 reports related to keeping up with the head.
@@ -403,9 +396,10 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
     // Fix pass 5 (8 Oct 2026, researcher decision): replaces rate_next. The area NOW is on record (the map, DR3's 15:35 survey); the hour's growth is the projection.
     choice({
       slug: "area_hour", level: "L3", goal: "containment", keySteps: [7, 9], promptFi: `Kuinka suuri koko palanut ala on ${horizonFi(5, 9)}?`,
-      options: [["lt90", "Alle 90 hehtaaria"], ["m90_140", "90–140 hehtaaria"], ["m140_190", "140–190 hehtaaria"], ["gt190", "Yli 190 hehtaaria"]], key: V5_AREA.id,
+      // Play-test R8 (25 Oct 2026): 90–130 / 130–190 (were 90–140 / 140–190); the guard keeps the truth ≥ 10 % of its value from every edge.
+      options: [[V5_AREA_IDS[0], "Alle 90 hehtaaria"], [V5_AREA_IDS[1], "90–130 hehtaaria"], [V5_AREA_IDS[2], "130–190 hehtaaria"], [V5_AREA_IDS[3], "Yli 190 hehtaaria"]], key: V5_AREA.id,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: [V5_SURVEY.area.id], basisSteps: [7],
-      basis: `REPORT-keyed (D4; \`31\` rule (1)): the pushed 15.35 survey (DR3: ${V5_SURVEY.area.value} ha, ${V5_SURVEY.added.value} ha new in 20 minutes; the map draws step 7) carried on to the end of step 9 (16.20), ${figures(V5_AREA, "ha")}; ~77 ha now`,
+      basis: `REPORT-keyed (D4; \`31\` rule (1)): the pushed 15.35 survey (DR3: ${V5_SURVEY.area.value} ha, ${V5_SURVEY.added.value} ha new in 20 minutes; the map draws step 7) carried on to the end of step 9 (16.20), ${figures(V5_AREA, "ha")}, ${f1(Math.min(...V5_AREA_EDGES.map((e) => Math.abs(V5_AREA.truthValue! - e))))} ha from its nearest edge (≥ 10 % of its value required, play-test R8); ~77 ha now`,
     }),
     // SPEC/30 §5.1. A line that fails: a brook that stopped the surface fire is crossed by embers. `31` F15: two per polarity.
     // SPEC/33 stage 9 (20 Oct 2026, the rebuilt map; DRAFT, panel and native review): was "Pitääkö Kuusimäen metsäautotie palon muualla …"
@@ -418,8 +412,8 @@ export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["again", "Ei, kipinät lentävät ojan yli ja sytyttävät uuden palon"], ["creep", "Ei, palo ryömii ojan yli matalana pintapalona"],
         ["once", "Kyllä, kosteat rannat pysäyttävät palon ojaan"], ["crews", "Kyllä, EK11:n linja ojan varressa pitää palon"],
       ], key: "again",
-      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [RADIO.koivuojaStop, RADIO.sparksKorpioja],
-      basis: "SPEC/30 §5.1 (DRAFT; SPEC/33 stage 9): the step-8 radio (pushed in V6) 'Kipinät lensivät Koivuojan yli, uusi palo toisella puolella. EK11 joutui vetäytymään' (15.20–15.40); delivered by the freeze: the surface fire stopped at Koivuoja at 15.00–15.20 (radio 7.3, pushed: the lure) and embers crossed Korpioja in the crown run (radio 7.2, pushed; gate R: VPK's return from W1 is radio 7.1 now)",
+      keyAtomIds: [], rule: "cited", basisKind: "record", basisAtomIds: [RADIO.koivuojaStop, RADIO.sparksMyllyoja],
+      basis: "SPEC/30 §5.1 (DRAFT; SPEC/33 stage 9): the step-8 radio (pushed in V6) 'Kipinät lensivät Koivuojan yli, uusi palo toisella puolella. EK11 joutui vetäytymään' (15.20–15.40); delivered by the freeze: the surface fire stopped at Koivuoja at 15.00–15.20 (radio 7.3, pushed: the lure) and embers crossed Myllyoja in the crown run (radio 7.2, pushed; gate R: VPK's return from W1 is radio 7.1 now)",
     }),
   ],
   7: [

@@ -340,6 +340,18 @@ Null (Δ 0, all items): 6 · 5 · 5 %. Reference (the effect on every item, §11
 
 Null: 5 · 4 · 5 %. Making the items fairer (answerable from the log, D1/D3/D7) moved two more items out of the seek-dependent class, so the all-items H2 lost further power (43 → 26 % at Δ +0.8, n = 100) while the seek-dependent window still has 85 %. Point 4 below holds with more force.
 
+**Re-run 25 Oct 2026 (bh) after the replay's decisions (`08` (bh), `09` (bh) §1; audit regenerated, `items.csv` gains `scored_for`, which `h2-items.ts` reads):** V4 `head_later` is exploratory and leaves H2's window, so it holds **23 items**: 18 answerable without seeking, 4 partly, 1 not, so **5 are seek-dependent** (V2 `area_40`, `junction_hour`, `head_later`; V7 `rekindle_sector`, `cp_safe`; V4 `head_later` was the sixth); 5 late; 3 lure items (V2 `area_40`, `junction_hour`, V5 `area_hour`). No other class moved (R1's clock-only stems, R4, R8 and R9 change no H2 item's class). The same command, seed and model; the tables above are superseded by:
+
+| Window | Items | n = 100 | n = 120 | n = 150 | MDE n = 100 | MDE n = 120 | MDE n = 150 |
+|---|---|---|---|---|---|---|---|
+| All H2 items (as pre-registered, less the exploratory item) | 23 | 9 · 22 % | 10 · 22 % | 10 · 26 % | Δ 2.87 (+.068) | Δ 2.37 (+.062) | Δ 1.95 (+.056) |
+| Seek-dependent only | 5 | 27 · **75** % | 31 · 82 % | 36 · 89 % | Δ 0.87 (+.136) | Δ 0.79 (+.122) | Δ 0.71 (+.111) |
+| Without the late items | 18 | 11 · 27 % | 11 · 30 % | 13 · 36 % | Δ 2.04 (+.073) | Δ 1.80 (+.067) | Δ 1.48 (+.058) |
+| Without the late and lure items | 15 | 8 · 15 % | 8 · 16 % | 8 · 19 % | > 3 | > 3 | > 3 |
+| Seek-dependent without lure items | 3 | 18 · 55 % | 22 · 61 % | 23 · 70 % | Δ 1.13 (+.168) | Δ 1.04 (+.155) | Δ 0.91 (+.136) |
+
+Null (Δ 0, all items): 7 · 5 · 5 %. Reference (the effect on every item): Δ +0.4 · +0.8 = 68 · 99 % at n = 100, 76 · 100 % at 120, 84 · 100 % at 150. Taking out the one seek-dependent item the panel has to rule on costs the powered test 10 points (85 → 75 % at Δ +0.8, n = 100; MDE Δ 0.76 → 0.87); n = 120 restores 82 %. The all-items gap is now hopeless for an effect on the seek-dependent items alone (22 %, MDE Δ 2.87). If the panel restores V4 `head_later` (`11` §7.34), the 24 Oct table applies again.
+
 4. **What follows (RC, before the lock).** Pre-register the gap on the seek-dependent items as H2's powered test — either as the primary (with all 24 items as the sensitivity) or as a pre-stated secondary in the Holm family — and state the minimum detectable effects above; the class list is fixed from the audit before pilot 2's data, never from them. The re-run is one command: when the scenario work regenerates the audit (`items.csv`), `npm run power:h2-items` reads the new classes (and a `lure` column if the audit adds one). Pilot 2 replaces the difficulty and effect assumptions (per-item accuracy by class, `09` (be)'s checks).
 
 ### bf.6 §8 additions

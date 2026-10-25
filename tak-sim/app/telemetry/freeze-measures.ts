@@ -81,8 +81,11 @@ export interface FreezeItemScore {
   /**
    * Play-test D6 (24 Oct 2026; SPEC/09 (bg)): false for an item scored for its own hypothesis only (`FreezeItem.scoredFor`, V12's F7: H9),
    * which no SA accuracy or calibration composite counts (`calibrationPairs` drops it). Absent in scores built elsewhere: counted.
+   * Play-test R2 (25 Oct 2026; SPEC/09 (bh)): false for an exploratory item too (V4's `head_later`), reported on its own.
    */
   readonly inSaComposites?: false;
+  /** Why the score is outside the composites (`FreezeItem.scoredFor`): `h9_only` or `exploratory`; absent for a composite item. */
+  readonly scoredFor?: NonNullable<FreezeItem["scoredFor"]>;
 }
 
 const EARTH_RADIUS_M = 6_371_008.8; // IUGG mean radius
@@ -183,7 +186,7 @@ export function freezeItemScores(records: readonly LogRecord[], freezes: readonl
     scores.push({
       view, itemId: item.id, level: item.level, goal: item.goal ?? null, kind, correct, distanceM,
       confidence: answer.confidence, source: answer.source ?? null,
-      ...(item.scoredFor === "h9_only" ? { inSaComposites: false as const } : {}),
+      ...(item.scoredFor ? { inSaComposites: false as const, scoredFor: item.scoredFor } : {}),
     });
   }
   return scores;
@@ -590,7 +593,8 @@ export interface CalibrationSummary {
  * The confidence–accuracy pairs of a window, with a Brier score and the over/under-confidence gap. One pair per (view, item), the first
  * score listed (`freezeItemScores` already keeps the first answer and drops replayed views; scores assembled elsewhere are held to it too).
  * Play-test D6 (24 Oct 2026; SPEC/09 (bg)): an item scored for its own hypothesis only (`inSaComposites: false`, V12's F7) is never a pair,
- * whatever the window: every SA composite (H2, H2t, H-T, the personal profile's calibration) folds through here.
+ * whatever the window: every SA composite (H2, H2t, H-T, the personal profile's calibration) folds through here. Play-test R2 (25 Oct
+ * 2026; SPEC/09 (bh)): nor is an exploratory item (V4's `head_later`, `scoredFor: "exploratory"`).
  */
 export function calibrationPairs(scores: readonly FreezeItemScore[], filter: CalibrationFilter = H2_PRIMARY_WINDOW): CalibrationSummary {
   const seen = new Set<string>();

@@ -2,8 +2,8 @@
  * `31` §3.5, §3.8, §3.9 (19 Oct 2026; sagat F01, F03, F08, F11, F18, F30): the rules every freeze item now keeps, checked on the built bank.
  * (1) A report-keyed key's basis is DELIVERED by the freeze: each step its extrapolation reads is drawn on the map of the freeze's view or an
  * earlier one, or stated by a pushed record of that step in its `basisAtomIds`. (2) An L3 map key lies ≥ 2 × its tolerance from the head drawn
- * at "now" (the view's map) and from the head at the freeze's clock. (3) Every L3 stem names its horizon from "now" (`keySteps`), "now" being
- * the freeze's screen clock (`nowStepOf`). (4) Ordinal bands are shown ascending, outside the position balance. (5) Every L3 item carries its
+ * at "now" (the view's map) and from the head at the freeze's clock. (3) Every L3 item's interval starts at "now" (`keySteps`, `nowStepOf`)
+ * and its stem names the interval's end by its clock only (play-test R1, 25 Oct 2026). (4) Ordinal bands are shown ascending, outside the position balance. (5) Every L3 item carries its
  * `basisKind` and, for a record basis, the delivered records. (6) `retrievalDependent` exactly when every key record is recorded-only.
  * The level mixes (2/2/4, 2/2/2) and the 1.3× rule are in `freeze-items.spec.ts`; the keyStatements in `freeze-key-statements.spec.ts`.
  */
@@ -64,14 +64,17 @@ describe("`31` rule (3), F08, §3.8: every L3 stem names its horizon from now", 
     expect([2, 4, 5, 7, 10, 12, 14].map((v) => [v, nowStepOf(v)])).toEqual([2, 4, 5, 7, 10, 12, 14].map((v) => [v, steps(v).at(-1)! + ([10, 12, 14].includes(v) ? 1 : 0)]));
   });
 
-  it("each L3 item's interval starts at now, and its stem names the interval's end in minutes from now", () => {
+  it("each L3 item's interval starts at now, and its stem names the interval's end by its clock only (play-test R1)", () => {
     for (const { view, d } of mainDefs.filter(({ d }) => d.level === "L3")) {
       expect(d.keySteps, `V${view} ${d.slug}`).toBeDefined();
       expect(d.keySteps![0], `V${view} ${d.slug}`).toBe(nowStepOf(view));
       const m = minutesAhead(view, d.keySteps![1]);
-      expect([inMinutesFi(m), withinMinutesFi(m)].some((h) => d.promptFi.includes(h)), `V${view} ${d.slug}: "${d.promptFi}" lacks ${m} min`).toBe(true);
-      // Play-test D1 (24 Oct 2026): and the clock it ends at, from the same base the key reads (the end of its last step).
-      expect(d.promptFi, `V${view} ${d.slug}`).toMatch(new RegExp(`\\(klo ${stepEndClockFi(d.keySteps![1]).replace(".", "\\.")}(?: mennessä)?\\)`));
+      expect(m, `V${view} ${d.slug}`).toBeGreaterThan(0);
+      // Play-test R1 (researcher 25 Oct 2026): the clock the key is read at (the end of its last step), "klo 14.40" or "klo 15.40
+      // mennessä", and no minutes from now: those ran from the start of the header's span in phase A, a step before its "now".
+      expect(d.promptFi, `V${view} ${d.slug}`).toMatch(new RegExp(` klo ${stepEndClockFi(d.keySteps![1]).replace(".", "\\.")}(?: mennessä)?[?.,]`));
+      expect([inMinutesFi(m), withinMinutesFi(m)].some((h) => d.promptFi.includes(h)), `V${view} ${d.slug}: "${d.promptFi}" still names ${m} min`).toBe(false);
+      expect(d.promptFi, `V${view} ${d.slug}`).not.toMatch(/kuluttua|aikana|\(klo/);
     }
   });
 });

@@ -133,7 +133,7 @@ export const V14_R2_PROJECTION = projectionOptionFor(projectedLineDistanceAt(14,
 
 /**
  * V14 `se_front_r2` (`31` F02, §3.8; REPORT-keyed, no truth after 20.00): the consequence for R2's sprinkler lines 20 minutes on from the
- * view's end. The nearest distance the pushed step-20 lines give (KY21 19.47, OUT1 19.52) less the fastest pushed rate of the south-east
+ * view's end. The nearest distance the pushed step-20 lines give (KY21 19.52: 500 m; OUT1 19.56: 900 m) less the fastest pushed rate of the south-east
  * front (DR2 19.05) times 20 minutes, against the trigger KY21's line states (water on when the fire is ~100 m away): a key only when the
  * front is still at least twice the trigger away (else the build fails: re-author). SPEC/33 stage 9 (20 Oct 2026, the rebuilt map): EK11's
  * step-20 "ei omaa reunaa, palo … m länteen" line is no longer generated (it reports the cancelled burnout instead), so OUT1's pushed line
@@ -150,7 +150,7 @@ export const V14_SPRINKLERS = (() => {
   const at20 = nearest - rate.value * minutesAhead(14, 21);
   if (at20 < 2 * trigger.value) throw new Error(`freeze key V14 se_front_r2: the front ${at20.toFixed(0)} m from R2 in 20 minutes is too near the ${trigger.value} m trigger; re-author`);
   const hm = (id: string) => SITE_SCENARIO.traffic.find((x) => x.id === id)!.timestamp.slice(0, 5).replace(":", ".");
-  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, out1.id, rate.id], ky21At: hm(ky21.id), out1At: hm(out1.id) };
+  return { key: "not_yet", nearest, rate: rate.value, trigger: trigger.value, at20, ids: [ky21.id, out1.id, rate.id], ky21At: hm(ky21.id), out1At: hm(out1.id), ky21M: ky21.value, out1M: out1.value };
 })();
 
 export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
@@ -277,7 +277,8 @@ export const PHASE_B_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
         ["near", "Kyllä, rintama on silloin alle 100 metrin päässä tiestä"], ["sparks", "Kyllä, kipinät ylittävät tien ennen rintamaa"],
       ], key: V14_SPRINKLERS.key,
       keyAtomIds: [], rule: "computed", basisKind: "record", basisAtomIds: V14_SPRINKLERS.ids,
-      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance (KY21 ${V14_SPRINKLERS.ky21At}, OUT1 ${V14_SPRINKLERS.out1At}: ${V14_SPRINKLERS.nearest} m) less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (OUT1, pushed; gate R: was KY21's line)`,
+      // Play-test B4 (25 Oct 2026): each pushed distance with its own source (the basis said "KY21 19.52, OUT1 19.56: 500 m"; OUT1 said 900 m).
+      basis: `REPORT-keyed (\`31\` F02; no truth after 20.00): the nearest pushed distance, ${V14_SPRINKLERS.nearest} m (KY21 ${V14_SPRINKLERS.ky21At}: ${V14_SPRINKLERS.ky21M} m; OUT1 ${V14_SPRINKLERS.out1At}: ${V14_SPRINKLERS.out1M} m), less the fastest pushed rate of the south-east front (DR2 19.05: ${V14_SPRINKLERS.rate} m/min) × 20 min, ~${f0(V14_SPRINKLERS.at20)} m, against the ~${V14_SPRINKLERS.trigger} m at which the sprinkler water goes on (OUT1, pushed; gate R: was KY21's line)`,
     }),
     choice({
       // `31` F03: replaces the V14 map item (head_later: the head at "now" was 168 m from its key, and no truth exists after 20.00); the

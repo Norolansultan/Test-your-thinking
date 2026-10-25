@@ -48,7 +48,7 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(truth).toBeGreaterThan(400 + 50);
     expect(truth).toBeLessThan(700 - 50);
     expect(reportedPointDistanceAt(2, 2, F["R1_R2"]!)).toBeGreaterThan(700); // what V2's map draws (step 2): the lure band
-    expect(item(2, "junction_hour").promptFi).toMatch(/tunnin kuluttua/);
+    expect(item(2, "junction_hour").promptFi).toMatch(/klo 15\.00\?$/); // play-test R1: the clock only (was "tunnin kuluttua")
   });
 
   it("V2 spruce_behaviour: the head reaches the Kuusimäki spruce edge (14:40) and crowns (15:00), and the CA head speeds up", () => {
@@ -59,12 +59,12 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(firstStep(/latva/i)).toBeGreaterThan(3);
   });
 
-  it("V4 crown_drops and korpioja_spot: the crown fire drops into the Koivuoja birch at 15:20; embers cross Korpioja; Korpioja is first named at step 7, Koivuoja's birch strip at step 4 (play-test D3); both are map labels", () => {
+  it("V4 crown_drops and korpioja_spot: the crown fire drops into the Koivuoja birch at 15:20; embers cross Myllyoja (Korpioja until play-test R5); Myllyoja is first named at step 7, Koivuoja's birch strip at step 4 (play-test D3); both are map labels", () => {
     expect(CYCLE_STORY[7 as CycleIndex].bubbles[0]!.text).toMatch(/^Latvapalo laskeutunut Koivuojan koivikkoon/);
     expect(distanceToTruthM(6, F["BIRCH"]!)).toBeLessThan(50); // the CA head is at the birch strip at the end of step 6
     expect(siteStep(8).wind.fromDeg).toBeLessThan(200); // the wind turns only after it (the "not before the wind turns" lure)
     expect(siteStep(7).wind.fromDeg).toBeGreaterThan(200);
-    expect(radio(7).some((t) => /^Kipinät lensivät Korpiojan yli, uusi palo toisella puolella/.test(t))).toBe(true);
+    expect(radio(7).some((t) => /^Kipinät lensivät Myllyojan yli, uusi palo toisella puolella/.test(t))).toBe(true);
     expect(key(4, "crown_drops")).toBe("birch");
     expect(key(4, "korpioja_spot")).toBe("jumps");
     // Play-test D3 (24 Oct 2026): no generated record names Koivuoja before step 7, but DR1's pushed 14.27 terrain line (V3, a story beat)
@@ -75,9 +75,9 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
     expect(strip.tier).toBe("T1_pushed");
     expect(Number(strip.cycle)).toBe(4);
     expect(item(4, "crown_drops").basisAtomIds).toEqual([BIRCH_STRIP]);
-    expect(firstStep(/Korpioj/)).toBe(7);
+    expect(firstStep(/Myllyoj/)).toBe(7);
     const labels = JSON.parse(readFileSync("content/site/build/topo-features.json", "utf8")) as { labels: { text: string }[] };
-    for (const name of ["Koivuoja", "Korpioja", "Kotkanjoki"]) expect(labels.labels.some((l) => l.text === name), name).toBe(true);
+    for (const name of ["Koivuoja", "Myllyoja", "Kotkanjoki"]) expect(labels.labels.some((l) => l.text === name), name).toBe(true);
   });
 
   it("V5 ek14_shelter: the forecast turn is on record by the freeze; EK14 withdraws to the burned area at step 8 because the north flank goes downwind", () => {
@@ -97,11 +97,11 @@ describe("the eight new L3 items (SPEC/30 §5.1)", () => {
   // whether Koivuoja, which stopped the surface fire at 15.00–15.20, stops it next: embers cross it at 15.20–15.40 (step 8).
   it("V5 road_jump: Koivuoja stops the surface fire on record at step 7, and embers cross it at step 8 (EK11's stretch)", () => {
     expect(radio(7).some((t) => /^Palo pysähtyi Koivuojan kohdalle klo 15\.00–15\.20/.test(t))).toBe(true);
-    expect(radio(7).some((t) => /^Kipinät lensivät Korpiojan yli, uusi palo/.test(t))).toBe(true);
+    expect(radio(7).some((t) => /^Kipinät lensivät Myllyojan yli, uusi palo/.test(t))).toBe(true);
     expect(radio(8).some((t) => /^Kipinät lensivät Koivuojan yli, uusi palo toisella puolella\. EK11 joutui vetäytymään/.test(t))).toBe(true);
     expect([...radio(7), ...radio(8)].some((t) => /Kuusimäki\)/.test(t))).toBe(false);
     expect(key(5, "road_jump")).toBe("again");
-    expect(item(5, "road_jump").promptFi).toMatch(/seuraavan 40 minuutin aikana/);
+    expect(item(5, "road_jump").promptFi).toMatch(/klo 16\.00 mennessä\?$/); // play-test R1: the clock only (was "seuraavan 40 minuutin aikana")
   });
 
   it("V7 cp_safe: the CA fire keeps over 600 m from the command post for the hour; EK11 at the CP sees no fire at step 11", () => {

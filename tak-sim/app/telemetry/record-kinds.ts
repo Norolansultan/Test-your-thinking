@@ -39,6 +39,10 @@ import type {
 import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 import type { HingeFatigueRatedDetail } from "./record-kinds-pilot2.js";
+import type {
+  TrainingAnswerDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail,
+  TrainingSectionLeftDetail, TrainingStartedDetail,
+} from "./record-kinds-training.js";
 
 // ---------------------------------------------------------------------------
 // §2.1 Session and lifecycle
@@ -133,8 +137,10 @@ export interface SessionResumedDetail {
    * `spam_forced` (revision (ag), 9 Oct 2026): the view's time had run out and its forced SPAM item was
    * open; the session resumed into that item (not a replay: `cycleReplayed` names the view, which is
    * not run again, and the analysis does not count it as replayed).
+   * 0.18.0 (SPEC/07 (bp)): `training_incident` — the training incident, re-opened at its first item whose feedback was not left;
+   * `map_pretest` and `practice_feedback` are no longer written (logs of 0.17.0 and earlier keep them).
    */
-  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile" | "results_optin" | "map_pretest" | "practice_feedback";
+  readonly resumedAt?: "briefing" | "view" | "training" | "hinge" | "complete" | "consent" | "ai_literacy" | "preflight" | "questionnaire" | "debrief" | "spam_forced" | "primer" | "profile" | "results_optin" | "map_pretest" | "practice_feedback" | "training_incident";
 }
 export type PhaseEnteredDetail = { readonly phase: "practice" | "tutorial" | "phase_a" | "hinge" | "phase_b" };
 
@@ -212,6 +218,11 @@ export type {
 export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerCheckDetail, PrimerPageDetail, PublicGlossaryOpenedDetail, ResultsOptInDetail } from "./record-kinds-public.js";
 // The difficulty audit's changes (0.15.0): the map-reading pretest and the practice feedback screen, `record-kinds-difficulty.ts`.
 export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
+// Format 0.18.0 (SPEC/07 (bp)): the training incident's records, `record-kinds-training.ts`.
+export type {
+  TrainingAnswerDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail,
+  TrainingSectionLeftDetail, TrainingStartedDetail,
+} from "./record-kinds-training.js";
 // Adopted before pilot 2 (0.16.0): the hinge's fatigue item and the stratum, `record-kinds-pilot2.ts`.
 export type { HingeFatigueRatedDetail, Profession, Stratum } from "./record-kinds-pilot2.js";
 
@@ -842,14 +853,23 @@ export type TelemetryEvent =
   | { readonly kind: "profile_shown"; readonly detail: Record<string, never> }
   // SPEC/36 (23 Oct 2026): personal results after the study, every session
   | { readonly kind: "results_optin"; readonly detail: ResultsOptInDetail }
-  // The difficulty audit's changes (23 Oct 2026, 0.15.0)
+  // The difficulty audit's changes (23 Oct 2026, 0.15.0). RETIRED in 0.18.0 (SPEC/07 (bp)): no longer written, typed for older logs.
   | { readonly kind: "map_pretest_started"; readonly detail: MapPretestStartedDetail }
   | { readonly kind: "map_pretest_answer"; readonly detail: MapPretestAnswerDetail }
   | { readonly kind: "map_pretest_completed"; readonly detail: MapPretestCompletedDetail }
   | { readonly kind: "map_pretest_feedback_left"; readonly detail: MapPretestFeedbackLeftDetail } // 0.17.0: the map training
   | { readonly kind: "practice_feedback_shown"; readonly detail: PracticeFeedbackShownDetail }
   // Adopted before pilot 2 (24 Oct 2026, 0.16.0)
-  | { readonly kind: "hinge_fatigue_rated"; readonly detail: HingeFatigueRatedDetail };
+  | { readonly kind: "hinge_fatigue_rated"; readonly detail: HingeFatigueRatedDetail }
+  // The training incident (26 Oct 2026, 0.18.0; SPEC/07 (bp)): its own kinds, none of them a session record
+  | { readonly kind: "training_started"; readonly detail: TrainingStartedDetail }
+  | { readonly kind: "training_section_left"; readonly detail: TrainingSectionLeftDetail }
+  | { readonly kind: "training_answer"; readonly detail: TrainingAnswerDetail }
+  | { readonly kind: "training_feedback_left"; readonly detail: TrainingFeedbackLeftDetail }
+  | { readonly kind: "training_haku_asked"; readonly detail: TrainingHakuAskedDetail }
+  | { readonly kind: "training_haku_answered"; readonly detail: TrainingHakuAnsweredDetail }
+  | { readonly kind: "training_demo_shown"; readonly detail: TrainingDemoShownDetail }
+  | { readonly kind: "training_completed"; readonly detail: TrainingCompletedDetail };
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1083,7 +1103,16 @@ export type RecordKind = TelemetryEvent["kind"];
  * now), with `measures` and, on the memory task, `memoryMs`; `map_pretest_feedback_left {itemId, position, dwellMs}` is added (a task's
  * feedback left); `map_pretest_started.version` is "map-training-2026-10-25", its cap 300 000 ms. Every other record is unchanged.
  */
-export const TELEMETRY_FORMAT_VERSION = "0.17.0";
+/*
+ * 0.18.0 (the training incident, researcher decision 26 Oct 2026; SPEC/07 (bp), SPEC/15 (bp)): a small separate fire played with the
+ * session's own tools replaces the map training and VP's practice freeze and practice feedback. Its records all carry the prefix
+ * `training_` (`record-kinds-training.ts`): `training_started`, `_section_left`, `_answer` (an item's FIRST answer, logged before its
+ * feedback), `_feedback_left`, `_haku_asked`, `_haku_answered` (never `ai_chat_*`), `_demo_shown` and `_completed`; its freeze items
+ * are not `freeze_*` records and its map use is not logged. The header gains `trainingIncident` and loses `mapPretest` and
+ * `practiceFeedback`; `session_resumed.resumedAt` may be `training_incident`. Retired, still typed: `map_pretest_*`,
+ * `practice_feedback_shown`, `briefing_advanced` "practice.feedback", VP's cycle-0 freeze records. Every other record is unchanged.
+ */
+export const TELEMETRY_FORMAT_VERSION = "0.18.0";
 
 export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "session_started", "preflight_result", "briefing_advanced", "cycle_start", "cycle_end", "hinge_pause_start", "hinge_pause_end",
@@ -1118,4 +1147,6 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "practice_feedback_shown",
   "hinge_fatigue_rated",
   "map_pretest_feedback_left",
+  "training_started", "training_section_left", "training_answer", "training_feedback_left", "training_haku_asked", "training_haku_answered",
+  "training_demo_shown", "training_completed",
 ];

@@ -1,0 +1,409 @@
+{
+ "status": "The figures behind each key, computed by tools/review/training.ts (SPEC/08 (bp)); two people check them against the preview before use. The training shows each key in its feedback.",
+ "version": "training-2026-10-26",
+ "area": {
+  "sitePx": {
+   "x0": 4375,
+   "y0": 0,
+   "x1": 5000,
+   "y1": 625
+  },
+  "siteM": {
+   "x": [
+    7500,
+    10000
+   ],
+   "y": [
+    7500,
+    10000
+   ]
+  },
+  "tm35": {
+   "east": [
+    526500,
+    529000
+   ],
+   "north": [
+    6753500,
+    6756000
+   ]
+  },
+  "lockMarginM": 100
+ },
+ "contract": {
+  "lockMeets": [
+   "MAANTIE_N",
+   "POWER_LINE"
+  ],
+  "squareMeets": [
+   "MAANTIE_N",
+   "POWER_LINE"
+  ],
+  "nearestOtherFromLock": {
+   "id": "KOTKANJOKI",
+   "metres": 4690
+  },
+  "nearestOtherFromSquare": {
+   "id": "KOTKANJOKI",
+   "metres": 4790
+  }
+ },
+ "band": {
+  "metres": 400,
+  "minClearanceM": 669,
+  "roads": [
+   {
+    "code": "R5",
+    "metres": 1240,
+    "from": {
+     "x": 7516,
+     "y": 7942
+    },
+    "to": {
+     "x": 8651,
+     "y": 7727
+    }
+   },
+   {
+    "code": "R6",
+    "metres": 2102,
+    "from": {
+     "x": 8188,
+     "y": 8019
+    },
+    "to": {
+     "x": 7670,
+     "y": 9870
+    }
+   },
+   {
+    "code": "R7",
+    "metres": 1263,
+    "from": {
+     "x": 9650,
+     "y": 8730
+    },
+    "to": {
+     "x": 9210,
+     "y": 9890
+    }
+   }
+  ],
+  "junctions": [
+   {
+    "x": 7670,
+    "y": 7931
+   },
+   {
+    "x": 8188,
+    "y": 8019
+   },
+   {
+    "x": 9130,
+    "y": 7531
+   }
+  ]
+ },
+ "wording": {
+  "lakeSide": "s",
+  "roadSide": "s",
+  "spread": "ne",
+  "tailEdge": "sw",
+  "r6Dir": "n",
+  "marginsDeg": {
+   "lakeSide": 21.8,
+   "tailEdge": 22.5,
+   "r6Dir": 44
+  }
+ },
+ "items": {
+  "training.s1.place": {
+   "key": {
+    "x": 8188,
+    "y": 8019
+   },
+   "nearestOtherJunctionM": 525,
+   "insideLockM": 519,
+   "lineM": 941
+  },
+  "training.s1.measure": {
+   "key": "m300",
+   "a": {
+    "x": 9580,
+    "y": 9820
+   },
+   "foot": {
+    "x": 9312,
+    "y": 9686
+   },
+   "road": "R7",
+   "metres": 300,
+   "offByPct": 0,
+   "nextRoadM": 1577,
+   "footFromEndsM": 228,
+   "footFromJunctionM": 2010,
+   "lineM": 1230
+  },
+  "training.s1.slope": {
+   "key": "towards_b",
+   "a": {
+    "x": 9780,
+    "y": 9440
+   },
+   "b": {
+    "x": 9610,
+    "y": 9270
+   },
+   "c": {
+    "x": 9688,
+    "y": 9662
+   },
+   "riseBm": 7.5,
+   "slopeBPct": 3.1,
+   "contourLevelsAB": [
+    90,
+    95
+   ],
+   "levelCmaxDevM": 0.6,
+   "apartDeg": 112.5,
+   "metresEach": 240,
+   "lineM": 820
+  },
+  "training.s1.water": {
+   "key": "fill_2",
+   "star": {
+    "x": 7779,
+    "y": 9030
+   },
+   "fill1": {
+    "x": 8024,
+    "y": 9010
+   },
+   "fill2": {
+    "x": 7670,
+    "y": 9870
+   },
+   "straight1M": 246,
+   "straight2M": 847,
+   "roadM": 963,
+   "ratio": 0.29,
+   "fill1RoadClearM": 220,
+   "fill2GapM": 34,
+   "starToWaterM": 246,
+   "lineM": 1758,
+   "smallestMargin": 1.54,
+   "routeVertices": 49,
+   "qualifyingStars": "40 of 60"
+  },
+  "training.s2.now": {
+   "key": "at_road",
+   "road": "R5",
+   "headAtRoad": {
+    "x": 8415,
+    "y": 7912
+   },
+   "drawnHead": {
+    "x": 8330,
+    "y": 7827
+   },
+   "drawnHeadToRoadM": 120,
+   "polygonToRoadM": 118,
+   "roadCrossingDeg": 78.8,
+   "direction": "ne",
+   "areaHa": 0.9,
+   "fireToWaterM": 167,
+   "side": "s",
+   "lineM": 669
+  },
+  "training.s2.project": {
+   "key": {
+    "x": 8627,
+    "y": 8124
+   },
+   "metres": 300,
+   "lure": {
+    "x": 8542,
+    "y": 8039
+   },
+   "lureOffM": 120,
+   "keyToWaterM": 128,
+   "keyInsideLockM": 624
+  },
+  "training.s3.records1": {
+   "key": "ha11",
+   "keyRecord": "trn.r06",
+   "keyHa": 1.1,
+   "lureLogHa": 0.4,
+   "lureOlderHa": 0.2
+  },
+  "training.s3.older": {
+   "key": "blocked",
+   "newest": "trn.r09",
+   "olderRecord": "trn.r02",
+   "blockedAt": {
+    "x": 8185,
+    "y": 8306
+   },
+   "blockedFromJunctionM": 300,
+   "bearingFromJunctionDeg": 359
+  },
+  "training.s3.records2": {
+   "key": "four",
+   "keyRecord": "trn.r07",
+   "crew": 4,
+   "lureOnLine": 2
+  },
+  "training.s4.memory": {
+   "key": {
+    "x": 8096,
+    "y": 8505
+   },
+   "unit": "EK53",
+   "road": "R6",
+   "toWaterM": 148,
+   "fromEndsM": 494,
+   "fromJunctionM": 494,
+   "toOtherItemsM": 494,
+   "insideLockM": 596,
+   "lineM": 1350
+  },
+  "training.s4.log": {
+   "key": "dr8",
+   "record": "trn.r08",
+   "callers": [
+    "DR8",
+    "EK51",
+    "EK52"
+   ]
+  },
+  "training.s4.map": {
+   "key": "south",
+   "polygonToRoadM": 118,
+   "wholeOneSide": true
+  },
+  "training.s4.records": {
+   "key": "mpm10",
+   "record": "trn.r06",
+   "metresPerMin": 10
+  }
+ },
+ "optionOrder": {
+  "training.s1.measure": {
+   "order": [
+    "m150",
+    "m300",
+    "m600",
+    "m1200"
+   ],
+   "keyPosition": 2
+  },
+  "training.s1.slope": {
+   "order": [
+    "towards_b",
+    "towards_c",
+    "equal"
+   ],
+   "keyPosition": 1
+  },
+  "training.s1.water": {
+   "order": [
+    "fill_2",
+    "fill_1",
+    "either"
+   ],
+   "keyPosition": 1
+  },
+  "training.s2.now": {
+   "order": [
+    "map_edge",
+    "at_road",
+    "cannot_tell"
+   ],
+   "keyPosition": 2
+  },
+  "training.s3.records1": {
+   "order": [
+    "ha02",
+    "ha04",
+    "ha11",
+    "ha25"
+   ],
+   "keyPosition": 3
+  },
+  "training.s3.older": {
+   "order": [
+    "cut_by_fire",
+    "passable",
+    "light_only",
+    "blocked"
+   ],
+   "keyPosition": 4
+  },
+  "training.s3.records2": {
+   "order": [
+    "two",
+    "three",
+    "four",
+    "six"
+   ],
+   "keyPosition": 3
+  },
+  "training.s4.log": {
+   "order": [
+    "dr8",
+    "ek51",
+    "ek52",
+    "nobody"
+   ],
+   "keyPosition": 1
+  },
+  "training.s4.map": {
+   "order": [
+    "north",
+    "south",
+    "both",
+    "none"
+   ],
+   "keyPosition": 2
+  },
+  "training.s4.records": {
+   "order": [
+    "mpm4",
+    "mpm10",
+    "mpm20",
+    "mpm40"
+   ],
+   "keyPosition": 2
+  }
+ },
+ "roadLabels": [
+  {
+   "road": "R5",
+   "at": {
+    "x": 7925,
+    "y": 8000
+   },
+   "awayM": 264
+  },
+  {
+   "road": "R6",
+   "at": {
+    "x": 7911,
+    "y": 8740
+   },
+   "awayM": 293
+  },
+  {
+   "road": "R7",
+   "at": {
+    "x": 9427,
+    "y": 9458
+   },
+   "awayM": 255
+  }
+ ],
+ "ek51": {
+  "x": 8192,
+  "y": 7688
+ }
+}

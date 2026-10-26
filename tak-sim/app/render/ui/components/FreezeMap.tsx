@@ -8,6 +8,7 @@ import { topoTileUrl } from "../../../i18n/place-names.js";
 import { extentCamera, openingCamera } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
 import { assetUrl } from "../../../session/asset-url.js";
+import { lockMaxBounds, tilesMeeting, type MapLock } from "../training-lock.js";
 
 /**
  * A `map_point` freeze item's map (SPEC/15 r.12): the generated topographic basemap and nothing
@@ -55,7 +56,11 @@ function pointFeature(p: LatLon | null) {
 /** The memory-check map's camera at a tap (logged with it, `freeze_map_pick`, SPEC/07 revision (al)). */
 export interface PickCamera { readonly zoom: number; readonly centre: LatLon; readonly mapPx: { readonly width: number; readonly height: number } }
 
-export function FreezeMap({ extent, point, onPick }: { readonly extent: Extent; readonly point: LatLon | null; readonly onPick: (point: LatLon, camera: PickCamera) => void }) {
+/**
+ * `lock` (SPEC/08 (bp) §bp.1, the training incident's memory check): the blank map is locked as the training's live map is — it opens
+ * on the whole area, cannot zoom out past it or pan beyond its lock, and loads only the tiles meeting the lock.
+ */
+export function FreezeMap({ extent, point, onPick, lock }: { readonly extent: Extent; readonly point: LatLon | null; readonly onPick: (point: LatLon, camera: PickCamera) => void; readonly lock?: MapLock | undefined }) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -73,8 +78,8 @@ export function FreezeMap({ extent, point, onPick }: { readonly extent: Extent; 
   useEffect(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
-    const frame = () => openingCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX);
-    const outermostZoom = () => extentCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX).zoom;
+    const frame = () => (lock ? extentCamera(lock.area, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX) : openingCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX));
+    const outermostZoom = () => extentCamera(lock?.area ?? extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX).zoom;
     const opening = frame();
     const map = new maplibregl.Map({
       container: el,
@@ -90,6 +95,7 @@ export function FreezeMap({ extent, point, onPick }: { readonly extent: Extent; 
       attributionControl: false,
     });
     mapRef.current = map;
+    if (lock) map.setMaxBounds(lockMaxBounds(lock)); // SPEC/08 (bp): the training's memory check stays inside its area's lock
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
     map.on("click", (e: MapMouseEvent) => {
@@ -110,7 +116,7 @@ export function FreezeMap({ extent, point, onPick }: { readonly extent: Extent; 
     map.on("movestart", (e) => { if ((e as { originalEvent?: unknown }).originalEvent) onDefault.current = false; });
     map.on("resize", () => { if (onDefault.current) refit(); });
     map.on("load", () => {
-      TOPO_TILES.forEach((tile, i) => {
+      (lock ? tilesMeeting(TOPO_TILES, lock.bounds) : TOPO_TILES).forEach((tile, i) => {
         map.addSource(`topo-${i}`, { type: "image", url: assetUrl(topoTileUrl(tile.url, lang)), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
         map.addLayer({ id: `topo-basemap-${i}`, type: "raster", source: `topo-${i}`, paint: { "raster-fade-duration": 0 } });
       });

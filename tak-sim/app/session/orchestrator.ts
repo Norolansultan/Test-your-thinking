@@ -22,9 +22,11 @@
  * SPEC/35 (21 Oct 2026): a public session's primer and commander profile, and a phase-A session's end after V7 (`public-session.ts`).
  * SPEC/36 (23 Oct 2026): every session's step "Personal results after the study" after the post-session questionnaire
  * (`results_optin`, `decideResultsOptIn`); the commander profile on screen only with `immediateProfile` (`?profiili=heti`).
- * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the map-reading pretest before VP (`mapPretest`; since 25 Oct
- * 2026 the map training in its step, `map-training.ts`), the practice feedback after VP (source-only, but for the records item's search and answer since 25 Oct 2026 (bl); `practiceFeedback`, `practice-feedback.ts`), the practice SPAM
- * item's measuring task (`practice-measure.ts`), and the content-free "New records" badge on the Haku button (`recordsBadge`).
+ * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/`): the practice SPAM item's measuring task (`practice-measure.ts`)
+ * and the content-free "New records" badge on the Haku button (`recordsBadge`).
+ * SPEC/15 (bp) (26 Oct 2026): the training incident (`trainingIncident`; `training/session.ts`) in the map training's place, before the
+ * intro video and VP; the practice feedback after VP is gone. While the step is `training_incident` the session's real components (Haku,
+ * the SPAM card, the freeze screen, the map) are routed to the training, which writes `training_*` records only.
  */
 
 import type { RenderableAtom } from "../boundary/render-boundary.js";
@@ -70,9 +72,9 @@ import { ConsultNotice, consultToolOf, HAKU_SUGGESTED_QUESTION, hakuChipOffered,
 import { PlanConfidence } from "./plan-confidence.js";
 import { lastRecordedPlan, PlanReview, REVIEW_REVISION_MIN_SECONDS, type PlanReviewCitedRecord, type PlanReviewEnd, type PlanReviewTrigger } from "./plan-review.js";
 import { PREMISE_REVIEW_CELL } from "./thinker-protocol.js";
-import { keptTraining, MapTraining, trainingSpentMs } from "./map-training.js";
-import type { TrainingAnswer } from "./map-training-spec.js";
-import { PRACTICE_FEEDBACK_SCREEN_ID, PRACTICE_HEAD_ITEM_ID, practiceChoicesIn, practiceChoicesOf, practiceFeedbackView, practiceHeadMarkOf, type PracticeFeedbackView } from "./practice-feedback.js";
+import { TrainingRun } from "./training/session.js";
+import { TRAINING } from "./training/spec-data.js";
+import type { TrainingAnswer, TrainingHost } from "./training/host.js";
 
 export type { TemplateAnswer } from "./template-answer.js";
 export type { AiChatTurn, CyclePhase, FreezeView, HingeCheckView, JudgementStep, RadioLogEntry, SessionSnapshot, SpamView, ViewIndex } from "./snapshot.js";
@@ -163,17 +165,11 @@ export interface SessionOptions {
    */
   readonly immediateProfile?: boolean;
   /**
-   * Difficulty audit (23 Oct 2026, `proposal-map.md` c.2): the map-reading pretest after the pre-session item (and a public session's
-   * primer), before the intro video and VP; with the study shell only. Off by default so the earlier specs run unchanged; the app turns
-   * it on in every session, and the header logs it (`mapPretest`). Since 25 Oct 2026 the step holds the map training (`map-training.ts`,
-   * SPEC/15 (bj)).
+   * SPEC/15 (bp), 26 Oct 2026: the training incident (`training/`) after the pre-session item (and a public session's primer), before
+   * the intro video and VP; with the study shell only. Off by default so the earlier specs run unchanged; the app turns it on in every
+   * session, and the header logs it (`trainingIncident`). It replaces the map training (`mapPretest`) and the practice feedback.
    */
-  readonly mapPretest?: boolean;
-  /**
-   * Difficulty audit (`proposal.md` (b.3)): the source-only practice feedback screen after VP, before the training. Off by default (the
-   * earlier specs run unchanged); the app turns it on in every session; logged in the header (`practiceFeedback`).
-   */
-  readonly practiceFeedback?: boolean;
+  readonly trainingIncident?: boolean;
 }
 
 /**
@@ -192,7 +188,7 @@ export interface SessionResume {
 /** The fault class of an interruption the participant resumed from. */
 export const INTERRUPTION_FAULT_CLASS = "session_interrupted";
 
-export class SessionOrchestrator {
+export class SessionOrchestrator implements TrainingHost {
   private readonly loop: EngineRunLoop;
   private readonly log: SessionLog;
   private readonly previewOverride: PreviewOverride | null;
@@ -294,13 +290,9 @@ export class SessionOrchestrator {
   private readonly lastView: number;
   /** SPEC/36: the commander profile is shown after the results step (`SessionOptions.immediateProfile`). */
   private readonly immediateProfile: boolean;
-  /** Difficulty audit: the map-reading pretest (`SessionOptions.mapPretest`) and the practice feedback (`SessionOptions.practiceFeedback`). */
-  private readonly mapPretestOn: boolean;
-  private readonly mapPretest: MapTraining; // since 25 Oct 2026 the map training, in the pretest's step
-  private readonly practiceFeedbackOn: boolean;
-  private practiceFeedback: PracticeFeedbackView | null = null;
-  private practiceHeadMark: LatLon | null = null; // the practice freeze's head mark, for the feedback's map task
-  private practiceChoices: Readonly<Record<string, string>> = {}; // the practice freeze's choices by item, for the feedback's records item (bl)
+  /** SPEC/15 (bp): the training incident (`SessionOptions.trainingIncident`) and its run (`training/session.ts`). */
+  private readonly trainingOn: boolean;
+  private readonly trainingRun: TrainingRun;
   /** Difficulty audit (a.4): the "New records" badge, and whether the Haku tool is open now (its last `tab_selected`). */
   private recordsBadge = false;
   private hakuOpen = false;
@@ -328,10 +320,9 @@ export class SessionOrchestrator {
     const scope = options.resume ? options.resume.header.scope ?? "full" : options.scope ?? "full";
     // SPEC/36: so does the profile's timing (absent in a header: not shown).
     this.immediateProfile = options.resume ? options.resume.header.immediateProfile === true : options.immediateProfile === true;
-    // Difficulty audit: so do the pretest and the practice feedback (absent in a header: off).
-    this.mapPretestOn = this.studyShell && (options.resume ? options.resume.header.mapPretest === true : options.mapPretest === true);
-    this.practiceFeedbackOn = options.resume ? options.resume.header.practiceFeedback === true : options.practiceFeedback === true;
-    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope, ...(this.immediateProfile ? { immediateProfile: true } : {}), ...(this.mapPretestOn ? { mapPretest: true } : {}), ...(this.practiceFeedbackOn ? { practiceFeedback: true } : {}) };
+    // SPEC/15 (bp): so does the training incident (absent in a header: off).
+    this.trainingOn = this.studyShell && (options.resume ? options.resume.header.trainingIncident === true : options.trainingIncident === true);
+    const header = options.resume?.header ?? { ...sessionHeader(scenario, condition, participantCode, this.language, this.previewOverride, this.showProbeLevels, cell, options.assignment, options.annotations), guidedTour: this.guidedTour, visibleProbes: this.visibleProbesOn, ...(this.allowViewSkip ? { viewSkipAllowed: true } : {}), ...(this.aiLiteracyOn ? { aiLiteracyTest: true } : {}), ...(this.introVideo ? { introVideo: this.introVideo } : {}), audience, scope, ...(this.immediateProfile ? { immediateProfile: true } : {}), ...(this.trainingOn ? { trainingIncident: true } : {}) };
     this.log = new SessionLog(header, options.sink ?? new InMemoryLogSink(), options.resume?.records ?? []);
     // SPEC/26 §3: the engine runs the scenario's views (14, hinge after V7, one or two steps each).
     this.loop = new EngineRunLoop(cycleScheduleOf(scenario));
@@ -362,10 +353,10 @@ export class SessionOrchestrator {
       event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
       ended: async () => { this.step = "preflight"; this.notify(); }, // its end record is durable: on to the preflight
     }, this.language);
-    this.mapPretest = new MapTraining({
-      event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(),
-      ended: () => this.toBriefing(), // its end record is durable: on to the intro video and VP
-    });
+    this.trainingRun = new TrainingRun({
+      event: (e) => this.event(e), notify: () => this.notify(), realMs: () => this.realMs(), header: () => this.log.header, language: this.language, cell,
+      ended: () => this.toBriefing(), // `training_completed` is durable: on to the intro video and VP
+    }, TRAINING, options.thinker);
   }
 
   subscribe(listener: Listener): () => void {
@@ -399,6 +390,7 @@ export class SessionOrchestrator {
   private freezeOf(): FreezeView | null { const f = this.freezeSpec(); return f && { items: f.items.map(screenFreezeItem) }; } // the screen's: a whitelist, no TRUTH or analysis metadata (`31` §3.9)
   /** `31` F13: the clock the open freeze's header states as "now" (`freezeNowClock`); null when no freeze is open. */
   freezeNowLabel(): string | null {
+    if (this.step === "training_incident") return this.trainingRun.freezeNowLabel(); // SPEC/08 (bp): the training's "now", 10.18
     if (this.step !== "freeze") return null;
     const spec = this.cycleSpec();
     return freezeNowClock(13 * 60 + 20 + Number(spec.startsAtVirtual) / 60, spec.steps, this.endFreeze);
@@ -408,7 +400,7 @@ export class SessionOrchestrator {
    * (SPEC/12 revision (aj); never framed on the fire as reported, which was the rule from 2 Oct to 9 Oct 2026), and
    * a map answer must fall inside it.
    */
-  get mapExtent(): GeoExtent { return this.scenario.extent; }
+  get mapExtent(): GeoExtent { return this.step === "training_incident" ? this.trainingRun.extent : this.scenario.extent; } // the training's lock
 
   /** The Thinker tool: the AI condition, every view — revision (am), 10 Oct 2026: the practice view too (the Thinker practice; SPEC/26 D3 had VP Haku only). */
   private aiAvailable(): boolean { return this.condition === "substitutive"; }
@@ -420,7 +412,8 @@ export class SessionOrchestrator {
   private phaseTag(): "exploration" | "decision" { return this.step === "exploration" ? "exploration" : "decision"; }
 
   private snapshot(): SessionSnapshot {
-    return {
+    const training = this.step === "training_incident";
+    const snapshot: SessionSnapshot = {
       currentCycle: this.currentCycle,
       practice: this.isPractice(),
       viewLabel: viewLabelFi(this.currentCycle),
@@ -467,10 +460,10 @@ export class SessionOrchestrator {
       hingeFatigue: this.step === "hinge_pause" && this.hingeCheck.settled ? { value: this.hingeCheck.fatigueValue } : null,
       planConfidence: this.step === "plan_confidence" ? this.planConfidence.view() : null,
       planReview: this.step === "plan_review" ? this.review.view() : null,
-      mapPretest: this.step === "map_pretest" ? this.mapPretest.view() : null,
-      practiceFeedback: this.step === "practice_feedback" ? this.practiceFeedback : null,
+      training: training ? this.trainingRun.view() : null,
       recordsBadge: this.recordsBadge,
     };
+    return training ? { ...snapshot, ...this.trainingRun.snapshotParts() } : snapshot; // SPEC/15 (bp): the real components show the training
   }
 
   private async transition(trigger: Parameters<EngineRunLoop["transition"]>[0]): Promise<void> { await this.event({ kind: "state_transition", detail: this.loop.transition(trigger) }); }
@@ -533,60 +526,38 @@ export class SessionOrchestrator {
     } finally { this.submitting = false; }
   }
 
-  /**
-   * Difficulty audit (`proposal.md` (b.3), `practice-feedback.ts`): after VP, the feedback screen (source-only; the records item also
-   * shows its search and answer, (bl); TUTORIAL; the training follows it). Shown once its record (`practice_feedback_shown`) is durable (I5).
-   */
-  private async showPracticeFeedback(): Promise<void> {
-    this.practiceFeedback = practiceFeedbackView(this.scenario, this.practiceHeadMark, this.practiceChoices);
-    this.step = "practice_feedback";
-    this.shellShownMs = this.realMs();
-    await this.event({ kind: "practice_feedback_shown", detail: { itemIds: this.practiceFeedback.items.map((i) => i.itemId) } });
-    this.notify();
-  }
-
-  /** The practice feedback is left (`briefing_advanced` "practice.feedback", its dwell): on to the training text. */
-  async finishPracticeFeedback(): Promise<void> {
-    if (this.step !== "practice_feedback" || this.submitting) throw new Error(`finishPracticeFeedback in step ${this.step}`);
-    this.submitting = true;
-    try {
-      await this.event({ kind: "briefing_advanced", detail: { screenId: PRACTICE_FEEDBACK_SCREEN_ID, dwellMs: this.shellDwellMs() } });
-      this.practiceFeedback = null;
-      this.showIntro("training");
-    } finally { this.submitting = false; }
-    this.notify();
-  }
-
-  /** Difficulty audit (`proposal-map.md` c.2): after the pre-session item (and a public session's primer), the pretest when it is on, else the briefing. */
+  /** SPEC/15 (bp) §bp.1: after the pre-session item (and a public session's primer), the training incident when it is on, else the briefing. */
   private async afterPreSession(): Promise<void> {
-    if (!this.mapPretestOn) return this.toBriefing();
-    return this.showMapPretest();
+    if (!this.trainingOn) return this.toBriefing();
+    return this.showTraining();
   }
 
-  /**
-   * Shows the map training in the pretest's step (25 Oct 2026; `map_pretest_started` first: the screen shows once it is durable); a
-   * resume keeps the answers and the feedback left that are logged.
-   */
-  private async showMapPretest(records: readonly LogRecord[] = [], resumed = false): Promise<void> {
-    this.step = "map_pretest";
-    this.shellShownMs = this.realMs();
-    await this.mapPretest.start(keptTraining(records), trainingSpentMs(records), resumed);
-    if (this.step === "map_pretest") this.notify(); // (a training whose every task was kept has ended and moved on already)
+  /** Shows the training incident (`training_started` first: the screen shows once it is durable); a resume re-opens it from its log. */
+  private async showTraining(records: readonly LogRecord[] = [], resumed = false): Promise<void> {
+    this.step = "training_incident";
+    await this.trainingRun.start(records, resumed);
+    if (this.step === "training_incident") this.notify();
   }
 
-  /** A training task answered (once, final: logged before its feedback shows), with the measure tool's readings on it (m). */
-  answerMapPretest(itemId: string, answer: TrainingAnswer, measures: readonly number[] = []): Promise<void> {
-    if (this.step !== "map_pretest") return Promise.reject(new Error(`answerMapPretest in step ${this.step}`));
-    return this.mapPretest.answer(itemId, answer, measures);
+  // ---- The training incident (SPEC/15 (bp); `TrainingHost`, `training/session.ts`) -----------------------------------------
+  private inTraining<T>(name: string, op: (run: TrainingRun) => Promise<T>): Promise<T> {
+    return this.step === "training_incident" ? op(this.trainingRun) : Promise.reject(new Error(`${name} in step ${this.step}`));
   }
-  /** A training task's feedback left ("Next task"); the last ends the training and the session goes on to the briefing. */
-  leaveMapPretestFeedback(itemId: string): Promise<void> {
-    if (this.step !== "map_pretest") return Promise.reject(new Error(`leaveMapPretestFeedback in step ${this.step}`));
-    return this.mapPretest.leaveFeedback(itemId);
-  }
-  /** Whole seconds left on the training's cap (its countdown), and on the memory task's exposure. */
-  mapPretestSecondsLeft(): number { return this.mapPretest.secondsLeft(); }
-  mapPretestStudySecondsLeft(): number { return this.mapPretest.studySecondsLeft(); }
+  /** The intro's button, a section card's button, an item's answer (once, final; logged before its feedback), a feedback left, S5 left. */
+  trainingStart(): Promise<void> { return this.inTraining("trainingStart", (t) => t.leaveIntro()); }
+  trainingLeaveSection(): Promise<void> { return this.inTraining("trainingLeaveSection", (t) => t.leaveSection()); }
+  answerTraining(itemId: string, answer: TrainingAnswer, measures?: readonly number[]): Promise<void> { return this.inTraining("answerTraining", (t) => t.answer(itemId, answer, measures)); }
+  leaveTrainingFeedback(itemId: string): Promise<void> { return this.inTraining("leaveTrainingFeedback", (t) => t.leaveFeedback(itemId)); }
+  leaveTrainingDemo(): Promise<void> { return this.inTraining("leaveTrainingDemo", (t) => t.leaveDemo()); }
+  /** S3's Haku question (`training_haku_*`, never `ai_chat_*`). */
+  askTrainingHaku(text: string): Promise<void> { return this.inTraining("askTrainingHaku", (t) => t.askChat(text).then(() => undefined)); }
+  /** An R&B measurement on the item on screen (m): logged with its answer (`measures`). */
+  noteTrainingMeasure(metres: number): void { if (this.step === "training_incident") this.trainingRun.noteMeasure(metres); }
+  /** Whole seconds left: the cap, the memory exposure, the question card's window, S5's wait for its button. */
+  trainingSecondsLeft(): number { return this.trainingRun.secondsLeft(); }
+  trainingStudySecondsLeft(): number { return this.trainingRun.studySecondsLeft(); }
+  trainingCardSecondsLeft(): number { return this.trainingRun.cardSecondsLeft(); }
+  trainingDemoSecondsLeft(): number { return this.trainingRun.demoSecondsLeft(); }
 
   /** TUTORIAL -> RUNNING: the group-specific training is read; V1 starts at 13:20, virtual 0. */
   async completeTraining(): Promise<void> {
@@ -805,6 +776,7 @@ export class SessionOrchestrator {
    */
   async submitFreeze(responses: readonly FreezeItemAnsweredDetail[], options: { readonly skipped?: boolean; readonly timedOut?: boolean } = {}): Promise<void> {
     if (options.skipped && !this.allowViewSkip) throw new Error("submitFreeze: skipping a freeze is for demonstrations only");
+    if (this.step === "training_incident") return this.trainingRun.submitFreeze(responses); // S4's item on the freeze screen (not `freeze_*`)
     const missing = (this.freezeSpec()?.items ?? []).map((it) => it.id).filter((id) => !responses.some((r) => r.itemId === id));
     const submittedMs = this.realMs(); // an item not left with "Seuraava" (the last) was answered by this submission
     const checked = checkFreezeResponses(this.freezeSpec()?.items ?? [], responses, this.scenario.extent).map((r) => {
@@ -813,10 +785,6 @@ export class SessionOrchestrator {
     });
     return this.guarded("freeze", "submitFreeze", async () => { // one submission only: a second click is refused (review 2 Oct 2026)
       await this.event({ kind: "freeze_submitted", detail: { cycle: this.currentCycle, responses: checked, ...(options.skipped ? { skipped: true as const } : {}), ...(options.timedOut ? { timedOut: true as const } : {}), ...(missing.length > 0 ? { missing } : {}) } });
-      if (this.isPractice()) { // the feedback's map task and records item
-        this.practiceHeadMark = checked.find((r) => r.itemId === PRACTICE_HEAD_ITEM_ID)?.point ?? null;
-        this.practiceChoices = practiceChoicesIn(checked);
-      }
       this.clearFreezeCap();
       audioManager.exitFreeze();
       if (this.endFreeze) { this.endFreeze = false; await this.afterViewEnded("probes"); return; } // SPEC/30 §5.1: on to what follows the view
@@ -1117,8 +1085,7 @@ export class SessionOrchestrator {
       // (SPEC/15 §2), and the main timeline starts at V1 once TUTORIAL is complete.
       await this.event({ kind: "cycle_end", detail: { cycle: finished, totalRealDurationMs: this.viewRealMs() } });
       await this.transition("warmup_complete");
-      if (this.practiceFeedbackOn) return this.showPracticeFeedback(); // difficulty audit (b.3): before the training
-      this.showIntro("training");
+      this.showIntro("training"); // SPEC/15 (bp) §bp.1: VP's end leads straight to the group's training text (no practice feedback)
       this.notify();
       return;
     }
@@ -1147,6 +1114,7 @@ export class SessionOrchestrator {
     return this.queries.logTextQuery(query, results).then(() => results);
   }
   async askAiChat(query: string, options: { readonly viaChip?: boolean } = {}): Promise<TemplateAnswer> {
+    if (this.step === "training_incident") return this.trainingRun.askChat(query); // SPEC/14 (bp): the training's corpus, `training_haku_*`
     this.assertToolsFree("askAiChat");
     this.thinkerPending += 1; this.readingGraceMs = 0; this.notify(); // waiting on the session: no idle time (`attention.ts`)
     try {
@@ -1179,9 +1147,10 @@ export class SessionOrchestrator {
   /** SPEC/30 §4: the consult notification's close button (`consult_prompt_dismissed`, `participant`). */
   dismissConsultPrompt(): Promise<void> { return this.consult.dismiss(); }
   /** SPEC/30 §5.4: a decision-strip or SPAM-card interaction record (hover, answer change); raw, never gating the screen. */
-  logPanelUse(event: PanelUseEvent): Promise<unknown> { return this.event(event); }
+  logPanelUse(event: PanelUseEvent): Promise<unknown> { return this.step === "training_incident" ? Promise.resolve(undefined) : this.event(event); } // the training: not logged
   /** The right-panel tool tab the participant selects (`none`: closed); logged for the tool-use sequence (P1-1, 8 Oct 2026). */
   logTabSelected(tool: "haku" | "open_thinker" | "indexed_search" | "none"): Promise<unknown> {
+    if (this.step === "training_incident") return Promise.resolve(undefined); // SPEC/07 (bp): the training's tool use is not logged
     // Difficulty audit (a.4): opening Haku clears the "New records" badge; the badge is not set again while Haku stays open.
     this.hakuOpen = tool === "haku";
     if (this.hakuOpen && this.recordsBadge) { this.recordsBadge = false; this.notify(); }
@@ -1193,6 +1162,7 @@ export class SessionOrchestrator {
    * `click` refers to the last `viewport_changed` by it).
    */
   async logMapUse(event: MapUseEvent): Promise<number> {
+    if (this.step === "training_incident") return -1; // SPEC/07 (bp): the training's map use (and every render-layer record) is not logged
     const record = (await this.event(event)) as { readonly seq: number };
     return record.seq;
   }
@@ -1288,12 +1258,12 @@ export class SessionOrchestrator {
   /** The ready prompt collapsed to its pill / expanded again (revision (ag)); the probe stays pending. */
   collapseSpam(): Promise<void> { return this.spam.collapse(); }
   expandSpam(): Promise<void> { return this.spam.expand(); }
-  /** The SPAM option (final). */
-  answerSpam(optionId: string): Promise<void> { return this.spam.answer(optionId); }
-  /** The SPAM item's confidence (25/50/75/100); the probe closes. */
-  submitSpamConfidence(value: number): Promise<void> { return this.spam.confidence(value); }
+  /** The SPAM option (final). SPEC/08 (bp): in the training, S3's question card (the same card, routed). */
+  answerSpam(optionId: string): Promise<void> { return this.step === "training_incident" ? this.trainingRun.chooseCard(optionId) : this.spam.answer(optionId); }
+  /** The SPAM item's confidence (25/50/75/100); the probe closes. In the training: S3's card's answer is logged with it. */
+  submitSpamConfidence(value: number): Promise<void> { return this.step === "training_incident" ? this.trainingRun.confidenceCard(value) : this.spam.confidence(value); }
   /** The SPAM item's answer window left, whole seconds (the card's countdown, 24 Oct 2026; display only), else null. */
-  spamSecondsLeft(): number | null { return this.spam.secondsLeft(); }
+  spamSecondsLeft(): number | null { return this.step === "training_incident" ? this.trainingRun.cardCountdown() : this.spam.secondsLeft(); }
 
   // ---- The visible probes F, U (`visible-probes.ts`; placement and reasons in `demo-probes.ts`) ----------
 
@@ -1638,7 +1608,7 @@ export class SessionOrchestrator {
   private async startResumed(plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const { target } = plan;
     if (this.studyShell) {
-      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic, immediateProfile: this.immediateProfile, mapPretestOn: this.mapPretestOn });
+      const shell = shellResumeStep(target, this.resumeInfo?.records ?? [], { aiLiteracyOn: this.aiLiteracyOn, isPublic: this.publicLayer.isPublic, immediateProfile: this.immediateProfile, trainingOn: this.trainingOn });
       if (shell) return this.startResumedShell(shell, plan, interruptedForMs);
     }
     const inView = target.kind === "view" || target.kind === "spam_forced"; // a forced SPAM item lies inside its (run-out) view
@@ -1659,19 +1629,13 @@ export class SessionOrchestrator {
     const cycleReplayed = (inView ? target.view : target.kind === "hinge" ? this.scenario.hinge.afterCycle + 1
       : target.kind === "complete" ? this.lastView : PRACTICE_VIEW_INDEX) as CycleIndex;
     this.queries.restoreChats(this.resumeInfo?.records ?? [], cycleReplayed);
-    // Difficulty audit (b.3): after VP, the practice feedback again while it has not been left (the head mark from the log).
-    const records = this.resumeInfo?.records ?? [];
-    const feedbackPending = target.kind === "training" && this.practiceFeedbackOn
-      && !records.some((r) => r.kind === "briefing_advanced" && (r.detail as { screenId?: string }).screenId === PRACTICE_FEEDBACK_SCREEN_ID);
     await this.event({ kind: "fault", detail: { faultClass: INTERRUPTION_FAULT_CLASS } });
     await this.event({ kind: "fault_resolved", detail: { faultClass: INTERRUPTION_FAULT_CLASS, elapsedWallClockGapMs: interruptedForMs } });
-    await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: feedbackPending ? "practice_feedback" : target.kind } });
+    await this.event({ kind: "session_resumed", detail: { resumeCount: plan.resumeCount, intervalSinceInterruptionMs: interruptedForMs, cycleReplayed, resumedAt: target.kind } });
 
     switch (target.kind) {
       case "briefing": return this.toBriefing(); // the intro video again, from its start; without it the page is gone: on to the practice view
-      case "training":
-        if (feedbackPending) { this.practiceHeadMark = practiceHeadMarkOf(records); this.practiceChoices = practiceChoicesOf(records); return this.showPracticeFeedback(); }
-        this.showIntro("training"); this.notify(); return;
+      case "training": this.showIntro("training"); this.notify(); return;
       case "hinge": return this.enterHinge();
       case "complete": this.step = "complete"; this.completed = plan.alreadyCompleted; this.notify(); return;
       case "view":
@@ -1731,7 +1695,7 @@ export class SessionOrchestrator {
   private async startResumedShell(shell: ShellResumeStep, plan: SessionResumePlan, interruptedForMs: number): Promise<void> {
     const after = shell === "questionnaire" || shell === "results_optin" || shell === "profile" || shell === "debrief";
     if (shell === "preflight" || shell === "ai_literacy") this.loop.transition("start");
-    if (shell === "primer" || shell === "map_pretest") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
+    if (shell === "primer" || shell === "training_incident") for (const trigger of ["start", "preflight_passed"] as const) this.loop.transition(trigger);
     if (after) {
       for (const trigger of ["start", "preflight_passed", "briefing_complete", "warmup_complete", "tutorial_complete"] as const) this.loop.transition(trigger);
       this.replayViews(this.lastView, false);
@@ -1747,7 +1711,7 @@ export class SessionOrchestrator {
       const records = this.resumeInfo?.records ?? [];
       await this.showAiLiteracy(keptAiLiteracyAnswers(records), aiLiteracySpentMs(records), true);
     }
-    else if (shell === "map_pretest") return this.showMapPretest(this.resumeInfo?.records ?? [], true); // the first task not finished
+    else if (shell === "training_incident") return this.showTraining(this.resumeInfo?.records ?? [], true); // SPEC/15 (bp) §bp.4
     else if (shell === "profile") await this.showProfile();
     else if (shell === "debrief") await this.showDebrief();
     else this.step = shell; // the consent, the preflight, the primer (from its first page), the results step (SPEC/36)

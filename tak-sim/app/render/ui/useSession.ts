@@ -39,9 +39,9 @@ export function useSession(scenario: ScenarioContract, condition: "directed" | "
   if (!orchestratorRef.current) {
     orchestratorRef.current = new SessionOrchestrator(scenario, condition, {
       // The AI literacy test after consent runs in every session the study shell runs (revision (ac)): every cell, study and demonstration.
-      // So does the intro video before the practice view (10 Oct 2026). Difficulty audit (23 Oct 2026): so do the map-reading pretest
-      // before VP and the practice feedback after it, in every session.
-      previewOverride, language, showProbeLevels, guidedTour, visibleProbes: true, aiLiteracyTest: true, introVideo: assetUrl(INTRO_VIDEO_SRC), mapPretest: true, practiceFeedback: true, ...(cell ? { cell } : {}), ...start,
+      // So does the intro video before the practice view (10 Oct 2026). SPEC/15 (bp) (26 Oct 2026): so does the training incident before
+      // the intro video, in every session (it replaces the map training and the practice feedback after VP).
+      previewOverride, language, showProbeLevels, guidedTour, visibleProbes: true, aiLiteracyTest: true, introVideo: assetUrl(INTRO_VIDEO_SRC), trainingIncident: true, ...(cell ? { cell } : {}), ...start,
       ...(persistence ? { sink: persistence.sink } : {}),
       ...(persistence?.annotations ? { annotations: persistence.annotations } : {}),
       ...(persistence?.resume ? { resume: persistence.resume } : {}),

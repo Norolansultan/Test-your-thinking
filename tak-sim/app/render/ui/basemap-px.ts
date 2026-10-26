@@ -2,7 +2,8 @@
  * WGS84 → the basemap image's pixels (`site-meta.json`: a `sizePx` square whose four corners' WGS84 positions are known; tiles of
  * `sizePx / 4` named `<row>_<col>`). The inverse of the corners' bilinear map, by Newton's method: exact at the corners and within a
  * fraction of a pixel inside (the TM35 image is nearly a parallelogram in WGS84 over 20 km). Used by the practice feedback's small map
- * (`PracticeFeedbackScreen`), which draws the basemap's own tiles; pure.
+ * (`PracticeFeedbackScreen`), which draws the basemap's own tiles, and (revision (bp)) inverted by `basemapLatLon` for the training
+ * incident's marks; pure.
  */
 
 import type { LatLon } from "../../engine/primitives.js";
@@ -48,6 +49,21 @@ export function basemapPx(p: LatLon): { readonly x: number; readonly y: number }
   if (!tile) return { x: g.u * BASEMAP_SIZE_PX, y: g.v * BASEMAP_SIZE_PX };
   const t = fractions(tile, p);
   return { x: (col + t.u) * BASEMAP_TILE_PX, y: (row + t.v) * BASEMAP_TILE_PX };
+}
+
+/**
+ * The inverse of {@link basemapPx}: a basemap pixel (x east, y south; a fraction allowed) as WGS84, through the tile that holds it
+ * (its own corners' bilinear map), else the image's corners. Exact at the tiles' corners and within a fraction of a pixel inside, as
+ * `basemapPx` is; the training incident's build (`tools/review/training.ts`, SPEC/08 (bp) §bp.9) writes its marks with it.
+ */
+export function basemapLatLon(px: { readonly x: number; readonly y: number }): LatLon {
+  const clamp = (v: number) => Math.max(0, Math.min(BASEMAP_TILES - 1, Math.floor(v / BASEMAP_TILE_PX)));
+  const row = clamp(px.y), col = clamp(px.x);
+  const tile = TILE_QUADS.get(`${row}_${col}`);
+  const [lon, lat] = tile
+    ? at(tile, px.x / BASEMAP_TILE_PX - col, px.y / BASEMAP_TILE_PX - row)
+    : at(IMAGE, px.x / BASEMAP_SIZE_PX, px.y / BASEMAP_SIZE_PX);
+  return { lat, lon };
 }
 
 /** The tiles (row, col) a pixel window overlaps. */

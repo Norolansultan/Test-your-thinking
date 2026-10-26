@@ -11,6 +11,11 @@
  * - The "New records" badge on the Haku button is NOT logged: it is shown at every view's start (`cycle_start`) and step boundary
  *   (`step_boundary_reached`) unless the Haku tool is open, and cleared when Haku is opened (`tab_selected` "haku"), so its state is a
  *   function of records the log already has.
+ *
+ * RETIRED in format 0.18.0 (26 Oct 2026, SPEC/07 (bp)): the map training and the practice feedback are replaced by the training
+ * incident (`record-kinds-training.ts`). These kinds (`map_pretest_started` / `_answer` / `_feedback_left` / `_completed`,
+ * `practice_feedback_shown`) and the header's `mapPretest` and `practiceFeedback` are no longer written; they stay typed so that logs
+ * of 0.17.0 and earlier remain readable. The modules named above are gone.
  */
 
 /** The pretest on screen: its version and items, the cap, the time left, and (a resume) the items already answered. */

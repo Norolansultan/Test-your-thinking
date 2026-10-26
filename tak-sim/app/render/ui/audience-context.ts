@@ -9,8 +9,8 @@ import { useContext } from "preact/hooks";
 
 export type Audience = "expert" | "public";
 
-/** Where a glossary term was opened (SPEC/35 §3 item 2). */
-export type GlossarySurface = "message_log" | "record" | "freeze" | "spam" | "plan" | "review" | "search" | "guide" | "help_card" | "other";
+/** Where a glossary term was opened (SPEC/35 §3 item 2); `training`: a training-incident text (SPEC/35 (bp)). */
+export type GlossarySurface = "message_log" | "record" | "freeze" | "spam" | "plan" | "review" | "search" | "guide" | "help_card" | "training" | "other";
 
 export type HelpCardSection = "glossary" | "roster" | "legend";
 

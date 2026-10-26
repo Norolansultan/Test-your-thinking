@@ -7,8 +7,12 @@
 import type { CycleIndex } from "../engine/primitives.js";
 import type { PracticeViewIndex } from "../scenario/types.js";
 
-/** Where a glossary term was opened (SPEC/35 §3 item 2); the same list as the render layer's (`audience-context.ts`). */
-export type GlossarySurface = "message_log" | "record" | "freeze" | "spam" | "plan" | "review" | "search" | "guide" | "help_card" | "other";
+/**
+ * Where a glossary term was opened (SPEC/35 §3 item 2); the same list as the render layer's (`audience-context.ts`). `training`
+ * (0.18.0, SPEC/35 (bp)): a training-incident text (its intro, section cards, item stems on the live map, feedback and S5); the items
+ * it shows through the freeze screen and the question card keep `freeze` and `spam`.
+ */
+export type GlossarySurface = "message_log" | "record" | "freeze" | "spam" | "plan" | "review" | "search" | "guide" | "help_card" | "training" | "other";
 /** A section of the help card (SPEC/35 §3 item 3). */
 export type HelpCardSection = "glossary" | "roster" | "legend";
 

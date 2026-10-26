@@ -170,6 +170,15 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "map_pretest_feedback_left", detail: { itemId: "training.t1.place", position: 1, dwellMs: 7_500 } },
   { kind: "map_pretest_completed", detail: { endReason: "completed", answeredCount: 1, missingItemIds: [], durationMs: 16_500 } },
   { kind: "practice_feedback_shown", detail: { itemIds: ["freeze.practice.infra", "freeze.practice.forecast"] } },
+  // The training incident (0.18.0, SPEC/07 (bp)); the map training's and the practice feedback's kinds above are retired, still typed
+  { kind: "training_started", detail: { version: "training-2026-10-26", sectionIds: ["s1", "s2", "s3", "s4", "s5"], itemIds: ["training.s1.place", "training.s3.records1"], capMs: 720_000, remainingMs: 720_000, resumed: false, keptItemIds: [] } },
+  { kind: "training_section_left", detail: { sectionId: "s1", dwellMs: 6_000 } },
+  { kind: "training_answer", detail: { itemId: "training.s1.place", sectionId: "s1", position: 1, rtMs: 14_000, measures: [], point: { lat: 60.93, lon: 27.51 }, errorM: 42 } },
+  { kind: "training_feedback_left", detail: { itemId: "training.s1.place", position: 1, dwellMs: 9_000 } },
+  { kind: "training_haku_asked", detail: { queryId: "trn.1", itemId: "training.s3.records1", text: "Mitä DR8 ilmoitti klo 10.05?", charCount: 28, atItemMs: 7_000 } },
+  { kind: "training_haku_answered", detail: { queryId: "trn.1", itemId: "training.s3.records1", retrieved: [{ id: "trn.r06", fusedScore: 2 }], retrievalMode: "lexical_only", retrievalLanguage: "fi", answerSource: "template", modelId: null, promptHash: null, fallback: true, fallbackReason: "network_error", latencyMs: 2_500, answer: { vastaus: "v", perusteet: "p", varmuus: "m", muuttaisi: "u" } } },
+  { kind: "training_demo_shown", detail: { demoId: "haku", exampleIds: ["ex1", "ex2"], dwellMs: 61_000 } },
+  { kind: "training_completed", detail: { endReason: "completed", answeredCount: 13, missingItemIds: [], durationMs: 540_000 } },
   // Adopted before pilot 2 (0.16.0): the hinge's optional fatigue item
   { kind: "hinge_fatigue_rated", detail: { itemId: "fatigue.hinge", value: 4 } },
   // The AI literacy test (9 Oct 2026, revision (ac))

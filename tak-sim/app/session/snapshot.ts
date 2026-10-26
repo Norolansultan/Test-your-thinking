@@ -22,8 +22,7 @@ import type { AiLiteracyView } from "./ai-literacy.js";
 import type { ConsultPromptView } from "./consult-notice.js";
 import type { PlanConfidenceView } from "./plan-confidence.js";
 import type { PlanReviewView } from "./plan-review.js";
-import type { MapTrainingView } from "./map-training.js";
-import type { PracticeFeedbackView } from "./practice-feedback.js";
+import type { TrainingView } from "./training/host.js";
 
 export type CyclePhase = "exploration" | "freeze" | "decision";
 
@@ -75,10 +74,12 @@ export type JudgementStep =
   | "profile"
   /** SPEC/36 (every session): "Personal results after the study", after the post-session questionnaire and before the profile or debrief. */
   | "results_optin"
-  /** Difficulty audit (23 Oct 2026): the map-reading pretest — since 25 Oct 2026 the map training —, after the pre-session item (and the primer) and before the intro video and VP. */
-  | "map_pretest"
-  /** Difficulty audit: the practice feedback screen, after VP's end and before the training text (`practice-feedback.ts`). */
-  | "practice_feedback";
+  /**
+   * SPEC/15 (bp), 26 Oct 2026: the training incident (`training/`), after the pre-session item (and a public session's primer) and before
+   * the intro video and VP; played with the session's own components. Replaces the map training's `map_pretest` step; the practice
+   * feedback's `practice_feedback` step is gone.
+   */
+  | "training_incident";
 
 /** The guided tour at VP and the tool reminder at V1 (SPEC/15 r.11). */
 export type TourId = "practice" | "tools";
@@ -226,12 +227,10 @@ export interface SessionSnapshot {
   /** SPEC/32 §3: the plan review on screen (step `plan_review`, once `plan_review_shown` is durable), else null. Carries no key. */
   readonly planReview: PlanReviewView | null;
   /**
-   * Difficulty audit (23 Oct 2026): the map-reading pretest's item on screen (step `map_pretest`), else null. Since 25 Oct 2026 the
-   * map training's task on screen and its phase (`map-training.ts`; the training shows each key in its feedback).
+   * SPEC/15 (bp): the training incident on screen (step `training_incident`), else null — its phase, section, item and the real tools
+   * open for it. While it shows, the map, log, Haku, SPAM-card and freeze fields above are the training's (`training/view.ts`).
    */
-  readonly mapPretest: MapTrainingView | null;
-  /** Difficulty audit: the practice feedback screen (step `practice_feedback`), else null. Source-only for the practice freeze's items. */
-  readonly practiceFeedback: PracticeFeedbackView | null;
+  readonly training: TrainingView | null;
   /**
    * Difficulty audit (`proposal.md` (a.4), the number-free default): the "New records" badge on the Haku button — set at every view's
    * start and step boundary unless Haku is open, cleared when Haku is opened. Content-free: no count; the same in both groups.

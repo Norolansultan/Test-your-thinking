@@ -151,7 +151,7 @@ export const TRAINING_WORDS_EN: TrainingWords = {
     answer: "Answer",
     markHint: "Mark the place by tapping the map.",
     marked: "Marked",
-    timeLeft: "Training time left",
+    timeLeft: "Training time left {t}",
     cardTimeLeft: "Time to answer",
     now: `The situation at ${TRAINING.now.label}`,
     mappedAt: "mapped at 10.00",

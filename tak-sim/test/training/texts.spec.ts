@@ -21,7 +21,9 @@ describe("the training's texts (fi DRAFT, en)", () => {
   it("every text exists in both languages, with no unfilled slot, undefined or NaN", () => {
     for (const t of ALL) {
       expect(t.text.trim().length, `${t.lang} ${t.where}`).toBeGreaterThan(0);
-      expect(t.text, `${t.lang} ${t.where}`).not.toMatch(/undefined|NaN|\{|\}|\[object/);
+      // The interface strings' named slots ({t}, {n}, {of}, {s}) are filled by the screen (`trainingUi`); nothing else may hold a brace.
+      const text = t.where.startsWith("ui.") ? t.text.replace(/\{(t|n|of|s)\}/g, "") : t.text;
+      expect(text, `${t.lang} ${t.where}`).not.toMatch(/undefined|NaN|\{|\}|\[object/);
     }
     const where = (lang: string) => ALL.filter((t) => t.lang === lang).map((t) => t.where).filter((w) => !w.startsWith("record.")).sort();
     expect(where("fi")).toEqual(where("en"));

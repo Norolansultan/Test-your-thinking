@@ -153,7 +153,7 @@ export const TRAINING_WORDS_FI: TrainingWords = {
     answer: "Vastaa",
     markHint: "Merkitse paikka napauttamalla karttaa.",
     marked: "Merkintä tehty",
-    timeLeft: "Harjoituksen aikaa jäljellä",
+    timeLeft: "Harjoituksen aikaa jäljellä {t}",
     cardTimeLeft: "Aikaa vastata",
     now: `Tilanne klo ${TRAINING.now.label}`,
     mappedAt: "kartoitettu klo 10.00",

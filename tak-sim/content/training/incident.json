@@ -1,0 +1,1511 @@
+{
+ "version": "training-2026-10-26",
+ "capMs": 720000,
+ "cardWindowMs": 60000,
+ "demoMinDwellMs": 10000,
+ "now": {
+  "virtualTimeS": -10920,
+  "label": "10.18"
+ },
+ "area": {
+  "bounds": {
+   "south": 60.915557,
+   "west": 27.488671,
+   "north": 60.938169,
+   "east": 27.535146
+  },
+  "lockMarginM": 100,
+  "centre": {
+   "lat": 60.926863,
+   "lon": 27.5119
+  }
+ },
+ "roadLabels": [
+  {
+   "road": "R5",
+   "at": {
+    "lat": 60.920188,
+    "lon": 27.496574
+   }
+  },
+  {
+   "road": "R6",
+   "at": {
+    "lat": 60.926826,
+    "lon": 27.496419
+   }
+  },
+  {
+   "road": "R7",
+   "at": {
+    "lat": 60.933174,
+    "lon": 27.524489
+   }
+  }
+ ],
+ "scenes": {
+  "s1": {
+   "index": 0,
+   "phase": "A",
+   "startsAtVirtual": -12000,
+   "steps": 1,
+   "stepShown": 1,
+   "clockLabel": "10:00",
+   "perimeter": [],
+   "detachedFronts": [],
+   "unitPositions": {},
+   "unitWork": {},
+   "fire": {
+    "perimeters_past": [],
+    "perimeter_current": [],
+    "burnt_area": {
+     "geometry": [],
+     "severity": null
+    },
+    "burning_zone": [],
+    "spot_fires": [],
+    "detections": []
+   },
+   "aircraft": [],
+   "wind": {
+    "observedAt": -12000,
+    "fromDeg": 0,
+    "meanMs": 0,
+    "sourceFi": ""
+   },
+   "rateMarks": [],
+   "sensorFootprints": []
+  },
+  "incident": {
+   "index": 0,
+   "phase": "A",
+   "startsAtVirtual": -12000,
+   "steps": 1,
+   "stepShown": 1,
+   "clockLabel": "10:00",
+   "perimeter": [
+    [
+     {
+      "lat": 60.918603,
+      "lon": 27.50403
+     },
+     {
+      "lat": 60.918559,
+      "lon": 27.504073
+     },
+     {
+      "lat": 60.918495,
+      "lon": 27.504072
+     },
+     {
+      "lat": 60.918412,
+      "lon": 27.504027
+     },
+     {
+      "lat": 60.918312,
+      "lon": 27.503944
+     },
+     {
+      "lat": 60.918201,
+      "lon": 27.503831
+     },
+     {
+      "lat": 60.91808,
+      "lon": 27.503682
+     },
+     {
+      "lat": 60.917954,
+      "lon": 27.50351
+     },
+     {
+      "lat": 60.917829,
+      "lon": 27.503309
+     },
+     {
+      "lat": 60.917715,
+      "lon": 27.503101
+     },
+     {
+      "lat": 60.917616,
+      "lon": 27.502878
+     },
+     {
+      "lat": 60.917534,
+      "lon": 27.502648
+     },
+     {
+      "lat": 60.917474,
+      "lon": 27.502418
+     },
+     {
+      "lat": 60.917442,
+      "lon": 27.502204
+     },
+     {
+      "lat": 60.917432,
+      "lon": 27.502012
+     },
+     {
+      "lat": 60.917451,
+      "lon": 27.501843
+     },
+     {
+      "lat": 60.917494,
+      "lon": 27.501718
+     },
+     {
+      "lat": 60.917555,
+      "lon": 27.50163
+     },
+     {
+      "lat": 60.917638,
+      "lon": 27.501595
+     },
+     {
+      "lat": 60.917731,
+      "lon": 27.501618
+     },
+     {
+      "lat": 60.917835,
+      "lon": 27.501686
+     },
+     {
+      "lat": 60.917946,
+      "lon": 27.501814
+     },
+     {
+      "lat": 60.918057,
+      "lon": 27.501985
+     },
+     {
+      "lat": 60.918164,
+      "lon": 27.502193
+     },
+     {
+      "lat": 60.918264,
+      "lon": 27.502431
+     },
+     {
+      "lat": 60.91836,
+      "lon": 27.502691
+     },
+     {
+      "lat": 60.918441,
+      "lon": 27.50295
+     },
+     {
+      "lat": 60.918512,
+      "lon": 27.503202
+     },
+     {
+      "lat": 60.918565,
+      "lon": 27.503431
+     },
+     {
+      "lat": 60.918604,
+      "lon": 27.503639
+     },
+     {
+      "lat": 60.918625,
+      "lon": 27.503809
+     },
+     {
+      "lat": 60.918624,
+      "lon": 27.503941
+     },
+     {
+      "lat": 60.918603,
+      "lon": 27.50403
+     }
+    ]
+   ],
+   "detachedFronts": [],
+   "unitPositions": {
+    "EK51": {
+     "lat": 60.917367,
+     "lon": 27.501453
+    }
+   },
+   "unitWork": {
+    "EK51": {
+     "task": "hose_attack",
+     "vehicle": null,
+     "hoseM": null
+    }
+   },
+   "fire": {
+    "perimeters_past": [],
+    "perimeter_current": [
+     {
+      "status": "uncontained",
+      "is_head": true,
+      "line": [
+       {
+        "lat": 60.918512,
+        "lon": 27.503202
+       },
+       {
+        "lat": 60.918565,
+        "lon": 27.503431
+       },
+       {
+        "lat": 60.918604,
+        "lon": 27.503639
+       },
+       {
+        "lat": 60.918625,
+        "lon": 27.503809
+       },
+       {
+        "lat": 60.918624,
+        "lon": 27.503941
+       },
+       {
+        "lat": 60.918603,
+        "lon": 27.50403
+       },
+       {
+        "lat": 60.918559,
+        "lon": 27.504073
+       },
+       {
+        "lat": 60.918495,
+        "lon": 27.504072
+       },
+       {
+        "lat": 60.918412,
+        "lon": 27.504027
+       },
+       {
+        "lat": 60.918312,
+        "lon": 27.503944
+       },
+       {
+        "lat": 60.918201,
+        "lon": 27.503831
+       }
+      ]
+     },
+     {
+      "status": "uncontained",
+      "is_head": false,
+      "line": [
+       {
+        "lat": 60.918201,
+        "lon": 27.503831
+       },
+       {
+        "lat": 60.91808,
+        "lon": 27.503682
+       },
+       {
+        "lat": 60.917954,
+        "lon": 27.50351
+       },
+       {
+        "lat": 60.917829,
+        "lon": 27.503309
+       },
+       {
+        "lat": 60.917715,
+        "lon": 27.503101
+       },
+       {
+        "lat": 60.917616,
+        "lon": 27.502878
+       },
+       {
+        "lat": 60.917534,
+        "lon": 27.502648
+       },
+       {
+        "lat": 60.917474,
+        "lon": 27.502418
+       },
+       {
+        "lat": 60.917442,
+        "lon": 27.502204
+       },
+       {
+        "lat": 60.917432,
+        "lon": 27.502012
+       },
+       {
+        "lat": 60.917451,
+        "lon": 27.501843
+       },
+       {
+        "lat": 60.917494,
+        "lon": 27.501718
+       },
+       {
+        "lat": 60.917555,
+        "lon": 27.50163
+       },
+       {
+        "lat": 60.917638,
+        "lon": 27.501595
+       },
+       {
+        "lat": 60.917731,
+        "lon": 27.501618
+       },
+       {
+        "lat": 60.917835,
+        "lon": 27.501686
+       },
+       {
+        "lat": 60.917946,
+        "lon": 27.501814
+       },
+       {
+        "lat": 60.918057,
+        "lon": 27.501985
+       },
+       {
+        "lat": 60.918164,
+        "lon": 27.502193
+       },
+       {
+        "lat": 60.918264,
+        "lon": 27.502431
+       },
+       {
+        "lat": 60.91836,
+        "lon": 27.502691
+       },
+       {
+        "lat": 60.918441,
+        "lon": 27.50295
+       },
+       {
+        "lat": 60.918512,
+        "lon": 27.503202
+       }
+      ]
+     }
+    ],
+    "burnt_area": {
+     "geometry": [
+      [
+       [
+        {
+         "lat": 60.918104,
+         "lon": 27.502989
+        },
+        {
+         "lat": 60.918078,
+         "lon": 27.503011
+        },
+        {
+         "lat": 60.918046,
+         "lon": 27.50301
+        },
+        {
+         "lat": 60.917999,
+         "lon": 27.502987
+        },
+        {
+         "lat": 60.917946,
+         "lon": 27.502942
+        },
+        {
+         "lat": 60.917881,
+         "lon": 27.502882
+        },
+        {
+         "lat": 60.917813,
+         "lon": 27.5028
+        },
+        {
+         "lat": 60.917746,
+         "lon": 27.502703
+        },
+        {
+         "lat": 60.917678,
+         "lon": 27.502591
+        },
+        {
+         "lat": 60.917617,
+         "lon": 27.50248
+        },
+        {
+         "lat": 60.91756,
+         "lon": 27.502353
+        },
+        {
+         "lat": 60.917514,
+         "lon": 27.502227
+        },
+        {
+         "lat": 60.917482,
+         "lon": 27.502101
+        },
+        {
+         "lat": 60.917464,
+         "lon": 27.501983
+        },
+        {
+         "lat": 60.917461,
+         "lon": 27.50188
+        },
+        {
+         "lat": 60.917469,
+         "lon": 27.501784
+        },
+        {
+         "lat": 60.917494,
+         "lon": 27.501718
+        },
+        {
+         "lat": 60.917527,
+         "lon": 27.501667
+        },
+        {
+         "lat": 60.917573,
+         "lon": 27.501653
+        },
+        {
+         "lat": 60.917624,
+         "lon": 27.501661
+        },
+        {
+         "lat": 60.917681,
+         "lon": 27.501699
+        },
+        {
+         "lat": 60.917742,
+         "lon": 27.501766
+        },
+        {
+         "lat": 60.917802,
+         "lon": 27.501863
+        },
+        {
+         "lat": 60.917863,
+         "lon": 27.501982
+        },
+        {
+         "lat": 60.917916,
+         "lon": 27.502108
+        },
+        {
+         "lat": 60.91797,
+         "lon": 27.502249
+        },
+        {
+         "lat": 60.918016,
+         "lon": 27.50239
+        },
+        {
+         "lat": 60.918055,
+         "lon": 27.502531
+        },
+        {
+         "lat": 60.918083,
+         "lon": 27.502664
+        },
+        {
+         "lat": 60.918104,
+         "lon": 27.502775
+        },
+        {
+         "lat": 60.918115,
+         "lon": 27.502871
+        },
+        {
+         "lat": 60.918115,
+         "lon": 27.502937
+        },
+        {
+         "lat": 60.918104,
+         "lon": 27.502989
+        }
+       ]
+      ]
+     ],
+     "severity": null
+    },
+    "burning_zone": [
+     [
+      [
+       {
+        "lat": 60.918603,
+        "lon": 27.50403
+       },
+       {
+        "lat": 60.918559,
+        "lon": 27.504073
+       },
+       {
+        "lat": 60.918495,
+        "lon": 27.504072
+       },
+       {
+        "lat": 60.918412,
+        "lon": 27.504027
+       },
+       {
+        "lat": 60.918312,
+        "lon": 27.503944
+       },
+       {
+        "lat": 60.918201,
+        "lon": 27.503831
+       },
+       {
+        "lat": 60.91808,
+        "lon": 27.503682
+       },
+       {
+        "lat": 60.917954,
+        "lon": 27.50351
+       },
+       {
+        "lat": 60.917829,
+        "lon": 27.503309
+       },
+       {
+        "lat": 60.917715,
+        "lon": 27.503101
+       },
+       {
+        "lat": 60.917616,
+        "lon": 27.502878
+       },
+       {
+        "lat": 60.917534,
+        "lon": 27.502648
+       },
+       {
+        "lat": 60.917474,
+        "lon": 27.502418
+       },
+       {
+        "lat": 60.917442,
+        "lon": 27.502204
+       },
+       {
+        "lat": 60.917432,
+        "lon": 27.502012
+       },
+       {
+        "lat": 60.917451,
+        "lon": 27.501843
+       },
+       {
+        "lat": 60.917494,
+        "lon": 27.501718
+       },
+       {
+        "lat": 60.917555,
+        "lon": 27.50163
+       },
+       {
+        "lat": 60.917638,
+        "lon": 27.501595
+       },
+       {
+        "lat": 60.917731,
+        "lon": 27.501618
+       },
+       {
+        "lat": 60.917835,
+        "lon": 27.501686
+       },
+       {
+        "lat": 60.917946,
+        "lon": 27.501814
+       },
+       {
+        "lat": 60.918057,
+        "lon": 27.501985
+       },
+       {
+        "lat": 60.918164,
+        "lon": 27.502193
+       },
+       {
+        "lat": 60.918264,
+        "lon": 27.502431
+       },
+       {
+        "lat": 60.91836,
+        "lon": 27.502691
+       },
+       {
+        "lat": 60.918441,
+        "lon": 27.50295
+       },
+       {
+        "lat": 60.918512,
+        "lon": 27.503202
+       },
+       {
+        "lat": 60.918565,
+        "lon": 27.503431
+       },
+       {
+        "lat": 60.918604,
+        "lon": 27.503639
+       },
+       {
+        "lat": 60.918625,
+        "lon": 27.503809
+       },
+       {
+        "lat": 60.918624,
+        "lon": 27.503941
+       },
+       {
+        "lat": 60.918603,
+        "lon": 27.50403
+       }
+      ],
+      [
+       {
+        "lat": 60.918104,
+        "lon": 27.502989
+       },
+       {
+        "lat": 60.918115,
+        "lon": 27.502937
+       },
+       {
+        "lat": 60.918115,
+        "lon": 27.502871
+       },
+       {
+        "lat": 60.918104,
+        "lon": 27.502775
+       },
+       {
+        "lat": 60.918083,
+        "lon": 27.502664
+       },
+       {
+        "lat": 60.918055,
+        "lon": 27.502531
+       },
+       {
+        "lat": 60.918016,
+        "lon": 27.50239
+       },
+       {
+        "lat": 60.91797,
+        "lon": 27.502249
+       },
+       {
+        "lat": 60.917916,
+        "lon": 27.502108
+       },
+       {
+        "lat": 60.917863,
+        "lon": 27.501982
+       },
+       {
+        "lat": 60.917802,
+        "lon": 27.501863
+       },
+       {
+        "lat": 60.917742,
+        "lon": 27.501766
+       },
+       {
+        "lat": 60.917681,
+        "lon": 27.501699
+       },
+       {
+        "lat": 60.917624,
+        "lon": 27.501661
+       },
+       {
+        "lat": 60.917573,
+        "lon": 27.501653
+       },
+       {
+        "lat": 60.917527,
+        "lon": 27.501667
+       },
+       {
+        "lat": 60.917494,
+        "lon": 27.501718
+       },
+       {
+        "lat": 60.917469,
+        "lon": 27.501784
+       },
+       {
+        "lat": 60.917461,
+        "lon": 27.50188
+       },
+       {
+        "lat": 60.917464,
+        "lon": 27.501983
+       },
+       {
+        "lat": 60.917482,
+        "lon": 27.502101
+       },
+       {
+        "lat": 60.917514,
+        "lon": 27.502227
+       },
+       {
+        "lat": 60.91756,
+        "lon": 27.502353
+       },
+       {
+        "lat": 60.917617,
+        "lon": 27.50248
+       },
+       {
+        "lat": 60.917678,
+        "lon": 27.502591
+       },
+       {
+        "lat": 60.917746,
+        "lon": 27.502703
+       },
+       {
+        "lat": 60.917813,
+        "lon": 27.5028
+       },
+       {
+        "lat": 60.917881,
+        "lon": 27.502882
+       },
+       {
+        "lat": 60.917946,
+        "lon": 27.502942
+       },
+       {
+        "lat": 60.917999,
+        "lon": 27.502987
+       },
+       {
+        "lat": 60.918046,
+        "lon": 27.50301
+       },
+       {
+        "lat": 60.918078,
+        "lon": 27.503011
+       },
+       {
+        "lat": 60.918104,
+        "lon": 27.502989
+       }
+      ]
+     ]
+    ],
+    "spot_fires": [],
+    "detections": []
+   },
+   "aircraft": [],
+   "wind": {
+    "observedAt": -12000,
+    "fromDeg": 225,
+    "meanMs": 3,
+    "sourceFi": "EK51"
+   },
+   "rateMarks": [],
+   "sensorFootprints": []
+  }
+ },
+ "items": [
+  {
+   "id": "training.s1.place",
+   "section": "s1",
+   "position": 1,
+   "mode": "live",
+   "answer": "point",
+   "scene": "s1",
+   "source": null,
+   "covariate": "point_visible",
+   "marks": [],
+   "options": [],
+   "key": {
+    "point": {
+     "lat": 60.920339,
+     "lon": 27.501431
+    }
+   },
+   "feedback": {
+    "ring": [
+     {
+      "lat": 60.920339,
+      "lon": 27.501431
+     }
+    ],
+    "numbers": {
+     "roadA": "R5",
+     "roadB": "R6"
+    }
+   }
+  },
+  {
+   "id": "training.s1.measure",
+   "section": "s1",
+   "position": 2,
+   "mode": "live",
+   "answer": "choice",
+   "scene": "s1",
+   "source": null,
+   "covariate": null,
+   "marks": [
+    {
+     "id": "s1_measure_a",
+     "label": "A",
+     "kind": "point",
+     "at": {
+      "lat": 60.936413,
+      "lon": 27.527369
+     }
+    }
+   ],
+   "options": [
+    {
+     "id": "m150"
+    },
+    {
+     "id": "m300"
+    },
+    {
+     "id": "m600"
+    },
+    {
+     "id": "m1200"
+    }
+   ],
+   "key": {
+    "optionId": "m300"
+   },
+   "feedback": {
+    "line": [
+     {
+      "lat": 60.936413,
+      "lon": 27.527369
+     },
+     {
+      "lat": 60.935228,
+      "lon": 27.522405
+     }
+    ],
+    "numbers": {
+     "m": 300,
+     "road": "R7"
+    }
+   }
+  },
+  {
+   "id": "training.s1.slope",
+   "section": "s1",
+   "position": 3,
+   "mode": "live",
+   "answer": "choice",
+   "scene": "s1",
+   "source": null,
+   "covariate": null,
+   "optional": true,
+   "marks": [
+    {
+     "id": "s1_slope_a",
+     "label": "A",
+     "kind": "point",
+     "at": {
+      "lat": 60.932988,
+      "lon": 27.531003
+     }
+    },
+    {
+     "id": "s1_slope_b",
+     "label": "B",
+     "kind": "point",
+     "at": {
+      "lat": 60.931476,
+      "lon": 27.527847
+     }
+    },
+    {
+     "id": "s1_slope_c",
+     "label": "C",
+     "kind": "point",
+     "at": {
+      "lat": 60.934985,
+      "lon": 27.529341
+     }
+    }
+   ],
+   "options": [
+    {
+     "id": "towards_b"
+    },
+    {
+     "id": "towards_c"
+    },
+    {
+     "id": "equal"
+    }
+   ],
+   "key": {
+    "optionId": "towards_b"
+   },
+   "feedback": {
+    "line": [
+     {
+      "lat": 60.932988,
+      "lon": 27.531003
+     },
+     {
+      "lat": 60.931476,
+      "lon": 27.527847
+     }
+    ],
+    "numbers": {
+     "m": 7
+    }
+   }
+  },
+  {
+   "id": "training.s1.water",
+   "section": "s1",
+   "position": 4,
+   "mode": "live",
+   "answer": "choice",
+   "scene": "s1",
+   "source": null,
+   "covariate": null,
+   "marks": [
+    {
+     "id": "s1_water_star",
+     "label": "★",
+     "kind": "star",
+     "at": {
+      "lat": 60.929445,
+      "lon": 27.494024
+     }
+    },
+    {
+     "id": "s1_water_1",
+     "label": "1",
+     "kind": "water",
+     "at": {
+      "lat": 60.929246,
+      "lon": 27.498553
+     }
+    },
+    {
+     "id": "s1_water_2",
+     "label": "2",
+     "kind": "water",
+     "at": {
+      "lat": 60.93699,
+      "lon": 27.492133
+     }
+    }
+   ],
+   "options": [
+    {
+     "id": "fill_2"
+    },
+    {
+     "id": "fill_1"
+    },
+    {
+     "id": "either"
+    }
+   ],
+   "key": {
+    "optionId": "fill_2"
+   },
+   "feedback": {
+    "ring": [
+     {
+      "lat": 60.93699,
+      "lon": 27.492133
+     }
+    ],
+    "line": [
+     {
+      "lat": 60.929445,
+      "lon": 27.494024
+     },
+     {
+      "lat": 60.929246,
+      "lon": 27.498553
+     }
+    ],
+    "routes": [
+     [
+      {
+       "lat": 60.929445,
+       "lon": 27.494024
+      },
+      {
+       "lat": 60.929939,
+       "lon": 27.493582
+      },
+      {
+       "lat": 60.930422,
+       "lon": 27.493102
+      },
+      {
+       "lat": 60.930898,
+       "lon": 27.492571
+      },
+      {
+       "lat": 60.931359,
+       "lon": 27.492002
+      },
+      {
+       "lat": 60.931807,
+       "lon": 27.491397
+      },
+      {
+       "lat": 60.932247,
+       "lon": 27.490762
+      },
+      {
+       "lat": 60.932702,
+       "lon": 27.490053
+      },
+      {
+       "lat": 60.933153,
+       "lon": 27.489454
+      },
+      {
+       "lat": 60.933615,
+       "lon": 27.489004
+      },
+      {
+       "lat": 60.934131,
+       "lon": 27.489336
+      },
+      {
+       "lat": 60.934658,
+       "lon": 27.489544
+      },
+      {
+       "lat": 60.935167,
+       "lon": 27.489899
+      },
+      {
+       "lat": 60.935653,
+       "lon": 27.490371
+      },
+      {
+       "lat": 60.936133,
+       "lon": 27.490865
+      },
+      {
+       "lat": 60.936608,
+       "lon": 27.491397
+      },
+      {
+       "lat": 60.93699,
+       "lon": 27.492133
+      }
+     ]
+    ],
+    "numbers": {
+     "a": 246,
+     "b": 963,
+     "key": "2",
+     "other": "1"
+    }
+   }
+  },
+  {
+   "id": "training.s2.now",
+   "section": "s2",
+   "position": 5,
+   "mode": "live",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "log",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "map_edge"
+    },
+    {
+     "id": "at_road"
+    },
+    {
+     "id": "cannot_tell"
+    }
+   ],
+   "key": {
+    "optionId": "at_road"
+   },
+   "feedback": {
+    "ring": [
+     {
+      "lat": 60.919358,
+      "lon": 27.505605
+     }
+    ],
+    "numbers": {
+     "road": "R5",
+     "mapped": "10.00",
+     "report": "10.12",
+     "from": "DR8"
+    }
+   }
+  },
+  {
+   "id": "training.s2.project",
+   "section": "s2",
+   "position": 6,
+   "mode": "live",
+   "answer": "point",
+   "scene": "incident",
+   "source": "reasoning",
+   "covariate": null,
+   "marks": [
+    {
+     "id": "s2_head",
+     "label": "10.12",
+     "kind": "head",
+     "at": {
+      "lat": 60.919358,
+      "lon": 27.505605
+     }
+    }
+   ],
+   "options": [],
+   "key": {
+    "point": {
+     "lat": 60.921248,
+     "lon": 27.509548
+    }
+   },
+   "feedback": {
+    "ring": [
+     {
+      "lat": 60.921248,
+      "lon": 27.509548
+     }
+    ],
+    "line": [
+     {
+      "lat": 60.919358,
+      "lon": 27.505605
+     },
+     {
+      "lat": 60.921248,
+      "lon": 27.509548
+     }
+    ],
+    "numbers": {
+     "m": 300,
+     "dir": "ne",
+     "from": "10.12",
+     "to": "10.42",
+     "rate": 10,
+     "minutes": 30
+    }
+   }
+  },
+  {
+   "id": "training.s3.records1",
+   "section": "s3",
+   "position": 7,
+   "mode": "card",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "records",
+   "covariate": "seek_first",
+   "marks": [],
+   "options": [
+    {
+     "id": "ha02"
+    },
+    {
+     "id": "ha04"
+    },
+    {
+     "id": "ha11"
+    },
+    {
+     "id": "ha25"
+    }
+   ],
+   "key": {
+    "optionId": "ha11"
+   },
+   "feedback": {
+    "numbers": {
+     "lureHa": 0.4,
+     "lureRecord": "trn.r03"
+    }
+   },
+   "lesson": {
+    "questionId": "trn.q.dr8_1005",
+    "recordIds": [
+     "trn.r06"
+    ]
+   }
+  },
+  {
+   "id": "training.s3.older",
+   "section": "s3",
+   "position": 8,
+   "mode": "card",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "log",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "cut_by_fire"
+    },
+    {
+     "id": "passable"
+    },
+    {
+     "id": "light_only"
+    },
+    {
+     "id": "blocked"
+    }
+   ],
+   "key": {
+    "optionId": "blocked"
+   },
+   "feedback": {
+    "numbers": {
+     "r6Dir": "n",
+     "blockedM": 300
+    }
+   },
+   "lesson": {
+    "questionId": "trn.q.r6_passable",
+    "recordIds": [
+     "trn.r02",
+     "trn.r09"
+    ]
+   }
+  },
+  {
+   "id": "training.s3.records2",
+   "section": "s3",
+   "position": 9,
+   "mode": "card",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "records",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "two"
+    },
+    {
+     "id": "three"
+    },
+    {
+     "id": "four"
+    },
+    {
+     "id": "six"
+    }
+   ],
+   "key": {
+    "optionId": "four"
+   },
+   "feedback": {
+    "numbers": {
+     "lureRecord": "trn.r05"
+    }
+   },
+   "lesson": {
+    "questionId": "trn.q.ek51_crew",
+    "recordIds": [
+     "trn.r07"
+    ]
+   }
+  },
+  {
+   "id": "training.s4.memory",
+   "section": "s4",
+   "position": 10,
+   "mode": "freeze",
+   "answer": "point",
+   "scene": "s1",
+   "source": "map",
+   "covariate": "point_memory",
+   "marks": [],
+   "options": [],
+   "key": {
+    "point": {
+     "lat": 60.924705,
+     "lon": 27.499802
+    }
+   },
+   "feedback": {
+    "ring": [
+     {
+      "lat": 60.924705,
+      "lon": 27.499802
+     }
+    ],
+    "numbers": {
+     "unit": "EK53"
+    }
+   },
+   "memory": {
+    "unit": "EK53",
+    "at": {
+     "lat": 60.924705,
+     "lon": 27.499802
+    },
+    "exposureMs": 8000
+   }
+  },
+  {
+   "id": "training.s4.log",
+   "section": "s4",
+   "position": 11,
+   "mode": "freeze",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "log",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "dr8"
+    },
+    {
+     "id": "ek51"
+    },
+    {
+     "id": "ek52"
+    },
+    {
+     "id": "nobody"
+    }
+   ],
+   "key": {
+    "optionId": "dr8"
+   },
+   "feedback": {
+    "numbers": {
+     "record": "trn.r08"
+    }
+   }
+  },
+  {
+   "id": "training.s4.map",
+   "section": "s4",
+   "position": 12,
+   "mode": "freeze",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "map",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "north"
+    },
+    {
+     "id": "south"
+    },
+    {
+     "id": "both"
+    },
+    {
+     "id": "none"
+    }
+   ],
+   "key": {
+    "optionId": "south"
+   },
+   "feedback": {
+    "numbers": {
+     "side": "s"
+    }
+   }
+  },
+  {
+   "id": "training.s4.records",
+   "section": "s4",
+   "position": 13,
+   "mode": "freeze",
+   "answer": "choice",
+   "scene": "incident",
+   "source": "records",
+   "covariate": null,
+   "marks": [],
+   "options": [
+    {
+     "id": "mpm4"
+    },
+    {
+     "id": "mpm10"
+    },
+    {
+     "id": "mpm20"
+    },
+    {
+     "id": "mpm40"
+    }
+   ],
+   "key": {
+    "optionId": "mpm10"
+   },
+   "feedback": {
+    "numbers": {}
+   },
+   "lesson": {
+    "questionId": "trn.q.dr8_1005",
+    "recordIds": [
+     "trn.r06"
+    ]
+   }
+  }
+ ],
+ "sections": [
+  {
+   "id": "s1",
+   "itemIds": [
+    "training.s1.place",
+    "training.s1.measure",
+    "training.s1.slope",
+    "training.s1.water"
+   ]
+  },
+  {
+   "id": "s2",
+   "itemIds": [
+    "training.s2.now",
+    "training.s2.project"
+   ]
+  },
+  {
+   "id": "s3",
+   "itemIds": [
+    "training.s3.records1",
+    "training.s3.older",
+    "training.s3.records2"
+   ]
+  },
+  {
+   "id": "s4",
+   "itemIds": [
+    "training.s4.memory",
+    "training.s4.log",
+    "training.s4.map",
+    "training.s4.records"
+   ]
+  },
+  {
+   "id": "s5",
+   "itemIds": []
+  }
+ ]
+}

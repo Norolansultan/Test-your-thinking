@@ -1,6 +1,8 @@
 /**
- * Plane geometry for the map training's build (`map-training.ts`; the map-reading pretest's before 25 Oct 2026), in the basemap's
- * pixels (4 m each, y down). Pure and deterministic: no clock, no randomness, every choice ordered by an explicit comparator.
+ * Plane geometry for the training incident's build (`training.ts`, SPEC/08 (bp) §bp.9; the map training's and the map-reading
+ * pretest's before 26 Oct 2026), in the basemap's pixels (4 m each, y down). Pure and deterministic: no clock, no randomness, every
+ * choice ordered by an explicit comparator. Revision (bp) adds the band cut (`keptRuns`), a clearance from a line (`clearOf`), the
+ * area of a ring (`ringArea`), the nearest boundary point of a polygon (`nearestOnRing`) and a point along a path (`alongPath`).
  */
 
 export interface Px { readonly x: number; readonly y: number }
@@ -50,6 +52,50 @@ export function nearestOnLine(p: Px, line: Ring): Px {
 export function polygonDist(p: Px, ring: Ring): number {
   return inside(p, ring) ? 0 : lineDist(p, [...ring, ring[0]!]);
 }
+
+/** The point of a polygon's boundary nearest `p` (inside or out). */
+export function nearestOnRing(p: Px, ring: Ring): Px {
+  return nearestOnLine(p, [...ring, ring[0]!]);
+}
+
+/** A ring's area by the shoelace formula, in square pixels (unsigned). */
+export function ringArea(ring: Ring): number {
+  let s = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) s += ring[j]![0] * ring[i]![1] - ring[i]![0] * ring[j]![1];
+  return Math.abs(s) / 2;
+}
+
+/**
+ * The runs of consecutive vertices that `keep` accepts, each of two vertices or more: a polyline cut at an area's edge or at a band
+ * (revision (bp): every drivable road is cut at the 400 m band around the power line, so no task, route or label can use it).
+ */
+export function keptRuns(pts: readonly Px[], keep: (p: Px) => boolean): Px[][] {
+  const out: Px[][] = [];
+  let run: Px[] = [];
+  const flush = () => { if (run.length >= 2) out.push(run); run = []; };
+  for (const p of pts) { if (keep(p)) run.push(p); else flush(); }
+  flush();
+  return out;
+}
+
+/** Whether a point lies at least `minPx` from a polyline (a band's test: `clearOf(line, 100)` is 400 m on the 4 m basemap). */
+export function clearOf(line: Ring, minPx: number): (p: Px) => boolean {
+  return (p) => lineDist(p, line) >= minPx;
+}
+
+/** The point `px` along a path from its first vertex (its last when the path is shorter). */
+export function alongPath(path: readonly Px[], px: number): Px {
+  let left = px;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const a = path[i]!, b = path[i + 1]!, d = dist(a, b);
+    if (d >= left && d > 0) return { x: a.x + ((b.x - a.x) * left) / d, y: a.y + ((b.y - a.y) * left) / d };
+    left -= d;
+  }
+  return path[path.length - 1]!;
+}
+
+/** A path's length in pixels. */
+export const pathLength = (ps: readonly Px[]): number => ps.reduce((s, p, i) => (i === 0 ? 0 : s + dist(ps[i - 1]!, p)), 0);
 
 /** A polygon's vertex centroid. */
 export function centroid(ring: Ring): Px {

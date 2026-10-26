@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_RECORD_KINDS, type RecordKind } from "../../app/telemetry/record-kinds.js";
+import { ALL_RECORD_KINDS, TELEMETRY_FORMAT_VERSION, type RecordKind, type TelemetryEvent } from "../../app/telemetry/record-kinds.js";
 
 /**
  * Compile-time exhaustiveness proof that `EXPECTED_KINDS` below covers
@@ -151,6 +151,14 @@ const EXPECTED_KINDS: readonly RecordKind[] = (() => {
       case "practice_feedback_shown":
       case "hinge_fatigue_rated":
       case "map_pretest_feedback_left":
+      case "training_started":
+      case "training_section_left":
+      case "training_answer":
+      case "training_feedback_left":
+      case "training_haku_asked":
+      case "training_haku_answered":
+      case "training_demo_shown":
+      case "training_completed":
         return;
       default:
         assertExhaustive(kind);
@@ -171,5 +179,33 @@ describe("RecordKind enumeration", () => {
 
   it("has at least one kind per SPEC/07 §2 section (sanity floor, not a precise count)", () => {
     expect(ALL_RECORD_KINDS.length).toBeGreaterThanOrEqual(70);
+  });
+});
+
+describe("format 0.18.0: the training incident's kinds (SPEC/07 (bp))", () => {
+  const TRAINING_KINDS = [
+    "training_started", "training_section_left", "training_answer", "training_feedback_left", "training_haku_asked", "training_haku_answered",
+    "training_demo_shown", "training_completed",
+  ] as const;
+
+  it("the format version is 0.18.0", () => {
+    expect(TELEMETRY_FORMAT_VERSION).toBe("0.18.0");
+  });
+
+  it("registers the eight training_* kinds, and they are the only kinds with that prefix", () => {
+    for (const k of TRAINING_KINDS) expect(ALL_RECORD_KINDS).toContain(k);
+    expect(ALL_RECORD_KINDS.filter((k) => k.startsWith("training_")).sort()).toEqual([...TRAINING_KINDS].sort());
+  });
+
+  it("keeps the retired kinds typed and registered, so logs of 0.17.0 and earlier stay readable", () => {
+    const retired = ["map_pretest_started", "map_pretest_answer", "map_pretest_feedback_left", "map_pretest_completed", "practice_feedback_shown"] as const;
+    for (const k of retired) expect(ALL_RECORD_KINDS).toContain(k);
+    // Compile-time: the retired details are still part of the event union.
+    const old: TelemetryEvent[] = [
+      { kind: "map_pretest_completed", detail: { endReason: "completed", answeredCount: 7, missingItemIds: [], durationMs: 1 } },
+      { kind: "practice_feedback_shown", detail: { itemIds: [] } },
+      { kind: "session_resumed", detail: { resumeCount: 1, intervalSinceInterruptionMs: 0, cycleReplayed: 0, resumedAt: "training_incident" } },
+    ];
+    expect(old).toHaveLength(3);
   });
 });

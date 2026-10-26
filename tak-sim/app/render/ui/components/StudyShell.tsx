@@ -19,7 +19,6 @@ import { useLang } from "../i18n.js";
 import { PrimerScreen } from "./PrimerScreen.js";
 import { ProfileScreen } from "./ProfileScreen.js";
 import { ResultsOptInScreen } from "./ResultsOptInScreen.js";
-import { MapTrainingScreen } from "./MapTrainingScreen.js";
 
 const page = { display: "flex", height: "100%", overflowY: "auto", justifyContent: "center", padding: "32px 24px", boxSizing: "border-box" } as const;
 const column = { maxWidth: 720, width: "100%", display: "flex", flexDirection: "column", gap: 14 } as const;
@@ -41,13 +40,16 @@ export function StudyShell({ snapshot, orchestrator }: { readonly snapshot: Sess
     case "primer": return <PrimerStep orchestrator={orchestrator} />;
     case "profile": return <ProfileStep orchestrator={orchestrator} />;
     case "results_optin": return <ResultsOptInStep orchestrator={orchestrator} />;
-    case "map_pretest": return <MapTrainingScreen snapshot={snapshot} orchestrator={orchestrator} />; // the map training (25 Oct 2026; was the pretest, c.2)
     default: return null;
   }
 }
 
-/** The steps the shell draws (full screen); SPEC/35: a public session's primer and commander profile too; SPEC/36: the results step. */
-export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief", "primer", "profile", "results_optin", "map_pretest"]);
+/**
+ * The steps the shell draws (full screen); SPEC/35: a public session's primer and commander profile too; SPEC/36: the results step.
+ * SPEC/15 (bp): the training incident (`training_incident`) is not one of them: it is played on the session's own map and tools
+ * (`TrainingScreen`, drawn by `SessionView`); the map training's full-screen page is gone.
+ */
+export const SHELL_STEPS: ReadonlySet<SessionSnapshot["step"]> = new Set(["consent", "consent_declined", "ai_literacy", "preflight", "preflight_refused", "questionnaire", "debrief", "primer", "profile", "results_optin"]);
 
 /** The shell's texts for this session (SPEC/35: the public consent, questionnaire items and debrief in a public session). */
 function textOf(lang: Lang, orchestrator: SessionOrchestrator) {

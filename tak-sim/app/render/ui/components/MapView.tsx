@@ -20,6 +20,7 @@ import { Legend, legendPresence } from "./Legend.js";
 import { extentCamera, openingCamera, panBounds, zoomForWidth } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
 import { assetUrl } from "../../../session/asset-url.js";
+import { lockMaxBounds, tilesMeeting, type MapLock } from "../training-lock.js";
 
 // Own formations and the participant's own marks. The fire and projection layers take all their
 // styling from fire-theme.json (fire-layers.ts, SPEC/12 revision 24 Sep (c)): no blue or purple
@@ -139,16 +140,23 @@ export interface MapViewProps {
   readonly tak?: TakMapOptions | undefined;
   /** Drawn over the map, inside its frame (the TAK shell's info card and coordinate readout). */
   readonly children?: ComponentChildren;
+  /**
+   * SPEC/08 (bp) §bp.1 (the training incident; fixed for the map's life): the map locked to an area — the opening frame and lowest
+   * zoom fit it, `maxBounds` is its lock, only the tiles meeting it load, its presets replace the zoom buttons, no reference overlay.
+   */
+  readonly lock?: MapLock | undefined;
 }
 
-export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewProps) {
+export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: MapViewProps) {
   const { t, lang } = useLang();
   setMarkerLang(lang);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const loadedRef = useRef(false);
   // Revision (am): the opening frame is none of the presets, so no button is lit until one is pressed.
-  const [level, setLevel] = useState<ZoomLevelId | null>(null);
+  const [level, setLevel] = useState<string | null>(null);
+  const lockRef = useRef(lock);
+  const levels = lock?.presets ?? ZOOM_LEVELS.map((z) => ({ id: z.id, label: t.zoom[z.id as keyof typeof t.zoom] ?? z.labelFi, widthM: z.widthM }));
   // What the legend lists besides the view's own layers (revision (am)): stack badges and the region's other fires,
   // which depend on the camera (`declutterUnitMarkers`, the overlay's update); set after every relayout.
   const [drawn, setDrawn] = useState({ stacks: false, region: false });
@@ -175,8 +183,8 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
     log({ kind: "viewport_changed", detail: viewportDetail(map, snapshotRef.current.currentCycle, cause, cause === "move" || cause === "settle" ? moveInputRef.current : undefined) });
 
   /** A preset: "7 km" (id `palo`) shows the whole study area; Area and "2 km" set a width about the participant's own centre. */
-  const applyLevel = (map: MapLibreMap, id: ZoomLevelId) => {
-    const widthM = ZOOM_LEVELS.find((z) => z.id === id)!.widthM;
+  const applyLevel = (map: MapLibreMap, id: string) => {
+    const widthM = levels.find((z) => z.id === id)!.widthM;
     if (widthM === null) { frameWhole(map); return; }
     map.easeTo({ zoom: zoomForWidth(widthM, map.getContainer().clientWidth || 1280, centre.lat), duration: 0 });
   };
@@ -185,14 +193,15 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
     if (!containerRef.current) return;
     const width = containerRef.current.clientWidth || 1280;
     const opening = openingCamera(extent, width, containerRef.current.clientHeight || 720, FRAME_PAD_PX);
+    const first = lock ? extentCamera(lock.area, width, containerRef.current.clientHeight || 720, FRAME_PAD_PX) : opening; // locked: the whole area
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: OFFLINE_STYLE,
-      center: [...opening.center],
-      zoom: opening.zoom,
-      minZoom: zoomForWidth(24_000, width, centre.lat),
+      center: [...first.center],
+      zoom: first.zoom,
+      minZoom: lock ? first.zoom : zoomForWidth(24_000, width, centre.lat), // locked: the lowest zoom is the frame of the whole area
       maxZoom: zoomForWidth(400, width, centre.lat),
-      maxBounds: panBounds(extent, PAN_LIMIT_M),
+      maxBounds: lock ? lockMaxBounds(lock) : panBounds(extent, PAN_LIMIT_M),
       // Trackpad/wheel/pinch zoom is on, clamped by minZoom/maxZoom above; the three ZOOM_LEVELS buttons jump to
       // fixed levels. Researcher decision, 10 Oct 2026 (SPEC/12 revision (al)): free zoom stays on and every camera change is
       // logged as `viewport_changed` (throttled while moving, one record when settled, `viewport-log.ts`), so the
@@ -254,14 +263,14 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
     map.on("movestart", (e) => { if ((e as { originalEvent?: unknown }).originalEvent) onDefaultRef.current = false; });
     map.on("resize", () => { if (onDefaultRef.current) frameDefault(map); });
     map.on("load", () => {
-      TOPO_TILES.forEach((tile, i) => {
+      (lock ? tilesMeeting(TOPO_TILES, lock.bounds) : TOPO_TILES).forEach((tile, i) => { // locked: only the tiles meeting the lock
         map.addSource(`topo-${i}`, { type: "image", url: assetUrl(topoTileUrl(tile.url, lang)), coordinates: tile.corners }); // English labels in English sessions (revision (ae))
         map.addLayer({ id: `topo-basemap-${i}`, type: "raster", source: `topo-${i}`, paint: { "raster-fade-duration": 0 } });
       });
 
-      // The reference overlay (revisions (al), (am)): sector outlines under everything else, labels as DOM markers.
-      addOverlayLines(map);
-      updateOverlay = addOverlayLabels(map, lang, () => {
+      // The reference overlay (revisions (al), (am)): sector outlines under everything else, labels as DOM markers. Not on a locked map.
+      if (!lock) addOverlayLines(map);
+      if (!lock) updateOverlay = addOverlayLabels(map, lang, () => {
         const el = map.getContainer();
         return { areaZoom: zoomForWidth(20_000, el.clientWidth || 1280, centre.lat), paloZoom: extentCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX).zoom };
       });
@@ -339,18 +348,26 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
   // contradiction — in the frame. The frame depends only on the map's size, so it is identical for every participant
   // at a given window size.
   const onDefaultRef = useRef(true); // the map shows the opening frame, untouched since
+  /** A locked map's frame (SPEC/08 (bp)): its whole area, fitted inside the map; it is also the lowest zoom. */
+  const lockedFrame = (map: MapLibreMap, lockNow: MapLock) => {
+    const el = map.getContainer();
+    return extentCamera(lockNow.area, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
+  };
   const frameDefault = (map: MapLibreMap) => {
     const el = map.getContainer();
     const { center, zoom } = openingCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
+    const at = lockRef.current ? lockedFrame(map, lockRef.current) : { center, zoom };
     setLevel(null);
-    map.jumpTo({ center: [...center], zoom });
+    if (lockRef.current) map.setMinZoom(at.zoom);
+    map.jumpTo({ center: [...at.center], zoom: at.zoom });
     onDefaultRef.current = true;
   };
-  /** The "7 km" preset (id `palo`, "Palo" / "Fire" until 24 Oct 2026): the whole study area, fitted inside the map. */
+  /** The "7 km" preset (id `palo`, "Palo" / "Fire" until 24 Oct 2026): the whole study area (locked: the whole area), fitted inside the map. */
   const frameWhole = (map: MapLibreMap) => {
     const el = map.getContainer();
     const { center, zoom } = extentCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
-    map.jumpTo({ center: [...center], zoom });
+    const at = lockRef.current ? lockedFrame(map, lockRef.current) : { center, zoom };
+    map.jumpTo({ center: [...at.center], zoom: at.zoom });
   };
   useEffect(() => {
     const map = mapRef.current;
@@ -415,15 +432,15 @@ export function MapView({ snapshot, extent, onMapUse, tak, children }: MapViewPr
       {boxes.fire && <div data-tour="fire" style={{ position: "absolute", ...boxes.fire, pointerEvents: "none" }} />}
       {boxes.projection && <div data-tour="projection" style={{ position: "absolute", ...boxes.projection, pointerEvents: "none" }} />}
       <div data-tour="zoom" style={{ position: "absolute", zIndex: 20, top: 8, right: 8, display: "flex", gap: 4 }}>
-        {ZOOM_LEVELS.map((z) => (
+        {levels.map((z) => (
           <button
-            key={z.id}
+            key={z.id} data-testid={`zoom-${z.id}`}
             onClick={() => { setLevel(z.id); onDefaultRef.current = false; presetRef.current = true; if (mapRef.current) applyLevel(mapRef.current, z.id); }}
             style={isTak
               ? { padding: "6px 14px", minHeight: 32, borderRadius: 4, border: `1px solid ${level === z.id ? "#19c3d6" : "#26313a"}`, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "#f2f5f7", background: level === z.id ? "#0f7f8c" : "#0d1114e6" }
               : { padding: "4px 10px", borderRadius: 6, border: "1px solid #3a3f44", fontSize: 12, cursor: "pointer", color: "#e8eaed", background: level === z.id ? "#3a3f44" : "#1b1e22cc" }}
           >
-            {t.zoom[z.id as keyof typeof t.zoom] ?? z.labelFi}
+            {z.label}
           </button>
         ))}
       </div>

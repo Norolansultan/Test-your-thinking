@@ -3,6 +3,7 @@ import type { FreezeView, SessionOrchestrator } from "../../../session/orchestra
 import type { LatLon } from "../../../engine/primitives.js";
 import { draftComplete, isMapItem, responsesFromDrafts, skippedResponses, type FreezeDraft } from "../../../session/freeze-answers.js";
 import { FreezeMap } from "./FreezeMap.js";
+import type { MapLock } from "../training-lock.js";
 
 import { CONFIDENCE_SCALE as CONFIDENCE_STEPS } from "../../../session/confidence.js";
 import { useLang } from "../i18n.js";
@@ -32,7 +33,14 @@ import { Glossed } from "../explain/Glossed.js";
  * SPEC/30 §5.4 (19 Oct 2026): a choice item's option hovers and answer changes are logged (`probe-telemetry.ts`,
  * `probeId` = the item's id); a changed answer is shown once its record is durable (I5).
  */
-export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSkip = false }: { readonly freeze: FreezeView; readonly orchestrator: SessionOrchestrator; readonly showLevels?: boolean; readonly allowSkip?: boolean }) {
+/**
+ * SPEC/08 (bp) (the training incident's S4, one item at a time with feedback between): `progress` is the item's place in the whole
+ * training ("11/13") in place of the freeze's own count, and `lock` locks the blank map to the training's area (`FreezeMap`).
+ */
+export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSkip = false, progress, lock }: {
+  readonly freeze: FreezeView; readonly orchestrator: SessionOrchestrator; readonly showLevels?: boolean; readonly allowSkip?: boolean;
+  readonly progress?: { readonly position: number; readonly count: number } | undefined; readonly lock?: MapLock | undefined;
+}) {
   const { t, tr } = useLang();
   const [drafts, setDrafts] = useState<Record<string, FreezeDraft>>({});
   const [sent, setSent] = useState(false); // one submission: the button is disabled once clicked
@@ -48,7 +56,8 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
   const itemDone = draftComplete(item, drafts[item.id]);
   const mapItem = isMapItem(item);
   const allAnswered = freeze.items.every((it) => draftComplete(it, drafts[it.id]));
-  const update = (id: string, patch: Partial<FreezeDraft>) => setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
+  const shownPosition = progress ? progress.position : current + 1, shownCount = progress ? progress.count : freeze.items.length;
+  const update =(id: string, patch: Partial<FreezeDraft>) => setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   const confidenceRow = (id: string) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, opacity: 0.8 }}>
       <span style={{ width: 70 }}>{t.confidence}</span>
@@ -104,13 +113,13 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
             {/* Revision (ap): a map item's confidence row sits beside its question, so the map gets the height. */}
             <div style={mapItem ? { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 6 } : {}}>
               <div>
-                <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 6 }}>{current + 1}/{freeze.items.length}{showLevels ? ` · ${item.level}` : ""}</div>
+                <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 6 }}>{shownPosition}/{shownCount}{showLevels ? ` · ${item.level}` : ""}</div>
                 <div style={{ fontSize: 14, marginBottom: mapItem ? 0 : 10 }}><Glossed text={tr(item.promptFi)} surface="freeze" /></div>
               </div>
               {mapItem && confidenceRow(item.id)}
             </div>
             {isMapItem(item) ? (
-              <FreezeMap extent={extent} point={drafts[item.id]?.point ?? null} onPick={(p: LatLon, camera) => { update(item.id, { point: p }); void orchestrator.logFreezeMapPick(item.id, p, camera).catch(() => undefined); }} />
+              <FreezeMap extent={extent} lock={lock} point={drafts[item.id]?.point ?? null} onPick={(p: LatLon, camera) => { update(item.id, { point: p }); void orchestrator.logFreezeMapPick(item.id, p, camera).catch(() => undefined); }} />
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginBottom: 12 }}>
               {item.options.map((opt) => (
@@ -149,7 +158,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
         >
           {last ? t.freezeSubmit : t.freezeNext}
         </button>
-        <span style={{ fontSize: 13, opacity: 0.7 }}>{t.freezeProgress(current + 1, freeze.items.length)} · {t.freezeNoReturn}</span>
+        <span style={{ fontSize: 13, opacity: 0.7 }}>{t.freezeProgress(shownPosition, shownCount)} · {t.freezeNoReturn}</span>
       </div>
     </div>
   );

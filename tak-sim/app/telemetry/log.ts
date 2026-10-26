@@ -94,9 +94,15 @@ export interface LogHeader {
   /**
    * Difficulty audit (23 Oct 2026, 0.15.0): the map-reading pretest ran before the practice view (`SessionOptions.mapPretest`), and the
    * practice feedback screen after it (`SessionOptions.practiceFeedback`). The app sets both in every session; absent: neither ran.
+   * RETIRED in 0.18.0 (SPEC/07 (bp)): no longer written; logs of 0.17.0 and earlier keep them.
    */
   readonly mapPretest?: boolean;
   readonly practiceFeedback?: boolean;
+  /**
+   * 0.18.0 (26 Oct 2026, SPEC/07 (bp), SPEC/15 (bp)): the training incident ran after the pre-session item (and a public session's
+   * primer), before the intro video and VP (`SessionOptions.trainingIncident`). The app sets it in every session; absent: it did not run.
+   */
+  readonly trainingIncident?: boolean;
   /**
    * Where `cell` came from (SPEC/27 §2.2, 5 Oct 2026; `app/session/preview.ts` `SessionAssignment`):
    * `table` — the allocation table by participant code (`participantCode` is the table's code;

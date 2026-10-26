@@ -86,7 +86,7 @@ export type AudienceEvent =
   | { readonly kind: "glossary_opened"; readonly termId: string; readonly surface: GlossarySurface }
   | { readonly kind: "help_card_opened"; readonly section: HelpCardSection };
 
-const SURFACES: ReadonlySet<string> = new Set<GlossarySurface>(["message_log", "record", "freeze", "spam", "plan", "review", "search", "guide", "help_card", "other"]);
+const SURFACES: ReadonlySet<string> = new Set<GlossarySurface>(["message_log", "record", "freeze", "spam", "plan", "review", "search", "guide", "help_card", "training", "other"]);
 const SECTIONS: ReadonlySet<string> = new Set<HelpCardSection>(["glossary", "roster", "legend"]);
 const ID = /^[\p{L}\p{N}][\p{L}\p{N}._:-]{0,79}$/u;
 

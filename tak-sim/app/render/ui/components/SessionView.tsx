@@ -8,7 +8,7 @@ import { FreezeScreen } from "./FreezeScreen.js";
 import { JudgementPanel } from "./JudgementPanel.js";
 import { EMPTY_PLAN_DRAFT, heldPlanDraft, type HeldPlanDraft } from "./DecisionPanels.js";
 import { IntroScreen } from "./IntroScreen.js";
-import { PracticeFeedbackScreen } from "./PracticeFeedbackScreen.js";
+import { TrainingScreen } from "./TrainingScreen.js";
 import { IntroVideoScreen } from "./IntroVideoScreen.js";
 import { GuidedTour } from "./GuidedTour.js";
 import { SpamCard } from "./SpamCard.js";
@@ -114,8 +114,8 @@ function SessionBody({ scenario, condition, cell, previewOverride, language, sho
     return snapshot.introVideo ? <IntroVideoScreen video={snapshot.introVideo} orchestrator={orchestrator} /> : <div style={{ padding: 24 }}>{t.loading}</div>;
   }
   if (snapshot.step === "training") return provide(<IntroScreen condition={condition} cell={cell} orchestrator={orchestrator} />);
-  // Difficulty audit (23 Oct 2026, `proposal.md` (b.3)): the source-only practice feedback, between VP and the training.
-  if (snapshot.step === "practice_feedback") return provide(<PracticeFeedbackScreen snapshot={snapshot} orchestrator={orchestrator} />);
+  // SPEC/15 (bp): the training incident, before the intro video, on the session's own map and tools (the practice feedback is gone).
+  if (snapshot.step === "training_incident") return provide(<TrainingScreen snapshot={snapshot} orchestrator={orchestrator} />);
 
   // SPEC/05 §9: after V14 the session completes and its log is uploaded (or exported).
   if (snapshot.step === "complete") {

@@ -1,0 +1,246 @@
+{
+ "about": "The training incident's twelve records (SPEC/08 (bp) §bp.6). Authored here as templates; npm run training:build fills the words read from the site's geometry ({lakeSide}, {roadSide}, {spread}, {tailEdge}, {r6Dir}) into fi, writes the English to records.en.json by id and the place each record speaks of into at. Finnish DRAFT (native check).",
+ "step": -9,
+ "records": [
+  {
+   "id": "trn.r01",
+   "clock": "09.41",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T2_system",
+   "channel": "system_log",
+   "eventType": "report",
+   "nav": "palo",
+   "place": "fire",
+   "template": {
+    "fi": "EK51 hälytetty: pienpalo Kaitajärven {lakeSide}, ilmoitettu koko noin 0,2 ha.",
+    "en": "EK51 alerted: small fire {lakeSide} Narrow Lake, reported size about 0.2 ha."
+   },
+   "fi": "EK51 hälytetty: pienpalo Kaitajärven eteläpuolella, ilmoitettu koko noin 0,2 ha.",
+   "at": {
+    "lat": 60.918048,
+    "lon": 27.502872
+   }
+  },
+  {
+   "id": "trn.r02",
+   "clock": "09.52",
+   "source": "EK52",
+   "actorType": "fire_team",
+   "tier": "T2_system",
+   "channel": "system_log",
+   "eventType": "report",
+   "nav": "vesi_reitit",
+   "place": "junction",
+   "template": {
+    "fi": "EK52: tie R6 on ajettavissa risteyksestä {r6Dir}, ei esteitä.",
+    "en": "EK52: road R6 is passable {r6Dir} from the junction, no obstacles."
+   },
+   "fi": "EK52: tie R6 on ajettavissa risteyksestä pohjoiseen, ei esteitä.",
+   "at": {
+    "lat": 60.920339,
+    "lon": 27.501431
+   }
+  },
+  {
+   "id": "trn.r03",
+   "clock": "09.58",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T1_pushed",
+   "channel": "radio_command",
+   "eventType": "size_up",
+   "nav": "palo",
+   "place": "ek51",
+   "template": {
+    "fi": "EK51: olemme paikalla. Pienpalo kangasmetsässä tien R5 {roadSide}, arvio noin 0,4 ha, liekit alle metrin.",
+    "en": "EK51: we are on scene. A small fire in heath forest {roadSide} road R5, estimated about 0.4 ha, flames under a metre."
+   },
+   "fi": "EK51: olemme paikalla. Pienpalo kangasmetsässä tien R5 eteläpuolella, arvio noin 0,4 ha, liekit alle metrin.",
+   "at": {
+    "lat": 60.917367,
+    "lon": 27.501453
+   }
+  },
+  {
+   "id": "trn.r04",
+   "clock": "10.00",
+   "source": "DR8",
+   "actorType": "drone",
+   "tier": "T2_system",
+   "channel": "system_log",
+   "eventType": "status",
+   "nav": "ilma",
+   "place": "fire",
+   "template": {
+    "fi": "DR8 anturiloki klo 10.00: lentokorkeus 120 m, akku 82 %.",
+    "en": "DR8 sensor log at 10.00: altitude 120 m, battery 82 %."
+   },
+   "fi": "DR8 anturiloki klo 10.00: lentokorkeus 120 m, akku 82 %.",
+   "at": {
+    "lat": 60.918048,
+    "lon": 27.502872
+   }
+  },
+  {
+   "id": "trn.r05",
+   "clock": "10.04",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T1_pushed",
+   "channel": "radio_command",
+   "eventType": "report",
+   "nav": "yksikot",
+   "place": "ek51",
+   "template": {
+    "fi": "EK51: letku on vedetty palon {tailEdge}, kaksi miestä linjalla, vettä riittää.",
+    "en": "EK51: hose laid along the fire's {tailEdge} edge, two men on the line, water is enough."
+   },
+   "fi": "EK51: letku on vedetty palon lounaisreunaan, kaksi miestä linjalla, vettä riittää.",
+   "at": {
+    "lat": 60.917367,
+    "lon": 27.501453
+   }
+  },
+  {
+   "id": "trn.r06",
+   "clock": "10.05",
+   "source": "DR8",
+   "actorType": "drone",
+   "tier": "T2_system",
+   "channel": "system_log",
+   "eventType": "observation",
+   "nav": "palo",
+   "place": "fire",
+   "template": {
+    "fi": "DR8 lämpökuvaus klo 10.05: palava ala noin 1,1 ha, kärki etenee {spread}, nopeus noin 10 m/min. (luotettavuus hyvä.)",
+    "en": "DR8 thermal image at 10.05: burning area about 1.1 ha, the head advancing {spread}, speed about 10 m/min. (reliability good.)"
+   },
+   "fi": "DR8 lämpökuvaus klo 10.05: palava ala noin 1,1 ha, kärki etenee koilliseen, nopeus noin 10 m/min. (luotettavuus hyvä.)",
+   "at": {
+    "lat": 60.918048,
+    "lon": 27.502872
+   }
+  },
+  {
+   "id": "trn.r07",
+   "clock": "10.08",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T3_person",
+   "channel": "ask_unit",
+   "eventType": "status",
+   "nav": "yksikot",
+   "place": "ek51",
+   "template": {
+    "fi": "EK51 tilanne kysyttäessä: säiliössä vettä noin 85 %, miehistö neljä, polttoainetta riittää.",
+    "en": "EK51 status when asked: tank water about 85 %, crew of four, fuel is enough."
+   },
+   "fi": "EK51 tilanne kysyttäessä: säiliössä vettä noin 85 %, miehistö neljä, polttoainetta riittää.",
+   "at": {
+    "lat": 60.917367,
+    "lon": 27.501453
+   }
+  },
+  {
+   "id": "trn.r08",
+   "clock": "10.12",
+   "source": "DR8",
+   "actorType": "drone",
+   "tier": "T1_pushed",
+   "channel": "radio_command",
+   "eventType": "observation",
+   "nav": "palo",
+   "place": "head",
+   "template": {
+    "fi": "DR8: palon kärki on nyt tiellä R5.",
+    "en": "DR8: the fire's head is at road R5 now."
+   },
+   "fi": "DR8: palon kärki on nyt tiellä R5.",
+   "at": {
+    "lat": 60.919358,
+    "lon": 27.505605
+   }
+  },
+  {
+   "id": "trn.r09",
+   "clock": "10.14",
+   "source": "EK52",
+   "actorType": "fire_team",
+   "tier": "T1_pushed",
+   "channel": "radio_command",
+   "eventType": "report",
+   "nav": "vesi_reitit",
+   "place": "block",
+   "template": {
+    "fi": "EK52: tie R6 on tukossa noin 300 m risteyksestä {r6Dir}, ajoneuvo poikittain tiellä. Käännyn takaisin risteykseen.",
+    "en": "EK52: road R6 is blocked about 300 m {r6Dir} of the junction, a vehicle across the road. Returning to the junction."
+   },
+   "fi": "EK52: tie R6 on tukossa noin 300 m risteyksestä pohjoiseen, ajoneuvo poikittain tiellä. Käännyn takaisin risteykseen.",
+   "at": {
+    "lat": 60.922912,
+    "lon": 27.501415
+   }
+  },
+  {
+   "id": "trn.r10",
+   "clock": "10.15",
+   "source": "EK52",
+   "actorType": "fire_team",
+   "tier": "T3_person",
+   "channel": "ask_unit",
+   "eventType": "status",
+   "nav": "yksikot",
+   "place": "junction",
+   "template": {
+    "fi": "EK52 tilanne kysyttäessä: säiliössä vettä noin 60 %, miehistö kolme.",
+    "en": "EK52 status when asked: tank water about 60 %, crew of three."
+   },
+   "fi": "EK52 tilanne kysyttäessä: säiliössä vettä noin 60 %, miehistö kolme.",
+   "at": {
+    "lat": 60.920339,
+    "lon": 27.501431
+   }
+  },
+  {
+   "id": "trn.r11",
+   "clock": "10.17",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T1_pushed",
+   "channel": "radio_command",
+   "eventType": "report",
+   "nav": "yksikot",
+   "place": "ek51",
+   "template": {
+    "fi": "EK51: pumppu käy, letkua 150 m.",
+    "en": "EK51: the pump is running, 150 m of hose."
+   },
+   "fi": "EK51: pumppu käy, letkua 150 m.",
+   "at": {
+    "lat": 60.917367,
+    "lon": 27.501453
+   }
+  },
+  {
+   "id": "trn.r12",
+   "clock": "10.10",
+   "source": "EK51",
+   "actorType": "fire_team",
+   "tier": "T2_system",
+   "channel": "system_log",
+   "eventType": "status",
+   "nav": "yksikot",
+   "place": "ek51",
+   "template": {
+    "fi": "EK51 työvuoroloki: työvuoro alkoi klo 09.58.",
+    "en": "EK51 shift log: the shift began at 09.58."
+   },
+   "fi": "EK51 työvuoroloki: työvuoro alkoi klo 09.58.",
+   "at": {
+    "lat": 60.917367,
+    "lon": 27.501453
+   }
+  }
+ ]
+}

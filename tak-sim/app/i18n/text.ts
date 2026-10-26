@@ -7,12 +7,16 @@
 import labelsEn from "../../content/i18n/labels.en.json" with { type: "json" };
 import authoredEn from "../../content/i18n/authored.en.json" with { type: "json" };
 import overridesEn from "../../content/i18n/records.en.overrides.json" with { type: "json" };
+import trainingEn from "../../content/training/records.en.json" with { type: "json" };
 import { SITE_SCENARIO } from "../scenario/site-scenario.js";
 import type { Lang } from "./lang.js";
 
 const LABELS: Readonly<Record<string, string>> = labelsEn;
-/** Generated records (the bundle's `english`), then the authored ones, then the hand overrides, which win. */
-const RECORDS: Readonly<Record<string, string>> = { ...(SITE_SCENARIO.english ?? {}), ...authoredEn, ...overridesEn };
+/**
+ * Generated records (the bundle's `english`), then the authored ones, then the hand overrides, which win; and (revision (bp)) the
+ * training incident's records (`trn.r..`, a separate corpus whose ids no scenario record shares).
+ */
+const RECORDS: Readonly<Record<string, string>> = { ...(SITE_SCENARIO.english ?? {}), ...authoredEn, ...overridesEn, ...trainingEn };
 
 /** A scenario label, question or option (given in Finnish) in the session language. */
 export function tr(lang: Lang, fi: string): string {

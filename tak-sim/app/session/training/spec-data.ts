@@ -1,19 +1,10 @@
 /**
- * PLACEHOLDER (bp integration stub): work package A replaces this file with the built training (`content/training/incident.json`).
- * Same exports; code against the `TrainingSpec` type, never against these values.
+ * The training incident as built (SPEC/08 (bp) §bp.9): `content/training/incident.json`, written by `npm run training:build`
+ * (`tools/review/training.ts`) from the site data, the contract and the corpus — every key computed, never typed. Code against the
+ * `TrainingSpec` type; `test/training/build.spec.ts` checks that this is exactly what the build writes now.
  */
 
-import type { TrainingSpec } from "./spec";
+import incident from "../../../content/training/incident.json" with { type: "json" };
+import type { TrainingSpec } from "./spec.js";
 
-export const TRAINING: TrainingSpec = {
-  version: "training-placeholder",
-  capMs: 720_000,
-  cardWindowMs: 60_000,
-  demoMinDwellMs: 10_000,
-  now: { virtualTimeS: -10_920, label: "10.18" },
-  area: { bounds: { south: 0, west: 0, north: 0, east: 0 }, lockMarginM: 100, centre: { lat: 0, lon: 0 } },
-  roadLabels: [],
-  scenes: {} as TrainingSpec["scenes"],
-  items: [],
-  sections: [],
-};
+export const TRAINING: TrainingSpec = incident as unknown as TrainingSpec;

@@ -6,7 +6,6 @@ Generated; do not edit by hand. Passive = a participant who never searches can a
 
 | Group | Items | Passive yes | Passive partly | Passive no | A key record recorded-only | Map required | Freeze record late (< 60 s) |
 |---|---|---|---|---|---|---|---|
-| VP freeze | 5 | 4/5 (80 %) | 0/5 (0 %) | 1/5 (20 %) | 1/5 (20 %) | 1/5 (20 %) | 0/5 (0 %) |
 | V2 freeze | 8 | 3/8 (38 %) | 4/8 (50 %) | 1/8 (13 %) | 2/8 (25 %) | 3/8 (38 %) | 2/8 (25 %) |
 | V4 freeze | 8 | 7/8 (88 %) | 1/8 (13 %) | 0/8 (0 %) | 2/8 (25 %) | 1/8 (13 %) | 5/8 (63 %) |
 | V5 freeze | 8 | 5/8 (63 %) | 3/8 (38 %) | 0/8 (0 %) | 4/8 (50 %) | 1/8 (13 %) | 0/8 (0 %) |

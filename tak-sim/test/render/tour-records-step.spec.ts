@@ -73,6 +73,15 @@ describe("revision (bp): the tour's changed steps read as SPEC/15 §bp.5", () =>
     expect(UI[lang].practiceLabel).toBe(b.label);
   });
 
+  it("V1's Thinker reminder says where Thinker was tried: the first look (both Thinker cells, both languages)", () => {
+    expect(UI.fi.tour.steps.toolsThinker.body.startsWith("Thinker, jota kokeilit ensikatsauksessa, on käytössäsi")).toBe(true);
+    expect(UI.en.tour.steps.toolsThinker.body.startsWith("Thinker, which you tried in the first look, is available")).toBe(true);
+    for (const lang of LANGS) {
+      expect(step(lang, "toolsThinkerIntent").body.startsWith(step(lang, "toolsThinker").body)).toBe(true);
+      expect(`${step(lang, "toolsThinker").body} ${step(lang, "toolsHaku").body}`).not.toMatch(/harjoitukse|the practice/i);
+    }
+  });
+
   it("the steps not in the table are unchanged in kind: they do not mention the training", () => {
     for (const lang of LANGS) {
       for (const id of ["status", "fire", "projection", "legend", "wind", "zoom", "measure", "sectors", "units", "decision"] as const) {

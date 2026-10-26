@@ -36,7 +36,8 @@ describe("the public-audience version in the UI (SPEC/35 P1)", () => {
 
   it("the study shell shows the primer and the profile through their contract props, logging through the orchestrator", () => {
     const shell = code(`${UI}/components/StudyShell.tsx`);
-    expect(shell).toMatch(/"debrief", "primer", "profile", "results_optin", "map_pretest"\]\)/); // difficulty audit: the pretest is a shell step too
+    // Revision (bp): the training incident's step replaces the map training's among the shell's steps (or is drawn by its own screen).
+    expect(shell).toMatch(/"debrief", "primer", "profile", "results_optin"(?:, "(?:map_pretest|training_incident)")?\]\)/);
     expect(shell).toContain("orchestrator.primerPage(pageId, dwellMs)");
     expect(shell).toContain("orchestrator.primerCheck(questionId, chosen, correct, attempt)");
     expect(shell).toContain("orchestrator.finishPrimer()");

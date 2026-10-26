@@ -665,7 +665,6 @@ const EN: UiText = {
   timeUpNoPlan: "Time ran out before you confirmed – the previous allocation was not recorded.",
   tour: {
     steps: {
-      // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): as the Finnish.
       welcome: { title: "Get to know the screen", body: TOUR_SETTING_EN + " This is a first look at the actual incident. In the training you tried the tools; now you see where they are in this view. The first look is not scored, and its time does not run during this introduction." },
       status: { title: "Status bar", body: "The top bar shows the situation's time, the period and the units. Each period has at most two and a half minutes; the last 20 seconds are counted down here." },
       // B7 (SPEC/28 (bi), 25 Oct 2026): was "the fire's latest mapped edge", untrue after a merged view's step boundary.

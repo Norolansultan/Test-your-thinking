@@ -4,7 +4,7 @@
  * replay. The same idea as the specs' fake timers (`vi.useFakeTimers` with `realClockMs: () => Date.now()`), without vitest:
  *
  * - `install` swaps the global `setTimeout` / `clearTimeout` / `setInterval` / `clearInterval` for a queue on virtual time (the
- *   orchestrator's view cues, the freeze cap, SPAM's answer window, the Thinker latency floor, the pretest and AI-literacy caps all
+ *   orchestrator's view cues, the freeze cap, SPAM's answer window, the Thinker latency floor, the training's cap and cards and the AI-literacy cap all
  *   use them); `uninstall` puts the originals back. `setImmediate` is left real: it is how the queue lets promise chains settle.
  * - `now` is the session's `realClockMs` (`SessionOptions.realClockMs`), so every `tWallOffsetMs` is virtual too.
  * - `advance(ms)` fires every timer due up to `now + ms` in time order (ties in the order they were set), letting the promise

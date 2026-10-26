@@ -37,6 +37,14 @@
  *   JOKE, a new source, leaves the views' `navSources`; V11 and V12 displace KY23's repeated 18.10 and 18.45 reports instead of VD1's
  *   18.13 drops and 18.51 pause (`BM_DISPLACED`, an air asset's change of state stays in the stream), each put back after the record
  *   0.12.0 delivered before it. The re-worded records (EK14's 16.35 line, EK11's 15.35 request) are not delivered, so nothing else moves.
+ * - Revision (bp) (26 Oct 2026, format 0.18.0; SPEC/15 (bp) §bp.7–bp.8): the training incident takes the map training's step. Its
+ *   records (`training_*`: 33 when no Search question is asked, plus 2 a question) are removed, and the wall time from its
+ *   `training_started` to its `training_completed` (the intro to S5 left: every card, answer, exposure, feedback and S5's dwell) is
+ *   taken out of every later record's wall offset, as the pretest it replaced took none (0.12.0's driver answered at once). The header's
+ *   `trainingIncident` is dropped with the other added fields. VP has no freeze any more (its practice freeze is retired), so its
+ *   segment's digest is re-baselined (`expert-identity.spec.ts`). Its two records (`freeze_started`, `freeze_submitted`: this driver
+ *   submits at once) keep their places in the numbering (`VP_FREEZE_RECORDS`, before VP's SPAM prompt at 85 s, which followed the
+ *   freeze at 69 s), so every later record keeps 0.12.0's `seq` and the main session's digest stands byte for byte.
  * Then every record is renumbered in order (`seq` from 0, as the run writes them).
  *
  * The digests are taken per segment: before VP (`phase_entered` practice), VP with the training text after it (to `phase_entered`
@@ -49,6 +57,10 @@ import type { LogRecord } from "../../app/telemetry/log.js";
 import { sha256Hex } from "../../app/telemetry/sha256.js";
 
 const ADDED_KINDS: ReadonlySet<string> = new Set(["results_optin", "map_pretest_started", "map_pretest_answer", "map_pretest_completed", "map_pretest_feedback_left", "practice_feedback_shown"]);
+/** Revision (bp): the training incident's records, all with this prefix (SPEC/07 (bp)). */
+export const TRAINING_PREFIX = "training_";
+/** Revision (bp): the records VP's retired practice freeze wrote with this driver (`freeze_started`, `freeze_submitted`). */
+export const VP_FREEZE_RECORDS = 2;
 /**
  * The play-test's new pushed story beats (24 Oct 2026; `demo-story.ts`), and the view from which 0.12.0 listed each new nav source.
  * Revision (bk) (25 Oct 2026) took the fourth, P2's dispatch in V5 (`atom.demo.7.1`), out of the stream again: it is recorded, so it
@@ -106,11 +118,18 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
   // The map training's time (25 Oct 2026, 0.17.0: its memory task shows its unit for 8 s before the driver can answer) is taken out of
   // every later record's wall offset, as the pretest it replaced took none (the driver answered it at once).
   let shiftMs = 0;
+  let trainingFrom: number | null = null; // revision (bp): the training's start, wall offset (before any shift)
   const boundaryAt = new Map<number, number>(); // a view's `step_boundary_reached`, its place in `kept`
   for (const r0 of records) {
     const r = shiftMs > 0 ? { ...r0, tWallOffsetMs: r0.tWallOffsetMs - shiftMs } : r0;
     const d = r.detail as Record<string, unknown>;
     if (r.kind === "map_pretest_completed") shiftMs += d.durationMs as number;
+    if (r.kind.startsWith(TRAINING_PREFIX)) {
+      // Revision (bp): the training's records go; its wall time from the intro to S5 left comes out of every later offset.
+      if (r.kind === "training_started" && trainingFrom === null) trainingFrom = r0.tWallOffsetMs;
+      if (r.kind === "training_completed" && trainingFrom !== null) { shiftMs += r0.tWallOffsetMs - trainingFrom; trainingFrom = null; }
+      continue;
+    }
     if (r.kind === "step_boundary_reached") boundaryAt.set(d.cycle as number, kept.length);
     if (r.kind === "consult_prompt_shown" && d.atViewSeconds === CONSULT_AT_MERGED && boundaryAt.has(d.cycle as number)) {
       const at = boundaryAt.get(d.cycle as number)!;
@@ -147,7 +166,7 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
       continue;
     }
     if (r.kind === "session_started") {
-      const { formatVersion: _v, audience: _a, scope: _s, mapPretest: _m, practiceFeedback: _p, ...rest } = d;
+      const { formatVersion: _v, audience: _a, scope: _s, mapPretest: _m, practiceFeedback: _p, trainingIncident: _t, ...rest } = d;
       kept.push({ ...r, detail: rest });
       continue;
     }
@@ -165,7 +184,11 @@ export function normaliseForIdentity(records: readonly Rec[]): Rec[] {
     }
     kept.push(r);
   }
-  return kept.map((r, i) => ({ ...r, seq: i }));
+  // Revision (bp): VP's freeze's places in the numbering, when the run has none (a run of (bp) or later); see the module note.
+  const hadVpFreeze = records.some((r) => r.kind === "freeze_started" && (r.detail as { cycle?: number }).cycle === 0);
+  const vpPrompt = kept.findIndex((r) => (r.kind === "spam_prompt_shown" || r.kind === "cycle_end") && (r.detail as { cycle?: number }).cycle === 0);
+  const gapAt = hadVpFreeze || vpPrompt < 0 ? kept.length : vpPrompt;
+  return kept.map((r, i) => ({ ...r, seq: i + (i >= gapAt ? VP_FREEZE_RECORDS : 0) }));
 }
 
 /** The three segments' digests of normalised records (see the module note). */

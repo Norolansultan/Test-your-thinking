@@ -1,9 +1,11 @@
 /**
  * The play harness's session (`tools/play/`): the REAL session engine, headless — the app's `SessionOrchestrator` over
  * `buildDemoScenario()`, with the options the app gives a study session (`useSession.ts` under `?tuotanto`: the study shell, the
- * AI-literacy test, the intro video, the map-reading pretest, the practice feedback, the guided tour, the visible probes, the SA
- * levels hidden, nothing skippable), the Haku group (cell `radio`), the session language and audience the player chose — on the
- * harness's virtual clock (`virtual-clock.ts`). Haku's chat is answered by the proxy's no-model path (`haku-transport.ts`).
+ * AI-literacy test, the intro video, the guided tour, the visible probes, the SA levels hidden, nothing skippable), the Haku group
+ * (cell `radio`), the session language and audience the player chose — on the harness's virtual clock (`virtual-clock.ts`). Haku's
+ * chat is answered by the proxy's no-model path (`haku-transport.ts`), the training incident's Search too (over its own records).
+ * Revision (bp), 26 Oct 2026: the map training and the practice feedback are retired; the training incident (`training_incident`, work
+ * package B's orchestrator) takes the map training's place, played with `training-commands.ts` and shown by `training-pages.ts`.
  *
  * State across CLI calls is REPLAY: a run is its configuration and the list of commands the player issued, each with the
  * virtual milliseconds it spent (`ActionRecord`); every call rebuilds the session from nothing and replays them (a whole
@@ -33,6 +35,12 @@ import { VirtualClock } from "./virtual-clock.js";
 import { noModelHakuTransport, unavailableOpenTransport, unavailablePremiseTransport } from "./haku-transport.js";
 import type { ImageRequest } from "./map-data.js";
 import type { Camera } from "../../app/render/map-frame.js";
+import type { TrainingHakuTurn } from "./training-pages.js";
+import type { TrainingSpec } from "../../app/session/training/spec.js";
+import type { TrainingTexts } from "../../app/i18n/training-texts-types.js";
+import { TRAINING } from "../../app/session/training/spec-data.js";
+import { TRAINING_TEXT } from "../../app/i18n/training-texts.js";
+import { TRAINING_SESSION_OPTION, trainingViewOf } from "./training-host.js";
 
 export interface PlayConfig {
   readonly audience: Audience;
@@ -82,7 +90,8 @@ export function studyOptions(config: PlayConfig, clock: VirtualClock, scenario: 
   return {
     cell: "radio", language: config.lang, audience: config.audience, participantCode: PLAY_PARTICIPANT_CODE,
     showProbeLevels: false, guidedTour: true, visibleProbes: true, studyShell: true, aiLiteracyTest: true, introVideo: "/video/intro.mp4",
-    mapPretest: true, practiceFeedback: true, allowPreflightOverride: false, allowViewSkip: false,
+    // Revision (bp): no map training and no practice feedback (retired); the training incident on, as the app sets it (work package B).
+    allowPreflightOverride: false, allowViewSkip: false, ...TRAINING_SESSION_OPTION,
     realClockMs: clock.now,
     thinker: { transport: noModelHakuTransport(scenario, clock.now), openTransport: unavailableOpenTransport, premiseReview: unavailablePremiseTransport },
   };
@@ -123,6 +132,13 @@ export class PlaySession {
   legendOpen = true;
   /** The Range & Bearing line the player measured in a view (`measure`): it stays on the map, as the app keeps it. */
   rb: { view: number; from: LatLon; to: LatLon } | null = null;
+  /**
+   * Revision (bp): the training's screen state: the item the readings belong to, its R&B readings (m) and line, the live map's frame, and
+   * the Search turns (by item), as `TrainingScreen` keeps them.
+   */
+  /** Revision (bp): the training's content (work package A's build); the spec gives its own fixture. */
+  trainingContent: { spec: TrainingSpec; texts: Readonly<Record<Lang, TrainingTexts>> } = { spec: TRAINING, texts: TRAINING_TEXT };
+  trainingUi: { itemId: string | null; measures: number[]; rb: { from: LatLon; to: LatLon } | null; camera: Camera | null; haku: (TrainingHakuTurn & { readonly itemId: string })[] } = { itemId: null, measures: [], rb: null, camera: null, haku: [] };
   /** The message-log rows seen at the last `look` (the rows after them are marked new), and the screens drawn so far. */
   seenLog = 0;
   looks = 0;
@@ -242,12 +258,19 @@ export class PlaySession {
 /** A modal change: the view or a full-screen step changed, a freeze, probe or forced item opened. Busy costs stop there. */
 export function interrupted(before: SessionSnapshot, now: SessionSnapshot): boolean {
   if (now.currentCycle !== before.currentCycle) return true;
+  if (trainingChanged(before, now)) return true;
   if (now.tour !== before.tour) return true;
   const forced = (s: SessionSnapshot) => s.spam !== null && s.spam.phase !== "ready" && s.spam.forced;
   if (forced(now) && !forced(before)) return true;
   if (now.step === before.step) return false;
   const inView = (s: SessionSnapshot["step"]) => s === "exploration" || s === "allocation" || s === "awaiting_view_end";
   return !(inView(now.step) && inView(before.step));
+}
+
+/** Revision (bp): the training's screen moved on (an item's phase or the item: a card's window closing, the exposure ending, S5). */
+export function trainingChanged(before: SessionSnapshot, now: SessionSnapshot): boolean {
+  const a = trainingViewOf(before), b = trainingViewOf(now);
+  return (a === null) !== (b === null) || (a !== null && b !== null && (a.phase !== b.phase || a.itemId !== b.itemId || a.sectionId !== b.sectionId));
 }
 
 /** `wait`'s rule: any change the participant would notice — a modal change, new messages, a SPAM prompt, the consult notice, the decision panel, the minimum. */

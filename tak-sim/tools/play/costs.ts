@@ -20,10 +20,9 @@ export const COST_S = {
   /** The TAK tools: reading the Contacts pane; one Range & Bearing measurement (two taps). */
   contacts: 8,
   measure: 8,
-  /** Full-screen texts left with one button: the guided tour, the intro video, the practice feedback, the training text, the debrief. */
+  /** Full-screen texts left with one button: the guided tour, the intro video, the training text, the debrief. */
   tour: 60,
   introVideo: 60,
-  practiceFeedback: 45,
   training: 45,
   debrief: 20,
   /** The hinge: reading the directive, answering its check, continuing. */
@@ -34,9 +33,15 @@ export const COST_S = {
   primerAnswer: 10,
   primerRetry: 5,
   primerNext: 20,
-  /** The map training (was the pretest): one task answered; its feedback read. */
-  pretestAnswer: 20,
-  pretestFeedback: 10,
+  /**
+   * The training incident (revision (bp), 26 Oct 2026; DRAFT, SPEC/15 §bp.3): the intro or a section card read; an item answered (on
+   * the map, the card or the freeze screen; a search costs `hakuType` and `hakuRead` besides); its feedback read; S5's recording
+   * watched (its button waits 10 s). The memory item's 8 s exposure is waited out with `wait`.
+   */
+  trainingCard: 8,
+  trainingAnswer: 20,
+  trainingFeedback: 10,
+  trainingDemo: 60,
   /** A freeze: one item answered and left ("Seuraava"), and the last button. */
   freezeAnswer: 10,
   freezeSubmit: 2,

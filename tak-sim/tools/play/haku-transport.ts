@@ -8,6 +8,9 @@
  * `fallbackReason: "no_api_key"`, `retrievalMode: "lexical_only"`. It is NOT the study's model: the harness says so wherever it
  * prints an answer.
  *
+ * Revision (bp), 26 Oct 2026: the training incident's Search (`corpus: "training"`, view 0) goes the same way, over the training's own
+ * records only (`deps.training`, lexical only), as the proxy and the demonstration's bridge answer it (SPEC/14 (bp)).
+ *
  * The Open Thinker and the guide group's premise lookup are not served: the harness plays the Haku group (cell `radio`), which
  * has neither; a call to either fails as a network error would, so the session takes its own fallback.
  */
@@ -19,11 +22,13 @@ import type { PremiseReviewTransport } from "../../app/session/plan-review-trans
 import { handleThinkerRequest, type ThinkerDeps } from "../../server/thinker/handler.js";
 import { loadSystemPrompt } from "../../server/thinker/config.js";
 import { NO_PREMISE_EVIDENCE } from "../demo-bridge/serve.js";
+import { TRAINING_ATOMS, TRAINING_NOW_S, TRAINING_STEP } from "../../app/session/training/corpus.js";
 
 /** The handler's dependencies with no model and no index: the proxy's template fallback over lexical retrieval. */
 export function noModelDeps(scenario: ScenarioContract, nowMs: () => number): ThinkerDeps {
   return {
     scenario,
+    training: { atoms: TRAINING_ATOMS, step: TRAINING_STEP, nowS: TRAINING_NOW_S },
     vector: null,
     prompt: loadSystemPrompt("fi", "standard"),
     promptEn: loadSystemPrompt("en", "standard"),

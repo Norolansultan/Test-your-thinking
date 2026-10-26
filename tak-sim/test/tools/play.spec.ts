@@ -1,6 +1,6 @@
 /**
- * The play harness (`tools/play/`): a short scripted play — the practice view and V1–V3, through a freeze (VP, V2) and SPAM (VP,
- * V3) and Haku's template fallback — prints nothing of the answer keys: no item's key record ids (`keyAtomIds`, the audit's basis
+ * The play harness (`tools/play/`): a short scripted play — the practice view and V1–V3, through a freeze (V2; VP has none since
+ * revision (bp)) and SPAM (VP, V3) and Haku's template fallback — prints nothing of the answer keys: no item's key record ids (`keyAtomIds`, the audit's basis
  * records, SPAM's key records), no map key's coordinates, no key field, and a key option is listed exactly as every other option is;
  * `look` lists exactly the snapshot's message log (`radioLog`), in order, as the app's row shows it. A run on disk replays to the
  * same screen, a refused command is not recorded, and the freeze map's x,y reads back the point the image shows there.
@@ -77,7 +77,7 @@ describe("the play harness's player-facing output", () => {
     // The play reached the items the check is about.
     const freezeItems = [...scenario.practice.freeze.items, ...scenario.freezes.flatMap((f) => f.items)];
     const shown = freezeItems.filter((x) => all.includes(tr("en", x.promptFi)));
-    expect(shown.some((x) => x.id === "freeze.practice.infra")).toBe(true);
+    expect(scenario.practice.freeze.items).toEqual([]); // revision (bp): VP has no freeze
     expect(shown.some((x) => x.id.startsWith("freeze.2."))).toBe(true);
     // The app shows no item ids (some name the key, e.g. `freeze.5.ek14_shelter`), so the harness shows none either.
     expect(all).not.toMatch(/freeze\.(practice|\d+)\./);
@@ -107,7 +107,7 @@ describe("the play harness's player-facing output", () => {
 });
 
 describe("the play harness's cosmetics (play-test, 24 Oct 2026)", () => {
-  it("an English run prints English only, shows the SPAM card's time left and the feedback map's whereabouts, and its period readout never runs backwards", async () => {
+  it("an English run prints English only, shows the SPAM card's time left, and its period readout never runs backwards", async () => {
     const { outputs } = await playToV4();
     const all = outputs.join("\n");
     // (a) The screen descriptions the app has no string for are in the session language only.
@@ -116,12 +116,12 @@ describe("the play harness's cosmetics (play-test, 24 Oct 2026)", () => {
     expect(all).toMatch(/^-- Tool reminder \(\d+\) --$/m);
     // Finding 3: the open SPAM item shows its answer window's time left, as the card does.
     expect(all).toMatch(/^-- Situation question(?: · Question \d of \d)? --  Time to answer \d+ s$/m);
-    // (b) The practice feedback names its head map, even when no image is drawn (`--no-map`).
-    expect(all).toContain("an image, not drawn with --no-map; `look` without --no-map draws it.");
-    expect(all).toContain("The practice feedback is on screen, with a map of the head and your mark");
+    // (b) Revision (bp): the practice feedback and its head map are retired; VP's label is the first look's.
+    expect(all).not.toContain("practice feedback");
+    expect(all).toMatch(/^» \[First look · /m);
     // (c) Within a period the readout only grows: after a freeze, the plan's confidence reads the period's end, not the freeze.
     const last = new Map<string, number>();
-    const readouts = [...all.matchAll(/^» \[(Practice|Period \d+ \/ 14) · [^\]]* · period (\d+) s\]$/gm)];
+    const readouts = [...all.matchAll(/^» \[(First look|Period \d+ \/ 14) · [^\]]* · period (\d+) s\]$/gm)];
     expect(readouts.some((m) => m[0].includes("plan_confidence"))).toBe(true);
     for (const m of readouts) {
       const v = Number(m[2]);
@@ -140,7 +140,7 @@ describe("a play run on disk", () => {
     const first = await startRun(dir, { audience: "public", lang: "fi" }, { withMap: false });
     expect(first.ok).toBe(true);
     expect(first.text).toContain("Perehdytys");
-    const refused = await playCommand(dir, "pretest-answer", ["x", "y"], { withMap: false });
+    const refused = await playCommand(dir, "training-answer", ["x", "y"], { withMap: false });
     expect(refused.ok).toBe(false);
     expect((await playCommand(dir, "primer-answer", ["1"], { withMap: false })).ok).toBe(true);
     const run = readRun(dir);

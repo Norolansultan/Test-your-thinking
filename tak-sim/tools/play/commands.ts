@@ -6,6 +6,8 @@
  * and does not click); reading a full-screen text is spent before leaving it. The UI's own logging that the session's measures
  * read is kept (the Haku pane's `tab_selected` and pane records, the SPAM card's and freeze screen's answer changes, the legend's
  * toggle; Contacts and Range & Bearing in `tak-tools.ts`); hovers, camera records and pointer tracks are not simulated.
+ * Revision (bp), 26 Oct 2026: the training incident's commands are `training-commands.ts` (`training-answer`, and `continue`, `haku`,
+ * `measure`, `map` on its screen); the map training's `pretest-answer` and the practice feedback are retired with them.
  */
 
 import type { SessionSnapshot } from "../../app/session/snapshot.js";
@@ -22,15 +24,15 @@ import type { QuestionnaireItem } from "../../app/session/questionnaire.js";
 import { studyTextFor } from "../../app/i18n/public-texts.js";
 import { displayAnswerText } from "../../app/session/chat-display.js";
 import { COST_S, DEFAULT_WAIT_S, MAX_WAIT_S } from "./costs.js";
-import { noticed, PlayError, VIEW_STEPS, type PlaySession } from "./session.js";
+import { noticed, PlayError, trainingChanged, VIEW_STEPS, type PlaySession } from "./session.js";
 import { freezePointAt } from "./freeze-grid.js";
 import { gl, logRow, lookText, optionByArg, optionLetter } from "./screen.js";
 import { glossaryText, helpText } from "./help.js";
 import { MAP_MOVE_ALIASES, MAP_MOVES, moveCamera, openingOf } from "./map-camera.js";
 import { contactsCommand, measureCommand } from "./tak-tools.js";
 import { playerQuestItems, scalePoints } from "./screen-pages.js";
-import { MAP_TRAINING } from "../../app/session/map-training.js";
-import { isPointTask, type TrainingAnswer } from "../../app/session/map-training-spec.js";
+import { inTraining, trainingViewOf } from "./training-host.js";
+import { trainingAnswer, trainingContinue, trainingHaku, trainingMap, trainingMeasure } from "./training-commands.js";
 
 export interface CommandContext { readonly runDir: string; readonly withMap: boolean }
 
@@ -79,7 +81,7 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
       const spent = await session.spend(seconds, noticed);
       return `Waited ${Math.round(spent)} s${spent < seconds - 0.5 ? " (stopped early: something changed)" : ""}.`;
     }
-    case "haku": return haku(session, args.join(" ").trim());
+    case "haku": return inTraining(s) ? trainingHaku(session, args.join(" ").trim()) : haku(session, args.join(" ").trim());
     case "haku-history": {
       const t = UI_TEXT[session.config.lang];
       await session.spend(COST_S.hakuHistory);
@@ -89,8 +91,9 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
     case "glossary": return glossaryText(session, args.join(" ").trim());
     case "help": return helpText(session, args[0], args[1]);
     case "contacts": return contactsCommand(session, args);
-    case "measure": return measureCommand(session, args);
+    case "measure": return inTraining(s) ? trainingMeasure(session, args) : measureCommand(session, args);
     case "map": {
+      if (inTraining(s)) return trainingMap(session, args, () => look(session, ctx));
       need(VIEW_STEPS.has(s.step) || s.step === "hinge_pause", "the map is not on screen");
       if (args[0] === "legend") {
         session.legendOpen = !session.legendOpen;
@@ -116,7 +119,7 @@ async function dispatch(session: PlaySession, cmd: string, args: readonly string
       await session.spend(COST_S.consult);
       return `${UI_TEXT[session.config.lang].tak.paneTitle.haku} opened (ask with \`haku "<question>"\`).`;
     }
-    case "pretest-answer": return trainingAnswer(session, s, args, ctx);
+    case "training-answer": return trainingAnswer(session, args, () => look(session, ctx));
     case "primer-answer": case "primer-retry": case "primer-next": case "primer-back": return primer(session, cmd, args, ctx);
     case "freeze-answer": return freezeAnswer(session, s, args, ctx);
     case "freeze-submit": {
@@ -232,18 +235,17 @@ function questHint(item: QuestionnaireItem): string {
   return `${item.id} is not answered in the harness`;
 }
 
-/** One button that leaves a screen: the tour, the intro video, the practice feedback, the training, the hinge, the debrief. */
+/** One button that leaves a screen: the training incident's, the tour, the intro video, the training text, the hinge, the debrief. */
 async function proceed(session: PlaySession, s: SessionSnapshot): Promise<string> {
   const o = session.o;
+  if (inTraining(s)) return trainingContinue(session);
   if (s.tour !== null) {
     await session.spend(COST_S.tour);
     await session.act(() => o.completeTour(tourSteps(s.tour!, s.conditionLabel, "radio").length));
     return "Tour finished: the period's time runs.";
   }
   switch (s.step) {
-    case "map_pretest": return trainingNext(session, s);
     case "briefing": await session.spend(COST_S.introVideo); await session.act(() => o.finishIntroVideo("ended")); return "Intro video ended.";
-    case "practice_feedback": await session.spend(COST_S.practiceFeedback); await session.act(() => o.finishPracticeFeedback()); return "Feedback left.";
     case "training": await session.spend(COST_S.training); await session.act(() => o.completeTraining()); return "Training text left: the task starts.";
     case "debrief": await session.spend(COST_S.debrief); await session.act(() => o.finishDebrief()); return "Debrief closed.";
     case "profile": await session.act(() => o.finishProfile()); return "Profile left.";
@@ -317,47 +319,6 @@ async function askHaku(session: PlaySession, beforeCost: number, ask: () => Prom
   const turn = session.snap().aiChatHistory.at(-1);
   if (!(session.snap().step === "freeze")) await closeHakuPane(session);
   return [H("Haku answer — TEMPLATE FALLBACK (the proxy's no-model answer over lexical retrieval), not the study's model."), `${t.haku} · ${now.clockLabel}`, `> ${turn?.query ?? question}`, ...answerLines(session, answer)].join("\n");
-}
-
-/**
- * The map training (25 Oct 2026; the pretest's step): `pretest-answer <letter>` or `pretest-answer <x>,<y>` (the image's grid: extract
- * pixels, 4 m each) answers the task on screen once; its feedback follows (`look`), left with `continue` (or `pretest-answer next`).
- * The memory task's unit is shown for its exposure first: `wait` it out.
- */
-async function trainingAnswer(session: PlaySession, s: SessionSnapshot, args: readonly string[], ctx: CommandContext): Promise<string> {
-  need(s.step === "map_pretest" && s.mapPretest, "no map-training task is on screen");
-  const v = s.mapPretest!;
-  if (v.phase === "feedback" && (args[0] === "next" || args.length === 0)) return trainingNext(session, s);
-  need(v.phase === "answer", v.phase === "study" ? `the unit is still on the map: \`wait ${session.o.mapPretestStudySecondsLeft()}\`, then \`look\`` : "the feedback is on screen: `continue`");
-  const task = MAP_TRAINING.tasks.find((t) => t.id === v.taskId)!;
-  const arg = args[0] === v.taskId ? args[1] : args[0]; // the task id may lead (as the pretest's item id did)
-  let answer: TrainingAnswer;
-  if (isPointTask(task)) {
-    const [x, y] = (arg ?? "").split(",").map(Number);
-    const size = MAP_TRAINING.crop.size;
-    need(Number.isFinite(x) && Number.isFinite(y) && x! >= 0 && y! >= 0 && x! <= size && y! <= size, `pretest-answer <x>,<y> on the image's grid (0–${size}, 4 m a pixel)`);
-    answer = { point: { x: x!, y: y! } };
-  } else {
-    const ids = task.options.map((o) => o.id);
-    const chosen = optionByArg(ids, arg);
-    need(chosen !== null, `options: ${ids.map((_, i) => optionLetter(i)).join(", ")}`);
-    answer = { choiceId: chosen! };
-  }
-  await session.spend(COST_S.pretestAnswer);
-  const now = session.snap().mapPretest;
-  if (now?.taskId !== v.taskId || now.phase !== "answer") return "The training's time ran out before the answer.";
-  await session.act(() => session.o.answerMapPretest(v.taskId, answer));
-  return look(session, ctx);
-}
-
-/** The training's feedback read and left ("Next task" / "Done"). */
-async function trainingNext(session: PlaySession, s: SessionSnapshot): Promise<string> {
-  const v = s.mapPretest;
-  need(v && v.phase === "feedback", v?.phase === "study" ? "the unit is still on the map: `wait`" : "answer the task first (`pretest-answer …`)");
-  await session.spend(COST_S.pretestFeedback);
-  if (session.snap().mapPretest?.taskId !== v!.taskId) return "The training's time ran out.";
-  await session.act(() => session.o.leaveMapPretestFeedback(v!.taskId));
-  return v!.position === v!.taskCount ? "Map training done." : "Next task (`look`).";
 }
 
 async function primer(session: PlaySession, cmd: string, args: readonly string[], ctx: CommandContext): Promise<string> {
@@ -506,7 +467,9 @@ function changeLines(before: SessionSnapshot, logBefore: number, now: SessionSna
   const out: string[] = [];
   if (now.currentCycle !== before.currentCycle) out.push(`Period ended. Now: ${now.practice ? t.practiceLabel : t.viewLabel(now.currentCycle, 14)}, ${t.clock} ${now.clockLabel}.`);
   if (now.step !== before.step) out.push(`Screen: ${now.step}${now.step === "freeze" ? ` (${t.freezeTitle})` : ""}.`);
-  if (now.step === "practice_feedback" && before.step !== "practice_feedback") out.push(H("The practice feedback is on screen, with a map of the head and your mark: `look` shows both."));
+  // Revision (bp): the training's screen moved on (the next card, item, feedback or S5).
+  const tv = trainingViewOf(now);
+  if (tv && trainingChanged(before, now)) out.push(`Training: ${tv.phase}${tv.position > 0 ? ` (${tv.position} / ${tv.itemCount})` : ""}${tv.timedOut ? " — the card's time ran out" : ""} (\`look\`).`);
   const fresh = now.radioLog.length - Math.max(seenAtStart, logBefore);
   if (fresh > 0 && now.step !== "freeze") out.push(`${fresh} new message(s) in the log: ${now.radioLog.slice(-fresh).map((e) => `${e.clockLabel} ${sourceName(lang, e.from)}`).join(", ")} (\`look\`).`);
   // A freeze blanks the log, so the messages that came in before it are shown whole: a participant watching saw them arrive.
@@ -518,7 +481,7 @@ function changeLines(before: SessionSnapshot, logBefore: number, now: SessionSna
   if (now.recordsBadge && !before.recordsBadge) out.push(`${t.tak.toolbar.haku}: [${t.recordsBadge}]`);
   if (now.minimumReached && !before.minimumReached && VIEW_STEPS.has(now.step)) out.push("The period's minimum length has passed.");
   if (now.secondsLeft !== null && now.secondsLeft > 0 && now.step !== "freeze") out.push(t.periodEndsIn(now.secondsLeft));
-  const where = VIEW_STEPS.has(now.step) ? `${now.practice ? t.practiceLabel : t.viewLabel(now.currentCycle, 14)} · ${t.clock} ${now.clockLabel} · ${now.step}${now.tour ? " (tour)" : ` · period ${Math.floor(session.viewSeconds())} s`}` : now.step;
+  const where = VIEW_STEPS.has(now.step) ? `${now.practice ? t.practiceLabel : t.viewLabel(now.currentCycle, 14)} · ${t.clock} ${now.clockLabel} · ${now.step}${now.tour ? " (tour)" : ` · period ${Math.floor(session.viewSeconds())} s`}` : tv ? `${now.step} · ${tv.phase}` : now.step;
   out.push(H(`[${where}]`));
   return out;
 }

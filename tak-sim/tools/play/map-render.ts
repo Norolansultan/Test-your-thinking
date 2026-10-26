@@ -1,8 +1,10 @@
 /**
  * The play harness's images (`tools/play/`): each `ImageRequest` (`map-data.ts`) drawn in headless Chromium through Playwright and
  * written as a PNG. The live map is the app's own `MapView` (`map-page.ts`, bundled with esbuild into `<run>/.map-cache/`), served with the basemap tiles and MapLibre's worker from a local HTTP server on 127.0.0.1, so MapLibre
- * draws it exactly as the browser does (WebGL by SwiftShader). The freeze map, the map training's extract and the practice feedback's
- * head map are SVG over the same tiles. Nothing here touches the session: it only draws what the harness hands it.
+ * draws it exactly as the browser does (WebGL by SwiftShader). The freeze map is SVG over the same tiles. Revision (bp), 26 Oct 2026:
+ * the training incident's map is the live map too, with work package B's overlay (the bundle resolves `training-overlay-shim.ts` to
+ * `app/render/ui/training-overlay.ts` when that file is in the tree) and a grid in the PNG's pixels; an overlay that cannot be drawn
+ * fails the image rather than drawing a bare map. Nothing here touches the session: it only draws what the harness hands it.
  *
  * Playwright is not a dependency of the project: it is imported from `PLAY_PLAYWRIGHT` (default
  * `/opt/node22/lib/node_modules/playwright/index.mjs`) with the browser at `PLAY_CHROMIUM` (default `/opt/pw-browsers/chromium`).
@@ -12,13 +14,12 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BASEMAP_TILE_PX, BASEMAP_TILES, basemapPx, tilesFor } from "../../app/render/ui/basemap-px.js";
-import { trainingSvg } from "../../app/render/ui/map-training-overlay.js";
-import { MAP_TRAINING } from "../../app/session/map-training.js";
+import { BASEMAP_TILE_PX, BASEMAP_TILES } from "../../app/render/ui/basemap-px.js";
 import { topoTileUrl } from "../../app/i18n/place-names.js";
 import type { GeoExtent } from "../../app/engine/primitives.js";
 import { extentOutlinePx, FREEZE_GRID_STEP_PX, FREEZE_MAP_MARGIN_PX, freezeFrame, freezeTiles } from "./freeze-grid.js";
 import type { ImageRequest } from "./map-data.js";
+import { TRAINING_OVERLAY_MODULE } from "./training-overlay-shim.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const PUBLIC = join(ROOT, "app/render/ui/public");
@@ -33,9 +34,15 @@ async function mapBundle(cacheDir: string): Promise<string> {
   const out = join(cacheDir, "map-page.js");
   mkdirSync(cacheDir, { recursive: true });
   const esbuild = await import("esbuild");
+  // Revision (bp): B's training overlay in place of the stand-in, when it is in the tree.
+  const overlay = join(ROOT, TRAINING_OVERLAY_MODULE);
+  const trainingOverlay = {
+    name: "play-training-overlay",
+    setup(b: { onResolve(o: { filter: RegExp }, f: () => { path: string } | undefined): void }) { b.onResolve({ filter: /training-overlay-shim\.js$/ }, () => (existsSync(overlay) ? { path: overlay } : undefined)); },
+  };
   await esbuild.build({
     entryPoints: [join(ROOT, "tools/play/map-page.ts")], bundle: true, format: "esm", platform: "browser", target: "es2022",
-    jsx: "automatic", jsxImportSource: "preact", outfile: out, logLevel: "error", absWorkingDir: ROOT,
+    jsx: "automatic", jsxImportSource: "preact", outfile: out, logLevel: "error", absWorkingDir: ROOT, plugins: [trainingOverlay],
   });
   return out;
 }
@@ -84,44 +91,26 @@ export function freezeSvg(extent: Pick<GeoExtent, "south" | "north" | "west" | "
   return { svg: out.join(""), width: W, height: H };
 }
 
-/** The practice feedback's head map (`PracticeFeedbackScreen`'s `HeadMap`, its geometry and colours). */
-function headSvg(r: Extract<ImageRequest, { kind: "head" }>): string {
-  const h = basemapPx(r.head.head);
-  const mk = r.head.mark ? basemapPx(r.head.mark) : null;
-  const spread = mk ? Math.hypot(mk.x - h.x, mk.y - h.y) : 0;
-  const half = Math.min(500, Math.max(150, spread * 1.3));
-  const x0 = h.x - half, y0 = h.y - half, size = 2 * half, rr = size / 70;
-  const ring = r.head.outline.map(basemapPx).map((p) => `${p.x},${p.y}`).join(" ");
-  const tiles = tilesFor(x0, y0, x0 + size, y0 + size).map(({ row, col }) => `<image href="${esc(tileHref(row, col, r.lang))}" x="${col * BASEMAP_TILE_PX}" y="${row * BASEMAP_TILE_PX}" width="${BASEMAP_TILE_PX}" height="${BASEMAP_TILE_PX}" preserveAspectRatio="none"/>`).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="${x0} ${y0} ${size} ${size}" style="background:#f4f1ea">${tiles}` +
-    (ring ? `<polygon points="${ring}" fill="none" stroke="#7a2e1a" stroke-width="${rr / 2.5}"/>` : "") +
-    `<circle cx="${h.x}" cy="${h.y}" r="${rr}" fill="#d93025" stroke="#ffffff" stroke-width="${rr / 3}"/>` +
-    (mk ? `<circle cx="${mk.x}" cy="${mk.y}" r="${rr}" fill="#1a73e8" stroke="#ffffff" stroke-width="${rr / 3}"/>` : "") + "</svg>";
-}
-
 interface PageSpec { readonly html: string; readonly selector: string; readonly width: number; readonly height: number; readonly waitMap: boolean }
 
 function pageOf(r: ImageRequest, extent: Pick<GeoExtent, "south" | "north" | "west" | "east">): PageSpec {
   switch (r.kind) {
-    case "live": {
+    case "live": case "training": {
       const data = JSON.stringify(r.data).replace(/</g, "\\u003c");
-      return { html: htmlPage(`<link rel="stylesheet" href="/maplibre-gl.css"><script>window.__PLAY_MAP__=${data}</script>`, `<div id="app"></div><script type="module" src="/map-page.js"></script>`), selector: "#play-map-root", width: r.data.widthPx, height: r.data.heightPx, waitMap: true };
+      const m = r.kind === "training" ? r.data.training!.gridMarginPx : 0;
+      return {
+        html: htmlPage(`<link rel="stylesheet" href="/maplibre-gl.css"><script>window.__PLAY_MAP__=${data}</script>`, `<div id="app"></div><script type="module" src="/map-page.js"></script>`),
+        selector: r.kind === "training" ? "#play-train-root" : "#play-map-root", width: r.data.widthPx + 2 * m, height: r.data.heightPx + 2 * m, waitMap: true,
+      };
     }
-    case "freeze": { const f = freezeSvg(extent, r.lang); return { html: htmlPage("", f.svg), selector: "svg", width: f.width, height: f.height, waitMap: false }; }
-    case "pretest": { // the map training's task (25 Oct 2026), with the harness's x,y grid
-      const task = MAP_TRAINING.tasks.find((t) => t.id === r.taskId)!;
-      const svg = trainingSvg(MAP_TRAINING, task, r.phase, topoTileUrl(`/maps/topo/${MAP_TRAINING.crop.tile}.webp`, r.lang), r.lang, r.answer, { grid: true });
-      const px = Number(/width="(\d+)"/.exec(svg)![1]);
-      return { html: htmlPage("", svg), selector: "svg", width: px, height: px, waitMap: false };
-    }
-    case "head": return { html: htmlPage("", headSvg(r)), selector: "svg", width: 420, height: 420, waitMap: false };
+    case "freeze": { const f = freezeSvg(r.extent ?? extent, r.lang); return { html: htmlPage("", f.svg), selector: "svg", width: f.width, height: f.height, waitMap: false }; }
   }
 }
 
 /** Draws every request (one browser for all) and writes its PNG; returns the paths written. */
 export async function renderImages(requests: readonly ImageRequest[], extent: Pick<GeoExtent, "south" | "north" | "west" | "east">, cacheDir: string): Promise<string[]> {
   if (requests.length === 0) return [];
-  const bundle = requests.some((r) => r.kind === "live") ? await mapBundle(cacheDir) : null;
+  const bundle = requests.some((r) => r.kind === "live" || r.kind === "training") ? await mapBundle(cacheDir) : null;
   const pages = new Map<string, string>();
   const specs = requests.map((r, i) => { const spec = pageOf(r, extent); pages.set(`/page-${i}.html`, spec.html); return spec; });
   const { server, base } = await serve(pages, bundle);
@@ -135,6 +124,8 @@ export async function renderImages(requests: readonly ImageRequest[], extent: Pi
       try {
         await page.goto(`${base}/page-${i}.html`, { waitUntil: "networkidle" });
         if (spec.waitMap) await page.waitForFunction("window.__playMapDone === true", undefined, { timeout: 30_000 });
+        const failed = spec.waitMap ? await page.evaluate("window.__playMapError ?? null") : null;
+        if (typeof failed === "string") throw new Error(failed);
         mkdirSync(dirname(r.path), { recursive: true });
         await page.locator(spec.selector).first().screenshot({ path: r.path });
         written.push(r.path);
@@ -149,6 +140,7 @@ export async function renderImages(requests: readonly ImageRequest[], extent: Pi
 
 interface PlayPage {
   goto(url: string, o: unknown): Promise<unknown>;
+  evaluate(expr: string): Promise<unknown>;
   waitForFunction(expr: string, arg: unknown, o: unknown): Promise<unknown>;
   locator(selector: string): { first(): { screenshot(o: { path: string }): Promise<unknown> } };
   close(): Promise<void>;

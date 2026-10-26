@@ -1,19 +1,16 @@
 /**
  * The play harness's full-screen pages (`tools/play/`): the screens that take the whole window instead of the map — the primer
- * (public sessions; `PrimerScreen`, its pure flow `primer-flow.ts`), the map training in the pretest's step (`MapTrainingScreen` and
- * the extract's PNG), the intro video, the practice feedback (`PracticeFeedbackScreen` and its head map's PNG), the training text with a public
- * session's mission card (`IntroScreen`), the questionnaires' player items (`StudyShell`; B2, 25 Oct 2026: the pre-session form,
- * the post-session source-memory, self-estimate and influence items), the debrief and the
- * end — as text, with the app's own strings (`PRIMER_CONTENT`, `DIFFICULTY_TEXT`, `introTextsIn`, `PUBLIC_TEXT`, `studyTextFor`).
+ * (public sessions; `PrimerScreen`, its pure flow `primer-flow.ts`), the training incident (revision (bp), 26 Oct 2026:
+ * `training-pages.ts`, with its map's PNG; it replaces the map training and the practice feedback), the intro video, the group's
+ * training text with a public session's mission card (`IntroScreen`), the questionnaires' player items (`StudyShell`; B2, 25 Oct 2026:
+ * the pre-session form, the post-session source-memory, self-estimate and influence items), the debrief and the
+ * end — as text, with the app's own strings (`PRIMER_CONTENT`, `TRAINING_TEXT`, `introTextsIn`, `PUBLIC_TEXT`, `studyTextFor`).
  * Null for a view's screen (`screen.ts` draws those). Never a key of a scored item: the primer shows right or wrong after a choice and
- * the map training its right answers in its feedback, as the app does; nothing else here is scored.
+ * the training incident its own right answers in its feedback, as the app does; nothing else here is scored.
  */
 
 import type { SessionSnapshot } from "../../app/session/snapshot.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
-import { sourceName, tr } from "../../app/i18n/text.js";
-import { DIFFICULTY_TEXT } from "../../app/i18n/difficulty-texts.js";
-import { searchLessonLines } from "../../app/session/practice-feedback.js";
 import { PUBLIC_TEXT, studyTextFor } from "../../app/i18n/public-texts.js";
 import { introTextsIn } from "../../app/scenario/briefing.js";
 import { pageOfLabel, PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
@@ -21,10 +18,8 @@ import { canGoOn, isLastPage, questionPhase } from "../../app/render/ui/explain/
 import { REFLECTION_SECTION, SOURCE_SECTION, type QuestionnaireItem } from "../../app/session/questionnaire.js";
 import type { PlaySession } from "./session.js";
 import type { ImageRequest } from "./map-data.js";
-import { MAP_TRAINING_TEXT } from "../../app/i18n/map-training-texts.js";
-import { MAP_TRAINING } from "../../app/session/map-training.js";
-import { isPointTask } from "../../app/session/map-training-spec.js";
-import { optionLetter } from "./screen.js";
+import { logRow } from "./screen.js";
+import { trainingPage } from "./training-pages.js";
 
 const H = (s: string) => `» ${s}`;
 type Page = { readonly text: string; readonly images: ImageRequest[] };
@@ -32,11 +27,11 @@ type Page = { readonly text: string; readonly images: ImageRequest[] };
 /** The page on show, or null inside a view. `name` gives an image's path. */
 export function pageText(session: PlaySession, name: (what: string) => string, withMap: boolean): Page | null {
   const s = session.snap();
+  const training = trainingPage(session, s, name, withMap, (e) => logRow(session, e));
+  if (training) return training;
   switch (s.step) {
     case "primer": return { text: primerText(session), images: [] };
-    case "map_pretest": return pretestText(session, s, withMap ? name("pretest-extract") : null);
     case "briefing": return { text: [UI_TEXT[session.config.lang].introVideo.play, H(`The intro video (${s.introVideo?.src ?? "—"}) plays full screen here; its content is not available as text. \`continue\` when it has ended.`)].join("\n"), images: [] };
-    case "practice_feedback": return feedbackText(session, s, withMap ? name("practice-feedback-map") : null);
     case "training": return { text: trainingText(session), images: [] };
     case "questionnaire": return { text: questText(session, s), images: [] };
     case "debrief": {
@@ -70,55 +65,6 @@ function primerText(session: PlaySession): string {
 /** The option the participant got right on a page (the app marks the chosen right option; the harness remembers the choice). */
 function lastRight(session: PlaySession, page: number): number | null {
   return session.primerRight.get(page) ?? null;
-}
-
-/** The map training (25 Oct 2026; the pretest's step): the task on screen, its question or its feedback, with the app's words. */
-function pretestText(session: PlaySession, s: SessionSnapshot, path: string | null): Page {
-  const lang = session.config.lang;
-  const t = MAP_TRAINING_TEXT[lang];
-  const v = s.mapPretest;
-  if (!v) return { text: H("The map training has ended."), images: [] };
-  const task = MAP_TRAINING.tasks.find((x) => x.id === v.taskId)!;
-  const out = [`== ${t.title} ==  ${t.timeLeft(session.o.mapPretestSecondsLeft())}`, t.intro(v.taskCount, Math.round(v.timeLimitMs / 60_000)), "", t.progress(v.position, v.taskCount)];
-  if (v.phase === "study" && task.kind === "memory") out.push(t.study(task, Math.round(MAP_TRAINING.memoryMs / 1000)), t.studyLeft(session.o.mapPretestStudySecondsLeft()), H("`wait` until the blank map, then `look`."));
-  else out.push(t.prompt(task));
-  if (task.kind === "now") out.push(`[${t.logTitle}] ${task.report.clock} ${task.report.from}: ${t.report(task)}`);
-  if (v.phase === "answer") {
-    if (isPointTask(task)) out.push(H(`\`pretest-answer <x>,<y>\` — a point on the image's grid (extract pixels, 4 m each); once, final ("${t.answer}").`));
-    else {
-      task.options.forEach((o, i) => out.push(`  ${optionLetter(i)}) ${t.option(task, o.id)}`));
-      out.push(H(`\`pretest-answer <letter>\` — once, final ("${t.answer}").`));
-    }
-  }
-  if (v.phase === "feedback") {
-    if (v.answer && "choiceId" in v.answer && !isPointTask(task)) out.push(`${t.yourAnswer}: ${t.option(task, v.answer.choiceId)}`, `${t.rightAnswer}: ${t.option(task, task.key)}`);
-    if (v.errorM !== null) out.push(t.off(v.errorM));
-    out.push(t.feedback(task), `[${v.position === v.taskCount ? t.finish : t.next}] → \`continue\``);
-  }
-  const legend = v.phase === "feedback" ? " (green ring: the right place; blue dot: your mark)" : task.kind === "memory" && v.phase === "answer" ? " (the blank memory-check map)" : "";
-  out.push(H(path ? `Map${legend}, with an x,y grid every 50 px: ${path}` : "The map is an image, not drawn with --no-map; `look` without --no-map draws it."));
-  return { text: out.join("\n"), images: path ? [{ kind: "pretest", path, lang, taskId: v.taskId, phase: v.phase, answer: v.answer }] : [] };
-}
-
-function feedbackText(session: PlaySession, s: SessionSnapshot, path: string | null): Page {
-  const lang = session.config.lang;
-  const t = DIFFICULTY_TEXT[lang].feedback;
-  const v = s.practiceFeedback;
-  if (!v) return { text: "", images: [] };
-  const out = [`== ${t.title} ==`, t.intro];
-  for (const it of v.items) {
-    const records = it.records.map((r) => `${sourceName(lang, r.sourceId)} ${r.clockLabel}`).join(", ");
-    const where = it.source === "log" ? t.log(records) : it.source === "map" ? t.map : it.source === "records" ? t.records(records) : t.workedOut;
-    // (bl) A records item shows what a search would have given and its answer (the screen's `SearchLesson`, the same lines); else its example question.
-    const lesson = it.lesson ? searchLessonLines(lang, it.lesson) : null;
-    out.push("", `${t.question}: ${tr(lang, it.promptFi)}`, where, ...(lesson ? [lesson.lesson, ...(lesson.yours !== null ? [lesson.yours] : [])] : it.exampleQuestion ? [t.example(it.exampleQuestion[lang])] : []));
-  }
-  out.push("", `# ${t.headTitle}`, v.head.mark ? t.head : t.headNoMark);
-  // The head map is an image (24 Oct 2026: a player on `--no-map` read "shown in blue" and saw no picture): its path, or how to get it.
-  const legend = `red ● ${t.legendHead}${v.head.mark ? `, blue ● ${t.legendMark}` : ""}`;
-  out.push(H(path ? `Map (${legend}): ${path}` : `Map (${legend}): an image, not drawn with --no-map; \`look\` without --no-map draws it.`));
-  out.push("", `# ${t.measureTitle}`, t.measure(v.measure.km, lang === "en" ? v.measure.directionEn : v.measure.directionFi), "", s.aiAvailable ? t.closingThinker : t.closingHaku, `[${t.continue}] → \`continue\``);
-  return { text: out.join("\n"), images: path ? [{ kind: "head", path, lang, head: v.head }] : [] };
 }
 
 function trainingText(session: PlaySession): string {

@@ -46,8 +46,13 @@ npm run demo:bridge    # the bridge: dist/demo-bridge/bridge.js and dist/demo-br
 ```
 
 `demo:bridge` checks the prompts against the Thinker manifest, and fails if the bundle contains a forbidden module (the
-premise tables, the freeze banks and keys, EXCON, the server's wiring or SDK) or either file contains premise or freeze-key
-content (`leaks.ts`; `test/demo-bridge/leaks.spec.ts` checks the same).
+premise tables, the freeze banks and keys, the training incident's spec, keys and texts, EXCON, the server's wiring or SDK) or
+either file contains premise, freeze-key or training-key content (`leaks.ts`; `test/demo-bridge/leaks.spec.ts` checks the same).
+
+Revision (bp), 26 Oct 2026: `data.json` (version 2) also carries the training incident's twelve records (no truth) in a list of
+their own, beside the session's, checked as the proxy checks them at startup (`trn.` ids, none the session's). A training Search
+question (`corpus: "training"`, view 0) is answered over those records only, lexically, with the same prompts; a session question
+never reaches them. The build needs the training's corpus (`npm run training:build`).
 
 ## Publish beside the page
 

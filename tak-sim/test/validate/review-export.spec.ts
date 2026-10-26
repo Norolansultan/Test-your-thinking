@@ -87,9 +87,10 @@ describe("(b) every corpus record", () => {
 describe("(c) every draft answer key, with its basis", () => {
   const keyIds = new Set(keys.map((r) => r.id));
 
-  it("covers every freeze item of the scenario (VP and the main views), each with a key and a basis", () => {
+  it("covers every freeze item of the scenario (the main views; VP has none since revision (bp)), each with a key and a basis", () => {
     const items = [...scenario.freezes.flatMap((f) => f.items), ...scenario.practice.freeze.items];
     for (const it of items) expect(keyIds, it.id).toContain(it.id);
+    expect([...keyIds].filter((id) => id.startsWith("freeze.practice."))).toEqual([]); // revision (bp): VP's practice freeze is retired
     for (const r of keys.filter((k) => k.kind.startsWith("freeze"))) { expect(r.keyFi, r.id).not.toBe(""); expect(r.basis, r.id).not.toBe(""); }
   });
 

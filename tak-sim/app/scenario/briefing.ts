@@ -14,7 +14,8 @@
  *   only, at the same length, and never a word about an agent or another configuration. Both carry
  *   the same cross-checking sentence (`CROSS_CHECK_FI`).
  *
- * Session order (SPEC/15 §2, SPEC/05 §4): briefing (setting) → practice view VP → training → V1.
+ * Session order (SPEC/15 §2, SPEC/05 §4; revision (bp), 26 Oct 2026): … → the training incident → intro video → VP, the first look
+ * ("Ensikatsaus") → the group's training text → V1.
  *
  * DRAFT — every text below awaits native-language and domain (rescue services) review before
  * pilot 1. Change the wording here only; `test/scenario/briefing.spec.ts` guards the invariants.
@@ -79,11 +80,15 @@ export const RECORDS_RULE_FI =
 export const RECORDS_RULE_EN =
   "The message log shows only part of the traffic. The units' own reports and answers, drone and sensor data, weather forecasts and the units' status are in the records: find them with Search, as you would ask the command centre by radio.";
 
-/** Proposal (a.2): the tour's log step (replaces "Reports … arrive in the message log …"). Finnish DRAFT. */
+/**
+ * Proposal (a.2): the tour's log step (replaces "Reports … arrive in the message log …"). Finnish DRAFT.
+ * Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): the step refers back to the training incident, which taught what the records hold, instead
+ * of listing the kinds again. The information rule stands (`RECORDS_RULE_*`, `TOOLS_HAKU_*`). Finnish DRAFT, native check.
+ */
 export const TOUR_LOG_FI =
-  "Sinulle välitetyt ilmoitukset tulevat tähän lähettäjän ja kellonajan kanssa. Se on vain osa liikenteestä. Yksiköiden omat ilmoitukset ja vastaukset, droonien ja anturien tiedot, sääennusteet ja yksiköiden tila (vesi, työvuoron pituus, sijainti) säilyvät kirjauksissa. Ne löydät Hausta.";
+  "Sinulle välitetyt ilmoitukset tulevat tähän lähettäjän ja kellonajan kanssa, kuten harjoituksessa. Se on vain osa liikenteestä; muu on kirjauksissa.";
 export const TOUR_LOG_EN =
-  "Reports passed to you arrive here with their sender and time. This is only part of the traffic. The units' own reports and answers, drone and sensor data, weather forecasts and the units' status (water, hours on shift, location) are kept in the records. You find them with Search.";
+  "Reports passed to you arrive here with their sender and time, as in the training. This is only part of the traffic; the rest is in the records.";
 
 /**
  * Proposal (a.2), with (a.4)'s number-free badge: the sentence added to the tour's Haku step before `HAKU_CHAT_*`. The badge says only
@@ -186,9 +191,11 @@ export const PRACTICE_THINKER_EXAMPLE_FI = "Mitä uusimmat ilmoitukset kertovat 
 /**
  * Revision (am): V1's tool reminder for Thinker, after the practice — short, so what Thinker is for is
  * not repeated; it says the practice conversation does not carry over (the history is cleared at V1).
+ * Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP is the first look ("Ensikatsaus"); "harjoitus" now names the training incident, where
+ * no Thinker is used, so the reminder says where Thinker was tried. Finnish DRAFT, native check.
  */
 export const TOOLS_THINKER_AGAIN_FI =
-  "Thinker, jota kokeilit harjoituksessa, on käytössäsi koko istunnon ajan, myös päätösvaiheessa. Harjoituksen keskustelu ei jatku: Thinker aloittaa alusta.";
+  "Thinker, jota kokeilit ensikatsauksessa, on käytössäsi koko istunnon ajan, myös päätösvaiheessa. Ensikatsauksen keskustelu ei jatku: Thinker aloittaa alusta.";
 
 /** Revision (am): the same for the `reasoning_intent` cell, with that cell's sentence on P2's orders. */
 export const TOOLS_THINKER_INTENT_AGAIN_FI = TOOLS_THINKER_AGAIN_FI + " " + THINKER_ORDERS_FI;
@@ -288,7 +295,7 @@ export const PRACTICE_THINKER_EN =
 export const PRACTICE_THINKER_EXAMPLE_EN = "What do the latest reports say about the head of the fire, and how old are they?";
 
 export const TOOLS_THINKER_AGAIN_EN =
-  "Thinker, which you tried in the practice, is available to you throughout the session, also in the decision phase. The practice conversation does not carry over: Thinker starts afresh.";
+  "Thinker, which you tried in the first look, is available to you throughout the session, also in the decision phase. The first look's conversation does not carry over: Thinker starts afresh.";
 
 export const TOOLS_THINKER_INTENT_AGAIN_EN = TOOLS_THINKER_AGAIN_EN + " " + THINKER_ORDERS_EN;
 

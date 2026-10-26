@@ -52,11 +52,11 @@ const route = (id: string, a: string, b: string, usedBy: readonly UsedBy[], para
 
 export const RELATION_SPECS: readonly RelationSpec[] = [
   // --- The template (SPEC/18 §5, SPEC/23 §4): where each feature lies from the ignition point -----------------------------------
-  ...fromIgn("R1", [u(FB, "freeze.practice.r1_arrival"), u(FB, "freeze.practice.first_target"), u(S18, "W3/W4/4", "spot fire across R1, R1 north verge"), u(ST, "atom.demo.1.1"), u(DP, "freeze.2.infra"), u(DP, "freeze.5.infra")], "SPEC/18 §5: R1 400 m N, E–W"),
+  ...fromIgn("R1", [u(S18, "W3/W4/4", "spot fire across R1, R1 north verge"), u(ST, "atom.demo.1.1"), u(DP, "freeze.2.infra"), u(DP, "freeze.5.infra")], "SPEC/18 §5: R1 400 m N, E–W"),
   ...fromIgn("KUIVAKANGAS", [u(S18, "3", "second ignition on RIDGE 140 m ahead of the head"), u(FB, "freeze.2.ek11_point"), u(FB, "freeze.2.ek11_between"), u(DP, "spam2.6")], "SPEC/18 §5 RIDGE: esker 800–1200 m NE"),
   ...fromIgn("KUUSIMAKI", [u(FB, "freeze.2.spruce_behaviour"), u(ST, "atom.demo.4.0"), u(FB, "freeze.4.ek12_where"), u(DEP, "edge:SPR")], "SPEC/18 §5 SPR: spruce 1.3–2.2 km NE"),
   ...fromIgn("BIRCH", [u(FB, "freeze.4.crown_drops"), u(DEP, "edge:BIRCH"), u(DP, "spam.6")], "SPEC/18 §5 BIRCH: 2.3 km NE along Koivuoja"),
-  ...fromIgn("HAUKILAMPI", [u(DP, "freeze.practice.infra"), u(DP, "freeze.4.infra"), u(TW, "W1"), up(BUNDLE, "Haukilammelta \\(W1\\), noin [0-9,]+ km")], "SPEC/18 §5 POND: water point W1 ~1.5 km NW"),
+  ...fromIgn("HAUKILAMPI", [u(DP, "freeze.4.infra"), u(TW, "W1"), up(BUNDLE, "Haukilammelta \\(W1\\), noin [0-9,]+ km")], "SPEC/18 §5 POND: water point W1 ~1.5 km NW"),
   ...fromIgn("KARHUJARVI", [u(FB, "freeze.7.north_help"), u(DEP, "edge:L1B")], "SPEC/18 §5 LAKE-N: ~2.5 km NW"),
   ...fromIgn("MOKKIRANTA", [u(SM, "source.cabins_nw"), up(BUNDLE, "[Ll]ähin asutus:? Mökkiranta [0-9,]+ km"), u(FB, "freeze.7.cabins_reach"), u(FBB, "freeze.10.cabins_distance"), u(DP, "spam.8"), u(FBB, "settlementKey")], "SPEC/18 §9 V1: 14 cabins on Karhujärvi's shore facing IGN"),
   ...fromIgn("LAHDENKYLA", [u(FBB, "freeze.12.village_distance"), u(FBB, "freeze.12.front_toward"), u(FBB, "freeze.14.residents"), u(DD, "panel.V14"), up(BUNDLE, "Lahdenkylä [0-9,]+ km kaakkoon")], "SPEC/18 §5 VILLAGE-E, moved to 3.0 km (SPEC/23 §6)"),

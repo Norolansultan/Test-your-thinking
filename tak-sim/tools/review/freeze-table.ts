@@ -9,7 +9,7 @@
 
 import { pathToFileURL } from "node:url";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
-import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import type { ItemDef } from "../../app/scenario/freeze-bank-core.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
 
@@ -37,7 +37,7 @@ export function freezeTable(): string[] {
     "|---|---|---|---|---|---|---|---|---|---|---|",
   ];
   const defOf = (defs: readonly ItemDef[], it: FreezeItem) => defs.find((d) => it.id.endsWith(`.${d.slug}`));
-  for (const it of scenario.practice.freeze.items) lines.push(row("VP", it, defOf(PRACTICE_BANK, it)));
+  // Revision (bp), 26 Oct 2026: VP has no freeze (its practice freeze is retired), so the table has no VP rows.
   for (const f of scenario.freezes) for (const it of f.items) lines.push(row(`V${f.cycle}`, it, defOf(FREEZE_BANK[f.cycle] ?? [], it)));
   return lines;
 }

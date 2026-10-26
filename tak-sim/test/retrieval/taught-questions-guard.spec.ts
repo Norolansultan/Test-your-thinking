@@ -15,6 +15,11 @@
  * 2. **Natural forms** per seek-dependent item with a recorded key ("Mitä EK12 ilmoitti?", "What has EK12 reported?" …): the key
  *    record in the top 3 (one documented exception, below) and no H9 or H10 record in the top 8, at the item's moment.
  * 3. The finding itself, reproduced on revision (bn)'s retrieval (`withoutBo`), so the guard is known to bite.
+ *
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.3, SPEC/15 §bp.6): the tour's records step quotes no question any more (it refers back to
+ * the training incident), and the practice feedback's search lesson is retired; the training's pre-recorded questions are the taught
+ * questions instead. They are answered over the training's own corpus, which holds no H9 or H10 record; checked here too, as a
+ * participant could ask them in the session, at every step.
  */
 
 import { describe, expect, it } from "vitest";
@@ -26,10 +31,10 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { DESIGNED_EVENT_IDS, LOAD_BEARING_T4_IDS } from "../../app/scenario/types.js";
 import { PRACTICE_STEP, STEP_SECONDS } from "../../app/scenario/views.js";
 import { HAKU_SUGGESTED_QUESTION, SUGGESTED_QUESTION } from "../../app/session/consult-notice.js";
-import { practiceFeedbackView } from "../../app/session/practice-feedback.js";
 import { auditItems } from "../../tools/review/difficulty-audit.js";
 import { SEEK_QUESTIONS } from "../../tools/review/seek-questions.js";
 import { withoutBo } from "../../tools/thinker/playtest-cases.js";
+import { TRAINING_FOR_TESTS, TRAINING_QUESTIONS } from "./training-fixture.js";
 
 type Lang = "fi" | "en";
 
@@ -63,9 +68,8 @@ function rankOf(question: string, step: number, lang: Lang, records: readonly st
   return ranks.length ? Math.min(...ranks) + 1 : null;
 }
 
-/** The examples the tour's records step quotes („…” in Finnish, “…” in English). */
-const tourExamples = (lang: Lang) => [...UI_TEXT[lang].tour.steps.hakuRecords.body.matchAll(/[„“]([^”]+)”/gu)].map((m) => m[1]!.trim());
-const practiceExamples = (lang: Lang) => practiceFeedbackView(scenario, null).items.flatMap((it) => (it.exampleQuestion ? [it.exampleQuestion[lang]] : []));
+/** The examples the tour's records step quotes („…” in Finnish, “…” in English): none since revision (bp). */
+const tourExamples = (lang: Lang) => [...UI_TEXT[lang].tour.steps.hakuRecords.body.matchAll(/[„“"]([^”"]+)[”"]/gu)].map((m) => m[1]!.trim());
 
 /** The step the time gate has reached at an item's moment (a merged view's second step after its boundary), as the audit computes it. */
 const audit = auditItems();
@@ -82,20 +86,45 @@ interface Taught {
 }
 
 const TAUGHT: readonly Taught[] = [
-  { name: "the tour's records-step examples", questions: tourExamples, steps: SESSION_STEPS },
-  { name: "the practice lesson's example question", questions: practiceExamples, steps: SESSION_STEPS },
   { name: "the Haku chip", questions: (lang) => [HAKU_SUGGESTED_QUESTION[lang]], steps: CHIP_STEPS },
   { name: "the guide's chip", questions: (lang) => [SUGGESTED_QUESTION[lang]], steps: CHIP_STEPS },
   { name: "the consult notice's text", questions: (lang) => [UI_TEXT[lang].consult.notice], steps: MAIN_STEPS },
   { name: "the Thinker practice's example", questions: (lang) => [lang === "fi" ? PRACTICE_THINKER_EXAMPLE_FI : PRACTICE_THINKER_EXAMPLE_EN], steps: [PRACTICE_STEP] },
 ];
 
+/**
+ * Revision (bp): REPORTED to the integration owner and the researcher (26 Oct 2026). S5's limitation example asks "Onko palo
+ * hallinnassa?" / "Is the fire under control?" (both groups' recordings, `30` (bp) §bp.2). Answered in the training over its own corpus
+ * it reaches no session record; but asked AGAIN in an English session, the lexical retrieval ranks the grid operator's record
+ * (`f7.grid_record`, H9) first at steps 6–9 (V4–V6) and in the top 8 through V12's freeze. The Finnish question pulls no H9 or H10
+ * record. Pinned here so that any change is seen; the fix is the researcher's (the example's wording, or `14`'s retrieval).
+ */
+const TRAINING_REPORTED: Readonly<Record<string, readonly string[]>> = {
+  "en|Is the fire under control?": [
+    ...[6, 7, 8, 9].map((s) => `${DESIGNED_EVENT_IDS.gridRecord} at rank 1, step ${s}`),
+    ...[10, 11, 12, 13, 14, 15, 16].map((s) => `${DESIGNED_EVENT_IDS.gridRecord} at rank 6, step ${s}`),
+    `${DESIGNED_EVENT_IDS.gridRecord} at rank 7, step 17`,
+  ],
+};
+
 describe("revision (bo): taught and fixed questions return no H9 or H10 record in the top 8 while its exposure counts", () => {
-  it("reads the taught questions from the instrument: three tour examples and one practice example per language", () => {
+  // Revision (bp): the training's pre-recorded questions (taught in its feedback and its recordings), as if asked in the session again.
+  for (const lang of LANGS) {
+    it(`the training's pre-recorded questions (${lang}), at every step of the session; one reported exception`, () => {
+      for (const q of TRAINING_QUESTIONS[lang]) {
+        const got = SESSION_STEPS.flatMap((step) => exposed(q, step, lang));
+        expect(got, `"${q}"`).toEqual(TRAINING_REPORTED[`${lang}|${q}`] ?? []);
+      }
+    });
+  }
+
+  it("revision (bp): the tour's records step quotes no question; the training's questions are the taught ones, and its corpus holds no H9 or H10 record", () => {
     for (const lang of LANGS) {
-      expect(tourExamples(lang), lang).toHaveLength(3);
-      expect(practiceExamples(lang).length, lang).toBeGreaterThanOrEqual(1);
+      expect(tourExamples(lang), lang).toEqual([]);
+      expect(TRAINING_QUESTIONS[lang].length, lang).toBeGreaterThanOrEqual(4);
     }
+    const designed: readonly string[] = [...H9, ...H10];
+    expect(TRAINING_FOR_TESTS.atoms.filter((a) => designed.includes(a.id))).toEqual([]);
     expect(H9_LAST_STEP).toBe(17);
     expect(H10_LAST_STEP).toBe(11);
   });

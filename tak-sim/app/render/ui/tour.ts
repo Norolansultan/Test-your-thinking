@@ -7,6 +7,9 @@
  * click and lets the participant ask their own; the tour goes on once one question has been answered.
  * Revision (bl), 25 Oct 2026 (researcher): Haku has a second step, `hakuRecords`, right after it (what the
  * records hold and how to ask for it); the Thinker step now follows both Haku steps.
+ * Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP is the first look ("Ensikatsaus"); the training incident before it teaches the tools,
+ * so the welcome, log, Haku, records, memory-check, SPAM and ready steps refer back to it (the records step quotes no example and no VP
+ * record) and say that the first look has no memory check. The step list and its order are unchanged (17 steps, 18 in the Thinker cells).
  * The radio cell's practice tour is unchanged and names no AI tool. V1 opens with the tool reminder:
  * Haku in both groups and, in the AI group, a short Thinker step (it was practised in VP, so its text
  * is not repeated). The view's time waits until each is finished.
@@ -62,8 +65,8 @@ export const PRACTICE_TOUR: readonly TourStep[] = [
   { id: "units", target: '.unit-marker:not([style*="display: none"]), .unit-stack', placement: "right" },
   { id: "log", target: at("log"), placement: "left" },
   { id: "haku", target: at("haku"), placement: "left" },
-  // Revision (bl), 25 Oct 2026: what the records hold and how to ask for them (by topic, place, source and time), at the Haku pane. It
-  // teaches how to ask and never that one must: nothing on the memory checks or on scores. Its examples are the practice view's.
+  // Revision (bl), 25 Oct 2026: what the records hold and how to ask for them, at the Haku pane. It teaches how to ask and never that
+  // one must: nothing on the memory checks or on scores. Revision (bp): it refers back to the training incident and quotes no example.
   { id: "hakuRecords", target: at("haku"), placement: "left" },
   { id: "decision", target: at("decision"), placement: "top" },
   { id: "freeze", target: null },

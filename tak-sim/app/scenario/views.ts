@@ -82,12 +82,10 @@ export const FREEZE_LATEST_BEFORE_END_S = 20;
  * the researcher's confirmation, SPEC/11 §7.10).
  */
 export const FREEZE_AFTER_BOUNDARY_S = 10;
-/**
- * The practice view's freeze moment, fixed (researcher, 11 Oct 2026: the first freeze came too quickly;
- * 29 s, then 39 s, now 69 s). The view's clock starts only when the guided tour is finished or skipped
- * (`completeTour`), so this is 69 s after the tour. Identical for everyone; the main views are unchanged.
+/*
+ * The practice view's freeze moment (`PRACTICE_FREEZE_AT_S`, 69 s after the tour since 11 Oct 2026) is retired with VP's practice freeze
+ * by revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP, the first look, has no freeze; its SPAM pair comes at 85 s as a freeze-less view's.
  */
-export const PRACTICE_FREEZE_AT_S = 69;
 /**
  * The practice view's length (researcher, 11 Oct 2026; was 120 s minimum, 150 s cap): at least 180 s, so
  * there is time to look at the situation and learn what the screen shows; its cap keeps the main views'
@@ -247,7 +245,10 @@ function mainView(index: number): SessionView {
   return view;
 }
 
-/** SPEC/26 §3: the label a view is shown under — "Harjoitus" for the practice view, "Jakso n / 14" otherwise. */
+/**
+ * SPEC/26 §3: the label a view is shown under — "Ensikatsaus" for the practice view (revision (bp), 26 Oct 2026: VP is the first look;
+ * "Harjoitus" names the training incident), "Jakso n / 14" otherwise.
+ */
 export function viewLabelFi(index: number): string {
-  return index === PRACTICE_VIEW_INDEX ? "Harjoitus" : `Jakso ${index} / ${MAIN_VIEW_COUNT}`;
+  return index === PRACTICE_VIEW_INDEX ? "Ensikatsaus" : `Jakso ${index} / ${MAIN_VIEW_COUNT}`;
 }

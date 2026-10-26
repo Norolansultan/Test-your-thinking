@@ -2,7 +2,8 @@
  * `npm run demo:bridge` — DEMONSTRATION ONLY. Builds the published demonstration's Claude bridge into `dist/demo-bridge/`:
  *
  * - `bridge.js` — one classic script (IIFE) to place before the app's module script (README.md);
- * - `data.json` — the scenario's records and views as the handler reads them, and the six frozen prompts, checked against
+ * - `data.json` — the scenario's records and views as the handler reads them, the training incident's records in a list of their
+ *   own (revision (bp), checked against the scenario as the proxy checks them), and the six frozen prompts, checked against
  *   the Thinker manifest first (`data.ts`).
  *
  * The bridge runs the proxy's own handler in the page, so the build aliases the three Node built-ins that code imports
@@ -19,8 +20,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "vite";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { MANIFEST_FILE, REPO_ROOT } from "../../server/thinker/config.js";
-import { loadCheckedPrompts, readJson, type ManifestPrompts } from "../../server/thinker/deps.js";
+import { loadCheckedPrompts, loadTrainingCorpus, readJson, type ManifestPrompts } from "../../server/thinker/deps.js";
 import { bridgeDataOf, DEMO_BRIDGE_DATA_FILE } from "./data.js";
+import type { TrainingCorpus } from "../../server/thinker/handler.js";
 import { findLeaks, FORBIDDEN_MODULES } from "./leaks.js";
 
 export const DEMO_BRIDGE_OUT_DIR = join(REPO_ROOT, "dist", "demo-bridge");
@@ -74,10 +76,13 @@ export interface DemoBridgeBuild {
   readonly modules: readonly string[];
 }
 
-export async function buildDemoBridge(outDir: string = DEMO_BRIDGE_OUT_DIR): Promise<DemoBridgeBuild> {
+/** `training`: the training's corpus to publish (default: the built one, checked as the proxy checks it); the tests pass their own. */
+export async function buildDemoBridge(outDir: string = DEMO_BRIDGE_OUT_DIR, options: { readonly training?: TrainingCorpus } = {}): Promise<DemoBridgeBuild> {
   // The frozen prompts, refused on a mismatch with the manifest exactly as the proxy refuses to start.
   const prompts = loadCheckedPrompts(readJson<ManifestPrompts>(MANIFEST_FILE));
-  const data = bridgeDataOf(buildDemoScenario(), prompts);
+  const scenario = buildDemoScenario();
+  // Revision (bp): the training's corpus, refused on the proxy's own startup check (`trn.` ids, none the scenario's).
+  const data = bridgeDataOf(scenario, prompts, loadTrainingCorpus(scenario.atoms, options.training));
   const modules: string[] = [];
   await build({
     configFile: false,
@@ -101,7 +106,7 @@ export async function buildDemoBridge(outDir: string = DEMO_BRIDGE_OUT_DIR): Pro
   writeFileSync(join(outDir, "data.js"), `window.__TAK_DEMO_BRIDGE_DATA__=${JSON.stringify(data)};\n`, "utf8");
   const names = [DEMO_BRIDGE_SCRIPT_FILE, DEMO_BRIDGE_DATA_FILE, "data.js"];
   const leaks = findLeaks(Object.fromEntries(names.map((n) => [n, readFileSync(join(outDir, n), "utf8")])));
-  if (leaks.length > 0) throw new Error(`demo bridge: premise or freeze-key content in the outputs:\n  ${leaks.join("\n  ")}`);
+  if (leaks.length > 0) throw new Error(`demo bridge: premise, freeze-key or training-key content in the outputs:\n  ${leaks.join("\n  ")}`);
   const files = names.map((name) => ({ name, bytes: statSync(join(outDir, name)).size }));
   const root = REPO_ROOT.split("\\").join("/");
   return { outDir, files, totalBytes: files.reduce((s, f) => s + f.bytes, 0), modules: modules.map((m) => (m.startsWith(root) ? m.slice(root.length) : m)) };

@@ -1,6 +1,6 @@
 /**
- * Shared fixtures for the demo bridge's tests (`tools/demo-bridge/`): the bridge's data from the real scenario and frozen
- * prompts, a fake `sample` capability that records each call, and a fake page (`BridgeWindow`) whose original fetch records
+ * Shared fixtures for the demo bridge's tests (`tools/demo-bridge/`): the bridge's data from the real scenario, the training's
+ * corpus (revision (bp)) and frozen prompts, a fake `sample` capability that records each call, and a fake page (`BridgeWindow`) whose original fetch records
  * what passed through.
  */
 
@@ -11,9 +11,12 @@ import { loadCheckedPrompts, readJson, type ManifestPrompts } from "../../server
 import { bridgeDataOf, type DemoBridgeData } from "../../tools/demo-bridge/data.js";
 import { bridgedFetch, type BridgeWindow } from "../../tools/demo-bridge/install.js";
 import type { SampleFn, SampleInput, SampleOptions } from "../../tools/demo-bridge/sample-client.js";
+import { TRAINING_FOR_TESTS } from "../retrieval/training-fixture.js";
 
 export const scenario = buildDemoScenario();
-export const data: DemoBridgeData = bridgeDataOf(scenario, loadCheckedPrompts(readJson<ManifestPrompts>(MANIFEST_FILE)));
+/** Revision (bp): the training's corpus (the built one after the merge, the fixture before: `test/retrieval/training-fixture.ts`). */
+export const training = TRAINING_FOR_TESTS;
+export const data: DemoBridgeData = bridgeDataOf(scenario, loadCheckedPrompts(readJson<ManifestPrompts>(MANIFEST_FILE)), training);
 /** The data file as the page would fetch it (through JSON, as published). */
 export const dataJson = JSON.stringify(data);
 

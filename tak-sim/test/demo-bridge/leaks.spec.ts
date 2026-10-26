@@ -3,6 +3,9 @@
  * temporary directory): neither `bridge.js` nor `data.json` carries the premise-evidence table, the directive premises or a
  * freeze item (answer key), and the bundle holds none of the forbidden modules; the built script, run as a page would run it,
  * answers exactly as the handler does in Node. The app's builds never reach `tools/demo-bridge`.
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.3–bp.4): `data.json` keeps the training's corpus in a list of its own (no truth, no
+ * session record in it, no training record in the session's list); the scan covers both corpora — the training's spec, keys and texts
+ * are forbidden modules and no output carries a training item's id; a training request run in the built page answers as in Node.
  */
 
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -12,10 +15,11 @@ import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildDemoBridge, type DemoBridgeBuild } from "../../tools/demo-bridge/build.js";
-import { findLeaks, FORBIDDEN_MODULES, leakMarkers } from "../../tools/demo-bridge/leaks.js";
+import { findLeaks, FORBIDDEN_MODULES, leakMarkers, trainingKeyMarkers } from "../../tools/demo-bridge/leaks.js";
 import { createBridgeServer } from "../../tools/demo-bridge/serve.js";
 import type { BridgeWindow } from "../../tools/demo-bridge/install.js";
-import { data, fakeSample, FOUR, HAKU, OPEN, OPTIONS_ANSWER, post, runtime, type SampleCall } from "./fixtures.js";
+import { data, fakeSample, FOUR, HAKU, OPEN, OPTIONS_ANSWER, post, runtime, training, type SampleCall } from "./fixtures.js";
+import { TRAINING_NOW_S } from "../../app/session/training/corpus.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const BRIDGE_DIR = join(ROOT, "tools", "demo-bridge");
@@ -29,7 +33,7 @@ const outputs = () => ({
 
 beforeAll(async () => {
   out = mkdtempSync(join(tmpdir(), "demo-bridge-"));
-  built = await buildDemoBridge(out);
+  built = await buildDemoBridge(out, { training }); // revision (bp): the fixture corpus until the built one is in the tree
 }, 180_000);
 afterAll(() => { if (out) rmSync(out, { recursive: true, force: true }); });
 
@@ -64,6 +68,28 @@ describe("the bridge's outputs carry no premise data and no freeze keys", () => 
     expect(parsed.scenario.atoms.some((a) => "truth" in a || "consequence" in a)).toBe(false);
     expect(Object.keys(parsed.scenario).sort()).toEqual(["allocationSpace", "atoms", "cycles", "dutyOfficerMessages", "hinge", "practice"]);
     expect(Object.keys(parsed.prompts).sort()).toEqual(["prompt", "promptEn", "promptOpen", "promptOpenEn", "promptOpenOnce", "promptOpenOnceEn"]);
+  });
+
+  it("revision (bp): data.json keeps the training's corpus in its own list, with no truth; the two lists are disjoint", () => {
+    const parsed = JSON.parse(outputs()["data.json"]) as typeof data;
+    expect(Object.keys(parsed).sort()).toEqual(["format", "prompts", "scenario", "training", "version"]);
+    expect(parsed.version).toBe(2);
+    expect(parsed.training.atoms.map((a) => a.id)).toEqual(training.atoms.map((a) => a.id));
+    expect(parsed.training.atoms.every((a) => a.id.startsWith("trn."))).toBe(true);
+    expect(parsed.training.atoms.some((a) => "truth" in a || "consequence" in a)).toBe(false);
+    expect(parsed.training.view).toEqual({ step: -9, nowS: TRAINING_NOW_S });
+    expect(parsed.scenario.atoms.some((a) => a.id.startsWith("trn."))).toBe(false);
+  });
+
+  it("revision (bp): the scan covers the training — its spec, keys and texts are forbidden modules, and a training item's id is a leak", () => {
+    for (const m of ["/content/training/incident.json", "/content/training/key.json", "/app/session/training/spec-data.ts", "/app/i18n/training-texts.ts", "/app/i18n/training-texts.en.ts"]) {
+      expect(FORBIDDEN_MODULES.some((re) => re.test(m)), m).toBe(true);
+    }
+    const markers = trainingKeyMarkers({ items: [{ id: "training.s3.records1" }, { id: "training.s4.memory" }] as never });
+    expect(markers.map((m) => m.what)).toEqual(["training item (answer key)", "training item (answer key)"]);
+    expect(findLeaks({ "planted.js": 'var k = "training.s3.records1";' }, markers)).toHaveLength(1);
+    expect(findLeaks(outputs(), markers)).toEqual([]);
+    expect(findLeaks(outputs(), trainingKeyMarkers())).toEqual([]);
   });
 });
 
@@ -109,6 +135,20 @@ describe("the built bridge.js, run as a page runs it", () => {
     const res = await p.fetch("/api/thinker-open", post(body));
     const node = await inNode("open_thinker", body, () => OPTIONS_ANSWER);
     expect(withoutLatency(await res.json())).toEqual(withoutLatency(node.body));
+    expect(p.calls.map((c) => c.input)).toEqual(node.calls.map((c) => c.input));
+  });
+
+  it("revision (bp): a training request — the same response and input as the handler in Node, over the training's records only", async () => {
+    const body = { ...HAKU, view: 0, virtualTimeS: TRAINING_NOW_S, corpus: "training", question: "Mitä DR8 ilmoitti klo 10.05?", queryId: "trn.1" };
+    const p = page(() => FOUR);
+    const res = await p.fetch("/api/thinker", post(body));
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { retrieved: { id: string }[]; retrievalMode: string; modelId: string };
+    const node = await inNode("haku", body, () => FOUR);
+    expect(withoutLatency(json as unknown as Record<string, unknown>)).toEqual(withoutLatency(node.body));
+    expect(json.retrievalMode).toBe("lexical_only");
+    expect(json.retrieved.length).toBeGreaterThan(0);
+    expect(json.retrieved.every((r) => r.id.startsWith("trn."))).toBe(true);
     expect(p.calls.map((c) => c.input)).toEqual(node.calls.map((c) => c.input));
   });
 

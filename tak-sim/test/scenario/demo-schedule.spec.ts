@@ -145,9 +145,9 @@ describe("SPEC/26 §4: probes and responses", () => {
 describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
   const views = [scenario.practice.cycle, ...scenario.cycles];
 
-  it("are set exactly on the views with a freeze at a moment (the practice view and FREEZE_VIEWS but V10, V12 and V14), whole seconds in [25, minimum − 20]", () => {
+  it("are set exactly on the views with a freeze at a moment (FREEZE_VIEWS but V10, V12 and V14; VP has none since revision (bp)), whole seconds in [25, minimum − 20]", () => {
     // SPEC/30 §5.1, `31` §3.8: V10, V12 and V14's freeze comes at the view's end, after the plan is final — no moment on the clock.
-    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([0, 2, 4, 5, 7]);
+    expect(views.filter((c) => c.freezeAtSeconds !== null).map((c) => c.index)).toEqual([2, 4, 5, 7]);
     for (const c of views) {
       expect(c.freezeAtSeconds !== null).toBe(c.hasFreeze && c.freezeAtViewEnd !== true);
       if (c.freezeAtSeconds === null) continue;
@@ -169,8 +169,9 @@ describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
     expect(scenario.cycles.filter((c) => c.hasFreeze && c.freezeAtViewEnd !== true).map((c) => c.index)).toEqual([2, 4, 5, 7]);
   });
 
-  it("the practice freeze is fixed at 69 s after the tour, and VP lasts 180 s (researcher, 11 Oct 2026)", () => {
-    expect(scenario.practice.cycle.freezeAtSeconds).toBe(69);
+  it("revision (bp), 26 Oct 2026: VP, the first look, has no freeze (its practice freeze, at 69 s after the tour, is retired); VP lasts 180 s (researcher, 11 Oct 2026)", () => {
+    expect(scenario.practice.cycle.hasFreeze).toBe(false);
+    expect(scenario.practice.cycle.freezeAtSeconds).toBeNull();
     expect(scenario.practice.cycle.minViewSeconds).toBe(180);
   });
 
@@ -185,10 +186,10 @@ describe("the freeze moments (researcher decision 1 Oct 2026)", () => {
 describe("SPEC/26 D3: the practice view", () => {
   const vp = scenario.practice;
 
-  it("has a 5-item practice freeze (the infrastructure item, a map point, an L2 and an L3 item; SPEC/08 amendment 2 Oct 2026; the Haku-only forecast item, difficulty audit 23 Oct 2026), a decision item and candidate developments, all tagged practice", () => {
-    expect(vp.cycle.hasFreeze).toBe(true);
-    expect(vp.freeze.items).toHaveLength(5);
-    for (const item of vp.freeze.items) expect(item.id).toMatch(/^freeze\.practice\./);
+  it("revision (bp): has no freeze (`practice.freeze` kept with no items, the shape the session reads), a decision item and candidate developments, all tagged practice; the first look's label", () => {
+    expect(vp.cycle.hasFreeze).toBe(false);
+    expect(vp.freeze).toEqual({ cycle: 0, items: [] });
+    expect(vp.cycle.title).toBe("Ensikatsaus");
     expect(vp.decisionItem.id).toBe("decision.practice");
     expect(vp.branchStatements.filter((b) => b.truth.isActualDevelopment)).toHaveLength(1);
   });

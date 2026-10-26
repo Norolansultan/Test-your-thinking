@@ -1,9 +1,11 @@
 /**
  * The practice SPAM item in VP (5 Oct 2026, `practice-spam.ts`): its key rests on a pushed VP record
- * found by content; it comes after VP's freeze and closes before VP's minimum; it carries no key;
+ * found by content; it comes at 85 s and closes before VP's minimum; it carries no key;
  * it has English; and in the session it behaves as the main items do (revision (ag), so the tour
  * teaches the rule): the ready prompt waits, the search tool stays usable while answering, and a
  * prompt left up is forced before VP ends — the same in both conditions.
+ * Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP, the first look, has no freeze; the pair comes at 85 s as a freeze-less view's
+ * (`spamCues`), no offset changed.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,9 +33,10 @@ describe("the practice SPAM item", () => {
     expect(options.find((o) => o.id === PRACTICE_SPAM_KEY_OPTION)!.fi).toBe(PRACTICE_SPAM_AUTHORED.key);
   });
 
-  it("comes after VP's freeze; said ready to at once, closes before VP's minimum (it never meets the freeze); the main items' windows", () => {
+  it("comes at 85 s in a view with no freeze (revision (bp)); said ready to at once, closes before VP's minimum; the main items' windows", () => {
     const at = PRACTICE_SPAM_OFFSET_MS / 1000;
-    expect(scenario.practice.cycle.freezeAtSeconds!).toBeLessThan(at);
+    expect(at).toBe(85);
+    expect(scenario.practice.cycle).toMatchObject({ hasFreeze: false, freezeAtSeconds: null });
     expect(at + SPAM_ANSWER_TIMEOUT_MS / 1000).toBeLessThan(scenario.practice.cycle.minViewSeconds);
     expect(probe).toMatchObject({ answerTimeoutMs: SPAM_ANSWER_TIMEOUT_MS });
     expect(probe).not.toHaveProperty("readyTimeoutMs"); // revision (ag): no expiry
@@ -60,7 +63,7 @@ describe("the practice SPAM item in the session", () => {
   afterEach(() => vi.useRealTimers());
 
   for (const condition of ["directed", "substitutive"] as const) {
-    it(`${condition}: the ready prompt at 85 s after the freeze, waiting past the old 15 s; the search tool usable while the item is open, raw records`, async () => {
+    it(`${condition}: the ready prompt at 85 s (no freeze before it), waiting past the old 15 s; the search tool usable while the item is open, raw records`, async () => {
       const { o, snap } = await toPracticePrompt(condition);
       expect(snap().spam).toEqual({ phase: "ready", probeId: PRACTICE_SPAM_ID, collapsed: false });
       await vi.advanceTimersByTimeAsync(30_000); // revision (ag): no expiry
@@ -111,9 +114,11 @@ async function toPracticePrompt(condition: "directed" | "substitutive") {
   const snap = () => box.snap!;
   await o.start();
   expect(snap().currentCycle).toBe(0);
-  while (snap().step !== "freeze") await vi.advanceTimersByTimeAsync(1_000);
-  expect(snap().spam).toBeNull();
-  await o.submitFreeze([]);
-  while (!snap().spam) await vi.advanceTimersByTimeAsync(1_000);
+  // Revision (bp): no freeze in VP; the prompt comes at 85 s of the view's clock.
+  for (let s = 0; !snap().spam; s++) {
+    expect(snap().step, `${s} s`).not.toBe("freeze");
+    await vi.advanceTimersByTimeAsync(1_000);
+  }
+  expect((await o.logRecords()).some((r) => r.kind.startsWith("freeze_"))).toBe(false);
   return { o, snap };
 }

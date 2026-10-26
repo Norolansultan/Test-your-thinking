@@ -1,6 +1,6 @@
 /**
  * `npx tsx tools/review/difficulty-audit.ts [outDir]` — the difficulty audit of 23 Oct 2026 (`docs/audits/2026-10-23-difficulty/`).
- * For every scored freeze item (V2, V4, V5, V7, V10, V12, V14), the practice freeze and every SPAM item (V3, V6, V8, V11 and the
+ * For every scored freeze item (V2, V4, V5, V7, V10, V12, V14) and every SPAM item (V3, V6, V8, V11 and the
  * second items V3.b, V6.b), it computes from the built scenario WHERE the key's records reach a participant before the item's moment:
  *
  * - pushed (the message log, without any action) or recorded only (reachable with Haku or the Thinker), and in which view;
@@ -24,7 +24,7 @@ import { tr } from "../../app/i18n/text.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SPAM_AUTHORED, SPAM_KEY_ATOMS, SPAM_OFFSET_MS, SPAM_SECOND_AUTHORED, SPAM_SECOND_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
 import type { FreezeItem, InfoAtom, ScenarioContract, ViewSpec } from "../../app/scenario/types.js";
-import { MAIN_VIEWS, PRACTICE_FREEZE_AT_S, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
+import { MAIN_VIEWS, STEP_SECONDS, viewOfStep } from "../../app/scenario/views.js";
 import { POINTERS } from "../../app/scenario/pointers.js";
 import { SITE_SCENARIO } from "../../app/scenario/site-scenario.js";
 import { clockAt } from "../../app/session/template-answer.js";
@@ -159,7 +159,7 @@ export function auditItems(): AuditItem[] {
       horizonMin, atoms: ids.map((id) => atomLead(s, id, view, momentS)),
     }));
   };
-  for (const it of s.practice.freeze.items) freezeItem(0, it, PRACTICE_FREEZE_AT_S, "fixed, after the tour");
+  // Revision (bp), 26 Oct 2026: VP has no freeze (its practice freeze is retired); the main items' rows and counts are unchanged.
   for (const f of s.freezes) {
     const spec = viewOfSpec(s, f.cycle);
     const atEnd = spec.freezeAtSeconds === null;

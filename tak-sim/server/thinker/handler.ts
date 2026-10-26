@@ -16,6 +16,12 @@
  * tokeniser and vector index ({@link retrievalRoute}). Without the English index an English request
  * is refused (HTTP 503) unless the deps allow the declared demonstration fallback to the whole
  * Finnish treatment, which the response and the log name (`hybrid_fi_fallback`). Never mixed.
+ *
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp)): a Haku request with `corpus: "training"` (view 0) is the training incident's. It is answered
+ * by the same path — prompt, answer checks, model call and fallbacks — over the training's own records only (`deps.training`), gated
+ * by the training's one step and told the training's "now" (10.18), LEXICALLY ONLY (no vector, even with the indexes loaded: they cover
+ * the session's passages only). The session's records are never candidates there, and the training's never in the session. The log
+ * line carries `corpus` ("main" on every other line; "training" with `practice` false and `view` 0).
  */
 
 import { toRenderable } from "../../app/boundary/render-boundary.js";
@@ -43,8 +49,23 @@ import { indexFileOf, sha256Hex, THINKER_MODEL_ID, type SystemPrompt } from "./c
 import type { ThinkerModelClient } from "./model-client.js";
 import { ageReferenceOf, buildUserContent, callThinkerModel, callOpenThinkerModel, clockLineOf, latestDigest, openPlanContext, openSystemInstruction, receivedUpToOf, recentMatches, taggedAtoms } from "./model.js";
 
+/**
+ * Revision (bp): the training incident's corpus as the proxy holds it: its records (`trn.` ids, built from `content/training/` by
+ * `app/session/training/corpus.ts`), its one world-state step (−9) and its "now" (−10 920 s, 10.18).
+ */
+export interface TrainingCorpus {
+  readonly atoms: readonly InfoAtom[];
+  readonly step: number;
+  readonly nowS: number;
+}
+
 export interface ThinkerDeps {
   readonly scenario: ScenarioContract;
+  /**
+   * Revision (bp): the training's corpus (`createThinkerDeps` loads and checks it at startup). Absent or null: a training request is
+   * refused (HTTP 503), never answered over the session's records.
+   */
+  readonly training?: TrainingCorpus | null;
   /** Null runs the lexical half alone (only with the server's explicit `--lexical-only`). The Finnish index. */
   readonly vector: { readonly embedder: Embedder; readonly index: VectorIndex } | null;
   /**
@@ -189,6 +210,25 @@ interface Prepared {
   readonly clockS: number;
   /** Revision (am): the request is from the practice view (VP). */
   readonly practice: boolean;
+  /** Revision (bp): which corpus answered: the session's ("main") or the training incident's. */
+  readonly corpus: "main" | "training";
+  /** The time record ages are counted to (revision (an): the step's end; the training: its "now"). */
+  readonly ageRefS: number;
+}
+
+/**
+ * Revision (bp): a training request, prepared over the training's records only — gated by its one step, lexical only (`vector` null,
+ * `retrievalMode` "lexical_only", no index), told the training's "now". The session's `scenario.atoms` are never read here.
+ */
+function prepareTraining(deps: ThinkerDeps, req: ThinkerRequest): Prepared | Refused {
+  const training = deps.training;
+  if (!training) return { status: 503, body: { error: "the training corpus is not loaded" } };
+  const lang = req.language ?? "fi";
+  const route = { ok: true, lang, vector: null, mode: "lexical_only", indexFile: null } as const;
+  const gated = reachableAtoms(training.atoms, training.step);
+  const records = hybridRetrieve(req.question, gated, null, undefined, lang);
+  const recent = recentMatches(req.question, gated, training.step, records, null, lang);
+  return { req, step: training.step, lang, route, gated, records, recent, clockS: training.nowS, practice: false, corpus: "training", ageRefS: training.nowS };
 }
 
 async function prepare(deps: ThinkerDeps, body: unknown, tool: ThinkerTool): Promise<Prepared | Refused> {
@@ -197,6 +237,7 @@ async function prepare(deps: ThinkerDeps, body: unknown, tool: ThinkerTool): Pro
   const req = valid.request;
   const refused = allocationError(req);
   if (refused) return { status: 400, body: { error: refused } };
+  if (req.corpus === "training") return prepareTraining(deps, req);
   // D1 (8 Oct 2026): Haku's chat answers in the practice view too, gated by its own step. The practice
   // view has one step, and the browser's clock reads 0 there while the view starts at a negative
   // virtual time (round 6, 8 Oct 2026: every practice-view question was refused as "outside the
@@ -215,7 +256,7 @@ async function prepare(deps: ThinkerDeps, body: unknown, tool: ThinkerTool): Pro
     : null;
   const records = hybridRetrieve(req.question, candidates, vector, undefined, route.lang);
   const recent = recentMatches(req.question, candidates, step, records, vector, route.lang);
-  return { req, step, lang, route, gated: candidates, records, recent, clockS: practice ? view!.startsAtVirtual : req.virtualTimeS, practice };
+  return { req, step, lang, route, gated: candidates, records, recent, clockS: practice ? view!.startsAtVirtual : req.virtualTimeS, practice, corpus: "main", ageRefS: ageReferenceOf(step) };
 }
 
 /**
@@ -243,6 +284,8 @@ function logBase(p: Prepared, system: string, tool: ThinkerTool) {
     view: req.view,
     // Revision (am): the practice view's lines say so (view 0 already does; analysis drops them like every practice record).
     practice: p.practice,
+    // Revision (bp): the corpus that answered; a training line joins `training_haku_*` by `queryId`.
+    corpus: p.corpus,
     virtualTimeS: req.virtualTimeS,
     step: p.step,
     question: req.question,
@@ -254,7 +297,7 @@ function logBase(p: Prepared, system: string, tool: ThinkerTool) {
     recent: p.recent.map((a) => a.id),
     clockVirtualS: p.clockS,
     // Revision (an): the time the record ages in the model input are counted to.
-    ageRefVirtualS: ageReferenceOf(p.step),
+    ageRefVirtualS: p.ageRefS,
   };
 }
 
@@ -268,10 +311,10 @@ export async function handleThinkerRequest(deps: ThinkerDeps, body: unknown): Pr
   const system = prompt.text;
   const clockLine = clockLineOf(p.lang, p.clockS, receivedUpToOf(p.gated, p.clockS));
   // SPEC/30 §10: an answer from a build other than the pinned one is a model error (the template answer, as for any model error).
-  const guarded = guardModelVersion(deps, p.req.sessionId, await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: ageReferenceOf(p.step) }), variant));
+  const guarded = guardModelVersion(deps, p.req.sessionId, await callThinkerModel(deps.client, system, buildUserContent(p.req.question, p.records, p.lang, undefined, { clockLine, recent: p.recent, ageRefS: p.ageRefS }), variant));
   const outcome = guarded.outcome;
   // B6 (SPEC/14 revision (bi)): the template counts record ages to the same reference as the model's record lines.
-  const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant, ageReferenceOf(p.step));
+  const answer = outcome.ok ? outcome.answer : templateThinkerAnswer(p.records.map((r) => toRenderable(r.atom)), p.lang, variant, p.ageRefS);
   const response: ThinkerResponse = {
     answer,
     retrieved: p.records.map((r) => ({ id: r.atom.id, score: r.score })),

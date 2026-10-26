@@ -5179,14 +5179,6 @@
      "file": "SPEC/23_Site_Selection.md §4"
     },
     {
-     "file": "app/scenario/freeze-bank.ts",
-     "id": "freeze.practice.r1_arrival"
-    },
-    {
-     "file": "app/scenario/freeze-bank.ts",
-     "id": "freeze.practice.first_target"
-    },
-    {
      "file": "tools/fire-ca/scenario-18.ts",
      "id": "W3/W4/4",
      "note": "spot fire across R1, R1 north verge"
@@ -5223,14 +5215,6 @@
    "usedBy": [
     {
      "file": "SPEC/23_Site_Selection.md §4"
-    },
-    {
-     "file": "app/scenario/freeze-bank.ts",
-     "id": "freeze.practice.r1_arrival"
-    },
-    {
-     "file": "app/scenario/freeze-bank.ts",
-     "id": "freeze.practice.first_target"
     },
     {
      "file": "tools/fire-ca/scenario-18.ts",
@@ -5484,10 +5468,6 @@
     },
     {
      "file": "app/scenario/demo-probes.ts",
-     "id": "freeze.practice.infra"
-    },
-    {
-     "file": "app/scenario/demo-probes.ts",
      "id": "freeze.4.infra"
     },
     {
@@ -5518,10 +5498,6 @@
    "usedBy": [
     {
      "file": "SPEC/23_Site_Selection.md §4"
-    },
-    {
-     "file": "app/scenario/demo-probes.ts",
-     "id": "freeze.practice.infra"
     },
     {
      "file": "app/scenario/demo-probes.ts",

@@ -337,6 +337,13 @@ export function validateThinkerRequest(body: unknown, tool: ThinkerTool = "haku"
   if (b.participantCode !== undefined && (typeof b.participantCode !== "string" || !SESSION_ID.test(b.participantCode))) return { ok: false, error: "invalid participantCode" };
   if (b.queryId !== undefined && (typeof b.queryId !== "string" || !SESSION_ID.test(b.queryId))) return { ok: false, error: "invalid queryId" };
   if (b.question.length > THINKER_MAX_QUESTION_CHARS) return { ok: false, error: `question longer than ${THINKER_MAX_QUESTION_CHARS} characters` };
+  // Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.1): the training's Haku. Only "training", only Haku's chat, only with view 0 (the
+  // practice index; the training has no view of its own); any other value, view or endpoint is refused (HTTP 400).
+  if (b.corpus !== undefined) {
+    if (b.corpus !== "training") return { ok: false, error: "invalid corpus" };
+    if (tool !== "haku") return { ok: false, error: "the training corpus is Haku's chat only" };
+    if (b.view !== PRACTICE_VIEW_INDEX) return { ok: false, error: "a training request has view 0" };
+  }
   if (b.history !== undefined) {
     if (tool === "haku") return { ok: false, error: "Haku's chat takes no history" };
     const problem = historyError(b.history);
@@ -349,6 +356,7 @@ export function validateThinkerRequest(body: unknown, tool: ThinkerTool = "haku"
       ...(b.language !== undefined ? { language: b.language as "fi" | "en" } : {}),
       ...(b.participantCode !== undefined ? { participantCode: b.participantCode as string } : {}),
       ...(b.queryId !== undefined ? { queryId: b.queryId as string } : {}),
+      ...(b.corpus === "training" ? { corpus: "training" as const } : {}),
       ...(b.history !== undefined ? { history: (b.history as OpenThinkerTurnWire[]).map(({ role, text }) => ({ role, text })) } : {}),
     },
   };

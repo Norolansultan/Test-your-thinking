@@ -408,8 +408,9 @@ const FI: UiText = {
   conditionSubstitutive: "Haku + Thinker",
   loading: "Ladataan istuntoa…",
   briefingTitle: "Tilanne",
-  startPractice: "Aloita harjoitus",
-  introVideo: { play: "Toista video", watchFirst: "Katso video loppuun, niin pääset aloittamaan harjoituksen.", failed: "Videota ei voitu toistaa. Voit aloittaa harjoituksen.", skip: "Ohita video" },
+  // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP is the first look ("Ensikatsaus"); "harjoitus" names the training incident. DRAFT.
+  startPractice: "Aloita katsaus",
+  introVideo: { play: "Toista video", watchFirst: "Katso video loppuun, niin pääset aloittamaan katsauksen.", failed: "Videota ei voitu toistaa. Voit aloittaa katsauksen.", skip: "Ohita video" },
   startTask: "Aloita tehtävä",
   clock: "klo",
   step: "vaihe",
@@ -419,9 +420,9 @@ const FI: UiText = {
   condition: "ehto",
   logRecords: "lokitietueita",
   preview: "esikatselu: jakson vähimmäispituus",
-  practiceLabel: "Harjoitus",
+  practiceLabel: "Ensikatsaus", // revision (bp): VP's status label (was "Harjoitus", now the training incident's name)
   viewLabel: (i, n) => `Jakso ${i} / ${n}`,
-  practiceNotScored: "Harjoitus — ei pisteytetä. ",
+  practiceNotScored: "Ensikatsaus — ei pisteytetä. ",
   explorationHint: (ai) => `Rakenna tilannekuvasi. ${ai ? "Kartta, Haku ja Thinker" : "Kartta ja Haku"} ovat käytössä.`,
   confidence: "Varmuus",
   confirm: "Vahvista",
@@ -456,7 +457,8 @@ const FI: UiText = {
   tour: {
     steps: {
       // Revision (ae): the briefing page is gone; its role, recorded-run, autonomous-asset and period sentences open the tour (`briefing.ts`).
-      welcome: { title: "Tutustu näkymään", body: TOUR_SETTING_FI + " Käydään läpi, mistä löydät tiedot ja miten vastaat. Harjoitusta ei pisteytetä, eikä sen aika kulu tämän esittelyn aikana." },
+      // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5; DRAFT, native check): VP is the first look at the actual incident; the training taught the tools.
+      welcome: { title: "Tutustu näkymään", body: TOUR_SETTING_FI + " Tämä on ensimmäinen katsaus varsinaiseen tilanteeseen. Harjoituksessa kokeilit työkaluja; nyt näet, missä ne ovat tässä näkymässä. Katsausta ei pisteytetä, eikä sen aika kulu tämän esittelyn aikana." },
       status: { title: "Tilarivi", body: "Ylärivillä näet tilanteen kellonajan, jakson ja yksiköt. Kussakin jaksossa on aikaa enintään kaksi ja puoli minuuttia; viimeiset 20 sekuntia lasketaan tässä." },
       // B7 (SPEC/28 (bi), 25 Oct 2026): the map draws the edge as mapped at the period's start (SPEC/26 §2); the log can be newer. DRAFT, native check.
       fire: { title: "Palo kartalla", body: "Kartalla näkyy palon reuna sellaisena kuin se oli kartoitettu jakson alussa, sekä palanut alue. Viestilokin ilmoitukset voivat olla tätä uudempia. Aiemmat rajaukset näkyvät ohuempina viivoina." },
@@ -472,20 +474,20 @@ const FI: UiText = {
       units: { title: "Yksiköt", body: "Yksiköiden merkit näyttävät niiden viimeksi ilmoitetun sijainnin ja työn. Droonien kohdalla näkyy myös kuvausalue." },
       // Difficulty audit (23 Oct 2026, `proposal.md` (a.2)): the log is only part of the traffic (was "… ilmoitukset tulevat viestilokiin …").
       log: { title: "Viestiloki: vain osa liikenteestä", body: TOUR_LOG_FI },
-      haku: { title: "Haku", body: `Avaa Haku tästä. ${TOUR_HAKU_ASK_FI} ${HAKU_CHAT_FI}` },
-      // Revision (bl), 25 Oct 2026 (researcher; DRAFT, native check): what the records hold and how to ask for them. It shows where the
-      // information is and how to ask, never that one must; its examples are the practice view's own (Haukilampi W1, DR1 12.05, the forecast).
-      // Revision (bn), 25 Oct 2026 (review S6, S4; DRAFT, native check): the place example ("Voivatko säiliöautot täyttää Haukilammelta?",
-      // word for word V4 `infra`'s findability question) is a source example on an unscored practice record (VESIHUOLTO 12.12); the list of
-      // kinds no longer names the road reports (the R1 series, retrieval-dependent by design); the last sentence names the command centre
-      // that acknowledges reports (the pointers, `pointers.ts`), not units saying "kirjattu".
-      hakuRecords: { title: "Mitä kirjauksista löytyy", body: "Viestilokin lisäksi johtopaikan kirjauksissa on ilmoituksia, joita sinulle ei lähetetä automaattisesti: droonien kartoitukset lukuineen, sääennusteet, yksiköiden vesi- ja polttoainetilanne kysyttäessä sekä muiden viranomaisten viestit. Kysy Haulta kuin kysyisit johtokeskukselta radiolla: aiheen mukaan („Mikä on viimeisin sääennuste?”), lähteen mukaan („Mitä vesihuolto on kirjannut?”) tai lähteen ja kellonajan mukaan („Mitä DR1 ilmoitti klo 12.05?”). Kun johtokeskus (JOKE) kuittaa radiossa yksikön ilmoituksen, yksityiskohdat löytyvät kirjauksista." },
+      // Revision (bp): the first sentence refers back to the training ("…, kuten harjoituksessa."); the rest as before.
+      haku: { title: "Haku", body: `Avaa Haku tästä, kuten harjoituksessa. ${TOUR_HAKU_ASK_FI} ${HAKU_CHAT_FI}` },
+      // Revision (bl), 25 Oct 2026 (researcher): what the records hold and how to ask for them; (bn) moved its place example to a source.
+      // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5; DRAFT, native check): the training incident teaches what the records hold and how to ask,
+      // over its own records, so the step refers back to it and quotes no example and no VP record (the Pike Pond / W1 subject of V4 `infra`
+      // is gone with them). The title is kept.
+      hakuRecords: { title: "Mitä kirjauksista löytyy", body: "Harjoituksessa näit, mitä kirjauksista löytyy ja miten niitä kysytään: aiheen, lähteen tai kellonajan mukaan. Tässä tilanteessa kirjaukset ovat toiset, mutta kysyt niitä samalla tavalla." },
       // Play-test D11 (24 Oct 2026): what is addressed to command is context; the plan sets the main effort, posture, secondary task, drones. DRAFT.
       decision: { title: "Päätös", body: "Hetken kuluttua tähän avautuu päätösosio: kirjaat kohdennuksesi lohkoittain, myös painopisteen toimintatavan. Kohdennuksen vahvistaminen päättää jakson. Voit vielä muuttaa sitä, kunnes jakso päättyy. Johdolle osoitetut viestit, kuten pyynnöt ja ehdotukset, ovat taustatietoa: yksiköt toimivat pysyvien ohjeiden ja oman harkintansa mukaan, ja suunnitelmasi määrää painopisteen ja sen toimintatavan, toissijaisen tehtävän ja droonien tehtävän.\n" + SECONDARY_TASK_DEFINITIONS_FI.join("\n") },
-      freeze: { title: "Muistikatko", body: "Välillä kuva piilotetaan ja saat kysymyksiä tilanteesta. Vastaa muistin varassa (joskus napauttamalla kohtaa tyhjältä kartalta), ja arvioi varmuutesi. Kello on pysähdyksissä katkon ajan, ja jatkat siitä, mihin jäit." },
+      // Revision (bp): the first look has no memory check (VP's practice freeze is retired); the training's S4 rehearsed it.
+      freeze: { title: "Muistikatko", body: "Seuraavissa jaksoissa kuva piilotetaan välillä ja saat kysymyksiä tilanteesta, kuten harjoituksen muistikatkossa: vastaat muistin varassa ja arvioit varmuutesi, ja kello on pysähdyksissä katkon ajan. Tässä katsauksessa muistikatkoa ei ole." },
       // Play-test finding 3 (24 Oct 2026): the ready prompt waits; each question, once shown, has its 60 s window, shown on the card. DRAFT.
-      spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kehote \"Valmis vastaamaan?\". Kehote odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole painanut Valmis jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Kun painat Valmis, näet kysymyksen ja sen neljä vaihtoehtoa, ja kuhunkin kysymykseen on aikaa 60 sekuntia; jäljellä oleva aika näkyy kysymyskortissa. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Harjoituksessa saat kokeilla yhtä." },
-      ready: { title: "Valmis", body: "Harjoitus alkaa, kun painat Aloita. Kokeile rauhassa karttaa, viestilokia ja hakua." },
+      spam: { title: "Tilannekysymys", body: "Joskus kartan alle tulee kehote \"Valmis vastaamaan?\". Kehote odottaa sinua: voit pienentää sen, eikä se katoa. Jos et ole painanut Valmis jakson loppuun mennessä, kysymys tulee esiin ennen kuin jakso päättyy. Kun painat Valmis, näet kysymyksen ja sen neljä vaihtoehtoa, ja kuhunkin kysymykseen on aikaa 60 sekuntia; jäljellä oleva aika näkyy kysymyskortissa. Vastatessasi voit käyttää karttaa, viestilokia ja hakutyökaluja, ja kello käy. Valinta on lopullinen; sen jälkeen arvioit varmuutesi. Tässä katsauksessa saat kokeilla yhtä." },
+      ready: { title: "Valmis", body: "Katsaus alkaa, kun painat Aloita. Katso rauhassa karttaa, viestilokia ja hakua." },
       toolsHaku: { title: "Haku", body: TOOLS_HAKU_FI }, // difficulty audit (a.2): with the rule's reminder
       // Revision (am): the AI group's practice step (both Thinker cells), and V1's short Thinker reminders after it.
       practiceThinker: { title: "Thinker", body: PRACTICE_THINKER_FI },
@@ -494,7 +496,7 @@ const FI: UiText = {
     },
     next: "Seuraava",
     back: "Edellinen",
-    startPractice: "Aloita harjoitus",
+    startPractice: "Aloita katsaus",
     startView: "Aloita",
     skip: "Ohita esittely",
     progress: (i, n) => `${i} / ${n}`,
@@ -614,8 +616,8 @@ const EN: UiText = {
   conditionSubstitutive: "Search + Thinker",
   loading: "Loading the session…",
   briefingTitle: "Situation",
-  startPractice: "Start the practice",
-  introVideo: { play: "Play the video", watchFirst: "Watch the video to the end to start the practice.", failed: "The video could not be played. You can start the practice.", skip: "Skip the video" },
+  startPractice: "Start the first look", // revision (bp)
+  introVideo: { play: "Play the video", watchFirst: "Watch the video to the end to start the first look.", failed: "The video could not be played. You can start the first look.", skip: "Skip the video" },
   startTask: "Start the task",
   clock: "Time",
   step: "phase",
@@ -625,9 +627,9 @@ const EN: UiText = {
   condition: "condition",
   logRecords: "log records",
   preview: "preview: minimum view length",
-  practiceLabel: "Practice",
+  practiceLabel: "First look", // revision (bp): VP's status label ("Training" is the training incident's name)
   viewLabel: (i, n) => `Period ${i} / ${n}`,
-  practiceNotScored: "Practice — not scored. ",
+  practiceNotScored: "First look — not scored. ",
   explorationHint: (ai) => `Build your picture of the situation. ${ai ? "The map, Search and Thinker" : "The map and Search"} are available.`,
   confidence: "Confidence",
   confirm: "Confirm",
@@ -663,7 +665,8 @@ const EN: UiText = {
   timeUpNoPlan: "Time ran out before you confirmed – the previous allocation was not recorded.",
   tour: {
     steps: {
-      welcome: { title: "Get to know the screen", body: TOUR_SETTING_EN + " Let's go through where you find the information and how you answer. The practice is not scored, and its time does not run during this introduction." },
+      // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): as the Finnish.
+      welcome: { title: "Get to know the screen", body: TOUR_SETTING_EN + " This is a first look at the actual incident. In the training you tried the tools; now you see where they are in this view. The first look is not scored, and its time does not run during this introduction." },
       status: { title: "Status bar", body: "The top bar shows the situation's time, the period and the units. Each period has at most two and a half minutes; the last 20 seconds are counted down here." },
       // B7 (SPEC/28 (bi), 25 Oct 2026): was "the fire's latest mapped edge", untrue after a merged view's step boundary.
       fire: { title: "The fire on the map", body: "The map shows the fire's edge as mapped at the start of the period, and the burnt area. Reports in the message log can be newer. Earlier perimeters are shown as thinner lines." },
@@ -675,15 +678,13 @@ const EN: UiText = {
       sectors: { title: "Sectors", body: SECTORS_EN.join("\n") },
       units: { title: "Units", body: "The unit symbols show each unit's last reported position and work. For the drones, their imaging area is shown too." },
       log: { title: "Message log: only part of the traffic", body: TOUR_LOG_EN },
-      haku: { title: "Search", body: `Open Search here. ${TOUR_HAKU_ASK_EN} ${HAKU_CHAT_EN}` },
-      // Revision (bl), 25 Oct 2026 (researcher): the researcher's text, with the tool named as the English screen names it ("Search", not
-      // "Haku": the tab, the step before and the consent say Search; `HAKU_CHAT_EN`, review M2).
-      // Revision (bn) (review S6, S4): as the Finnish — a source example on an unscored practice record, no road reports, the command centre.
-      hakuRecords: { title: "What the records hold", body: "Besides the message log, the command post's records hold reports you are not sent automatically: drone surveys and their figures, weather forecasts, units' water and fuel status when asked, and messages from other authorities. Ask Search as you would ask the command centre by radio — by topic (“What is the latest weather forecast?”), by source (“What has water supply recorded?”) or by source and time (“What did DR1 report at 12.05?”). When the command centre acknowledges a unit's report on the radio, the details are in the records." },
+      haku: { title: "Search", body: `Open Search here, as in the training. ${TOUR_HAKU_ASK_EN} ${HAKU_CHAT_EN}` },
+      // Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): as the Finnish — the step refers back to the training and quotes no example.
+      hakuRecords: { title: "What the records hold", body: "In the training you saw what the records hold and how to ask for it: by topic, source or time. The records here are different, and you ask for them the same way." },
       decision: { title: "Decision", body: "In a moment the decision section opens here: you record your allocation by sector, including the main effort posture. Confirming the allocation ends the period. You can still change it until the period ends. Messages addressed to command, such as requests and proposals, are context: the units act on standing orders and their own judgement, and your plan sets the main effort and its posture, the secondary task and the drones' task.\n" + SECONDARY_TASK_DEFINITIONS_EN.join("\n") },
-      freeze: { title: "Memory check", body: "Now and then the picture is hidden and you get questions about the situation. Answer from memory (sometimes by tapping a point on a blank map), and rate your confidence. The clock stands still during the check, and you continue where you left off." },
-      spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. The prompt waits for you: you can minimise it, and it does not go away. If you have not pressed Ready by the end of the period, the question appears before the period ends. Once you press Ready, you see the question and its four options, and each question has 60 seconds; the time left shows on the question card. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in the practice." },
-      ready: { title: "Ready", body: "The practice starts when you press Start. Try out the map, the message log and the search at your own pace." },
+      freeze: { title: "Memory check", body: "In the periods that follow, the picture is hidden now and then and you get questions about the situation, as in the training's memory check: you answer from memory and rate your confidence, and the clock stands still during the check. There is no memory check in this first look." },
+      spam: { title: "Situation question", body: "Now and then a prompt \"Ready to answer?\" appears below the map. The prompt waits for you: you can minimise it, and it does not go away. If you have not pressed Ready by the end of the period, the question appears before the period ends. Once you press Ready, you see the question and its four options, and each question has 60 seconds; the time left shows on the question card. While you answer, the map, the message log and the search tools stay available, and the clock keeps running. Your choice is final; then you rate your confidence. You will try one in this first look." },
+      ready: { title: "Ready", body: "The first look starts when you press Start. Take your time with the map, the message log and the search." },
       toolsHaku: { title: "Search", body: TOOLS_HAKU_EN },
       practiceThinker: { title: "Thinker", body: PRACTICE_THINKER_EN },
       toolsThinker: { title: "Thinker", body: TOOLS_THINKER_AGAIN_EN },
@@ -691,7 +692,7 @@ const EN: UiText = {
     },
     next: "Next",
     back: "Back",
-    startPractice: "Start the practice",
+    startPractice: "Start the first look",
     startView: "Start",
     skip: "Skip the introduction",
     progress: (i, n) => `${i} / ${n}`,

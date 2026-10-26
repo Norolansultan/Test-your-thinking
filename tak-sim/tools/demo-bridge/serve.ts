@@ -8,12 +8,16 @@
  * directive in force the handler takes its own path for a view the table does not cover — no premises block for the model, no
  * premise line and no verdicts in the answer — and never reads the directive premises. The plan review's premise lookup is not
  * served at all (`install.ts`).
+ *
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.4): a `corpus: "training"` request (the training incident's Haku) is answered by the
+ * same handler over the training's own records (`data.training`), lexical only, with the same prompts, marked with the bridge's model
+ * id as every bridge answer; the session's records are never its candidates.
  */
 
 import { DEMO_BRIDGE_MODEL_ID, type ThinkerTool } from "../../app/session/thinker-protocol.js";
 import { handleOpenThinkerRequest, handleThinkerRequest, type ThinkerDeps } from "../../server/thinker/handler.js";
 import type { PremiseEvidence } from "../../server/thinker/premise-check.js";
-import { scenarioOfBridge, type DemoBridgeData } from "./data.js";
+import { scenarioOfBridge, trainingOfBridge, type DemoBridgeData } from "./data.js";
 import { sampleModelClient, type SampleFn } from "./sample-client.js";
 
 /** An empty premise-evidence table: it covers no view, so `premiseCheck` is null everywhere (the handler's no-entry path). */
@@ -42,6 +46,7 @@ export interface BridgeServer {
 export function browserThinkerDeps(sample: SampleFn, data: DemoBridgeData, tool: ThinkerTool, clock: BridgeClock = browserClock, sessionModelVersions = new Map<string, string>()): ThinkerDeps {
   return {
     scenario: scenarioOfBridge(data.scenario),
+    training: trainingOfBridge(data.training),
     vector: null,
     ...data.prompts,
     premiseEvidence: NO_PREMISE_EVIDENCE,

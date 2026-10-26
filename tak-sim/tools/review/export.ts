@@ -35,7 +35,7 @@ import { recordEn, tr } from "../../app/i18n/text.js";
 import { introTextsIn, PROJECTION_CAVEAT_EN, PROJECTION_CAVEAT_FI } from "../../app/scenario/briefing.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { NAV_CATEGORIES, NAV_TIME_WINDOWS } from "../../app/retrieval/navigation.js";
-import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import type { ItemDef } from "../../app/scenario/freeze-bank-core.js";
 import { DIRECTIVE_KEYS } from "../../app/scenario/demo-directive.js";
 import { SPAM_AUTHORED, SPAM_ITEMS, SPAM_KEY_ATOMS } from "../../app/scenario/demo-probes.js";
@@ -112,7 +112,8 @@ function flatten(fi: unknown, en: unknown, id: string, location: string, rows: S
 function scenarioLabels(): StringRow[] {
   const rows: StringRow[] = [];
   const add = (id: string, location: string, fi: string, note = "") => rows.push({ id, location, fi, en: tr("en", fi) === fi ? "" : tr("en", fi), note });
-  const freezes = [...scenario.freezes.map((f) => ({ view: String(f.cycle), items: f.items })), { view: "practice", items: scenario.practice.freeze.items }];
+  // Revision (bp), 26 Oct 2026: VP has no freeze (its practice freeze is retired).
+  const freezes = scenario.freezes.map((f) => ({ view: String(f.cycle), items: f.items }));
   for (const f of freezes) for (const it of f.items) {
     add(`${it.id}.prompt`, `freeze V${f.view}`, it.promptFi);
     for (const o of it.options) add(`${it.id}.option.${o.id}`, `freeze V${f.view}`, o.labelFi);
@@ -203,9 +204,8 @@ const en = (fi: string) => (tr("en", fi) === fi ? "" : tr("en", fi));
 /** Every freeze item as the scenario builds it (the bank's items and the infrastructure slot), with the bank's basis where it has one. */
 function freezeRows(): KeyRow[] {
   const defs = new Map<string, ItemDef>();
-  for (const d of PRACTICE_BANK) defs.set(`freeze.practice.${d.slug}`, d);
   for (const v of viewsOf(FREEZE_BANK)) for (const d of FREEZE_BANK[v]!) defs.set(`freeze.${v}.${d.slug}`, d);
-  const freezes = [{ view: "VP", items: scenario.practice.freeze.items }, ...scenario.freezes.map((f) => ({ view: `V${f.cycle}`, items: f.items }))];
+  const freezes = scenario.freezes.map((f) => ({ view: `V${f.cycle}`, items: f.items }));
   return freezes.flatMap(({ view, items }) => items.map((it): KeyRow => {
     const d = defs.get(it.id);
     const correct = it.options.find((o) => o.correct);

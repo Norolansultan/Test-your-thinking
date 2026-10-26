@@ -60,7 +60,8 @@ describe("the tour's content", () => {
     expect(UI.fi.tour.steps.spam.body).toMatch(/voit käyttää karttaa, viestilokia ja hakutyökaluja/);
     expect(UI.en.tour.steps.spam.body).toMatch(/search tools stay available/);
     for (const lang of ["fi", "en"] as const) expect(UI[lang].tour.steps.spam.body).not.toMatch(/pois käytöstä|are off/);
-    expect(UI.en.tour.steps.spam.body).toMatch(/practice/);
+    expect(UI.en.tour.steps.spam.body).toMatch(/You will try one in this first look\.$/); // revision (bp): VP is the first look
+    expect(UI.fi.tour.steps.spam.body).toMatch(/Tässä katsauksessa saat kokeilla yhtä\.$/);
     // Revision (am): the practice tour's common steps are the same for both groups; the AI group adds only the Thinker practice.
     expect(tourSteps("practice", "directed")).toEqual(tourSteps("practice", "substitutive").filter((s) => s.id !== "practiceThinker"));
   });

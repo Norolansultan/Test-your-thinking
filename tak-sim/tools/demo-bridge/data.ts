@@ -4,14 +4,18 @@
  * phase-A intent and the directive text, the sectors and the units on scene — and the six frozen prompts of Haku's chat and the
  * Open Thinker. Nothing else: no premise-evidence table, no directive premises, no freeze items or keys, no projections, no truth
  * (`test/demo-bridge/leaks.spec.ts` scans the built files).
+ *
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.4): the training incident's corpus is a second, separate list (`training`: its records
+ * without truth, and its one step and "now"), never mixed into the session's `scenario.atoms`; a `corpus: "training"` request is
+ * answered over it only (`serve.ts`). Version 2: a version-1 file (no training corpus) is refused rather than half used.
  */
 
 import type { InfoAtom, ScenarioContract } from "../../app/scenario/types.js";
 import type { SystemPrompt } from "../../server/thinker/config.js";
-import type { ThinkerDeps } from "../../server/thinker/handler.js";
+import type { ThinkerDeps, TrainingCorpus } from "../../server/thinker/handler.js";
 
 export const DEMO_BRIDGE_DATA_FORMAT = "tak-sim-demo-bridge-data";
-export const DEMO_BRIDGE_DATA_VERSION = 1;
+export const DEMO_BRIDGE_DATA_VERSION = 2;
 /** The data file's name, beside `bridge.js`. */
 export const DEMO_BRIDGE_DATA_FILE = "data.json";
 
@@ -35,17 +39,29 @@ export interface BridgeScenario {
   readonly allocationSpace: { readonly sectors: readonly { readonly id: string; readonly label: string }[]; readonly assets: ScenarioContract["allocationSpace"]["assets"] };
 }
 
+/** Revision (bp): the training's corpus as the bridge carries it: its records (no truth) and its view (one step, its "now"). */
+export interface BridgeTraining {
+  readonly atoms: readonly BridgeAtom[];
+  readonly view: { readonly step: number; readonly nowS: number };
+}
+
 export interface DemoBridgeData {
   readonly format: typeof DEMO_BRIDGE_DATA_FORMAT;
   readonly version: typeof DEMO_BRIDGE_DATA_VERSION;
   readonly scenario: BridgeScenario;
+  /** Revision (bp): the training incident's corpus, a list of its own. */
+  readonly training: BridgeTraining;
   readonly prompts: BridgePrompts;
 }
 
 const viewOf = (v: BridgeView): BridgeView => ({ index: v.index, phase: v.phase, startsAtVirtual: v.startsAtVirtual, steps: v.steps });
+const atomOf = (a: InfoAtom): BridgeAtom => ({ id: a.id, tier: a.tier, cycle: a.cycle, record: a.record, provenance: a.provenance, degradation: a.degradation.map((d) => ({ form: d.form })) });
 
-/** The data file's content, from the scenario and the frozen prompts (the build checks the prompts against the manifest first). */
-export function bridgeDataOf(scenario: ScenarioContract, prompts: Pick<ThinkerDeps, (typeof BRIDGE_PROMPT_KEYS)[number]>): DemoBridgeData {
+/**
+ * The data file's content, from the scenario, the training's corpus (revision (bp)) and the frozen prompts (the build checks the prompts
+ * against the manifest and the training corpus against the scenario first).
+ */
+export function bridgeDataOf(scenario: ScenarioContract, prompts: Pick<ThinkerDeps, (typeof BRIDGE_PROMPT_KEYS)[number]>, training: TrainingCorpus): DemoBridgeData {
   const picked = Object.fromEntries(BRIDGE_PROMPT_KEYS.map((k) => {
     const p = prompts[k];
     if (!p) throw new Error(`demo bridge: the prompt ${k} is not loaded`);
@@ -55,7 +71,7 @@ export function bridgeDataOf(scenario: ScenarioContract, prompts: Pick<ThinkerDe
     format: DEMO_BRIDGE_DATA_FORMAT,
     version: DEMO_BRIDGE_DATA_VERSION,
     scenario: {
-      atoms: scenario.atoms.map((a) => ({ id: a.id, tier: a.tier, cycle: a.cycle, record: a.record, provenance: a.provenance, degradation: a.degradation.map((d) => ({ form: d.form })) })),
+      atoms: scenario.atoms.map(atomOf),
       cycles: scenario.cycles.map(viewOf),
       practice: { cycle: viewOf(scenario.practice.cycle) },
       hinge: { intentStatement: scenario.hinge.intentStatement },
@@ -63,6 +79,7 @@ export function bridgeDataOf(scenario: ScenarioContract, prompts: Pick<ThinkerDe
         .map((m) => ({ cycle: m.cycle, at: m.at, text: m.text, isStrategicGuidance: m.isStrategicGuidance, expectsReply: m.expectsReply })),
       allocationSpace: { sectors: scenario.allocationSpace.sectors.map((s) => ({ id: s.id, label: s.label })), assets: scenario.allocationSpace.assets },
     },
+    training: { atoms: training.atoms.map(atomOf), view: { step: training.step, nowS: training.nowS } },
     prompts: picked,
   };
 }
@@ -72,9 +89,13 @@ export function parseBridgeData(json: unknown): DemoBridgeData {
   const d = json as Partial<DemoBridgeData> | null;
   if (!d || d.format !== DEMO_BRIDGE_DATA_FORMAT || d.version !== DEMO_BRIDGE_DATA_VERSION) throw new Error("demo bridge: data.json is not this bridge's data file");
   if (!d.scenario || !Array.isArray(d.scenario.atoms) || !Array.isArray(d.scenario.cycles) || !d.prompts) throw new Error("demo bridge: data.json lacks the scenario or the prompts");
+  if (!d.training || !Array.isArray(d.training.atoms) || typeof d.training.view?.step !== "number" || typeof d.training.view.nowS !== "number") throw new Error("demo bridge: data.json lacks the training corpus");
   for (const k of BRIDGE_PROMPT_KEYS) if (typeof d.prompts[k]?.text !== "string") throw new Error(`demo bridge: data.json lacks the prompt ${k}`);
   return d as DemoBridgeData;
 }
 
 /** The reduced scenario as the handler's type: it reads only the fields kept here. */
 export const scenarioOfBridge = (s: BridgeScenario): ScenarioContract => s as unknown as ScenarioContract;
+
+/** Revision (bp): the training's corpus as the handler's type (`deps.training`): it reads the records' fields kept here. */
+export const trainingOfBridge = (t: BridgeTraining): TrainingCorpus => ({ atoms: t.atoms as unknown as InfoAtom[], step: t.view.step, nowS: t.view.nowS });

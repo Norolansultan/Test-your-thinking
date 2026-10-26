@@ -1,6 +1,7 @@
 /**
  * `measures/items.json`: every scored item of the session in the format both `parity_check.py` (wildfire-scenario-pipeline)
- * and `score_freezes.py` (wildfire-sagat-probes) read — the blanked freezes (VP practice, V2, V4, V5, V7, V10, V12, V14),
+ * and `score_freezes.py` (wildfire-sagat-probes) read — the blanked freezes (V2, V4, V5, V7, V10, V12, V14; VP's practice freeze is
+ * retired by revision (bp), 26 Oct 2026),
  * the SPAM items (V3, V6, V8, V11, the second items `.b` of V3 and V6, and the practice item), and the hinge manipulation
  * check. Keys are TRUTH, from the scenario contract: a choice item's correct option id, a SPAM item's and the hinge check's
  * key letter from the invariants (`spam.cycle_<n>[.b]`, `manipulation_check.hinge`), a map item's key point in EPSG:3067
@@ -74,8 +75,7 @@ function invariantKey(s: ScenarioContract, name: string): string {
 
 export function buildItems(s: ScenarioContract): SkillItem[] {
   const items: SkillItem[] = [];
-  // Freezes: the practice freeze (cycle 0), then the main freezes in view order.
-  for (const it of s.practice.freeze.items) items.push(freezeItem(it, "VP", 0, true));
+  // Freezes: the main freezes in view order (revision (bp): VP has no freeze).
   for (const f of s.freezes) {
     const view = MAIN_VIEWS.find((v) => v.index === (f.cycle as number));
     if (!view) throw new Error(`freeze for an unknown view ${f.cycle}`);
@@ -127,7 +127,7 @@ function spamOptions(response: ScenarioContract["probeSchedule"]["probes"][numbe
 
 /** The bank's size, counted from the contract independently of `buildItems` (the test holds the two together). */
 export function bankSize(s: ScenarioContract): number {
-  const freezes = s.practice.freeze.items.length + s.freezes.reduce((n, f) => n + f.items.length, 0);
+  const freezes = s.freezes.reduce((n, f) => n + f.items.length, 0);
   const spam = s.probeSchedule.probes.filter((p) => p.type === "S").length + (s.practice.spam ? 1 : 0) + (s.practice.spamSecond ? 1 : 0); // + the practice items
   return freezes + spam + (s.hinge.manipulationCheck ? 1 : 0);
 }

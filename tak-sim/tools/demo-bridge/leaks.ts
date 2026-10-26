@@ -3,6 +3,9 @@
  * data — the premise-evidence table and the directive premises (their texts, notes and hashes) — and the freeze items' answer
  * keys. `build.ts` fails a build that contains any of it (by module and by content); `test/demo-bridge/leaks.spec.ts` checks
  * the built files. Node only (it reads the content files); never in the bridge itself.
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.3): the scan covers the training incident too — its built spec and keys
+ * (`content/training/incident.json`, `key.json`, `spec-data.ts`) and its texts (the feedback states the keys) are forbidden modules, and
+ * no output may carry a training item's id; the training's records, like the session's, are carried without truth.
  */
 
 import { readFileSync } from "node:fs";
@@ -11,12 +14,15 @@ import type { FreezeItem } from "../../app/scenario/types.js";
 import { normaliseNewlines, repoPath, sha256Hex } from "../../server/thinker/config.js";
 import { DIRECTIVE_PREMISES_FILE } from "../../server/thinker/directive-premises.js";
 import { PREMISE_EVIDENCE_FILE } from "../../server/thinker/premise-check.js";
+import { TRAINING } from "../../app/session/training/spec-data.js";
 
 /** Source modules no bridge build may contain: the premise tables, the freeze banks and keys, the probe keys, EXCON, the server's own wiring and SDK. */
 export const FORBIDDEN_MODULES: readonly RegExp[] = [
   /\/content\/thinker\/premise-evidence\.json$/, /\/content\/thinker\/directive-premises\.json$/,
   /\/app\/scenario\/freeze-[^/]*$/, /\/app\/scenario\/probe-keys\.ts$/, /\/app\/scenario\/demo-probes\.ts$/, /\/app\/scenario\/demo-scenario\.ts$/,
   /\/app\/excon\//, /\/server\/thinker\/(?:deps|premise-review|http|main|e5-embedder)\.ts$/, /\/node_modules\/@google\/genai\//,
+  // Revision (bp): the training's spec and keys, and its texts (its feedback states each key).
+  /\/content\/training\/(?:incident|key)\.json$/, /\/app\/session\/training\/spec-data\.ts$/, /\/app\/i18n\/training-texts[^/]*$/,
 ];
 
 export interface LeakMarker {
@@ -52,12 +58,18 @@ function freezeKeyMarkers(): LeakMarker[] {
   return items.filter((i) => i.id.length >= 8).map((i) => ({ what: "freeze item (answer key)", text: i.id }));
 }
 
+/** Revision (bp): the training's items: what ties an answer to its key is the item's id, so no output may carry one. */
+export function trainingKeyMarkers(spec: Pick<typeof TRAINING, "items"> = TRAINING): LeakMarker[] {
+  return spec.items.filter((i) => i.id.length >= 8).map((i) => ({ what: "training item (answer key)", text: i.id }));
+}
+
 /** Everything a bridge output must not contain. */
 export function leakMarkers(): LeakMarker[] {
   return [
     ...fileMarkers(PREMISE_EVIDENCE_FILE, "premise-evidence table"),
     ...fileMarkers(DIRECTIVE_PREMISES_FILE, "directive premise table"),
     ...freezeKeyMarkers(),
+    ...trainingKeyMarkers(),
   ];
 }
 

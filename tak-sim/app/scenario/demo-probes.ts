@@ -7,7 +7,7 @@
  * | Probe | Views |
  * |---|---|
  * | Type J (containment judgement) | none — withdrawn (revision (x), 6 Oct 2026): a view asks only for the sector plan |
- * | Blanked freeze (SAGAT) | V2, V4, V5, V7: 8 items each, 2×L1 (one the infrastructure item), 2×L2, 4×L3 (SPEC/30 §5.1) \| V10, V12, V14: 6 items each, 2×L1, 2×L2 (F7 at V12), 2×L3 — all at the view's end (`31` §3.8) — from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each but V7 and V14; plus a 5-item practice freeze in VP (L1 infrastructure, L1 forecast — Haku only, the difficulty audit of 23 Oct 2026 —, L1 map point, L2, L3) |
+ * | Blanked freeze (SAGAT) | V2, V4, V5, V7: 8 items each, 2×L1 (one the infrastructure item), 2×L2, 4×L3 (SPEC/30 §5.1) \| V10, V12, V14: 6 items each, 2×L1, 2×L2 (F7 at V12), 2×L3 — all at the view's end (`31` §3.8) — from the goal-based bank (`freeze-bank.ts`, `freeze-bank-b.ts`; SPEC/08 amendment 2 Oct 2026), at least one `map_point` item each but V7 and V14; VP has no freeze since revision (bp), 26 Oct 2026 (its 5-item practice freeze is retired: the training incident's S4 rehearses the memory check) |
  * | SPAM (Type S, online) | V3, V6, V8, V11 — rewritten 4 Oct 2026 (round 2, agent C) to be answerable from the display; the tools stay usable since `27` (ag), and V3 and V6 add a second, tool-aided item (SPEC/30 §5.2, `31` §3.7); the manipulation check is on the hinge screen (`buildHingeCheck`) |
  * | No SA probe | V1, V9 (omission), V13 (contradiction) |
  * | Type E | none — withdrawn with H6 (researcher decision, 6 Oct 2026) |
@@ -19,7 +19,7 @@ import type { CycleIndex } from "../engine/primitives.js";
 import { CANONICAL_FLAG_SEQUENCE, DESIGNED_EVENT_IDS, type ExpectedInvariant, type FreezeItem, type FreezeSpec, type ManipulationCheckItem, type PracticeView, type ProbeSpec } from "./types.js";
 import { FREEZE_LATEST_BEFORE_END_S, MAIN_VIEWS, PRACTICE_VIEW_INDEX, VIEW_MIN_SECONDS } from "./views.js";
 import { arrangeOptions, byLevel, FREEZE_BANK_SEED, toItem } from "./freeze-bank-core.js";
-import { FREEZE_BANK, PRACTICE_BANK } from "./freeze-bank.js";
+import { FREEZE_BANK } from "./freeze-bank.js";
 import { withRetrievalFlag } from "./freeze-bank-retrieval.js";
 import { radioId, trafficId } from "./freeze-keys.js";
 import { deriveSeed, Xorshift64Star } from "../engine/prng.js";
@@ -77,7 +77,7 @@ const F7_ITEM: Omit<FreezeItem, "id"> = {
  * view (no aircraft, no rekindle, no bog smoulder, no evacuation).
  *
  * Answer keys, against the corpus (`content/corpus/interaction-log.jsonl`) at the view's last step:
- * - VP (step W2), W1 Haukilampi: available. VPK: "vettä saa Haukilammelta (W1)" (12:09).
+ * - VP: none since revision (bp), 26 Oct 2026 (VP's practice freeze, whose W1 item shared V4's subject, is retired).
  * - V2 (steps 2–3), R1: not safe to drive, flames at the roadside. DR1 road report at step 3:
  *   "tie R1, palo noin 10 m tiestä — liekit tien reunassa (liekit 1–2 m), ajo ei turvallista" (the flame table's band since 20 Oct
  *   2026, was "0,3–1 m"; the key, "unsafe", rests on "ajo ei turvallista", unchanged).
@@ -105,7 +105,6 @@ type InfraTopic = "r1" | "water" | "r2" | "bridge";
 interface InfraSlot { readonly topic: InfraTopic | "f7"; readonly correct: string; readonly point?: "W1" | "W3" }
 
 export const INFRA_SCHEDULE: Readonly<Record<number, InfraSlot>> = {
-  0: { topic: "water", point: "W1", correct: "available" }, // the practice view: the format is practised too
   2: { topic: "r1", correct: "unsafe" },
   4: { topic: "water", point: "W1", correct: "available" },
   // 2 Oct 2026: after the faster crown run DR2 reported R1's verge burned, no flames, passable (was "with_care"); SPEC/33 stage 9
@@ -166,7 +165,6 @@ const INFRA_OPTIONS: Readonly<Record<InfraTopic, readonly (readonly [string, str
 
 /** TRUTH: the corpus atoms each infrastructure key rests on (the direct reports listed above). */
 const INFRA_KEY_ATOMS: Readonly<Record<number, readonly string[]>> = {
-  0: ["evt.vp.013"],
   // Found by content (3 Oct 2026): generated ids shift whenever the traffic is regenerated.
   2: [trafficId(3, /DR1 tiehavainto: tie R1.*ajo ei turvallista/), trafficId(2, /DR1 tiehavainto: tie R1.*ajo ei turvallista/)],
   4: [trafficId(6, /VPK täytti säiliön, Haukilampi/)], // gate R (R1): VPK is full at 15.01 (step 6), 6.0 km from its line by road
@@ -194,7 +192,7 @@ export function infrastructureItem(view: number): FreezeItem | null {
   if (slot.topic === "f7") return withRetrievalFlag({ id: `freeze.${view}.f7`, ...F7_ITEM, goal: "safety", keyAtomIds, family: "verification", scoredFor: "h9_only" });
   const promptFi = slot.topic === "water" ? WATER_PROMPT_FI[slot.point!] : slot.topic === "r1" ? R1_PROMPT_FI : slot.topic === "r2" ? R2_PROMPT_FI : BRIDGE_PROMPT_FI;
   return withRetrievalFlag({
-    id: view === PRACTICE_VIEW_INDEX ? "freeze.practice.infra" : `freeze.${view}.infra`,
+    id: `freeze.${view}.infra`,
     level: "L1",
     kind: "choice",
     goal: "resources",
@@ -206,20 +204,16 @@ export function infrastructureItem(view: number): FreezeItem | null {
 
 /** A view's items before the option arrangement: the infrastructure item (or F7) and the bank's, in level order, each with its retrieval flag. */
 function unarranged(view: number): FreezeItem[] {
-  const prefix = view === PRACTICE_VIEW_INDEX ? "freeze.practice" : `freeze.${view}`;
-  const bank = view === PRACTICE_VIEW_INDEX ? PRACTICE_BANK : FREEZE_BANK[view]!;
-  return byLevel([infrastructureItem(view)!, ...bank.map((d) => withRetrievalFlag(toItem(prefix, d)))]);
+  return byLevel([infrastructureItem(view)!, ...FREEZE_BANK[view]!.map((d) => withRetrievalFlag(toItem(`freeze.${view}`, d)))]);
 }
 
 /**
  * Every freeze's items, options arranged once at build time from the scenario seed
- * (`arrangeOptions`): the main freezes in view order (phase A first), then the practice freeze,
- * which is balanced on its own count so it never shifts a main item. Identical for every participant.
+ * (`arrangeOptions`): the main freezes in view order (phase A first). Identical for every participant. (VP's practice freeze, retired
+ * by revision (bp), was balanced on its own count after them, so its removal shifts no main item.)
  */
 function arrangedFreezes(): Map<number, FreezeItem[]> {
-  const main = arrangeOptions([...FREEZE_VIEWS].sort((a, b) => a - b).map((v) => ({ key: v, items: unarranged(v) })), FREEZE_BANK_SEED);
-  const practice = arrangeOptions([{ key: PRACTICE_VIEW_INDEX, items: unarranged(PRACTICE_VIEW_INDEX) }], FREEZE_BANK_SEED);
-  return new Map([...main, ...practice]);
+  return arrangeOptions([...FREEZE_VIEWS].sort((a, b) => a - b).map((v) => ({ key: v, items: unarranged(v) })), FREEZE_BANK_SEED);
 }
 
 export function buildFreezes(): FreezeSpec[] {
@@ -228,13 +222,12 @@ export function buildFreezes(): FreezeSpec[] {
 }
 
 /**
- * VP's practice freeze: one item per format and level — the infrastructure item (L1), the
- * head on a blank map (L1, `map_point`), an L2 and an L3 item — so the participant meets every
- * item format before V1; and (difficulty audit, 23 Oct 2026) the forecast item (L1), answerable only
- * with Haku, the practice search lesson. Ids carry `practice` so its answers are dropped with the view.
+ * VP's practice freeze — RETIRED by revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP is the first look and has no freeze (`hasFreeze`
+ * false); the training incident's S4 rehearses the memory check. The scenario keeps `practice.freeze` with no items, the shape the
+ * session code reads, until the integration's cleanup removes it and this function.
  */
 export function buildPracticeFreeze(): PracticeView["freeze"] {
-  return { cycle: PRACTICE_VIEW_INDEX, items: mapItemsLast(arrangedFreezes().get(PRACTICE_VIEW_INDEX)!) };
+  return { cycle: PRACTICE_VIEW_INDEX, items: [] };
 }
 
 /**

@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
-import { FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import { bandsAscending, inMinutesFi, isOrdinal, minutesAhead, nowStepOf, stepEndClockFi, withinMinutesFi, type ItemDef } from "../../app/scenario/freeze-bank-core.js";
 import { distanceM, drawnSteps, headNow } from "../../app/scenario/freeze-keys.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
@@ -37,7 +37,6 @@ describe("`31` rule (1): a report-keyed basis is delivered by the freeze", () =>
         expect(s, `V${view} ${d.slug}`).toBeLessThanOrEqual(steps(view).at(-1)!);
       }
     }
-    expect(PRACTICE_BANK.find((d) => d.slug === "r1_arrival")!.basisSteps).toEqual([-3]); // VP's map draws W2 (step −3)
   });
 
   it("a merged view's second step is never drawn (the map shows the view's first step), so it can be a basis only through a pushed record", () => {
@@ -81,8 +80,8 @@ describe("`31` rule (3), F08, §3.8: every L3 stem names its horizon from now", 
 
 describe("`31` rule (4), F11: ordinal bands", () => {
   it("are shown in ascending order, as authored (no draw), in every freeze", () => {
-    const ordinal = [...scenario.freezes, scenario.practice.freeze].flatMap((f) => f.items).filter(isOrdinal);
-    expect(ordinal.length).toBeGreaterThanOrEqual(8);
+    const ordinal = scenario.freezes.flatMap((f) => f.items).filter(isOrdinal);
+    expect(ordinal.length).toBeGreaterThanOrEqual(7); // revision (bp): VP's r1_arrival is retired with its freeze (was 8 with it)
     for (const it of ordinal) expect(bandsAscending(it), it.id).toBe(true);
     for (const { view, d } of mainDefs) if (d.kind === "choice" && isOrdinal(built(view, d))) expect(built(view, d).options.map((o) => o.id), d.slug).toEqual(d.options.map(([id]) => id));
   });

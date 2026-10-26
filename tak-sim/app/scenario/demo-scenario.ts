@@ -39,7 +39,7 @@ import {
 import { buildAllocationSpace } from "./allocation.js";
 import { createScenarioContract } from "./contract.js";
 import { SITE_SCENARIO } from "./site-scenario.js";
-import { FREEZE_AT_VIEW_END, freezeOffsetSecondsFor, HINGE_AFTER_VIEW, PRACTICE_FREEZE_AT_S, PRACTICE_VIEW_MIN_SECONDS, MAIN_VIEWS, PRACTICE_STEP, PRACTICE_VIEW_INDEX, secondSpamProbeId, STEP_SECONDS, viewOfStep } from "./views.js";
+import { FREEZE_AT_VIEW_END, freezeOffsetSecondsFor, HINGE_AFTER_VIEW, PRACTICE_VIEW_MIN_SECONDS, MAIN_VIEWS, PRACTICE_STEP, PRACTICE_VIEW_INDEX, secondSpamProbeId, STEP_SECONDS, viewOfStep } from "./views.js";
 import { trafficAtom } from "./traffic-atoms.js";
 import { designedEventAtoms, F7_TRUTH_INVARIANT } from "./designed-events.js";
 import { accuracyLabel, buildRateMarks, buildSensorFootprints, radioAtoms, siteView, viewMap } from "./demo-map.js";
@@ -86,9 +86,11 @@ const SOURCE_CLASSES: readonly SourceClass[] = [
 
 /**
  * SPEC/26 D3: VP — practice, at step W2 (researcher decision 1 Oct 2026). Identical for everyone, no
- * AI tool in either group (the session enforces that), a 2-item practice freeze, the normal
- * decision phase; not scored. It pushes its own starting-picture traffic (`traffic-practice.ts`),
- * which stays searchable later as incident history.
+ * AI tool in either group (the session enforces that), the normal decision phase; not scored. It
+ * pushes its own starting-picture traffic (`traffic-practice.ts`), which stays searchable later as
+ * incident history. Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): VP is the first look ("Ensikatsaus"):
+ * no practice freeze (`hasFreeze` false, `freezeAtSeconds` null; `practice.freeze` kept with no items
+ * until the integration's cleanup), the practice SPAM pair at 85 s as a freeze-less view's, the plan as before.
  */
 function buildPracticeView(seed: bigint): PracticeView {
   const view = { index: PRACTICE_VIEW_INDEX, steps: [PRACTICE_STEP] };
@@ -97,9 +99,9 @@ function buildPracticeView(seed: bigint): PracticeView {
   const pushed = SITE_SCENARIO.traffic.filter((t) => t.session_view === PRACTICE_VIEW_INDEX && t.tier === "T1_pushed").sort((a, b) => a.sim_time_s - b.sim_time_s);
   return {
     cycle: {
-      ...spec, index: PRACTICE_VIEW_INDEX, phase: "A", title: "Harjoitus",
+      ...spec, index: PRACTICE_VIEW_INDEX, phase: "A", title: "Ensikatsaus",
       pushedAtomIds: pushed.map((t) => t.id), deliveryOffsetsSeconds: pushed.map((t) => t.sim_time_s - start), probeIds: [],
-      rateMarks: [], sensorFootprints: [], hasFreeze: true, freezeAtSeconds: PRACTICE_FREEZE_AT_S, minViewSeconds: PRACTICE_VIEW_MIN_SECONDS,
+      rateMarks: [], sensorFootprints: [], hasFreeze: false, freezeAtSeconds: null, minViewSeconds: PRACTICE_VIEW_MIN_SECONDS,
     },
     envelope: { ...envelope, cycle: PRACTICE_VIEW_INDEX, flag: sv.derivedFlag, accuracy_label: accuracyLabel(sv.derivedFlag), isOmissionCycle: false },
     freeze: buildPracticeFreeze(),

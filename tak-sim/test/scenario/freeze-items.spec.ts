@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { DECISION_PROMPT_FI } from "../../app/scenario/demo-decisions.js";
 import { FREEZE_VIEWS, INFRA_SCHEDULE, SPAM_VIEWS, infrastructureItem } from "../../app/scenario/demo-probes.js";
-import { FORECAST_HEADLINE, FREEZE_BANK, PRACTICE_BANK } from "../../app/scenario/freeze-bank.js";
+import { FORECAST_HEADLINE, FREEZE_BANK } from "../../app/scenario/freeze-bank.js";
 import { isOrdinal } from "../../app/scenario/freeze-bank-core.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { FreezeItem } from "../../app/scenario/types.js";
@@ -69,18 +69,12 @@ describe("the goal-based bank's structure", () => {
     }
   });
 
-  it("the practice freeze (ids with practice) practises every format and level: 5 items, one L3 and one map_point", () => {
-    const items = scenario.practice.freeze.items;
-    // Difficulty audit (23 Oct 2026, proposal (b.2)): a fifth item, the forecast, answerable only with Haku (its record is recorded only).
-    expect(items).toHaveLength(5);
-    const forecast = items.find((it) => it.id === "freeze.practice.forecast")!;
-    expect(forecast).toMatchObject({ level: "L1", kind: "choice", keyAtomIds: ["evt.wx.01"], retrievalDependent: true });
+  it("revision (bp), 26 Oct 2026: VP has no practice freeze (the training incident's S4 rehearses the memory check); no item id names the practice", () => {
+    expect(scenario.practice.cycle.hasFreeze).toBe(false);
+    expect(scenario.practice.freeze.items).toEqual([]);
+    for (const f of mains) for (const it of f.items) expect(it.id).not.toMatch(/^freeze\.practice\./);
+    // Its retired forecast item's record stays VP's recorded forecast (the session's history), and no main item's key moved.
     expect(scenario.practice.cycle.pushedAtomIds).not.toContain("evt.wx.01");
-    expect(items.map((it) => it.id)).toEqual(["freeze.practice.infra", "freeze.practice.forecast", "freeze.practice.first_target", "freeze.practice.r1_arrival", "freeze.practice.head_now"]);
-    for (const it of items) expect(it.id).toMatch(/^freeze\.practice\./);
-    expect(new Set(items.map((it) => it.level))).toEqual(new Set(["L1", "L2", "L3"]));
-    expect(items.filter((it) => it.kind === "map_point")).toHaveLength(1);
-    expect(items.some((it) => it.kind === "choice")).toBe(true);
   });
 
   it("every choice item has four options and exactly one key; ids are unique", () => {
@@ -93,7 +87,8 @@ describe("the goal-based bank's structure", () => {
   });
 
   it("every L3 item has a computed or cited key; its key atoms, if any, are evidence already on record (a forecast), never the reported future", () => {
-    const defs = [...Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d }))), ...PRACTICE_BANK.map((d) => ({ v: 0, d }))];
+    // Revision (bp), 26 Oct 2026: VP's practice bank is retired (VP has no freeze).
+    const defs = Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d })));
     for (const { d } of defs) {
       expect(["computed", "cited"], d.slug).toContain(d.rule);
       expect(d.basis.length, d.slug).toBeGreaterThan(20);
@@ -192,8 +187,10 @@ describe("repetition and balance (the critique of the two repeated items)", () =
 
 describe("the infrastructure slot", () => {
   it("every main freeze carries exactly one, with four options and one correct, per the fixed schedule", () => {
-    expect(Object.keys(INFRA_SCHEDULE).map(Number).sort((a, b) => a - b)).toEqual([0, ...FREEZE_VIEWS].sort((a, b) => a - b)); // 0 = the practice view
-    expect(scenario.practice.freeze.items.map((it) => it.id)).toContain("freeze.practice.infra");
+    // Revision (bp), 26 Oct 2026: VP's practice infrastructure item (W1, V4 `infra`'s subject) is retired with its freeze.
+    expect(Object.keys(INFRA_SCHEDULE).map(Number).sort((a, b) => a - b)).toEqual([...FREEZE_VIEWS].sort((a, b) => a - b));
+    expect(scenario.practice.freeze.items).toEqual([]);
+    expect(infrastructureItem(0)).toBeNull();
     for (const f of scenario.freezes) {
       const infra = f.items.filter((it) => /\.(infra|f7)$/.test(it.id));
       expect(infra, `V${f.cycle}`).toHaveLength(1);

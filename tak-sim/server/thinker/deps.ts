@@ -10,6 +10,11 @@
  * configuration is frozen (`retrievalEn.neutralEval.status`); `--lexical-only` is refused too. In
  * demonstration mode a missing English index is announced at startup and English questions are
  * answered over the Finnish index, logged as `hybrid_fi_fallback`.
+ *
+ * Revision (bp), 26 Oct 2026 (SPEC/14 (bp) §bp.1): the training incident's corpus is loaded next to the scenario (`deps.training`, from
+ * `app/session/training/corpus.ts`, which the build writes from `content/training/corpus.json` and `records.en.json`), and checked at
+ * startup: it loads, its ids all begin `trn.`, none is the scenario's, and every record is at the training's one step. Otherwise the
+ * proxy refuses to start.
  */
 
 import { GoogleGenAI } from "@google/genai";
@@ -23,7 +28,9 @@ import { checkDirectivePremises, loadDirectivePremises } from "./directive-premi
 import { checkPremiseEvidence, loadPremiseEvidence } from "./premise-check.js";
 import { expectedModelVersionOf, INDEX_FILE, INDEX_FILE_EN, loadSystemPrompt, MANIFEST_FILE, normaliseNewlines, repoPath, sha256Hex, type ThinkerServerMode } from "./config.js";
 import { loadE5Embedder } from "./e5-embedder.js";
-import type { ThinkerDeps } from "./handler.js";
+import type { ThinkerDeps, TrainingCorpus } from "./handler.js";
+import type { InfoAtom } from "../../app/scenario/types.js";
+import { TRAINING_ATOMS, TRAINING_NOW_S, TRAINING_STEP } from "../../app/session/training/corpus.js";
 
 export const LOG_DIR = "logs/thinker";
 
@@ -138,6 +145,36 @@ export function englishStartup(options: {
   };
 }
 
+/** Revision (bp): the training corpus's id prefix; no session record has it, and every training record has it. */
+export const TRAINING_ID_PREFIX = "trn.";
+
+/**
+ * Revision (bp): what is wrong with a training corpus against the session's records (empty: nothing). Pure, so the tests run it on
+ * fixtures: an empty corpus, an id without the `trn.` prefix or repeated, an id that is the session's, a record off the training's step.
+ */
+export function trainingCorpusProblems(training: TrainingCorpus, sessionAtoms: readonly Pick<InfoAtom, "id">[]): string[] {
+  const problems: string[] = [];
+  if (training.atoms.length === 0) problems.push("the training corpus is empty (build it: `npm run training:build`)");
+  const session = new Set(sessionAtoms.map((a) => a.id));
+  const seen = new Set<string>();
+  for (const a of training.atoms) {
+    if (!a.id.startsWith(TRAINING_ID_PREFIX)) problems.push(`${a.id}: a training record's id must begin "${TRAINING_ID_PREFIX}"`);
+    if (session.has(a.id)) problems.push(`${a.id}: is a session record`);
+    if (seen.has(a.id)) problems.push(`${a.id}: twice`);
+    if (a.cycle !== training.step) problems.push(`${a.id}: at step ${a.cycle}, not the training's ${training.step}`);
+    seen.add(a.id);
+  }
+  for (const a of sessionAtoms) if (a.id.startsWith(TRAINING_ID_PREFIX)) problems.push(`${a.id}: a session record with the training's prefix`);
+  return problems;
+}
+
+/** Revision (bp): the training corpus the proxy serves, checked against the scenario; throws (the proxy does not start) on a problem. */
+export function loadTrainingCorpus(sessionAtoms: readonly Pick<InfoAtom, "id">[], training: TrainingCorpus = { atoms: TRAINING_ATOMS, step: TRAINING_STEP, nowS: TRAINING_NOW_S }): TrainingCorpus {
+  const problems = trainingCorpusProblems(training, sessionAtoms);
+  if (problems.length > 0) throw new Error(`the training corpus cannot be served:\n  ${problems.join("\n  ")}`);
+  return training;
+}
+
 /** `GEMINI_API_KEY` without the quotes or spaces a pasted value often carries (Google rejects them); undefined when unset. */
 export function geminiKey(env: Readonly<Record<string, string | undefined>> = process.env): string | undefined {
   const key = env.GEMINI_API_KEY?.trim().replace(/^["'“”]+|["'“”]+$/g, "").trim();
@@ -155,6 +192,8 @@ export async function createThinkerDeps(options: { readonly lexicalOnly: boolean
   // SPEC/30 §3: the premise-evidence table must be the frozen one, written for these premises, and cite only records of this scenario once received.
   const premiseEvidence = loadPremiseEvidence();
   checkPremiseEvidence(premiseEvidence, manifest.premiseEvidence?.sha256, directivePremises, scenario.atoms);
+  // Revision (bp): the training's corpus, checked before anything slow loads.
+  const training = loadTrainingCorpus(scenario.atoms);
   const indexEnText = existsSync(repoPath(INDEX_FILE_EN)) ? readFileSync(repoPath(INDEX_FILE_EN), "utf8") : null;
   // Checked before the model loads, so a study proxy without the English index fails at once.
   if (mode === "study") englishStartup({ mode, lexicalOnly: options.lexicalOnly, indexEnText, manifest, embedderId: manifest.embedder.id });
@@ -170,6 +209,7 @@ export async function createThinkerDeps(options: { readonly lexicalOnly: boolean
   const english = englishStartup({ mode, lexicalOnly: options.lexicalOnly, indexEnText, manifest, embedderId: vector?.embedder.id ?? null });
   return {
     scenario,
+    training,
     directivePremises,
     premiseEvidence,
     // SPEC/30 §10: the pinned build (THINKER_EXPECTED_MODEL_VERSION), and each session's first build for `modelVersionChanged`.

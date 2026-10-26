@@ -17,7 +17,7 @@ import {
   reportedDetachedClosingAt, reportedDetachedToLineM, reportedGrowthHa, sectorOf, siteStep, trafficId, truthHeadAtEndOf, unitsByDistanceToHead,
 } from "../../app/scenario/freeze-keys.js";
 import { arrangeOptions, minutesAhead, nowStepOf, stepEndClockFi } from "../../app/scenario/freeze-bank-core.js";
-import { FREEZE_BANK, PRACTICE_BANK, V2_AREA, V2_JUNCTION, V5_AREA, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
+import { FREEZE_BANK, V2_AREA, V2_JUNCTION, V5_AREA, VPK_RELIEF_RE } from "../../app/scenario/freeze-bank.js";
 import { V10_GROWTH, V10_R2, V12_VILLAGE, V14_R2, V14_SPRINKLERS } from "../../app/scenario/freeze-bank-b.js";
 import { MAIN_VIEWS } from "../../app/scenario/views.js";
 import type { CycleIndex, LatLon } from "../../app/engine/primitives.js";
@@ -26,7 +26,7 @@ import type { FreezeItem } from "../../app/scenario/types.js";
 const scenario = buildDemoScenario();
 const F = SITE_SCENARIO.features;
 const item = (view: number, slug: string): FreezeItem =>
-  (view === 0 ? scenario.practice.freeze : scenario.freezes.find((f) => f.cycle === view)!).items.find((it) => it.id.endsWith(`.${slug}`))!;
+  scenario.freezes.find((f) => f.cycle === view)!.items.find((it) => it.id.endsWith(`.${slug}`))!;
 const key = (view: number, slug: string) => item(view, slug).options.find((o) => o.correct)!.id;
 
 /** CA growth between two steps' truth, in hectares per sector, on a 40 m grid. */
@@ -59,7 +59,6 @@ describe("the computed rules", () => {
   });
 
   it("map keys: 'now' is the head or unit the latest reports give; 'at clock' is the CA head at that step's end, worded from the freeze's now", () => {
-    expect(item(0, "head_now").mapKey!.point).toEqual(headNow(-3));
     expect(item(5, "head_now").mapKey!.point).toEqual(headNow(7)); // play-test D1: the latest reports (EK11 15.24 at Koivuoja) put it where the map draws it
     expect(distanceM(headNow(7), F["BIRCH"]!)).toBeLessThan(100);
     // Play-test D1 (24 Oct 2026, open item `11` §7.18 closed): V12's "now" is its end, 19.00, so the key is the CA head then — no longer the
@@ -92,10 +91,11 @@ describe("the computed rules", () => {
     for (const c of scenario.cycles.filter((x) => x.stepBoundary && x.freezeAtSeconds !== null)) expect(c.freezeAtSeconds!, `V${c.index}`).toBeGreaterThan(c.minViewSeconds / 2);
   });
 
-  it("VP (play-test R4): the head reaches R1 at 13.10–13.40 by the pushed figures (≈13.21), the drawn head and rate (≈13.37) and the CA (13.20)", () => {
+  // Revision (bp), 26 Oct 2026: VP's `r1_arrival` item is retired with its practice freeze; the readings it rested on stand (`freeze-readings.ts`).
+  it("VP's readings (play-test R4): the head reaches R1 at 13.10–13.40 by the pushed figures (≈13.21), the drawn head and rate (≈13.37) and the CA (13.20)", () => {
     expect(distanceToLineM(headNow(-3), R1_LINE)).toBeGreaterThan(300);
-    expect(key(0, "r1_arrival")).toBe("m1310_1340");
-    expect(item(0, "r1_arrival").options.map((o) => o.id)).toEqual(["lt1250", "m1250_1310", "m1310_1340", "gt1340"]); // ascending, time of day
+    expect(R1_ARRIVAL.key).toBe("m1310_1340");
+    expect(scenario.practice.freeze.items).toEqual([]);
     expect([R1_ARRIVAL.pushed, R1_ARRIVAL.drawn, R1_ARRIVAL.truth].map((m) => clockOf(m))).toEqual(["13.21", "13.37", "13.20"]);
     // The CA run (not in the bundle): 34 m short of R1 at 13.00 (W4's end), across it at 13.20 (W5's end): read at step resolution, 13.20.
     const ca = JSON.parse(readFileSync("content/site/build/fire-ca.json", "utf8")) as { cycles: { id: string; truthAtEnd: LatLon[][] }[] };
@@ -173,7 +173,8 @@ describe("the computed rules", () => {
 
 describe("every L3 key forecasts from the freeze's now (fix pass 4, 7 Oct 2026; `31` §3.8)", () => {
   it("each L3 item's key interval starts at the freeze's now step (the view's last step, or the step after it for a view-end freeze), and a head-later item's ends at its prompt's clock", () => {
-    const defs = [...Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d }))), ...PRACTICE_BANK.map((d) => ({ v: 0, d }))];
+    // Revision (bp), 26 Oct 2026: VP's practice bank is retired (VP has no freeze).
+    const defs = Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d })));
     expect(nowStepOf(10)).toBe(14); // 17.40
     expect(nowStepOf(12)).toBe(18); // 19.00
     expect(nowStepOf(14)).toBe(21); // 20.00

@@ -2,7 +2,10 @@
  * The information rule (difficulty audit, 23 Oct 2026; `proposal.md` (a)): the tour's log, Haku and V1 steps and the public primer say
  * that the message log shows only part of the traffic and that the rest is in the records, found with Haku — and no tour or primer
  * sentence says any longer that the units' reports arrive in the message log. Generic (no scenario name), the same in both groups.
- * The measure tool has its tour step (`proposal-map.md` d5). The feedback's frame names nothing of the scenario.
+ * The measure tool has its tour step (`proposal-map.md` d5).
+ * Revision (bp), 26 Oct 2026 (SPEC/15 §bp.5): the log step refers back to the training incident (which taught where the records are and
+ * how to ask for them) and keeps the rule — only part of the traffic, the rest in the records; the Haku step still says how to ask. The
+ * practice feedback is retired, and with it the check of its frame.
  */
 
 import { describe, expect, it } from "vitest";
@@ -10,7 +13,6 @@ import { UI_TEXT as UI } from "../../app/i18n/ui.js";
 import { PRACTICE_TOUR, toolsTour } from "../../app/render/ui/tour.js";
 import { PRIMER_CONTENT } from "../../app/render/ui/explain/primer-content.js";
 import { RECORDS_RULE_EN, RECORDS_RULE_FI, TOUR_HAKU_ASK_EN, TOUR_HAKU_ASK_FI } from "../../app/scenario/briefing.js";
-import { DIFFICULTY_TEXT } from "../../app/i18n/difficulty-texts.js";
 import { finnishNamesIn } from "../../app/i18n/place-names.js";
 import { basemapPx } from "../../app/render/ui/basemap-px.js";
 import siteMeta from "../../app/scenario/site-meta.json" with { type: "json" };
@@ -18,11 +20,11 @@ import siteMeta from "../../app/scenario/site-meta.json" with { type: "json" };
 const ALL_ARRIVE = /(?:ilmoitukset tulevat viestilokiin|reports? (?:from the units )?(?:and other actors )?arrive in the message log|message log, where the units' reports arrive|viestiloki, johon yksiköiden ilmoitukset tulevat)/i;
 
 describe("the information rule in the tour and the primer (difficulty audit (a))", () => {
-  it("the tour's log step says the log is only part of the traffic, names the kinds kept in the records, and Haku", () => {
+  it("the tour's log step says the log is only part of the traffic and the rest is in the records (revision (bp): as in the training); the Haku step says how to ask", () => {
     expect(UI.fi.tour.steps.log.title).toMatch(/vain osa liikenteestä/);
     expect(UI.en.tour.steps.log.title).toMatch(/only part of the traffic/);
-    expect(UI.fi.tour.steps.log.body).toMatch(/vain osa liikenteestä.*kirjauksissa.*Hausta/s);
-    expect(UI.en.tour.steps.log.body).toMatch(/only part of the traffic.*records.*Search/s);
+    expect(UI.fi.tour.steps.log.body).toMatch(/kuten harjoituksessa.*vain osa liikenteestä; muu on kirjauksissa/s);
+    expect(UI.en.tour.steps.log.body).toMatch(/as in the training.*only part of the traffic; the rest is in the records/s);
     expect(UI.fi.tour.steps.haku.body).toContain(TOUR_HAKU_ASK_FI);
     expect(UI.en.tour.steps.haku.body).toContain(TOUR_HAKU_ASK_EN);
     expect(UI.fi.tour.steps.toolsHaku.body).toMatch(/viestiloki näyttää vain osan liikenteestä/);
@@ -59,14 +61,6 @@ describe("the information rule in the tour and the primer (difficulty audit (a))
     expect(PRACTICE_TOUR.find((s) => s.id === "measure")!.target).toBe('[data-testid="tak-tool-range_bearing"]');
     expect(UI.fi.tour.steps.measure.body).toMatch(/Mittaa/);
     expect(UI.en.tour.steps.measure.body).toMatch(/R&B/);
-  });
-
-  it("the feedback's frame names no place of the scenario (the map training's texts, which replaced the pretest's: map-training.spec.ts)", () => {
-    for (const lang of ["fi", "en"] as const) {
-      const t = DIFFICULTY_TEXT[lang];
-      const texts = [t.feedback.title, t.feedback.intro, t.feedback.map, t.feedback.workedOut, t.feedback.head, t.feedback.headNoMark, t.feedback.closingHaku, t.feedback.closingThinker];
-      for (const s of texts) expect(s).not.toMatch(/Haukilampi|Pike Pond|Mökkiranta|Lakeside|Lahdenkylä|Bay Village|Kuivakangas|Dry Heath/);
-    }
   });
 });
 

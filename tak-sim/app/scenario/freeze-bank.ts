@@ -4,8 +4,8 @@
  * viimeksi raportoitiin olevan?", "Mikä lohko on tällä hetkellä eniten uhattuna?").
  *
  * Each phase-A freeze (V2, V4, V5, V7) has eight items, 2×L1, 2×L2, 4×L3 (SPEC/30 §5.1); each phase-B freeze six, 2×L1, 2×L2, 2×L3;
- * the infrastructure item (or, at V12, F7 as the L2 implication item) is added by `demo-probes.ts`; the practice freeze has four, one
- * per format and level. A merged view's map draws its FIRST step's fire and its SECOND step's units (`demo-map.ts`), and every pushed
+ * the infrastructure item (or, at V12, F7 as the L2 implication item) is added by `demo-probes.ts`; VP has no freeze since revision
+ * (bp) (below). A merged view's map draws its FIRST step's fire and its SECOND step's units (`demo-map.ts`), and every pushed
  * item of both steps has arrived before the freeze.
  *
  * `31` (19 Oct 2026, the SA probe audit decided; DRAFT for the domain and native review):
@@ -32,7 +32,7 @@ import {
   storyId, trafficFigure, trafficId, truthHeadAtEndOf, type KeyBand,
 } from "./freeze-keys.js";
 import { CYCLE_STORY } from "./demo-story.js";
-import { clockOf, R1_ARRIVAL, R1_ARRIVAL_IDS, V5_AREA, V5_AREA_EDGES, V5_AREA_IDS, V5_SURVEY } from "./freeze-readings.js";
+import { V5_AREA, V5_AREA_EDGES, V5_AREA_IDS, V5_SURVEY } from "./freeze-readings.js";
 import { NORTH_HELP, REINFORCEMENTS, SOUTH_FLANK } from "./freeze-bank-seek.js";
 
 const F = SITE_SCENARIO.features;
@@ -56,8 +56,6 @@ const RADIO = {
   ek14Arrives: radioId(2, /^EK14: saavuimme pohjoisreunalle/),
   ky21Arrives: radioId(3, /^KY21: saavuimme syttymäkohdan eteläreunalle/),
 };
-
-const HEAD_NOW_FI = "Merkitse kartalle palon kärki.";
 
 /** Play-test D3 (24 Oct 2026): DR1's pushed 14.27 terrain line (V3), the birch–aspen strip along Koivuoja beyond Kuusimäki's spruce. */
 export const BIRCH_STRIP = storyId(4, /^Kärjen edessä alkaa pian Kuusimäen kuusikko, .*Koivuojan varressa on kapea koivikko ja haavikko/);
@@ -88,7 +86,7 @@ const figures = (k: KeyBand, unit: string, fmt = f1) => `~${fmt(k.value)} ${unit
  */
 export const V2_AREA = keyBand(deliveredAreaAt(1, 2, 4), [20, 35, 50], ["lt20", "m20_35", "m35_50", "gt50"], 2, "V2 area_40", { value: siteStep(4).areaHa, minMargin: 2 });
 
-// V5 `area_hour`'s key (`V5_SURVEY`, `V5_AREA`) and VP `r1_arrival`'s (`R1_ARRIVAL`) are in `freeze-readings.ts` with their guards
+// V5 `area_hour`'s key (`V5_SURVEY`, `V5_AREA`) is in `freeze-readings.ts` with its guards (VP's retired `r1_arrival`'s `R1_ARRIVAL` too)
 // (play-test R4, R8). SPEC/33 stage 9 (20 Oct 2026) had moved V5's edges to 90/140/190 (were 80/110/140); R8 moves 140 to 130.
 export { V5_AREA } from "./freeze-readings.js";
 
@@ -148,55 +146,13 @@ const RELIEF = (() => {
   return { key: ranked[0]![0], hours, ids: [vpk.id, ek12.id], ek11At, vpkAt };
 })();
 
-/**
- * Difficulty audit (23 Oct 2026, `docs/audits/2026-10-23-difficulty/proposal.md` (b.2), option A): the practice item only Haku answers —
- * the 12.00 forecast (`evt.wx.01`, recorded only, T2; no pushed VP record states a forecast, and all four options agree with the map's
- * south-west wind arrow, so the arrow cannot answer it). Practice only: never scored, no scored item or key changes. The key is the
- * record's own wording, checked here against the record (a changed forecast fails the build rather than moving the key).
- *
- * Option B, kept for the panel if A is judged too close to V5's wind items (`ek14_shelter`, `wind_shift`): the forest register,
- * `evt.vp.012` (T2) — stem "Mitä metsävararekisteri kertoo syttymäkohdan ympäristöstä?", key "Kuivaa mäntykangasta, maapohja kantaa
- * koneet", distractors "Kosteaa korpea, koneet uppoavat" · "Nuorta kuusikkoa, maa kivikkoista" · "Ojitettua suota, turve kuivaa". A teaches
- * the record class the scored items most need (every forecast is recorded only); B teaches the rule without touching any scored item's basis.
+/*
+ * VP's practice freeze (`PRACTICE_BANK`: `head_now`, `forecast`, `first_target`, `r1_arrival`, and the infrastructure item in
+ * `demo-probes.ts`) is retired by revision (bp), 26 Oct 2026 (SPEC/15 §bp.5–bp.6): the training incident's S4 rehearses the memory check
+ * on its own incident, so no practice item shares a subject with a scored one (the W1 water point with V4 `infra`, the forecast with V5's
+ * and V7's items). VP has no freeze; the main freezes' items, keys and option arrangement are unchanged (the practice freeze was
+ * arranged on its own count). Logs of 0.17.0 and earlier keep its `freeze.practice.*` records.
  */
-export const PRACTICE_FORECAST_ATOM = "evt.wx.01";
-const PRACTICE_FORECAST_KEY_FI = "Lounaistuulta 4–6 m/s, puuskissa 8–10 m/s";
-{
-  const wx = SITE_SCENARIO.traffic.find((t) => t.id === PRACTICE_FORECAST_ATOM);
-  if (!wx || wx.session_view !== 0 || wx.tier === "T1_pushed" || !/lounaistuulta 4–6 m\/s, puuskissa 8–10 m\/s/.test(wx.content)) {
-    throw new Error(`practice forecast item: ${PRACTICE_FORECAST_ATOM} is not VP's recorded forecast stating the key's wind`);
-  }
-}
-
-export const PRACTICE_BANK: readonly ItemDef[] = [
-  point({
-    slug: "head_now", level: "L1", goal: "containment", promptFi: HEAD_NOW_FI, point: headNow(-3),
-    keyAtomIds: ["evt.vp.002", "evt.vp.008"], rule: "computed", basis: "the observed head W2 draws (observedHead.anchor)",
-  }),
-  choice({
-    slug: "forecast", level: "L1", goal: "containment", promptFi: "Mitä sääennuste lupaa iltapäivän tuulesta?",
-    options: [
-      ["sw_gusts", PRACTICE_FORECAST_KEY_FI], ["sw_showers", "Lounaistuulta 4–6 m/s, iltapäivällä sadekuuroja"],
-      ["sw_thunder", "Lounaistuuli voimistuu 10–12 m/s:iin, ukkosta"], ["sw_calm", "Lounaistuuli heikkenee tyyneksi iltapäivällä"],
-    ], key: "sw_gusts",
-    keyAtomIds: [PRACTICE_FORECAST_ATOM], rule: "cited",
-    basis: "the Finnish Meteorological Institute's 12.00 local forecast (recorded only, T2, 12.07): south-west 4–6 m/s, gusts 8–10 m/s, dry in the afternoon",
-  }),
-  choice({
-    slug: "first_target", level: "L2", goal: "values", promptFi: "Mihin kohteeseen palo ehtii ensimmäisenä, jos se jatkaa nykyiseen suuntaan?",
-    options: [["r1", "Tie R1"], ["cabins", "Mökkiranta"], ["village", "Lahdenkylä"], ["w1", "Haukilampi (W1)"]], key: "r1",
-    keyAtomIds: ["evt.vp.002", "evt.vp.003", "evt.vp.011"], rule: "cited",
-    basis: "EK11: the head runs north-east towards R1, 340 m away; Mökkiranta 2.1 km north-west, Lahdenkylä 3.0 km south-east",
-  }),
-  choice({
-    // Play-test R4 (researcher 25 Oct 2026; DRAFT, native check): a time of day (was "Kuinka pian …", minutes from now, whose 60-minute edge
-    // the readings straddled). The horizon is the answer itself; the three readings and their guard are in `freeze-readings.ts`.
-    slug: "r1_arrival", level: "L3", goal: "containment", keySteps: [-3, -3], promptFi: "Mihin aikaan palon kärki saavuttaa tien R1, jos se etenee nykyistä vauhtia?",
-    options: [[R1_ARRIVAL_IDS[0], "Ennen klo 12.50"], [R1_ARRIVAL_IDS[1], "Klo 12.50–13.10"], [R1_ARRIVAL_IDS[2], "Klo 13.10–13.40"], [R1_ARRIVAL_IDS[3], "Klo 13.40 jälkeen"]], key: R1_ARRIVAL.key,
-    keyAtomIds: [], rule: "computed", basisKind: "map", basisSteps: [-3],
-    basis: `three readings inside 13.10–13.40 (checked at build): EK11's pushed 12.01 'noin ${R1_ARRIVAL.pushedM} m' at 'noin ${R1_ARRIVAL.pushedRate} m/min' ≈ ${clockOf(R1_ARRIVAL.pushed)}; the drawn W2 head (12.00) ~${f0(R1_ARRIVAL.drawnM)} m ÷ its drawn ${R1_ARRIVAL.drawnRate} m/min ≈ ${clockOf(R1_ARRIVAL.drawn)}; the fire model at R1 at ${clockOf(R1_ARRIVAL.truth)} (step 1's fire; 34 m short at 13.00 in the CA run, so it crosses in 13.00–13.20)`,
-  }),
-];
 
 export const PHASE_A_BANK: Readonly<Record<number, readonly ItemDef[]>> = {
   2: [

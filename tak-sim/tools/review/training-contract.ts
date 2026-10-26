@@ -86,7 +86,7 @@ export function featureBoxDist(f: ContractFeature, box: BoxPx): number {
 /** The contract features that meet the box (sectors are bearings, not map features, and are left out), and the nearest other. */
 export function contractCheck(contract: Contract, box: BoxPx): { readonly met: readonly string[]; readonly nearestOther: { readonly id: string; readonly metres: number } } {
   const rows = contract.features.filter((f) => f.geometry.type !== "Sector").map((f) => ({ id: f.id, d: featureBoxDist(f, box) }));
-  const met = rows.filter((r) => r.d === 0).map((r) => r.id).sort();
+  const met = rows.filter((r) => r.d === 0).map((r) => r.id).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   const other = rows.filter((r) => r.d > 0).sort((a, b) => (a.d - b.d) || (a.id < b.id ? -1 : 1))[0]!;
   return { met, nearestOther: { id: other.id, metres: Math.round(other.d * 4) } };
 }

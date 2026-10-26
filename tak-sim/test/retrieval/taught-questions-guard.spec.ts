@@ -93,24 +93,16 @@ const TAUGHT: readonly Taught[] = [
 ];
 
 /**
- * Revision (bp): REPORTED to the integration owner and the researcher (26 Oct 2026). S5's limitation example asks "Onko palo
- * hallinnassa?" / "Is the fire under control?" (both groups' recordings, `30` (bp) §bp.2). Answered in the training over its own corpus
- * it reaches no session record; but asked AGAIN in an English session, the lexical retrieval ranks the grid operator's record
- * (`f7.grid_record`, H9) first at steps 6–9 (V4–V6) and in the top 8 through V12's freeze. The Finnish question pulls no H9 or H10
- * record. Pinned here so that any change is seen; the fix is the researcher's (the example's wording, or `14`'s retrieval).
+ * Revision (bp), integration 26 Oct 2026: S5's limitation question was "Is the fire under control?" in English; asked again in an
+ * English session it ranked the grid operator's record (`f7.grid_record`, H9) first at steps 6–9 through "control centre". It is now
+ * "Is the fire contained?", which pulls no H9 or H10 record at any step, so no training question is an exception.
  */
-const TRAINING_REPORTED: Readonly<Record<string, readonly string[]>> = {
-  "en|Is the fire under control?": [
-    ...[6, 7, 8, 9].map((s) => `${DESIGNED_EVENT_IDS.gridRecord} at rank 1, step ${s}`),
-    ...[10, 11, 12, 13, 14, 15, 16].map((s) => `${DESIGNED_EVENT_IDS.gridRecord} at rank 6, step ${s}`),
-    `${DESIGNED_EVENT_IDS.gridRecord} at rank 7, step 17`,
-  ],
-};
+const TRAINING_REPORTED: Readonly<Record<string, readonly string[]>> = {};
 
 describe("revision (bo): taught and fixed questions return no H9 or H10 record in the top 8 while its exposure counts", () => {
   // Revision (bp): the training's pre-recorded questions (taught in its feedback and its recordings), as if asked in the session again.
   for (const lang of LANGS) {
-    it(`the training's pre-recorded questions (${lang}), at every step of the session; one reported exception`, () => {
+    it(`the training's pre-recorded questions (${lang}), at every step of the session`, () => {
       for (const q of TRAINING_QUESTIONS[lang]) {
         const got = SESSION_STEPS.flatMap((step) => exposed(q, step, lang));
         expect(got, `"${q}"`).toEqual(TRAINING_REPORTED[`${lang}|${q}`] ?? []);

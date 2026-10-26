@@ -12,6 +12,7 @@ import { asVirtualTime, type LatLon, type Ring } from "../../engine/primitives.j
 import type { RenderableCycle } from "../../boundary/render-boundary.js";
 import type { FireDisplay } from "../../scenario/types.js";
 import type { TrainingSpec } from "./spec.js";
+import { sortedKeys } from "../../engine/deterministic-object.js";
 
 /** 10.00 on the session's scale (13.20 = 0): the map's "as mapped" time. */
 export const TRAINING_MAP_START_S = -12_000;
@@ -50,7 +51,7 @@ function scene(fire: FireDisplay, perimeter: readonly Ring[], units: Readonly<Re
     perimeter,
     detachedFronts: [],
     unitPositions: units,
-    unitWork: Object.fromEntries(Object.keys(units).map((id) => [id, { task: "hose_attack", vehicle: null, hoseM: null }] as const)),
+    unitWork: Object.fromEntries(sortedKeys(units).map((id) => [id, { task: "hose_attack", vehicle: null, hoseM: null }] as const)),
     fire,
     aircraft: [],
     wind: { observedAt: asVirtualTime(TRAINING_MAP_START_S), ...wind },

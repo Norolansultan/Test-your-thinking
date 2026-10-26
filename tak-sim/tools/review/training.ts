@@ -193,10 +193,12 @@ export function buildTraining(root: string): TrainingBuild {
       "training.s4.map": { key: keys["training.s4.map"], polygonToRoadM: fire.polygonToRoadM, wholeOneSide: true },
       "training.s4.records": { key: keys["training.s4.records"], record: "trn.r06", metresPerMin: ck.ratePerMin },
     },
+    // determinism-lint-allow: insertion order of objects built in code order (or sorted on the same line); output is reproducible (test/training/build.spec.ts)
     optionOrder: Object.fromEntries(Object.entries(order).map(([item, ids]) => [item, { order: ids, keyPosition: ids.indexOf(keys[item]!) + 1 }])),
     roadLabels: labels.map((l) => ({ road: l.road, at: site(l.at), awayM: l.awayM })),
     ek51: site(fire.ek51),
   };
+  // determinism-lint-allow: insertion order of objects built in code order (or sorted on the same line); output is reproducible (test/training/build.spec.ts)
   const recordsEn = Object.fromEntries(Object.entries(en).sort(([a], [b]) => (a < b ? -1 : 1)));
   return { spec, key, corpus, recordsEn, preview: previewSvg(spec, s, key.items, TILE_HREF) };
 }
@@ -211,6 +213,7 @@ const pathLengthM = (ps: readonly Px[], mpp: number) => ps.reduce((sum, p, i) =>
 const thin = (ps: readonly Px[], n: number): Px[] => ps.filter((_, i) => i % n === 0 || i === ps.length - 1);
 /** The numeric fields of a key's figures (its points are written as site metres beside them). */
 function numbersOf(o: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  // determinism-lint-allow: insertion order of objects built in code order (or sorted on the same line); output is reproducible (test/training/build.spec.ts)
   return Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === "number").map(([k, v]) => [k, v]));
 }
 
@@ -230,6 +233,8 @@ export function trainingFiles(b: TrainingBuild): Readonly<Record<string, string>
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
   const files = trainingFiles(buildTraining(root));
+  // determinism-lint-allow: insertion order of objects built in code order (or sorted on the same line); output is reproducible (test/training/build.spec.ts)
   for (const [path, body] of Object.entries(files)) { mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), body); }
+  // determinism-lint-allow: insertion order of objects built in code order (or sorted on the same line); output is reproducible (test/training/build.spec.ts)
   console.log(Object.keys(files).join("\n"));
 }

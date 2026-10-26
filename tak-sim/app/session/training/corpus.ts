@@ -60,7 +60,7 @@ export const TRAINING_QUESTIONS: Readonly<Record<string, { readonly fi: string; 
   "trn.q.r6_passable": { fi: "Onko tie R6 ajettavissa?", en: "Is road R6 passable?", recordIds: ["trn.r02", "trn.r09"] },
   "trn.q.ek51_crew": { fi: "Kuinka suuri EK51:n miehistö on?", en: "How large is EK51's crew?", recordIds: ["trn.r07"] },
   "trn.q.ek52_water": { fi: "Paljonko vettä EK52:lla on?", en: "How much water does EK52 have?", recordIds: ["trn.r10"] },
-  "trn.q.under_control": { fi: "Onko palo hallinnassa?", en: "Is the fire under control?", recordIds: [] },
+  "trn.q.under_control": { fi: "Onko palo hallinnassa?", en: "Is the fire contained?", recordIds: [] },
 };
 
 /** A training record by id (the lessons quote them). */

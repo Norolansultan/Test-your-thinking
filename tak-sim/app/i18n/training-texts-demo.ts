@@ -28,7 +28,7 @@ const HAKU: Readonly<Record<Lang, readonly (readonly [string, string, string, st
   ],
   en: [
     ["EK52's tank was about 60 % full at 10.15.", "EK52 at 10.15, when asked: “tank about 60 %, crew of three.”", "High. The information is recent and comes straight from the unit.", "A new status report from EK52."],
-    ["The records hold no report on whether the fire is under control.", "The newest report is DR8's at 10.12: the head is at road R5. That tells where the fire is, not the control.", "Low. The answer is incomplete, because the records hold no answer.", "A report on the fire's state, or a newer report."],
+    ["The records hold no report on whether the fire is contained.", "The newest report is DR8's at 10.12: the head is at road R5. That tells where the fire is, not whether it is contained.", "Low. The answer is incomplete, because the records hold no answer.", "A report on the fire's state, or a newer report."],
   ],
 };
 
@@ -40,7 +40,7 @@ const GUIDE: Readonly<Record<Lang, readonly string[]>> = {
   ],
   en: [
     "EK52's tank was about 60 % full at 10.15, when the unit was asked. It is EK52's own report. The information is recent and comes straight from the unit, so I count it fairly certain. Only a new status report from EK52 would change it.",
-    "The records hold no report on whether the fire is under control, so I cannot answer that. The newest report is DR8's at 10.12: the head is at road R5, which tells where the fire is, not the control. My answer is incomplete, and I say so. A report on the fire's state, or a newer report, would change it.",
+    "The records hold no report on whether the fire is contained, so I cannot answer that. The newest report is DR8's at 10.12: the head is at road R5, which tells where the fire is, not whether it is contained. My answer is incomplete, and I say so. A report on the fire's state, or a newer report, would change it.",
   ],
 };
 

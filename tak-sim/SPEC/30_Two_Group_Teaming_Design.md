@@ -507,9 +507,9 @@ Source: the researcher's decision of 26 Oct 2026 (`08` (bp), `15` (bp)). The tra
 - fi: EK52:n säiliö oli klo 10.15 noin 60 % täynnä. · PERUSTEET EK52 klo 10.15, kysyttäessä: ”säiliö noin 60 %, miehistö kolme.” · VARMUUS Korkea. Tieto on tuore ja tulee suoraan yksiköltä. · MIKÄ MUUTTAISI Uusi tilatieto EK52:lta.
 - en: EK52's tank was about 60 % full at 10.15. · BASIS EK52 at 10.15, when asked: “tank about 60 %, crew of three.” · CERTAINTY High. The information is recent and comes straight from the unit. · WHAT WOULD CHANGE IT A new status report from EK52.
 
-*Example 2 (limitation: incomplete).* Kysymys: "Onko palo hallinnassa?" / Question: "Is the fire under control?"
+*Example 2 (limitation: incomplete).* Kysymys: "Onko palo hallinnassa?" / Question: "Is the fire contained?" (was "Is the fire under control?": asked again in an English session it ranked the grid operator's record `f7.grid_record`, H9, first at steps 6–9, through "control centre"; integration, 26 Oct 2026)
 - fi: Kirjauksista ei löydy ilmoitusta siitä, onko palo hallinnassa. · PERUSTEET Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5. Se kertoo palon paikan, ei hallinnasta. · VARMUUS Matala. Vastaus on vajaa, koska kysymykseen ei ole kirjattua vastausta. · MIKÄ MUUTTAISI Ilmoitus palon tilasta tai uudempi ilmoitus.
-- en: The records hold no report on whether the fire is under control. · BASIS The newest report is DR8's at 10.12: the head is at road R5. That tells where the fire is, not the control. · CERTAINTY Low. The answer is incomplete, because the records hold no answer. · WHAT WOULD CHANGE IT A report on the fire's state, or a newer report.
+- en: The records hold no report on whether the fire is contained. · BASIS The newest report is DR8's at 10.12: the head is at road R5. That tells where the fire is, not whether it is contained. · CERTAINTY Low. The answer is incomplete, because the records hold no answer. · WHAT WOULD CHANGE IT A report on the fire's state, or a newer report.
 
 **Guide cells (the Thinker)**
 
@@ -519,7 +519,7 @@ Source: the researcher's decision of 26 Oct 2026 (`08` (bp), `15` (bp)). The tra
 
 *Example 2 (limitation: incomplete).* The same question.
 - fi: "Kirjauksissa ei ole ilmoitusta siitä, onko palo hallinnassa, joten en voi vastata siihen. Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5, eli se kertoo palon paikan, ei hallinnasta. Vastaukseni on vajaa, ja sanon sen. Sen muuttaisi ilmoitus palon tilasta tai uudempi ilmoitus."
-- en: "The records hold no report on whether the fire is under control, so I cannot answer that. The newest report is DR8's at 10.12: the head is at road R5, which tells where the fire is, not the control. My answer is incomplete, and I say so. A report on the fire's state, or a newer report, would change it."
+- en: "The records hold no report on whether the fire is contained, so I cannot answer that. The newest report is DR8's at 10.12: the head is at road R5, which tells where the fire is, not whether it is contained. My answer is incomplete, and I say so. A report on the fire's state, or a newer report, would change it."
 
 **After the examples (the same in both cells).** After 1: fi "Ensimmäisessä esimerkissä vastaus löytyi yhdestä kirjauksesta, ja se kertoo lähteen ja kellonajan." / en "In the first example the answer came from one record, and it names its source and time." After 2: fi "Toisessa esimerkissä vastaus oli vajaa, koska kirjauksissa ei ollut tietoa kysymykseen." / en "In the second example the answer was incomplete, because the records held nothing on the question." Button: "Valmis" / "Done", enabled after 10 s.
 

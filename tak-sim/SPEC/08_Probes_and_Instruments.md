@@ -1506,3 +1506,17 @@ The items with a source line in their feedback are the nine of S2–S4 (S1's fou
 - Two people check the key figures against the preview.
 - A native check of the Finnish: every text of §bp.5, the corpus, and S5's recordings (`30` (bp)). A domain check of S1.3's wording (the uphill rule on a gentle slope), of S1.4 (a fill point no road reaches), of S3.2's road report and of the units' statuses.
 - Pilot 2 measures the length and the checks of `09` (bp).
+
+### bp.11 As built (integration, 26 Oct 2026)
+
+The figures below are the build's (`content/training/key.json`, `npm run training:build`); where they differ from §§bp.2–bp.6, these win.
+
+- **Contract:** the lock meets only `MAANTIE_N` and `POWER_LINE`; the next feature (`KOTKANJOKI`) is 4 790 m from the square. The nearest training coordinate is 669 m from the 20 kV line.
+- **Roads after the 400 m band:** R5 1 240 m, R6 2 102 m, R7 1 263 m (R7 not joined to R5). R6 is "the one forest road of 1.6 km or more joining R5" (§bp.4's "≥ 400 m" read as the old 400 px figure would also admit a 420 m spur).
+- **The fire:** 0.9 ha as mapped at 10.00, south of R5, spreading north-east; the drawn head 120 m short of R5.
+- **Keys** (site m): s1.place the R5/R6 junction (8188, 8019); s1.measure about 300 m (A to R7; next road 1 577 m); s1.slope towards B (rise 7.5 m, 3.1 %); s1.water fill point 2 (847 m straight, 963 m by road; fill point 1, 246 m, is 220 m from any road or track); s2.project 300 m north-east of the head at R5; s3.records1 1.1 ha (`trn.r06`); s3.older blocked; s3.records2 four (`trn.r07`); s4.memory EK53 on R6 (8096, 8505); s4.log DR8 (`trn.r08`); s4.map south; s4.records 10 m/min. The key's position over the ten choice items: 2, 1, 1, 2, 3, 4, 3, 1, 2, 2.
+- **Records:** 12, 5 pushed (by 10.12: r03, r05, r08; by 10.18 all five).
+- **Departures from §§bp.5–bp.6 (package A):** English names the lake "Narrow Lake" (the English map's name, `place-names.ts`); r01 "south of" and r05 "south-west edge" are computed from the geometry (§bp.6 said west and south); some texts were reworded to pass the four-word overlap rule against the scenario's texts (r06/s2.project "speed about 10 m/min", r07/r10 "tank water", English r05/r08/r09, fi s2.now "Missä kärki on nyt?", the S3.2 distractor "Closed because of the fire"); the s4.memory feedback names its source ("the map"); every choice item's feedback ends with the participant's answer. Extra margins: S1.2's A ≥ 100 m from any track; S1.3's points clear of tracks.
+- **S5's limitation question in English** is "Is the fire contained?" (was "Is the fire under control?", which, asked again in an English session, ranked `f7.grid_record` (H9) first at steps 6–9 through "control centre"; `30` (bp) amended). The Finnish "Onko palo hallinnassa?" is unchanged. S5's displayed words stay equal in both cells.
+- **Session (package B):** the cap and `durationMs` run from the intro's appearance; GeoChat opens by default in S2 and S3 and Haku is never opened for the participant (to keep `seek_first` clean); Haku stays usable during S3's feedback (those questions carry the item's id but do not count in `hakuBefore`); S4's feedback shows a map only for map items; a reload after the cap and before S5 is left shows the in-progress item again (no record marks the cap: open, `11` §7.37).
+- **VP (package C):** its retired freeze wrote 2 records; the expert-identity digest was re-based once on VP's segment only (pre-VP and main byte for byte). The demo bridge's `data.json` is version 2 with the training corpus in its own list.

@@ -98,7 +98,7 @@ export function corpusKeys(c: CorpusFile) {
   // 11. who reported the head at R5 (r08, pushed); the other callers.
   const head = c.records.filter((r) => /kärki on nyt tiellä R5/.test(r.fi!));
   must(head.length === 1 && head[0]!.id === "trn.r08" && pushed("trn.r08"), "s4.log: one pushed record puts the head at R5");
-  const callers = [...new Set(c.records.map((r) => r.source))].sort();
+  const callers = [...new Set(c.records.map((r) => r.source))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   // 13. the survey's rate.
   const rate = num(/noin (\d+) m\/min/.exec(text(c, "trn.r06"))?.[1] ?? "NaN");
   must(Number.isFinite(records1.key) && Number.isFinite(rate), "the survey's area and rate");

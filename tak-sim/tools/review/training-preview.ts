@@ -28,6 +28,7 @@ function mapPanel(spec: TrainingSpec, site: Site, item: TrainingItem, i: number,
   if (scene && scene.perimeter.length > 0) {
     for (const g of scene.fire.burnt_area.geometry) out.push(`<polygon points="${pts(g[0]!)}" fill="#333" opacity="0.5"/>`);
     out.push(`<polygon points="${pts(scene.perimeter[0]!)}" fill="#f2a43a" fill-opacity="0.45" stroke="#d40000" stroke-width="2"/>`);
+    // determinism-lint-allow: drawing order only; the SVG is a review preview
     for (const [u, at] of Object.entries(scene.unitPositions)) { const q = px(at); out.push(`<rect x="${q.x - 6}" y="${q.y - 4}" width="12" height="8" fill="#6cf" stroke="#000"/><text x="${q.x + 8}" y="${q.y + 4}" font-size="11">${u}</text>`); }
   }
   if (item.memory) { const q = px(item.memory.at); out.push(`<rect x="${q.x - 6}" y="${q.y - 4}" width="12" height="8" fill="#6cf" stroke="#000"/><text x="${q.x + 8}" y="${q.y + 4}" font-size="11">${item.memory.unit}</text>`); }

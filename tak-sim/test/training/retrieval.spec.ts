@@ -38,7 +38,7 @@ describe("the training's Haku retrieval (lexical, step −9)", () => {
       }
     });
 
-    it(`${lang}: "is the fire under control?" retrieves no record that answers it`, () => {
+    it(`${lang}: "is the fire contained?" (S5's limitation question) retrieves no record that answers it`, () => {
       const got = ask(TRAINING_QUESTIONS["trn.q.under_control"]![lang], lang);
       if (lang === "fi") expect(got).toEqual([]);
       for (const r of got) expect(recordIn(lang, r.atom.id, recordText(r.atom.record))).not.toMatch(/hallin|under control|contained|sammut|extinguish/i);

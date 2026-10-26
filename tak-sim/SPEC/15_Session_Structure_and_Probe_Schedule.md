@@ -3,6 +3,7 @@
 **Version 1.1 · 17 September 2026 · Status: governing for the topics below.** Implements forks F5, F6 and F8 (`11` §7). Where this document conflicts with `01` §7, `03` §2.2 and §4.3, `05` §4, `08` §3–§5 or `09` §3 and §8, **this document wins**; those sections carry `[SUPERSEDED 2026-09-17]` markers.
 
 > **Changelog**
+> - **26 Oct 2026 (bp)** — the training incident takes the map training's place (`08` (bp)): a 12-minute cap, resume rules, the practice freeze, the practice feedback and the search lesson retired; VP becomes the first look (the tour's steps refer back to the training, no freeze, the plan as now); the inventory of what each fed. The main session is unchanged. Finnish DRAFT. See the revision at the end.
 > - **25 Oct 2026 (bn)** — after the independent review: the tour's records step gives a source example on an unscored practice record instead of the place example (V4 `infra`'s findability question), no longer names the road reports, and says that the command centre acknowledges reports; the practice feedback's closing line is descriptive, not directive. Finnish DRAFT. See the revision at the end.
 > - **25 Oct 2026 (bl)** — the training teaches HOW to search, not THAT one must (researcher decision, 25 Oct 2026): a new practice-tour step right after Haku's, "What the records hold" / "Mitä kirjauksista löytyy" (what the records hold and how to ask for it, with three examples from the practice view); and the practice feedback's records item now also shows what a search would have given — the example question, the record, and, because it is practice and unscored, the right answer and the participant's own. Nothing says that searching is needed for the memory checks or for the scores; no scored item gets feedback. No log record or format changes. Finnish DRAFT. See the revision at the end.
 > - **25 Oct 2026 (bi)** — the replay's fixes (`docs/audits/2026-10-23-playtest/analysis.md` §10.4; researcher decisions of 25 Oct 2026): **R6** the consult notice comes at 70 s in the merged views (after the step boundary's burst) and only when reports arrived after the participant's last recorded plan (`30` (bi)); **B7** the tour's `fire` step says the map draws the edge as mapped at the period's start and the log can be newer (`28` (bi)); **B8** the debrief says that the planted record and VOL1's warning were in the records, found with Haku (or the Thinker), not in the message log — the debrief text goes to the ethics review. See the revision at the end.
@@ -697,6 +698,8 @@ Source: the replay on the fixed version (`docs/audits/2026-10-23-playtest/analys
 
 ## Revision 25 Oct 2026 (bj) — the map training in the pretest's step
 
+> **[SUPERSEDED 2026-10-26, revision (bp)]** The map training's step is the training incident's (`training_incident`, cap 12 minutes). Kept for the logs of 0.17.0 and earlier.
+
 Source: `08` (bj) (the researcher's decision of 25 Oct 2026); records `07` (bj); analysis `09` (bj). It replaces (be)'s pretest bullet; everything else of (be) stands.
 
 **The order is unchanged.** The step keeps its place and its id (`map_pretest`; the header's `mapPretest`): consent → AI literacy → preflight → the pre-session item → (public: the primer) → **the map training** → the intro video → VP …
@@ -707,6 +710,8 @@ Source: `08` (bj) (the researcher's decision of 25 Oct 2026); records `07` (bj);
 - **No view's timing changes** (minimums, caps, freeze moments, SPAM offsets).
 
 ## Revision 25 Oct 2026 (bl) — teach how to search, not that one must: the records step in the tour; what a search would have given in the practice feedback
+
+> **[PARTLY SUPERSEDED 2026-10-26, revision (bp)]** The principle stands. The practice feedback and its search lesson (§2) are retired and the lesson moves to the training's S3 feedback; the tour's records step (§1) loses its examples and refers back to the training.
 
 Source: the researcher's decision of 25 Oct 2026. The study measures metacognitive control — whether a person notices what they do not know and goes and checks. So the training shows where information is, how to ask for it, and once, in practice, how a search changes an answer. **It never** says "search before you answer the memory checks", never says that scores depend on searching, and never gives feedback on a scored item. Identical in both groups and both audiences. Finnish texts DRAFT (native check). (be)'s other bullets stand; this amends its tour and practice-feedback bullets and (am)'s step order.
 
@@ -746,3 +751,93 @@ Source: the independent review of 25 Oct 2026 (S6, S7; S4 for the step's last se
 Each example ranks its practice record first (lexical, at the practice step, both languages); none is a scored item's findability or seek question; the text names no place (`test/render/tour-records-step.spec.ts`, updated).
 
 **2. The practice feedback's closing line (`app/i18n/difficulty-texts.ts`; (bl) §2).** The bold line before V1 was directive ("… Käytä Hakua, kun viestiloki ei kerro tarpeeksi." / "Use Search when the message log does not tell you enough."). It is now descriptive, like the tour: "Tulevissa jaksoissa moni ilmoitus on vain kirjauksissa; ne löytyvät Haulla." / "In the coming periods many reports are only in the records; Search finds them." (Thinker cells: "… ne löytyvät Haulla tai Thinkerillä." / "… Search or Thinker finds them."). Tested: no imperative (`test/session/practice-feedback.spec.ts`).
+
+## Revision 26 Oct 2026 (bp) — the training incident: order, cap, resume, and what VP becomes
+
+Source: the researcher's decision of 26 Oct 2026. Content `08` (bp); records `07` (bp); analysis `09` (bp); the groups' parity `30` (bp); the public version `35` (bp); retrieval `14` (bp). **It replaces (bj) in full, (be)'s practice freeze and practice feedback, and (bl)'s search lesson; it amends (bl)'s and (bn)'s tour texts as below.** A treatment revision before pilot 2: no data are pooled across it (`30` §2). **The main session is unchanged**: V1 has no probe, the first scored freeze is V2's, and every freeze moment, SPAM offset, item and key stands (tested by the expert-identity digests, `bp.8`).
+
+### bp.1 The order
+
+consent → AI literacy → preflight → pre-session item → (public: the primer) → **the training incident** → intro video → **VP** → the group's training text → V1 … The step is `training_incident` (was `map_pretest`); the header says `trainingIncident` (was `mapPretest` and `practiceFeedback`). The practice feedback step is gone: VP's end leads straight to the group's training text, which is kept as it is (one identical Haku paragraph, plus the Thinker paragraph in the guide cells).
+
+### bp.2 The training's flow
+
+1. **The intro** (once), then for each of S1–S4: the **section card** (its text, one button), then its items. An item is: the question; the answer (once, final; the first answer is logged before anything else shows); the feedback (left with "Seuraava" / "Next"; the last item's reads "Valmis" / "Done"). Nothing is skippable.
+2. **S3's card:** 60 s on the card, the time left shown; at 0 the item closes unanswered and its feedback shows. **S4's memory item:** the unit shown for 8 s on the live map, then the blank map.
+3. **S5** (the recording, `30` (bp)) follows S4's last feedback; its button is enabled after 10 s, the same in both groups. Its dwell is logged. **Group-specific content appears only here**, after every covariate item (`09` (bp)).
+4. **Tools:** `08` (bp) §bp.1's table. Haku is open in S3 only; the Thinker nowhere. The training's Haku turns are logged as `training_haku_*`, never as `ai_chat_*`.
+5. **The cap never cuts S5.** When the cap ends the items, the unanswered ones are missing and S5 is shown to everyone.
+
+### bp.3 The cap and the time
+
+- **Cap: 12 minutes** (720 000 ms) of real time from the intro's appearance to S4's end, with a countdown as (bj)'s had. It replaces the map training's 5 minutes and VP's practice freeze (a 180 s cap) and feedback. S5's dwell is outside it.
+- **Expected 9–11 minutes.** At the play harness's costs (about 20 s a question, 10 s a feedback, 8 s for the exposure, 60 s for S5, 8 s a section card): S1 2.0 min, S2 1.0, S3 2.9 (a search takes longer), S4 2.1, S5 1.0, cards 0.7: about 9.7 minutes. Before, the map training took about 3.6 minutes at the same costs, VP's freeze and its answers an estimated 3 and the feedback 0.75. **Net about +2 minutes; VP itself is shorter** by the freeze. Pilot 2 measures it (`durationMs`, `09` (bp)).
+- **If the median passes the cap,** the first item to drop is S1.3 (the slope), then S3.3; the cap itself is not raised without the researcher (`11` §7.37).
+- The time budget before V1: the training ≤ 12 min (was the map training ≤ 5 min plus VP's practice freeze and feedback). No view's timing changes (minimums, caps, freeze moments, SPAM offsets); VP's own minimum 180 s and cap 210 s stand.
+
+### bp.4 Resume (`05` §9)
+
+The training re-opens at the first item whose feedback was not left. If that item's answer is logged, its feedback shows again and the answer stands; otherwise its question shows (S3's card with a fresh 60 s; S4's memory exposure in full again). A section card is not shown again once one of its items is logged. S3's Haku turns return from `training_haku_*`. The cap is what is left after the active time already logged (section cards' dwell, items' `rtMs`, exposures, feedback dwell). If none is left, the unanswered items are missing and S5 shows. S5 not yet left is shown again. A training with `training_completed` is not shown again. `session_resumed.resumedAt` is `training_incident`.
+
+### bp.5 VP, the first look
+
+VP (the main incident at 12.00) becomes "**Ensikatsaus**" / "**First look**" (the status label; the name "Harjoitus" / "Training" now belongs to the training incident; `11` §7.37). It is an unguided first look at the main picture:
+
+- **Kept:** the guided tour (its 17 steps, 18 in the Thinker cells, with the changes below); the view's minimum 180 s and cap 210 s; the decision panel and the plan, recorded as now (`BASELINE_VIEWS` 0, 1 unchanged, `baselineCompliance` as before); the practice SPAM pair at 85 s (`practice-spam.ts`, `practice-measure.ts`); the Thinker practice in the Thinker cells as (am) (the tour step, practice turns logged with view 0 and cleared at V1); VP's records `evt.vp.*` (pushed and recorded) as the incident's history; the intro video's place.
+- **Removed:** the practice freeze (`hasFreeze` false, `freezeAtSeconds` null; `PRACTICE_FREEZE_AT_S`, `PRACTICE_BANK`, `buildPracticeFreeze` and its five items), the practice feedback screen and the search lesson. The scenario keeps `practice.freeze` with no items until the integration cleanup.
+- **The SPAM pair's timing:** with no freeze the prompt comes at 85 s as a freeze-less view's does (`spamCues`); no offset changes.
+
+**The tour's changed steps** (text ids in `ui.ts` `tour.steps`; the step list and its order are unchanged; Finnish DRAFT):
+
+| Step | Now |
+|---|---|
+| `welcome` | fi: the setting text, then "Tämä on ensimmäinen katsaus varsinaiseen tilanteeseen. Harjoituksessa kokeilit työkaluja; nyt näet, missä ne ovat tässä näkymässä. Katsausta ei pisteytetä, eikä sen aika kulu tämän esittelyn aikana." en: the setting text, then "This is a first look at the actual incident. In the training you tried the tools; now you see where they are in this view. The first look is not scored, and its time does not run during this introduction." |
+| `log` | fi "Sinulle välitetyt ilmoitukset tulevat tähän lähettäjän ja kellonajan kanssa, kuten harjoituksessa. Se on vain osa liikenteestä; muu on kirjauksissa." en "Reports passed to you arrive here with their sender and time, as in the training. This is only part of the traffic; the rest is in the records." |
+| `haku` | the first sentence now ends "…, kuten harjoituksessa." / "…, as in the training."; the rest as before (the badge, the answer's form and its limits) |
+| `hakuRecords` | title kept. fi "Harjoituksessa näit, mitä kirjauksista löytyy ja miten niitä kysytään: aiheen, lähteen tai kellonajan mukaan. Tässä tilanteessa kirjaukset ovat toiset, mutta kysyt niitä samalla tavalla." en "In the training you saw what the records hold and how to ask for it: by topic, source or time. The records here are different, and you ask for them the same way." |
+| `freeze` | fi "Seuraavissa jaksoissa kuva piilotetaan välillä ja saat kysymyksiä tilanteesta, kuten harjoituksen muistikatkossa: vastaat muistin varassa ja arvioit varmuutesi, ja kello on pysähdyksissä katkon ajan. Tässä katsauksessa muistikatkoa ei ole." en "In the periods that follow, the picture is hidden now and then and you get questions about the situation, as in the training's memory check: you answer from memory and rate your confidence, and the clock stands still during the check. There is no memory check in this first look." |
+| `spam` | the last sentence: fi "Tässä katsauksessa saat kokeilla yhtä." en "You will try one in this first look." |
+| `ready` | fi "Katsaus alkaa, kun painat Aloita. Katso rauhassa karttaa, viestilokia ja hakua." en "The first look starts when you press Start. Take your time with the map, the message log and the search." |
+| button | `startPractice` "Aloita katsaus" / "Start the first look" |
+
+- **The records step's Pike Pond / W1 example is gone** (it shared its subject with V4 `infra`; (bn) had already moved it to a VESIHUOLTO line). No VP record is quoted in any tour step. The tour names no scored item's subject (tested as before).
+- **V1's Thinker reminder** says "which you tried in the first look" (was "in the practice"). `TOOLS_HAKU` and the information rule (the message log shows only part of the traffic) stand as (be) wrote them.
+- **Not changed:** `fire`, `projection`, `legend`, `wind`, `zoom`, `measure`, `sectors`, `units`, `decision` and the Thinker step.
+
+### bp.6 What the VP practice freeze, the practice feedback, the search lesson and the map training fed — moved, retired or kept
+
+| Thing | What it fed | Action |
+|---|---|---|
+| VP's practice freeze: 5 items (`head_now`, `forecast`, `first_target`, `r1_arrival`, `infra`), `PRACTICE_BANK`, `PRACTICE_FREEZE_AT_S`, `buildPracticeFreeze` | `freeze_started` / `freeze_item_completed` / `freeze_submitted` with cycle 0; the rehearsal of the freeze; the head-mark and the forecast practice | **Retired** (format 0.18.0: no cycle-0 freeze records). Its job (a rehearsal with confidence and feedback) **moves** to S4. Its R1 items' map relations (`dist.IGN.R1`, `bearing.IGN.R1` `usedBy`) are dropped from `contract.json` and `contract-specs.ts` |
+| VP's records `evt.vp.*` | the pushed picture, scored items' bases, source memory (`cabins_nw`) | **Kept** |
+| The practice feedback screen (`practice-feedback.ts`, `PracticeFeedbackScreen.tsx`, the `feedback` part of `difficulty-texts.ts`, `PRACTICE_FEEDBACK_SCREEN_ID`) | `practice_feedback_shown`, `briefing_advanced` "practice.feedback", the header's `practiceFeedback`, the head-mark map and the measure lines, `session_resumed.resumedAt` `practice_feedback` | **Retired** with the format bump. Its source lines **move** to every training item's feedback; its head-mark task to `s2.project`; its measuring task to `s1.measure` |
+| The search lesson (`searchLessonOf`, `searchLessonLines`, `EXAMPLE_QUESTIONS`, `PracticeSearchLesson`; (bl) §2) | the forecast item's "a search would have shown" lines | **Moved** to S3's feedback (the pre-recorded question, the record, the right answer, the participant's own), over the training corpus; the code is **retired**. (bn)'s "no imperative" test moves to the training's texts |
+| The tour's `hakuRecords` examples (the VESIHUOLTO line, DR1 12.05, the forecast) | `test/render/tour-records-step.spec.ts`, `taught-questions-guard.spec.ts` | **Retired** (the step names no example); the guard reads the training's pre-recorded questions instead |
+| The map training (`map-training.ts`, `map-training-spec.ts`, `MapTrainingScreen.tsx`, `map-training-overlay.ts`, `map-training-texts.ts`, `tools/review/map-training*.ts`, `content/pretest/*`, `docs/audits/2026-10-23-difficulty/map-training-preview.svg`) | `map_pretest_*` (four kinds), the header's `mapPretest`, the 5-minute cap | **Retired and replaced** (format 0.18.0). Tasks 1, 2, 3, 5, 6 → `s1.place`, `s1.measure`, `s1.slope`, `s2.now`, `s2.project`; task 4 → `s1.water` (rebuilt, `08` (bp) §bp.2); task 7 → `s4.memory` (unit EK53). The names R5–R7, EK51, DR8 and Kaitajärvi are kept as the training's own |
+| The pre-registered covariates `point_visible` (task 1) and `point_memory` (task 7) (`09` (bj)) | `map_pretest_answer.errorM` | **Moved**: the same names, from `s1.place` and `s4.memory` (`training_answer.errorM`); `seek_first` is new (`09` (bp)) |
+| `09` (be) §1's row "the practice lesson reaches its record" (the forecast record retrieved in VP in ≥ 50 % of sessions) and (bj) §3's three training rows | the pilot checks | **Retired**; new rows in `09` (bp) |
+| `09` (an) §an.2 (practice questions in the coding export) | `chatQuestionsForCoding` flags view 0 | **Kept** for VP's Haku and Thinker questions; the training's Haku questions are a separate flagged set, never in a model by default |
+| `TELEMETRY_FORMAT_VERSION` 0.17.0; the kinds `map_pretest_started` / `_answer` / `_feedback_left` / `_completed`, `practice_feedback_shown`; the header's `mapPretest`, `practiceFeedback` | the log | **Retired, readable**: 0.17.0 and older logs keep them (the types stay, marked "no longer written"); 0.18.0 writes the new kinds (`07` (bp)) |
+| `test/public/expert-identity.spec.ts`, `identity-normalise.ts`, `public-run.ts`, `public-flow`, `public-resume`, `public-ui` | the expert and public flows, 529 records | **Updated** (`bp.8`): the driver answers the training; the normaliser removes the training's records and takes its duration out of later wall offsets; VP's segment digest is re-baselined (no freeze); the pre-VP and main digests stand |
+| `tools/play/*` (`pretest-answer`, `continue` on `map_pretest` and `practice_feedback`, `freeze-answer` in VP, `COST_S`, `smoke.ts`, `screen-pages.ts`, `map-data.ts`, `map-render.ts`, the README) | the LLM players | **Replaced**: `training-answer`, the training's pages and map PNG, `haku` in S3, `continue` for cards, feedback and S5; costs for each; smoke plays the training in both languages and both audiences |
+| `tools/demo-bridge/*` (`data.ts`, `serve.ts`, `leaks.ts`) | the published demonstration's Haku | **Extended**: the training corpus in the bridge's data, the training request served over it only; the leak scan covers both corpora |
+| `tools/review/*` (`export.ts`, `difficulty-audit*.ts`, `freeze-table.ts`), `tools/skills/items.ts`, `tools/validate/demo-scenario-export.ts` | the practice freeze's rows in the item exports and audits | **Updated**: the practice rows drop out; the audit's counts for the main items are unchanged |
+| `app/render/ui/basemap-px.ts` | the practice feedback's small map | **Kept**, with `basemapLatLon` added |
+| Practice SPAM (`practice-spam.ts`, `practice-measure.ts`), the practice decision item and branch statements, the intro video, the group's training text | VP | **Kept** (the SPAM pair's subject: `11` §7.37) |
+| The Thinker practice (am), `BASELINE_VIEWS` | VP in the Thinker cells; the baseline | **Kept** |
+
+### bp.7 Tests required
+
+- **Content (`test/training/*.spec.ts`):** the build rewrites the committed files byte for byte; every key is computed (no key in a typed file) and every margin of `08` (bp) §bp.4 holds; option order is seeded and the key's place varies; the source mix (30–45 % records, every class at least once); the pre-recorded questions rank their record first in both languages (and `r02` before `r09`); every text exists in both languages; **no training text names any main-scenario place, unit, source, road, feature or subject** — tested against every scenario text (records, item stems and options, SPAM prompts, radio lines, labels) by the lists, clocks and four-word overlap of `08` (bp) §bp.8; **no power-line involvement** — every coordinate (keys, marks, fire polygons, routes, road-code labels, unit positions, records' places) is ≥ 400 m from the contract's `POWER_LINE`, no text matches its names, the lock excludes no other contract feature but `MAANTIE_N` and `POWER_LINE`, and the build cuts the roads at the band; the texts' rules (`08` (bp) §bp.8).
+- **Group parity (`30` (bp) tests):** S1–S4's texts are the same in every cell (identical hashes); S5's two recordings have the same number of examples (2) and one limitation case each; displayed words per example within ±10 % and in total within ±5 %, in both languages; the shared lines are identical.
+- **Session (`test/session/training-*.spec.ts`):** the order (training after the pre-session item and the primer, before the intro video); **feedback after every item**, right, wrong or timed out, before the next item; the first answer is logged before the feedback; each item answered once; S3's window; S4's exposure of 8 s and its blank map; **covariates before group-specific content** — no `training_demo_shown` precedes a covariate item's `training_answer`, and S5 follows S4's last feedback; the cap (items missing, S5 still shown, `endReason` timeout); resume at every stage (answer logged / not logged; cap left; S5; completed); `session_resumed.resumedAt`; the Haku turns restored; the Thinker pane absent; the lock (the live map's bounds and zoom presets); no record outside `training_*` is written by the training (no `ai_chat_*`, no `freeze_*`, no map-use records).
+- **Corpus separation both ways (`test/retrieval/training-separation.spec.ts`, `test/server/*`, `test/demo-bridge/*`):** `14` (bp) §bp.3.
+- **VP (`test/render/*`, `test/scenario/*`, `test/session/*`):** `hasFreeze` false and no `freeze_*` record in VP; the tour's changed steps (texts, no example, no VP record quoted, no scored subject); the step counts 17 / 18 and their order; the radio cell's tour names no Thinker; the SPAM pair at 85 s; `BASELINE_VIEWS` 0, 1; the Thinker practice (am).
+- **Identity (`test/public/*`):** the main session (V1 to the end) and everything before VP match the committed digests of the 0.12.0 run after the normaliser removes the training's records and takes their duration out of later wall offsets; VP's digest is re-baselined once, on the integration commit, with the reason recorded in the test's header; expert and public flows both pass.
+- **Play harness (`test/tools/play*.spec.ts`):** the training's pages and map PNG in both languages and audiences; the smoke plays the training through.
+- **Record kinds (`test/telemetry/record-kinds.spec.ts`):** `07` (bp)'s kinds, the format version 0.18.0, the legacy kinds still typed.
+
+### bp.8 Notes for the integration
+
+- The identity digests are regenerated **once**, after A, B and C are merged: the new training's records are removed by the normaliser, so only VP's segment changes (no freeze, no practice feedback).
+- `app/session/orchestrator.ts` is edited by one owner only (the session package); the other packages touch it not at all.

@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **26 Oct 2026 (bp)** — §7.37: the training incident — the decisions the design made for the researcher to confirm (where S5 sits, S1.4 rebuilt, the records share, the clocks, the cap, VP's name and its practice SPAM), the Finnish and domain checks, and how §7.35's log history touches the training.
 > - **25 Oct 2026** — §7.35: the message log's history (options A–D, recommendation B, this period only); deferred by the researcher, to decide before pilot 2.
 > - **25 Oct 2026 (bn)** — §7.36: after the independent review — the panel's question on V5 `reinforcements`' level (L1 recall labelled L3) and on `north_help`; the native, domain and researcher items revision (bn) leaves. See §7.35.
 > - **25 Oct 2026 (bh)** — §7.34: after the play-test replay — the panel's V4 `head_later` question with the rate check (14.1 m/min pushed against the model's 38 m/min crown run), VP `r1_arrival`'s crossing time, the native, domain and researcher items the decisions R1–R11 leave; the Thinker index carried.
@@ -1110,3 +1111,23 @@ The review's findings B1, S1–S10 are built or written into the plan (`08`, `09
 3. **Domain reviewer:** JOKE's call sign and form ("<area> PEL-JOKE"); whether a command centre acknowledges reports on a group the incident commander hears and logs crew-to-crew lines; the fire engine stopping ~300 m short where a terrain unit's vehicle gets through; EK11's return to the line between 15.30 and 15.41 (`18` (bn), "For the reviewers").
 4. **Researcher (RC):** the 15 % exposure rule on retrieved-only exposure (`09` (bn) §4); S_rec as a sensitivity outside the Holm family (`09` (bn) §1).
 5. **Thinker index:** PROVISIONAL, carried (595 Finnish and 658 English vectors of 1016); run `npm run thinker:index` (both languages, the model) before any session.
+
+### 7.37 The training incident (26 Oct 2026, revision (bp); open for the researcher, then the native speaker, the domain reviewer and the panel; decide before pilot 2)
+
+The researcher's plan is built into the spec (`08`, `15`, `07`, `09`, `30`, `35`, `14` (bp)). The decisions the design had to make, for the researcher to confirm:
+
+1. **Where S5 sits.** The group-specific recording comes **after S4**, not inside S3's feedback. Reason: `point_memory` (S4's memory item) is a pre-registered covariate and must precede any group-specific content. The alternative keeps the recording in S3 and moves the memory covariate into S1 as an extra pointing trial from memory (+25 s, and the memory-check map taught earlier).
+2. **S1.4 is rebuilt.** (bj)'s straight-line-against-road paradox cannot be built once nothing lies within 400 m of the power line: the corner keeps two connected fill points and no pair meets the rule (checked, also in a 4 × 4 km square). The item now asks which fill point a tanker can use: one nearer in a straight line that no road reaches, one by road. Confirm, or lift the band for roads.
+3. **Records share 33 %, not 4 in 10.** Nine items carry a source (3 records, 3 log, 2 map, 1 reasoning). A fourth records item would reach 4 of 10 and cost about 35 s.
+4. **The clocks are 09.41–10.42** (was 14.xx): the scenario's texts hold 14.xx 20 times and nothing before 11.32.
+5. **The area stays 2.5 km;** the south-west enlargement meets the same two contract features and adds no lake.
+6. **The cap is 12 minutes** (expected 9–11; the first items to drop are the slope item, then S3.3). The training takes about 2 minutes more than the map training and VP's practice freeze and feedback did together; VP is shorter by its freeze.
+7. **VP is renamed "Ensikatsaus" / "First look"** (the training takes "Harjoitus"). V1's Thinker reminder follows.
+8. **VP's practice SPAM pair stays** (the card format is also met in S3, and the measuring task in S1.2). Its first item asks about the water point W1, the subject of V4 `infra`; the records step's example that shared it is gone, but this item was always so. Options: keep, give it a neutral subject, or retire the pair (then the tour's `spam` step and the identity digests change).
+9. **EK53 is the memory unit** (EK51 now works the fire).
+10. **The Thinker's recording** says "pidän sitä melko varmana" / "I count it fairly certain": a statement of this answer's certainty, not of the tool's reliability. For the panel and the ethics review.
+11. **Training Haku questions are not seeking measures;** they are a separate coded set only.
+
+**Native speaker:** every Finnish text of `08` (bp) §bp.5, the corpus, S5's recordings, the tour's six changed steps, "Ensikatsaus". **Domain reviewer:** S1.3's rule on a gentle slope, S1.4's fill point, S3.2's road report (a vehicle across the road), the unit statuses. **Panel:** whether S3.1's lure (the log's 0.4 ha beside the survey's 1.1 ha) is plain enough.
+
+**The message log's history (§7.35) and the training.** The training teaches that the message log is only part of the traffic and that a record can be older than the log. If option B (the log shows this period only) is chosen, the training's S2 and S3.2 stay true (its log holds one period); the tour's `log` step and the training's S3 card gain the "earlier messages are filed" line, and the play harness and the identity test are touched as §7.35 lists. If the researcher keeps the log as it is, nothing changes. The training is built so that either choice works: its log is one period.

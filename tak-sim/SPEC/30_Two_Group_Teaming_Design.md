@@ -4,6 +4,7 @@
 **Scope:** the study with professionals (100 participants), its two groups, what the guide does, what is measured, the hypotheses of Papers 1–3, what moves to other samples, and the checklist before the pilot.
 
 > **Changelog**
+> - **26 Oct 2026 (bp)** — group parity of the training's one group-specific screen (S5, `08` (bp)): two recordings, the Haku group's Haku and the guide cells' Thinker, two examples each, one limitation case each, equal in displayed words (±10 % an example, ±5 % in total), the exact texts in Finnish and English; the older-record case is the same for both groups. See the revision at the end.
 > - **25 Oct 2026 (bn)** — after the independent review: the pointers' sender (JOKE) and three items' wording, parity unchanged; `h2-items.ts` gains S_rec (`09` (bn) §1) and the dated re-run (S_rec MDE Δ 0.95 at n = 100; the other rows reproduce (bk)'s). See the revision at the end.
 > - **25 Oct 2026 (bm)** — the "report filed" pointers (`18` (bm), `09` (bm)): the same twelve pushed lines in both groups; no item's class, key record or told class changes, so bf.5's (bk) table stands (`npm run power:h2-items` re-run: the same tables). `h2-power.ts`'s `STREAM_TOLD_ITEMS` 8 → 4 (bk.3): only the three-way H2t family moves (H2t at a small effect 49 · 43 % → 58 · 48 %). See the revision at the end.
 > - **25 Oct 2026 (bk)** — H2 depends on information seeking again (researcher decision of 25 Oct 2026): §6 H2's primary is the gap on the 9 seek-dependent items (the audit's classes, fixed before pilot 2), all 23 items the sensitivity, the group × item-class interaction H2× a pre-stated secondary in the Holm family (`09` (bk)); §5.1 four phase-A items made seek-dependent by holding three non-critical records for seeking (`08` (bk), `18` (bk)); bf.5 re-run: 92 % at Δ +0.8 on the seek-dependent items, 51 % on all 23, 87 % for H2× (n = 100). Treatment revision before pilot 2. See the revision at the end.
@@ -480,3 +481,57 @@ The pointers are now the command centre's acknowledgements (JOKE, `18` (bn)): th
 | S_rec at α .0071 (for reference; S_rec is outside the family) | 4 | 8 · 38 % | 10 · 46 % | 11 · 61 % | Δ 1.28 (+.190) | Δ 1.14 (+.172) | Δ 0.98 (+.151) |
 
 Power columns: Δ +0.4 · +0.8. Null (Δ 0, all items): 7 · 5 · 5 %. Reference (the effect on every item): 69 · 100 % at n = 100, 76 · 100 % at 120, 84 · 100 % at 150. **Reading:** S_rec is where the AI's effect can run through what it tells (`09` (bn) §1); with four items it detects only a large effect at n = 100 (Δ 0.95, a gap of about +.15 on those items), so it is a sensitivity, not a test of its own. The (bm) STREAM_TOLD_ITEMS re-run (bm.2) is unaffected.
+
+## Revision 26 Oct 2026 (bp) — group parity of the training's recordings (S5)
+
+Source: the researcher's decision of 26 Oct 2026 (`08` (bp), `15` (bp)). The training is the same in both groups except S5, one screen after S4's last feedback. **S5 shows a pre-recorded demonstration of the group's tool, no live call, identical for everyone in a cell.** The Haku group (`radio`) sees Haku; the guide cells (`reasoning_intent`, and `reasoning_once` where it is run) see the Thinker. The two recordings are **equal in length and in number of examples**, and **each contains one limitation case**.
+
+### bp.1 The rules
+
+1. **Two examples each.** The first is an ordinary answer from one record. The second is a **limitation case: an incomplete answer** (the records hold nothing that answers the question). The older-record case, where a search returns an older record and the newer log line is the right answer, is **not** part of S5: it is `training.s3.older`'s feedback, the same for both groups (`08` (bp)).
+2. **Same questions, same records.** Both cells see the same two questions and the same records behind them (`trn.r10`, `trn.r08`).
+3. **Equal length.** Counted as the screen shows it: the question, the answer and the labels the tool shows (Haku's PERUSTEET, VARMUUS, MIKÄ MUUTTAISI / BASIS, CERTAINTY, WHAT WOULD CHANGE IT; the Thinker shows none), words split at spaces. **Each example within ±10 %, the total within ±5 %, in both languages.** Today's counts: Finnish Haku 38 and 47, Thinker 38 and 47 (85 and 85); English Haku 50 and 66, Thinker 51 and 65 (116 and 116).
+4. **Shared lines identical.** The tool's name in the heading and the intro sentence differ by that one word. The lines after each example, the button and the 10 s delay are word for word the same.
+5. **No claim beyond the demonstration.** The texts claim nothing about the tool's reliability except what the second example shows: an answer can be incomplete, and the tool says so. Neither recording recommends a decision or a plan; the Thinker's text does not ask the participant anything.
+6. **Not live.** The screen says the answers are recorded. No request is sent. The same recordings are shown in the study, the demonstration and the play harness.
+7. **Logged:** `training_demo_shown {demoId, exampleIds, dwellMs}` (`07` (bp)); the dwell by cell is a pilot check (`09` (bp)).
+
+### bp.2 The texts (fi DRAFT, native check; en DRAFT)
+
+**Heading.** fi "Haku: nauhoitettu esimerkki" / "Thinker: nauhoitettu esimerkki"; en "Search: a recorded example" / "Thinker: a recorded example".
+**Intro.** fi "Näet, miten {Haku | Thinker} vastaa kahteen kysymykseen. Vastaukset on nauhoitettu: tämä ei ole elävä kysely." en "You see how {Search | Thinker} answers two questions. The answers are recorded: this is not a live query."
+
+**Haku group (`radio`)**
+
+*Example 1.* Kysymys: "Paljonko vettä EK52:lla on?" / Question: "How much water does EK52 have?"
+- fi: EK52:n säiliö oli klo 10.15 noin 60 % täynnä. · PERUSTEET EK52 klo 10.15, kysyttäessä: ”säiliö noin 60 %, miehistö kolme.” · VARMUUS Korkea. Tieto on tuore ja tulee suoraan yksiköltä. · MIKÄ MUUTTAISI Uusi tilatieto EK52:lta.
+- en: EK52's tank was about 60 % full at 10.15. · BASIS EK52 at 10.15, when asked: “tank about 60 %, crew of three.” · CERTAINTY High. The information is recent and comes straight from the unit. · WHAT WOULD CHANGE IT A new status report from EK52.
+
+*Example 2 (limitation: incomplete).* Kysymys: "Onko palo hallinnassa?" / Question: "Is the fire under control?"
+- fi: Kirjauksista ei löydy ilmoitusta siitä, onko palo hallinnassa. · PERUSTEET Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5. Se kertoo palon paikan, ei hallinnasta. · VARMUUS Matala. Vastaus on vajaa, koska kysymykseen ei ole kirjattua vastausta. · MIKÄ MUUTTAISI Ilmoitus palon tilasta tai uudempi ilmoitus.
+- en: The records hold no report on whether the fire is under control. · BASIS The newest report is DR8's at 10.12: the head is at road R5. That tells where the fire is, not the control. · CERTAINTY Low. The answer is incomplete, because the records hold no answer. · WHAT WOULD CHANGE IT A report on the fire's state, or a newer report.
+
+**Guide cells (the Thinker)**
+
+*Example 1.* The same question.
+- fi: "EK52:n säiliö oli klo 10.15 noin 60 % täynnä, kun yksikköä kysyttiin. Lähteenä on EK52:n ilmoitus. Tieto on tuore ja tulee suoraan yksiköltä, joten pidän sitä melko varmana. Sitä muuttaisi vain uusi tilatieto EK52:lta."
+- en: "EK52's tank was about 60 % full at 10.15, when the unit was asked. It is EK52's own report. The information is recent and comes straight from the unit, so I count it fairly certain. Only a new status report from EK52 would change it."
+
+*Example 2 (limitation: incomplete).* The same question.
+- fi: "Kirjauksissa ei ole ilmoitusta siitä, onko palo hallinnassa, joten en voi vastata siihen. Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5, eli se kertoo palon paikan, ei hallinnasta. Vastaukseni on vajaa, ja sanon sen. Sen muuttaisi ilmoitus palon tilasta tai uudempi ilmoitus."
+- en: "The records hold no report on whether the fire is under control, so I cannot answer that. The newest report is DR8's at 10.12: the head is at road R5, which tells where the fire is, not the control. My answer is incomplete, and I say so. A report on the fire's state, or a newer report, would change it."
+
+**After the examples (the same in both cells).** After 1: fi "Ensimmäisessä esimerkissä vastaus löytyi yhdestä kirjauksesta, ja se kertoo lähteen ja kellonajan." / en "In the first example the answer came from one record, and it names its source and time." After 2: fi "Toisessa esimerkissä vastaus oli vajaa, koska kirjauksissa ei ollut tietoa kysymykseen." / en "In the second example the answer was incomplete, because the records held nothing on the question." Button: "Valmis" / "Done", enabled after 10 s.
+
+### bp.3 Why the Thinker's text is prose
+
+The Thinker answers in plain text and states its own uncertainty ("pidän sitä melko varmana"; "I count it fairly certain"); Haku answers in its four-part form with a certainty field. Each recording shows its tool as it is. The parity is in the amount said, the number of examples, the limitation shown, and the records behind them, not in the form.
+
+### bp.4 Tests (`test/training/parity.spec.ts`)
+
+- The two recordings have two examples each; each has one limitation case; the questions and the shared lines are identical; the counts of §bp.1.3 hold in both languages, computed by the screen's own text function; the recordings quote only `trn.r08` and `trn.r10`; neither text contains an imperative, a recommendation, a question to the participant, or the words "luotettava" / "reliable" / "aina" / "always" / "never" about the tool; the radio cell's S5 names no Thinker and the guide cells' names no Haku; S1–S4's texts are the same in every cell (hashes).
+- A change to either recording re-runs the counts: a change that breaks the parity fails the build.
+
+### bp.5 Consequences for the other parity statements
+
+(y)'s "one identical Haku paragraph in both groups, plus an Open Thinker paragraph in the AI group" in the group's training text after VP stands; the length-parity rule withdrawn in (y) applies to that text, not to S5. The guide cells meet the Thinker first as a recording (S5) and then live in VP (`15` (am)); the Haku group never sees the Thinker.

@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Supersedes `04_Methods_v2.md`. All two-sitting, eight-cycle and two-scenario language is replaced.
 
 > **Changelog**
+> - **26 Oct 2026 (bp)** — the training incident's covariates (`08` (bp)): `point_visible` (S1's find-a-place) and `point_memory` (S4's memory item) now from the live map and the freeze map, and the new `seek_first` (the first records question, before its lesson), all before any group-specific content; the training's Haku questions are in no seeking or exposure measure; new pilot checks. Replaces (bj) §§1–3. See the revision at the end.
 > - **25 Oct 2026 (bn)** — after the independent review: S_rec (the seek-dependent items whose key is in a recorded report) a pre-stated sensitivity with its MDE, and (bk) §4's mechanism claim re-worded; H2's checks (seeking per view) and named sensitivities (exposure-conditional gap, chance-corrected gap) on S and the floor risk's reading; the pointers' follow-up within windows (per class; real against decoy only within a class or with the window as covariate; "found before" withdrawn; SPAM V3.b aligned with the code); H9/H10 exposure by route and pointer in pilot 2; the known cues. See the revision at the end.
 > - **25 Oct 2026 (bm)** — the "report filed" pointers (`18` (bm)): pre-registered, per pointer received, whether a Haku or Thinker question before the view's end retrieved its record (rank ≤ 8) or showed it (rank 1), and the latency from the pointer (freezes taken out); real and decoy pointers apart, the decoys the baseline of curiosity or compliance; the follow-up rate as the manipulation check that pointers are noticed (DRAFT: below 15 % followed, the design is revisited before the lock); Paper 3 features and the per-item pointer class (found before, followed, heard but not followed). H2 unchanged. See the revision at the end.
 > - **25 Oct 2026 (bk)** — H2 pre-registered on information seeking (researcher decision of 25 Oct 2026): the primary is the gap on the seek-dependent items (the difficulty audit's `passive` partly or no, 9 of 23, the class list fixed from the audit before pilot 2's data), the gap over all 23 items the sensitivity, the group × item-class interaction (H2×, the person's passive items as the control) a pre-stated secondary; Paper 1's Holm family is seven tests; the models, MDEs and analysis notes. Supersedes (bf) §7's RC. See the revision at the end.
@@ -1123,6 +1124,8 @@ Source: `docs/audits/2026-10-23-playtest/analysis.md` §10 and the researcher's 
 
 ## Revision 25 Oct 2026 (bj) — the map training's pointing baseline replaces the pretest covariate
 
+> **[SUPERSEDED 2026-10-26, revision (bp)]** `point_visible` and `point_memory` now come from the training incident's `s1.place` and `s4.memory`; (bj) §3's pilot checks are replaced.
+
 Source: `08` (bj) (the map training replaces the map-reading pretest); the records are `07` (bj). A treatment revision before pilot 2: no data are pooled across it (`30` §2).
 
 **1. The covariate (pre-registered; replaces (be) §2).** Per participant, the map training's FIRST-try pointing errors (`map_pretest_answer.errorM`, metres, logged before the feedback is shown):
@@ -1240,3 +1243,51 @@ Source: the independent review of 25 Oct 2026 (S1, S2, S3, S9 and its notes) and
 - The pointers raise seeking in both groups, so more key records are stated by an AI answer before the freeze (`aiStatedKey`): H2t's "neither" stratum on S shrinks in both groups, and its power with it ((ay), `30` bk.3).
 
 **6. Analysis notes.** H2's primary, sensitivity, H2× and the Holm family are unchanged ((bk)); the item classes are unchanged (`08` (bn)). The stimulus changed (three items' wording, two records, the pointers' sender and four decoys, two displaced records): no pilot-1, play-test, pre-(bm) or pre-(bn) session is pooled with sessions after it.
+
+## Revision 26 Oct 2026 (bp) — the training incident's covariates and pilot checks
+
+Source: `08` (bp), `15` (bp), `07` (bp). **A treatment revision before pilot 2:** no data are pooled across it (`30` §2). It replaces (bj) §§1–3 (the map training's covariates and checks) and (be) §1's "practice lesson reaches its record" row. The training writes `training_*` records only (`07` (bp)); its Haku questions are in no seeking, exposure, source-memory, H9 or H10 measure.
+
+### bp.1 The pre-registered covariates
+
+All three are measured **before any group-specific content**: S1–S4 are the same in every cell (`30` (bp)), and S5, the one group-specific screen, comes after S4's last feedback. They are baselines of the person, never post-treatment variables, and never an exclusion criterion or a shown score. Per participant, from the FIRST answer logged before each feedback:
+
+| Name | Item | Value | Used in |
+|---|---|---|---|
+| `point_visible` | `training.s1.place` | `errorM`, metres: the participant finds a named place (the R5/R6 junction) on the live map and points at it | every model of the map-point freeze items (the error in metres, `haversineMetres` in `freezeItemScores`, and the hit within tolerance), as log(1 + error) |
+| `point_memory` | `training.s4.memory` | `errorM`, metres: EK53 shown for 8 s, then marked on the blank memory-check map | the same models, as log(1 + error). Both together separate map handling from situation awareness, as (bj) §1 did |
+| `seek_first` | `training.s3.records1` | **`searchedBefore`** (0 or 1: at least one `training_haku_asked` for this item before its `training_answer`, i.e. `hakuBefore` > 0) and **`seekLatencyMs`** (`atItemMs` of the first question; censored at `rtMs` when none) | the seeking models of H2's seek-dependent items and Paper 1's seeking measures, as the person's baseline seeking before any lesson on how to ask; reported by group as a randomisation check |
+
+- A missing value (the cap ended the training first) is imputed with the sample median and flagged by an indicator; both are pre-registered. A timed-out card's `searchedBefore` is read from its `hakuBefore`; its `seekLatencyMs` is censored.
+- **On the map-handling covariates:** `point_visible` and `point_memory` keep (bj)'s names and unit and now come from the live map and the session's freeze map. They are not comparable with (bj)'s numbers (a picture then, the real map now); sessions before 0.18.0 are not pooled.
+- **`seek_first` is the first records question before the lesson.** `training.s3.records1`'s key is in a recorded-only report; the log offers an earlier, smaller figure (0.4 ha) as a lure. S3's section card says only that Search and the message log are open and that Search answers from this training's records; it says nothing about what the records hold and nothing that tells the participant to search. What the records hold, and how to ask, is first said in the feedback after the answer. **In a public session the primer has already stated the information rule** (`35`), so `seek_first` is read within audience.
+
+### bp.2 Descriptive only (reported by background group, never modelled)
+
+The other first answers: S1.2's distance band and its R&B use (`measures`), S1.3's slope choice, S1.4's fill point, S2.1's "now" choice, S2.2's projection error, S3.2's choice (the older-record lure) and S3.3's, and S4's accuracy by source class (log, map, records), with the confidence given. The number of Haku questions per training item and their text (the coding export gets them as a separate flagged set, `training`, in the (an) §an.2 manner: blind ids, no model by default). The time per section and the demonstration's dwell by cell.
+
+### bp.3 What does not count
+
+- **The training's Haku questions** are not seeking acts (`isInformationSeekingAct`), not exposure (`atomExposure`, `freezeItemExposure`), not source-memory exposure, and not H9 or H10 exposure: they are `training_haku_*`, over a corpus no scored item rests on, and no record of them is a session record.
+- **S3's and S4's answers** are never scored, never shown as a score, and never used to exclude or to weight.
+
+### bp.4 Pilot checks (pre-registered for pilot 2; thresholds DRAFT, RC)
+
+| Check | Target | Computed by |
+|---|---|---|
+| The training fits its cap | completion within 12 min ≥ 90 %; median length ≤ 11 min; no section's median over 3.5 min | `training_completed.endReason`, `durationMs`; `training_section_left`, `training_answer.rtMs`, `training_feedback_left.dwellMs` |
+| The memory baseline varies | `point_memory` has an IQR ≥ 50 m over the first ten participants (else the build's rule sets a harder place before the lock) | `training_answer.errorM` (`s4.memory`) |
+| The map baseline varies | `point_visible` has a non-zero IQR and a median under 120 m (else the junction's rule changes) | `training_answer.errorM` (`s1.place`) |
+| Randomisation and order | `point_visible`, `point_memory`, `searchedBefore` and the section times do not differ by cell (equivalence margin 10 points for `searchedBefore`, 20 m for the errors, 20 % for the times); all precede S5 | the same records by cell |
+| The lesson is seen | S5's dwell by cell: medians within 20 % of each other | `training_demo_shown.dwellMs` |
+| The records question is natural | `searchedBefore` on `s3.records1` reported (no target); on `s3.records2`, after the lesson, ≥ 70 % have a Haku question before answering | `hakuBefore` |
+| The older-record lesson | `s3.older` answered with the older record's state at most 40 % | `training_answer.choiceId` |
+| The block's items work | each S4 item answered correctly 30–95 %; no item below 30 % | `training_answer` against the content's key |
+| Seeking carries on | **kept from (be):** ≥ 90 % submit at least one Haku or Thinker question by V2's freeze; ≥ 70 % in VP | `isInformationSeekingAct` on `ai_chat_query_submitted`, by view (the training's questions excluded) |
+| The training's Haku answers | the share of `answerSource` `model` / `template` by session; every `retrieved` id begins `trn.` | `training_haku_answered` |
+
+If a check fails, the next step is a change to the training's text or item, never a change to a scored item or key after data. If the records question's `searchedBefore` is near 100 % or near 0 %, `seek_first` has no variance and is dropped from the models (reported).
+
+### bp.5 What goes
+
+(bj) §1's covariates' source (`map_pretest_answer`), (bj) §3's checks, (be) §1's "practice lesson reaches its record" and "pretest itself" rows, and `09` (be) §2's pretest score with the pretest. The 0.17.0 and older logs are not pooled with 0.18.0's. `BASELINE_VIEWS` stays 0, 1: VP keeps its plan.

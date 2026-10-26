@@ -3,6 +3,7 @@
 **Version 3.1 · 17 September 2026** (v3.0 · 13 September 2026). Expands `02_Architecture_v2.md` §8 into a complete, buildable enumeration and adds the drawer, traffic-request and tier-discovery records the layout and routing decisions require.
 
 > **Changelog**
+> - **26 Oct 2026 (bp)** — format **0.18.0** (`08` (bp), `15` (bp)): the `training_*` kinds (`started`, `section_left`, `answer`, `feedback_left`, `haku_asked`, `haku_answered`, `demo_shown`, `completed`); the header's `trainingIncident`; `map_pretest_*`, `practice_feedback_shown` and VP's cycle-0 freeze records are no longer written. See the revision at the end.
 > - **25 Oct 2026 (bm)** — no format change: the "report filed" pointers (`18` (bm)) write an ordinary `bubble_available` (the atom, its tier and source); the pointer mark never reaches the log. A derived measure, `pointerFollowUps` / `pointerFollowUpRates` (`app/telemetry/pointer-measures.ts`, `09` (bm)), reads the pointers from the scenario. See the revision at the end.
 > - **25 Oct 2026 (bj)** — format **0.17.0** (the map training, `08` (bj)): the `map_pretest_*` kinds hold the training; `map_pretest_answer` is a task's first answer with `choiceId` or `point` + `errorM`, `measures`, `memoryMs`; `map_pretest_feedback_left` added. See the revision at the end.
 > - **24 Oct 2026 (bf)** — format **0.16.0** (adopted before pilot 2, `30` (bf)): `hinge_fatigue_rated` (the hinge's optional fatigue item); the header's `assignment.stratum` (profession × leads others); `ai_chat_query_submitted.viaChip` also with `tool: "haku"` (the Haku group's chip); new questionnaire item ids (pre: `sleep.hours`, `shift.recent`; post: `accuracy.perceived`, `influence.plan_views.*`, `influence.answers.*`); the allocation table's version 2. See the revision at the end.
@@ -724,6 +725,8 @@ Source: `30` (bf) (the chip in both groups, the strata, the post-session and pre
 
 ## Revision 25 Oct 2026 (bj) — format 0.17.0: the map training
 
+> **[SUPERSEDED 2026-10-26, revision (bp)]** The `map_pretest_*` kinds are no longer written (format 0.18.0); the training incident writes `training_*`. Kept for logs of 0.17.0 and earlier.
+
 Source: `08` (bj), `15` (bj). The map-reading pretest's step now holds the map training. Its kinds keep their names, so the step's records stay together (`app/telemetry/record-kinds-difficulty.ts`); the format version tells pretest records from training records.
 
 | Kind | Fields | When |
@@ -742,3 +745,25 @@ Source: `08` (bj), `15` (bj). The map-reading pretest's step now holds the map t
 ## Revision 25 Oct 2026 (bm) — the pointers' follow-up, from the existing records
 
 Format unchanged (0.17.0). A pointer's delivery is its `bubble_available`; which atoms are pointers, and what they point to, comes from the scenario (`InfoAtom.pointer`), passed to the measure, never stored in the log. The derived measure (`app/telemetry/pointer-measures.ts`, pre-registered in `09` (bm)) folds `bubble_available`, `cycle_start` / `cycle_end`, `freeze_started` / `freeze_submitted`, `ai_chat_query_submitted` and `ai_chat_answer_received` (its ranked `retrieved`; the demonstration-only `query_submitted` / `nav_query_submitted` by result order): per pointer received, whether a question after it and before the view's end retrieved its record (rank ≤ 8) or showed it (rank 1), the latency from the delivery to that question's submission (with and without the freeze time between), whether the record had been reached before, and the questions asked after it; per participant, the real and decoy pointers' rates apart.
+
+## Revision 26 Oct 2026 (bp) — format 0.18.0: the training incident
+
+Source: `08` (bp), `15` (bp). The training incident replaces the map training and VP's practice freeze and feedback. **The format version is 0.18.0** (`TELEMETRY_FORMAT_VERSION`). The training writes its own kinds, all with the prefix `training_`: nothing it does is a session record. In particular its Haku questions are **not** `ai_chat_*` records (so no seeking measure, exposure measure, source-memory measure or H9/H10 count can see them), its freeze items are not `freeze_*` records, and its map use is not logged (no `viewport_changed`, no `tak_*` kinds, no `tab_selected`). A new file, `app/telemetry/record-kinds-training.ts`, holds the types.
+
+| Kind | Fields | When |
+|---|---|---|
+| `training_started` | `version` "training-2026-10-26", `sectionIds` (s1–s5), `itemIds` (the 13), `capMs` 720 000, `remainingMs`, `resumed`, `keptItemIds` (items whose feedback was left before a resume) | the intro shown |
+| `training_section_left` | `sectionId` (s1–s4), `dwellMs` (the card's time on screen) | a section card left |
+| `training_answer` | `itemId`, `sectionId`, `position` (1–13), `rtMs` (from the question's appearance; the memory item: from the blank map's), `measures` (the R&B readings before the answer, m; [] when unused). A choice item adds `choiceId`; a point item adds `point {lat, lon}` (6 decimals) and `errorM` (metres from the key, rounded). A question card or freeze item adds `confidence` (25 / 50 / 75 / 100; absent when timed out); the memory item adds `memoryMs` (8 000); a question card adds `hakuBefore` (the number of `training_haku_asked` of this item before the answer) and `timedOut` (true at 0 s) | an item's FIRST answer, logged before its feedback shows; one per item |
+| `training_feedback_left` | `itemId`, `position`, `dwellMs` | an item's feedback left |
+| `training_haku_asked` | `queryId` ("trn.1", …), `itemId`, `text`, `charCount`, `atItemMs` (from the item's appearance) | a Haku question in S3, durable before the pane shows it |
+| `training_haku_answered` | `queryId`, `itemId`, `retrieved` [{id, fusedScore}] (`trn.r..` ids only), `retrievalMode` "lexical_only", `retrievalLanguage`, `answerSource` (`model` for the study's proxy, `bridge` for the demonstration's, `template` for the local fallback and the play harness), `modelId`, `promptHash`, `fallback`, `fallbackReason`, `latencyMs`, `answer {vastaus, perusteet, varmuus, muuttaisi}` | the answer shown |
+| `training_demo_shown` | `demoId` ("haku" or "guide"), `exampleIds` (["ex1", "ex2"]), `dwellMs` | S5 left |
+| `training_completed` | `endReason` (`completed` or `timeout`), `answeredCount`, `missingItemIds`, `durationMs` (S1 to S4's end; S5 excluded) | S5 left |
+
+- **The header** gains `trainingIncident: true` and loses `mapPretest` and `practiceFeedback` (the app sets the first in every session). `session_resumed.resumedAt` may be `training_incident` (it was `map_pretest` and `practice_feedback`).
+- **Retired, still typed:** `map_pretest_started` / `_answer` / `_feedback_left` / `_completed`, `practice_feedback_shown`, `briefing_advanced` `screenId` "practice.feedback", the header's `mapPretest` and `practiceFeedback`. Logs of 0.17.0 and earlier keep them; 0.18.0 writes none. VP's cycle-0 `freeze_started` / `freeze_item_completed` / `freeze_submitted` / `freeze_map_pick` are no longer written either; `cycle_start` and `cycle_end` for VP stand.
+- **The keys** are in the training's content (`content/training/incident.json`), because the training shows each key in its feedback. `errorM` is computed in the browser from them; nothing else is scored in the log.
+- **The server's Haku log line** (the proxy's JSONL; `14` (bp)) gains `corpus`: "main" for every line before, "training" for a training question (`practice` false, `view` 0). It joins `training_haku_*` by `queryId`.
+- **A session of 0.18.0 writes in the training** 33 records when the participant asks no Haku question: 1 started, 4 section_left, 13 answers, 13 feedback_left, 1 demo_shown, 1 completed; plus 2 for each Haku question. **Every other record is unchanged** (the expert-identity test, `15` (bp) §bp.7).
+- **Resume:** the log alone restores the training (`15` (bp) §bp.4): the answered items, the feedback left, the Haku turns, the active time.

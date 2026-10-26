@@ -35,6 +35,8 @@
     "build:prod": "tsx tools/deploy/build.ts",
     "serve": "tsx server/production/main.ts",
     "sessions:export": "tsx tools/deploy/export-sessions.ts",
+    "training:build": "tsx tools/review/training.ts",
+    "test:training": "vitest run test/training test/session/training test/render/training",
     "review:export": "tsx tools/review/export.ts",
     "review:panel": "tsx tools/review/panel-packet.ts",
     "review:uncertainty": "tsx tools/review/thinker-uncertainty-audit.ts",

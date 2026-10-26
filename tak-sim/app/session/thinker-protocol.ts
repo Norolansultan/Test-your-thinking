@@ -122,6 +122,11 @@ export interface ThinkerRequest {
    * "ai.3" / "ai_open.4"), logged on the server too, so the two logs join on it. Optional (older clients).
    */
   readonly queryId?: string;
+  /**
+   * Revision (bp), 26 Oct 2026: "training" for a question asked in the training incident (`view` 0): retrieval runs over the
+   * training's own corpus only, lexical only, and the server's log line carries `corpus`. Absent means the main corpus.
+   */
+  readonly corpus?: "training";
 }
 
 export interface OpenThinkerTurnWire {

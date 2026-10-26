@@ -18,6 +18,7 @@ import type { ThinkerResponse } from "../../app/session/thinker-protocol.js";
 import type { ThinkerTransport } from "../../app/session/thinker-transport.js";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { allocateAndConfirm, passHinge, PLAN, runOutView } from "./view-flow.js";
+import { withPracticeFreeze } from "./practice-freeze-fixture.js";
 
 const scenario = buildDemoScenario();
 const keyOf = (view: number) => scenario.invariants.find((i) => i.name === `spam.cycle_${view}`)!.expected as string;
@@ -370,9 +371,15 @@ describe("I4: no SPAM or hinge-check key on the screen side", () => {
   });
 
   it("a freeze item reaches the screen without any option's `correct` flag (round 2 fix)", async () => {
-    const s = start();
+    // Revision (bp): the built VP has no freeze; the fixture's (keyed options) in VP.
+    const sc = withPracticeFreeze(scenario);
+    expect(sc.practice.freeze.items.some((i) => i.options.some((op) => op.correct))).toBe(true);
+    const o = new SessionOrchestrator(sc, "substitutive");
+    let snap: SessionSnapshot | null = null;
+    o.subscribe((x) => (snap = x));
+    const s = { o, snap: () => snap! };
     await s.o.start();
-    await vi.advanceTimersByTimeAsync(scenario.practice.cycle.freezeAtSeconds! * 1000);
+    await vi.advanceTimersByTimeAsync(sc.practice.cycle.freezeAtSeconds! * 1000);
     expect(s.snap().step).toBe("freeze");
     expect(JSON.stringify(s.snap().freeze)).not.toMatch(/"correct"/);
   });

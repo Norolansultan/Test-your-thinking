@@ -173,8 +173,7 @@ describe("the computed rules", () => {
 
 describe("every L3 key forecasts from the freeze's now (fix pass 4, 7 Oct 2026; `31` §3.8)", () => {
   it("each L3 item's key interval starts at the freeze's now step (the view's last step, or the step after it for a view-end freeze), and a head-later item's ends at its prompt's clock", () => {
-    // Revision (bp), 26 Oct 2026: VP's practice bank is retired (VP has no freeze).
-    const defs = Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d })));
+    const defs = Object.entries(FREEZE_BANK).flatMap(([v, ds]) => ds.map((d) => ({ v: Number(v), d }))); // (bp): VP has no freeze, no bank
     expect(nowStepOf(10)).toBe(14); // 17.40
     expect(nowStepOf(12)).toBe(18); // 19.00
     expect(nowStepOf(14)).toBe(21); // 20.00

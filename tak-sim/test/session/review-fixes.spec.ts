@@ -10,8 +10,10 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { FREEZE_AFTER_BOUNDARY_S, freezeWindowFor, PRACTICE_VIEW_MAX_SECONDS } from "../../app/scenario/views.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import { answerForcedSpam, PLAN } from "./view-flow.js";
+import { withPracticeFreeze } from "./practice-freeze-fixture.js";
 
-const scenario = buildDemoScenario();
+/** Revision (bp): the built VP has no freeze; these tests take theirs in VP from the fixture, at the retired moment (69 s). */
+const scenario = withPracticeFreeze(buildDemoScenario());
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

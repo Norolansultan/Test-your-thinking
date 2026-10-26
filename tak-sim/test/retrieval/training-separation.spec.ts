@@ -9,8 +9,7 @@
  * - Session side: for the training's questions and names, the session's retrieval over `scenario.atoms` at every step of every view, VP
  *   included, returns no `trn.` record (the session's corpus never holds one; checked at every step all the same).
  *
- * Lexical, as the training's Haku always is and as the play harness runs the session's. The training's corpus is work package A's once it
- * is in the tree, the fixture of `08` (bp) §bp.6's table before (`training-fixture.ts`).
+ * Lexical, as the training's Haku always is and as the play harness runs the session's. The training's corpus is the built one.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -25,7 +24,7 @@ import { recordText } from "../../app/session/template-answer.js";
 import { toRenderable } from "../../app/boundary/render-boundary.js";
 import { HAKU_SUGGESTED_QUESTION } from "../../app/session/consult-notice.js";
 import { SEEK_QUESTIONS } from "../../tools/review/seek-questions.js";
-import { TRAINING_FOR_TESTS, TRAINING_NAMES, TRAINING_QUESTIONS } from "./training-fixture.js";
+import { FIXTURE_TRAINING_ATOMS, TRAINING_FOR_TESTS, TRAINING_NAMES, TRAINING_QUESTIONS } from "./training-fixture.js";
 
 type Lang = "fi" | "en";
 const LANGS = ["fi", "en"] as const;
@@ -49,6 +48,11 @@ const sessionQuestions = (lang: Lang): string[] => [
 ];
 
 describe("the two corpora are disjoint (static)", () => {
+  it("the built corpus is the twelve records of 08 (bp) §bp.6 (the fixture): the same ids, sources, tiers and clocks", () => {
+    const sig = (a: { id: string; tier: string; provenance: { sourceId: string; observedAt: number } }) => `${a.id} ${a.provenance.sourceId} ${a.tier} ${a.provenance.observedAt}`;
+    expect(training.atoms.map(sig)).toEqual(FIXTURE_TRAINING_ATOMS.map(sig));
+  });
+
   it("no training id in the session's atoms and no session id in the training's; every training id is `trn.`", () => {
     expect(training.atoms.length).toBeGreaterThanOrEqual(12);
     expect(training.atoms.every((a) => a.id.startsWith("trn."))).toBe(true);

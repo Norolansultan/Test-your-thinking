@@ -9,9 +9,10 @@
  *
  * The legend is opened as the guided tour opens it (`announceTourStep("legend")`), so the image carries the symbols' key, unless the
  * player has collapsed it (`map legend`).
- * Revision (bp), 26 Oct 2026: the training incident's map is the same `MapView` over the training's scene and square, with work package
- * B's overlay drawn on it (`drawTrainingOverlay`: the item's marks, the memory unit, the feedback) and a grid labelled in the PNG's own
- * pixels in a margin around it (`training-host.ts`); no legend (the training's map has none of the session's projection).
+ * Revision (bp), 26 Oct 2026: the training incident's map is the same `MapView` over the training's scene, LOCKED to its square as the
+ * training's stage locks it (`training-lock.ts`: its presets, its tiles, no reference overlay), with the training's overlay drawn on it
+ * (`drawTrainingOverlay`: the item's marks, the memory unit, the feedback) and a grid labelled in the PNG's own pixels in a margin
+ * around it (`training-host.ts`); no legend (the training's map has none of the session's projection).
  * Built by `map-render.ts` with esbuild; never part of the app's build.
  */
 
@@ -29,7 +30,7 @@ import { UI_TEXT } from "../../app/i18n/ui.js";
 import { announceTourStep } from "../../app/render/ui/tour.js";
 import type { SessionSnapshot } from "../../app/session/snapshot.js";
 import type { MapPageData } from "./map-data.js";
-import { drawTrainingOverlay } from "./training-overlay-shim.js";
+import { drawTrainingOverlay } from "../../app/render/ui/training-overlay.js";
 import { gridSvg } from "./grid-svg.js";
 
 interface PlayWindow { __PLAY_MAP__?: MapPageData; __playMapDone?: boolean; __playMapError?: string }
@@ -51,7 +52,7 @@ function Page() {
   const tak = { overlays: DEFAULT_OVERLAYS, onMap: (m: TakMapHandle | null) => { mapHandle = m; setHandle(m); }, planLabels: t.tak.plan, legendSymbols: { unit: symbolSvg(sidcOf("EK11"), 24), air: symbolSvg(sidcOf("DR1"), 24) } };
   const map = h("div", { id: "play-map-root", style: { width: `${data.widthPx}px`, height: `${data.heightPx}px`, display: "flex", flexDirection: "column", position: "relative", background: "#12151a" } },
     h("style", null, TAK_MAP_CSS),
-    h(MapView, { snapshot, extent: data.extent, tak },
+    h(MapView, { snapshot, extent: data.extent, tak, lock: data.training?.lock },
       h(TakInfoCard, { clockLabel: data.clockLabel, wind: data.cycleInfo?.wind }),
       h(TakCoordReadout, { map: handle?.map ?? null })));
   const train = data.training;
@@ -71,7 +72,7 @@ render(h(Page, null), document.getElementById("app")!);
 const frames = (n: number) => new Promise<void>((resolve) => { const step = (k: number) => (k <= 0 ? resolve() : requestAnimationFrame(() => step(k - 1))); step(n); });
 const finish = () => {
   if (data.legend) announceTourStep("legend");
-  // Revision (bp): B's overlay on the training's map, drawn once the map is ready; a missing overlay is an error, not a bare map.
+  // Revision (bp): the training's overlay on its map, drawn once the map is ready; an overlay that fails is an error, not a bare map.
   if (data.training && mapHandle) {
     try { drawTrainingOverlay(mapHandle.map, data.training.view, data.training.item, data.lang); }
     catch (e) { (window as unknown as PlayWindow).__playMapError = e instanceof Error ? e.message : String(e); }

@@ -88,7 +88,7 @@ describe("the freeze at the view's end (SPEC/30 §5.1)", () => {
     const at = (k: string) => indexOfKind(records, k, 14);
     expect(at("plan_confidence_submitted")).toBeLessThan(at("freeze_started"));
     expect(at("freeze_submitted")).toBeLessThan(records.findIndex((r) => r.kind === "probe_presented" && (r.detail as { probeId: string }).probeId === "probe.u.cycle_14"));
-    expect(ofKind(records, "freeze_started").map((r) => (r.detail as { cycle: number }).cycle)).toEqual([0, 2, 4, 5, 7, 10, 12, 14]);
+    expect(ofKind(records, "freeze_started").map((r) => (r.detail as { cycle: number }).cycle)).toEqual([2, 4, 5, 7, 10, 12, 14]); // revision (bp): VP has no freeze
   });
 
   it("not after a demonstration skip (what was left is not asked)", async () => {

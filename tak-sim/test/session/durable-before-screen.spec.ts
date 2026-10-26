@@ -10,8 +10,10 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import { InMemoryLogSink, type LogRecord, type LogSink } from "../../app/telemetry/log.js";
 import { allocateAndConfirm, runOutView } from "./view-flow.js";
+import { withPracticeFreeze } from "./practice-freeze-fixture.js";
 
-const scenario = buildDemoScenario();
+/** Revision (bp): the built VP has no freeze; the freeze here is the fixture's, in VP at the retired moment. */
+const scenario = withPracticeFreeze(buildDemoScenario());
 
 /** A sink whose writes wait while it is held (a slow IndexedDB commit). */
 class HeldSink implements LogSink {

@@ -6,23 +6,23 @@
  * - `continue`: the intro ("Aloita"), a section card, an item's feedback ("Seuraava" / "Valmis"), S5's recording (its button waits 10 s).
  * - `training-answer <letter> [confidence]` or `training-answer <x>,<y> [confidence]`: the item on screen, once, final. A point is read off
  *   the image's grid in the PNG's own pixels (the live map's, or the memory item's blank map: play-test B12); a question card and a
- *   freeze item take the confidence too. The R&B readings taken on the item go with it (`measures`).
+ *   freeze item take the confidence too (`answerTraining` takes both directly). The R&B readings taken on the item go with it (each
+ *   noted as the stage notes it, `noteTrainingMeasure`).
  * - `haku "<question>"` on an S3 card: Search over the training's own records (the harness's no-model transport answers it, as the
- *   proxy's fallback); the answer is read from the training's own log record (`training_haku_answered`).
+ *   proxy's fallback); the answer is the training's own Haku turn (the snapshot's `aiChatHistory` while the step is on).
  * - `measure x1,y1 x2,y2` and `map 2.5km|1km|reset [center=x,y]` on the training's live map. The training's map use is not logged
  *   (SPEC/07 (bp)), so nothing here writes a map record.
  */
 
-import type { LogRecord } from "../../app/telemetry/log.js";
-import type { TrainingHakuAnsweredDetail, TrainingHakuAskedDetail } from "../../app/telemetry/record-kinds-training.js";
 import type { TrainingAnswer, TrainingConfidence } from "../../app/session/training/host.js";
+import { displayAnswerText } from "../../app/session/chat-display.js";
 import { CONFIDENCE_SCALE } from "../../app/session/confidence.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { formatBearing, formatRange, rangeBearing } from "../../app/render/ui/tak/RangeBearing.js";
 import { COST_S } from "./costs.js";
 import { PlayError, type PlaySession } from "./session.js";
 import { freezePointAt } from "./freeze-grid.js";
-import { metresBetween, moveTrainingCamera, trainingHostOf, trainingItemOf, trainingLockBox, trainingOpening, trainingPointAt, trainingViewOf, TRAINING_MOVES } from "./training-host.js";
+import { metresBetween, moveTrainingCamera, trainingItemOf, trainingLockBox, trainingOpening, trainingPointAt, trainingViewOf, TRAINING_MOVES } from "./training-host.js";
 
 const need = (ok: unknown, message: string): void => { if (!ok) throw new PlayError(message); };
 const H = (s: string) => `» ${s}`;
@@ -43,18 +43,18 @@ function uiFor(session: PlaySession, itemId: string | null) {
 /** `continue` on the training's screen. */
 export async function trainingContinue(session: PlaySession): Promise<string> {
   const view = viewOrRefuse(session);
-  const host = trainingHostOf(session.o);
+  const host = session.o;
   switch (view.phase) {
-    case "intro": await session.spend(COST_S.trainingCard); await session.act(async () => host.trainingStart()); return "Training started (`look`).";
-    case "section": await session.spend(COST_S.trainingCard); await session.act(async () => host.trainingLeaveSection()); return "Section card left (`look`).";
+    case "intro": await session.spend(COST_S.trainingCard); await session.act(() => host.trainingStart()); return "Training started (`look`).";
+    case "section": await session.spend(COST_S.trainingCard); await session.act(() => host.trainingLeaveSection()); return "Section card left (`look`).";
     case "feedback": {
       await session.spend(COST_S.trainingFeedback);
       const now = trainingViewOf(session.snap());
       if (now?.itemId !== view.itemId || now.phase !== "feedback") return "The screen changed meanwhile (`look`).";
-      await session.act(async () => host.leaveTrainingFeedback(view.itemId!));
+      await session.act(() => host.leaveTrainingFeedback(view.itemId!));
       return view.position === view.itemCount ? "Feedback left: the last item." : "Next item (`look`).";
     }
-    case "demo": await session.spend(COST_S.trainingDemo); await session.act(async () => host.leaveTrainingDemo()); return "Recording left: the training is done.";
+    case "demo": await session.spend(Math.max(COST_S.trainingDemo, host.trainingDemoSecondsLeft())); await session.act(() => host.leaveTrainingDemo()); return "Recording left: the training is done.";
     case "study": throw new PlayError(`the unit is still on the map: \`wait ${Math.max(1, host.trainingStudySecondsLeft())}\`, then \`look\``);
     case "question": throw new PlayError("answer the item first (`training-answer …`)");
     default: throw new PlayError("nothing to continue here");
@@ -68,7 +68,7 @@ export async function trainingAnswer(session: PlaySession, args: readonly string
   need(view.phase === "question", view.phase === "study" ? "the unit is still on the map: `wait`, then `look`" : view.phase === "feedback" ? "the feedback is on screen: `continue`" : "no training item is on screen");
   const spec = session.trainingContent.spec;
   const item = trainingItemOf(view, spec);
-  need(item, "the item on screen is not in the training's spec (work package A's content)");
+  need(item, "the item on screen is not in the training's spec (its build)");
   const arg = args[0] === item!.id ? args[1] : args[0];
   const rest = args[0] === item!.id ? args.slice(2) : args.slice(1);
   let confidence: TrainingConfidence | undefined;
@@ -91,8 +91,8 @@ export async function trainingAnswer(session: PlaySession, args: readonly string
   await session.spend(COST_S.trainingAnswer);
   const now = trainingViewOf(session.snap());
   if (now?.itemId !== view.itemId || now.phase !== "question") return "The item closed before the answer (its time ran out): `look`.";
-  const measures = uiFor(session, item!.id).measures;
-  await session.act(async () => trainingHostOf(session.o).answerTraining(item!.id, answer, [...measures]));
+  uiFor(session, item!.id);
+  await session.act(() => session.o.answerTraining(item!.id, answer));
   return look();
 }
 
@@ -104,17 +104,16 @@ export async function trainingHaku(session: PlaySession, question: string): Prom
   await session.spend(COST_S.hakuType);
   const now = trainingViewOf(session.snap());
   if (now?.itemId !== view.itemId || now.phase !== "question") return "The card closed before the question was sent: `look`.";
+  const before = session.snap().aiChatHistory.length;
   const startMs = session.clock.now();
-  await session.act(() => trainingHostOf(session.o).askTrainingHaku(question));
+  await session.act(() => session.o.askTrainingHaku(question));
   await session.spend(Math.max(0, COST_S.hakuRead - (session.clock.now() - startMs) / 1000));
-  const records: readonly LogRecord[] = await session.o.logRecords();
-  const asked = records.filter((r) => r.kind === "training_haku_asked").map((r) => r.detail as TrainingHakuAskedDetail).at(-1);
-  const answered = records.filter((r) => r.kind === "training_haku_answered").map((r) => r.detail as TrainingHakuAnsweredDetail).at(-1);
-  need(asked && answered && asked.queryId === answered.queryId, "the training's Search answer was not logged");
-  session.trainingUi = { ...session.trainingUi, haku: [...session.trainingUi.haku, { itemId: view.itemId!, query: asked!.text, answer: answered!.answer }] };
-  const t = UI_TEXT[session.config.lang];
-  return [H(`Search answer — ${answered!.answerSource === "template" ? "TEMPLATE FALLBACK (the proxy's no-model answer over lexical retrieval)" : answered!.answerSource}, over the training's records only.`),
-    `> ${asked!.text}`, `${t.answer}: ${answered!.answer.vastaus}`, `${t.basis}: ${answered!.answer.perusteet}`, `${t.certainty}: ${answered!.answer.varmuus}`, `${t.wouldChange}: ${answered!.answer.muuttaisi}`].join("\n");
+  const turns = session.snap().aiChatHistory;
+  need(turns.length > before, "the training's Search gave no answer");
+  const turn = turns.at(-1)!;
+  const t = UI_TEXT[session.config.lang], d = (x: string) => displayAnswerText(x);
+  return [H("Search answer — TEMPLATE FALLBACK (the proxy's no-model answer over lexical retrieval), over the training's records only."),
+    `> ${turn.query}`, `${t.answer}: ${d(turn.answer.answerFi)}`, `${t.basis}: ${d(turn.answer.basisFi)}`, `${t.certainty}: ${d(turn.answer.certaintyFi)}`, `${t.wouldChange}: ${d(turn.answer.wouldChangeIfFi)}`].join("\n");
 }
 
 /** `measure x1,y1 x2,y2` on the training's live map (R&B; not logged). */
@@ -131,6 +130,7 @@ export async function trainingMeasure(session: PlaySession, args: readonly strin
   await session.spend(COST_S.measure);
   const ui = uiFor(session, view.itemId);
   const metres = Math.round(metresBetween(a, b));
+  session.o.noteTrainingMeasure(metres); // as the stage notes an R&B reading for the item's answer
   session.trainingUi = { ...ui, measures: [...ui.measures, metres], rb: { from: a, to: b } };
   const lang = session.config.lang, rb = UI_TEXT[lang].tak.rb, r = rangeBearing(a, b);
   return `-- ${UI_TEXT[lang].tak.paneTitle.range_bearing} --\n${rb.range}: ${formatRange(r.metres, lang)} · ${rb.bearing}: ${formatBearing(r.bearingDeg)} · ${rb.backBearing}: ${formatBearing(r.backBearingDeg)}\n${rb.keeps}`;

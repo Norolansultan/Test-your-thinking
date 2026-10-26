@@ -1,5 +1,5 @@
 /**
- * The session flow over SPEC/26's views: the briefing, the practice view (no AI, practice freeze,
+ * The session flow over SPEC/26's views: the briefing, the practice view (the first look since revision (bp): no freeze;
  * tagged telemetry), the training, the fourteen main views with the hinge after V7, the step
  * boundary inside a merged view (SPEC/26 §2), the real view timings and the preview override.
  * Condition-specific rules (SPEC/02 revision (o)) are in `conditions.spec.ts`; the view's own flow
@@ -13,13 +13,16 @@ import { parsePreviewOverride } from "../../app/session/preview.js";
 import { STEP_SECONDS } from "../../app/scenario/views.js";
 import { clockAtVirtual } from "../../app/render/projection-validity.js";
 import { allocateAndConfirm, answerForcedSpam, passHinge, PLAN, runOutView } from "./view-flow.js";
+import { FIXTURE_FREEZE_AT_S, withPracticeFreeze } from "./practice-freeze-fixture.js";
 
 const scenario = buildDemoScenario();
-const practiceFreezeAt = scenario.practice.cycle.freezeAtSeconds!;
+/** Revision (bp): the built VP has no freeze; the freeze tests below take theirs in VP from the fixture, at the retired moment. */
+const withFreeze = withPracticeFreeze(scenario);
+const practiceFreezeAt = FIXTURE_FREEZE_AT_S;
 const practiceMin = scenario.practice.cycle.minViewSeconds; // 180 s since 11 Oct 2026 (PRACTICE_VIEW_MIN_SECONDS)
 
-function start(options: ConstructorParameters<typeof SessionOrchestrator>[2] = {}, condition: "directed" | "substitutive" = "substitutive") {
-  const o = new SessionOrchestrator(scenario, condition, options);
+function start(options: ConstructorParameters<typeof SessionOrchestrator>[2] = {}, condition: "directed" | "substitutive" = "substitutive", sc = scenario) {
+  const o = new SessionOrchestrator(sc, condition, options);
   const box: { snap: SessionSnapshot | null } = { snap: null };
   o.subscribe((s) => (box.snap = s));
   return { o, snap: () => box.snap! };
@@ -44,19 +47,17 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("the practice view VP (SPEC/26 D3)", () => {
-  it("opens the session: 'Harjoitus', the AI group's Thinker practice (revision (am)), the real 180 s, a 4-item freeze, the normal decision panel", async () => {
+  it("opens the session: 'Ensikatsaus' (revision (bp)), the AI group's Thinker practice (revision (am)), the real 180 s, no freeze, the normal decision panel", async () => {
     const { o, snap } = start();
     await begin(o);
     // Revision (am), 10 Oct 2026: the AI group has its Open Thinker in VP too (the Thinker practice; `thinker-practice-am.spec.ts`).
-    expect(snap()).toMatchObject({ currentCycle: 0, practice: true, viewLabel: "Harjoitus", aiAvailable: true, minViewSeconds: practiceMin, decisionOpensAtSeconds: 20, step: "exploration" });
+    expect(snap()).toMatchObject({ currentCycle: 0, practice: true, viewLabel: "Ensikatsaus", aiAvailable: true, minViewSeconds: practiceMin, decisionOpensAtSeconds: 20, step: "exploration" });
+    expect(scenario.practice.cycle).toMatchObject({ hasFreeze: false, freezeAtSeconds: null });
 
     await vi.advanceTimersByTimeAsync(20_000);
     expect(snap().step).toBe("allocation");
-    await vi.advanceTimersByTimeAsync((practiceFreezeAt - 20) * 1000);
-    expect(snap().step).toBe("freeze");
-    expect(snap().freeze!.items).toHaveLength(5); // difficulty audit (23 Oct 2026): the Haku-only forecast item added
-    await o.submitFreeze([]);
-    expect(snap().step).toBe("allocation");
+    await vi.advanceTimersByTimeAsync((practiceFreezeAt - 20) * 1000); // revision (bp): past the retired freeze's moment, nothing interrupts
+    expect(snap()).toMatchObject({ step: "allocation", freeze: null });
     await o.submitAllocation(PLAN);
     expect(snap().step).toBe("awaiting_view_end"); // the plan confirms the period, before the minimum length
     await vi.advanceTimersByTimeAsync((practiceMin - practiceFreezeAt) * 1000);
@@ -65,6 +66,7 @@ describe("the practice view VP (SPEC/26 D3)", () => {
     expect(snap().step).toBe("training"); // the training follows the practice view (SPEC/15 §2)
     await o.completeTraining();
     expect(snap()).toMatchObject({ currentCycle: 1, practice: false, viewLabel: "Jakso 1 / 14", aiAvailable: true, phase: "A" });
+    expect((await o.logRecords()).filter((r) => r.kind === "freeze_started")).toEqual([]);
   });
 
   it("logs the real dwell on the training text, and the briefing passed at once (fix pass 2, 7 Oct 2026; revision (ae))", async () => {
@@ -89,9 +91,9 @@ describe("the practice view VP (SPEC/26 D3)", () => {
 
     expect(kinds).toContainEqual(["phase_entered", { phase: "practice" }]);
     expect(kinds).toContainEqual(["cycle_start", { cycle: 0, phase: "practice", clockLabel: scenario.practice.cycle.clockLabel, minViewSeconds: scenario.practice.cycle.minViewSeconds, freezeAtSeconds: scenario.practice.cycle.freezeAtSeconds, navSources: expect.any(Array) }]);
-    expect(kinds).toContainEqual(["cycle_end", { cycle: 0, totalRealDurationMs: practiceMin * 1000 }]); // the real time since VP opened: its 180 s (the freeze answered at once)
+    expect(kinds).toContainEqual(["cycle_end", { cycle: 0, totalRealDurationMs: practiceMin * 1000 }]); // the real time since VP opened: its 180 s
     expect(records.some((r) => r.kind === "containment_judgement_submitted")).toBe(false); // revision (x): no Type J, not even in VP
-    expect(records.find((r) => r.kind === "freeze_submitted")!.detail).toMatchObject({ cycle: 0 });
+    expect(records.filter((r) => r.kind === "freeze_started" || r.kind === "freeze_submitted")).toEqual([]); // revision (bp): VP has no freeze
 
     const seqOf = (pred: (r: (typeof records)[number]) => boolean) => records.findIndex(pred);
     const vpEnd = seqOf((r) => r.kind === "cycle_end");
@@ -238,7 +240,7 @@ describe("the preview override (app/session/preview.ts)", () => {
   });
 
   it("scales every view time by override / 120 and is logged in the session header", async () => {
-    const { o, snap } = start({ previewOverride: { minViewSeconds: 12 } });
+    const { o, snap } = start({ previewOverride: { minViewSeconds: 12 } }, "substitutive", withFreeze);
     await begin(o);
     expect(snap()).toMatchObject({ minViewSeconds: practiceMin / 10, decisionOpensAtSeconds: 2, previewOverride: { minViewSeconds: 12 } });
     expect((await o.logRecords())[0]!.detail).toMatchObject({ previewOverride: { minViewSeconds: 12 } });
@@ -273,7 +275,7 @@ describe("the preview override (app/session/preview.ts)", () => {
 
 describe("one confidence scale (researcher decision 1 Oct 2026)", () => {
   it("accepts only 25, 50, 75 or 100 for every freeze item (the only in-view confidence since revision (x))", async () => {
-    const { o, snap } = start();
+    const { o, snap } = start({}, "substitutive", withFreeze);
     await begin(o);
     await vi.advanceTimersByTimeAsync(practiceFreezeAt * 1000);
     const item = snap().freeze!.items[0]!;
@@ -287,7 +289,7 @@ describe("one confidence scale (researcher decision 1 Oct 2026)", () => {
 
 describe("the view's real duration (cycle_end.totalRealDurationMs, the drawer-open fraction's denominator)", () => {
   it("is the real time since the view opened, the time the freeze was open included", async () => {
-    const { o, snap } = start();
+    const { o, snap } = start({}, "substitutive", withFreeze);
     await begin(o);
     await vi.advanceTimersByTimeAsync(practiceFreezeAt * 1000);
     expect(snap().step).toBe("freeze");
@@ -303,7 +305,7 @@ describe("the view's real duration (cycle_end.totalRealDurationMs, the drawer-op
 
 describe("Haku and Thinker only inside a view (6 Oct 2026)", () => {
   it("are refused during a freeze and at the training, and work in the view's own steps (no briefing page since revision (ae))", async () => {
-    const { o, snap } = start();
+    const { o, snap } = start({}, "substitutive", withFreeze);
     await o.start();
     expect(snap().step).toBe("exploration");
     await expect(o.searchAtoms("EK11")).resolves.toBeDefined();

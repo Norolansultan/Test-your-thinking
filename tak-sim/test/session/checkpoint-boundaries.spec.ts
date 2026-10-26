@@ -44,7 +44,7 @@ describe("checkpoints in a driven session", () => {
     const labels = requests.map((r) => r.label);
     expect(labels).toContain("training");
     expect(labels).toContain("hinge");
-    expect(labels.filter((l) => l.startsWith("freeze_v")).length).toBeGreaterThanOrEqual(5);
+    expect(labels.filter((l) => l.startsWith("freeze_v")).length).toBeGreaterThanOrEqual(4); // V2, V4, V5, V7 (revision (bp): VP has no freeze)
     expect(new Set(labels).size).toBe(labels.length); // one request per boundary (each is small: what is new)
     // Each checkpoint continues where the previous one ended.
     for (let i = 1; i < requests.length; i++) expect(requests[i]!.from).toBeGreaterThan(requests[i - 1]!.from);

@@ -1,60 +1,37 @@
 /**
  * The play harness's link to the training incident (revision (bp), 26 Oct 2026; SPEC/15 (bp), SPEC/08 (bp)) and its map geometry.
  *
- * The SEAMS to work package B's session code, in one place, so the integration names them once:
- * - the step: `training_incident` (SPEC/15 §bp.1);
- * - the snapshot's training view (`TrainingView`, `app/session/training/host.ts`): read from `trainingIncident` (or `training`, if B
- *   named it so) while the step is on;
- * - the orchestrator's training methods (`TrainingHost`): called through that type, with a clear error when the orchestrator has none;
- * - the session option that turns the training on (`TRAINING_SESSION_OPTION`, assumed `trainingIncident` after the header's field).
+ * The session side is work package B's orchestrator: the step `training_incident`, the snapshot's `training` view (`TrainingView`) and,
+ * while the step is on, the snapshot's map scene, message log and Haku turns, which are the training's (`app/session/training/view.ts`);
+ * the training's methods (`TrainingHost`, `noteTrainingMeasure`, `trainingDemoSecondsLeft`); the option `trainingIncident`, which the app
+ * sets in every session.
  *
- * The geometry: the training's live map is locked to its square (`TRAINING.area`, plus `lockMarginM`): the harness draws its opening
- * frame ("2.5 km", the whole square) or a "1 km" frame, and labels a grid in the PNG's own pixels around the map, as `freeze-grid.ts`
- * labels the freeze map (play-test B12: a point read off the grid is the point the harness answers). The memory item's blank map is the
- * freeze map of the same lock box. Pure, apart from reading the snapshot.
+ * The geometry: the training's live map is locked to its square (`TRAINING.area`, plus `lockMarginM`; `training-lock.ts`): the harness
+ * draws its opening frame ("2.5 km", the whole square) or a "1 km" frame, and labels a grid in the PNG's own pixels around the map, as
+ * `freeze-grid.ts` labels the freeze map (play-test B12: a point read off the grid is the point the harness answers). The memory item's
+ * blank map is the freeze map of the same lock box. Pure, apart from reading the snapshot.
  */
 
-import type { SessionOptions, SessionOrchestrator, SessionSnapshot } from "../../app/session/orchestrator.js";
-import type { TrainingHost, TrainingView } from "../../app/session/training/host.js";
+import type { SessionSnapshot } from "../../app/session/orchestrator.js";
+import type { TrainingView } from "../../app/session/training/host.js";
 import type { TrainingItem, TrainingSpec } from "../../app/session/training/spec.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
+import { trainingLockBox } from "../../app/session/training/area.js";
 import { extentCamera, zoomForWidth, type Camera } from "../../app/render/map-frame.js";
 import type { LatLon } from "../../app/engine/primitives.js";
-import { PlayError } from "./session.js";
 import { LIVE_MAP_PX } from "./map-data.js";
 import { lngLatAt } from "./map-camera.js";
 
-/** SPEC/15 §bp.1: the training's step id. */
-export const TRAINING_STEP_ID = "training_incident";
+export { trainingLockBox };
 
-/**
- * The session option that turns the training on, as the app sets it in every session (SPEC/07 (bp): the header's `trainingIncident`).
- * Typed loosely: before the merge the option does not exist; if work package B named it otherwise, this is the one line to change.
- */
-export const TRAINING_SESSION_OPTION = { trainingIncident: true } as unknown as Partial<SessionOptions>;
-
-/** Whether the snapshot is the training's step. */
+/** Whether the snapshot is the training's step (SPEC/15 §bp.1). */
 export function inTraining(s: SessionSnapshot): boolean {
-  return (s.step as string) === TRAINING_STEP_ID;
+  return s.step === "training_incident";
 }
 
-/** The snapshot's training view (see the module comment), or null outside the training. */
+/** The snapshot's training view, or null outside the training. */
 export function trainingViewOf(s: SessionSnapshot): TrainingView | null {
-  if (!inTraining(s)) return null;
-  const o = s as unknown as { trainingIncident?: TrainingView | null; training?: unknown };
-  if (o.trainingIncident) return o.trainingIncident;
-  const t = o.training as TrainingView | null | undefined;
-  return t && typeof t === "object" && "phase" in t ? t : null;
-}
-
-const HOST_METHODS = ["trainingStart", "trainingLeaveSection", "answerTraining", "leaveTrainingFeedback", "askTrainingHaku", "leaveTrainingDemo", "trainingSecondsLeft", "trainingStudySecondsLeft", "trainingCardSecondsLeft"] as const;
-
-/** The orchestrator's training methods (work package B), or a clear refusal when this tree's orchestrator has none. */
-export function trainingHostOf(o: SessionOrchestrator): TrainingHost {
-  const h = o as unknown as Partial<Record<(typeof HOST_METHODS)[number], unknown>>;
-  const missing = HOST_METHODS.filter((m) => typeof h[m] !== "function");
-  if (missing.length > 0) throw new PlayError(`the session has no training methods (${missing.join(", ")}): the training incident's orchestrator (work package B) is not in this tree`);
-  return o as unknown as TrainingHost;
+  return inTraining(s) ? s.training : null;
 }
 
 /** The item on screen (its geometry and options; its words are `TRAINING_TEXT`), or null. */
@@ -62,33 +39,15 @@ export function trainingItemOf(view: TrainingView | null, spec: TrainingSpec = T
   return view?.itemId ? spec.items.find((i) => i.id === view.itemId) ?? null : null;
 }
 
-/**
- * The message log's clock in a section (SPEC/08 (bp) §bp.6): S2's scene shows the reports to 10.12 (`trn.r03`, `r05`, `r08`); S3's
- * shows all five, to the training's "now". Null when the log is not open.
- */
-export function trainingLogUntil(view: TrainingView, spec: TrainingSpec = TRAINING): string | null {
-  if (!view.tools.log) return null;
-  return view.sectionId === "s2" ? "10.12" : spec.now.label;
-}
-
 // ---------------------------------------------------------------------------------------------------------------------------
 // The map: the lock box, the frames, the grid in the PNG's own pixels
 // ---------------------------------------------------------------------------------------------------------------------------
 
-type Box = { readonly south: number; readonly north: number; readonly west: number; readonly east: number };
-
 /** The grid's margin around the training's live map in the PNG (the labels sit in it), as the freeze map's. */
 export const TRAINING_GRID_MARGIN_PX = 44;
 export const TRAINING_GRID_STEP_PX = 50;
+/** `MapView`'s frame padding: the locked map's opening frame fits the square inside it (`MapView`, `lockedFrame`). */
 const FRAME_PAD_PX = 16;
-const M_PER_DEG_LAT = 111_320;
-
-/** The square plus the lock's margin: the live map cannot leave it, and the blank map shows it. */
-export function trainingLockBox(spec: TrainingSpec = TRAINING): Box {
-  const b = spec.area.bounds, m = spec.area.lockMarginM;
-  const dLat = m / M_PER_DEG_LAT, dLon = m / (M_PER_DEG_LAT * Math.cos((((b.south + b.north) / 2) * Math.PI) / 180));
-  return { south: b.south - dLat, north: b.north + dLat, west: b.west - dLon, east: b.east + dLon };
-}
 
 export const TRAINING_MOVES = ["2.5km", "1km", "reset"] as const;
 

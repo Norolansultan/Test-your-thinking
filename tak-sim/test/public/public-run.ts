@@ -16,7 +16,7 @@ import type { LogRecord } from "../../app/telemetry/log.js";
 import { conditionOfCell } from "../../app/session/preview.js";
 import { completeView } from "../session/session-run.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
-import { inTraining, TRAINING_SESSION_OPTION, trainingHostOf, trainingItemOf, trainingViewOf } from "../../tools/play/training-host.js";
+import { inTraining, trainingItemOf, trainingViewOf } from "../../tools/play/training-host.js";
 
 export const scenario = buildDemoScenario();
 
@@ -28,19 +28,13 @@ export const GOOD_ENV: PreflightEnv = {
 /**
  * The options the app gives a study session (`useSession.ts`), the Haku group, a 5 s preview minimum. Revision (bp), 26 Oct 2026: the
  * map training and the practice feedback are retired (their options are gone); the training incident is on in every session
- * (`TRAINING_SESSION_OPTION`, the one seam to work package B's option, `tools/play/training-host.ts`).
+ * (`trainingIncident`, as the app sets it).
  */
 export const APP_OPTIONS: SessionOptions = {
   cell: "radio", studyShell: true, aiLiteracyTest: true, introVideo: "/video/intro.mp4", previewOverride: { minViewSeconds: 5 },
-  participantCode: "P-35", realClockMs: () => Date.now(), thinker: { transport: vi.fn() }, ...TRAINING_SESSION_OPTION,
+  participantCode: "P-35", realClockMs: () => Date.now(), thinker: { transport: vi.fn() }, trainingIncident: true,
 };
 
-/**
- * Revision (bp): whether this tree runs the training incident end to end — package A's content (`TRAINING`) and package B's orchestrator
- * methods. Before the three packages are merged it has neither: the specs then check that the session runs without it (and the
- * training's own assertions wait for the merge).
- */
-export const TRAINING_IN_TREE = TRAINING.items.length > 0 && typeof (SessionOrchestrator.prototype as unknown as Record<string, unknown>).answerTraining === "function";
 
 export function newStudySession(options: SessionOptions = {}, base: SessionOptions = APP_OPTIONS) {
   const o = new SessionOrchestrator(scenario, conditionOfCell(options.cell ?? "radio"), { ...base, ...options });
@@ -65,13 +59,13 @@ export async function passPrimer(o: SessionOrchestrator): Promise<void> {
  */
 export async function trainingStep(o: SessionOrchestrator, snap: () => SessionSnapshot): Promise<void> {
   const v = trainingViewOf(snap())!;
-  const host = trainingHostOf(o);
+  const host = o;
   switch (v.phase) {
     case "intro": return host.trainingStart();
     case "section": return host.trainingLeaveSection();
     case "feedback": return host.leaveTrainingFeedback(v.itemId!);
     case "study": await vi.advanceTimersByTimeAsync(Math.max(1, host.trainingStudySecondsLeft()) * 1000); return;
-    case "demo": await vi.advanceTimersByTimeAsync(TRAINING.demoMinDwellMs); return host.leaveTrainingDemo();
+    case "demo": await vi.advanceTimersByTimeAsync(Math.max(1, host.trainingDemoSecondsLeft()) * 1000); return host.leaveTrainingDemo();
     case "question": {
       const item = trainingItemOf(v)!;
       const confidence = item.mode === "live" ? {} : { confidence: 50 as const };
@@ -88,12 +82,6 @@ export async function passTraining(o: SessionOrchestrator, snap: () => SessionSn
     await trainingStep(o, snap);
   }
 }
-
-/**
- * @deprecated Revision (bp): the map training is retired; kept only so that `test/session/map-training.spec.ts` (work package B's,
- * retired with the map training) compiles until the merge removes it. It drives the training incident.
- */
-export const passPretest = passTraining;
 
 /**
  * Moves the session on from the screen it is at until `stopAt` is on screen (or the end is complete). Each step is

@@ -9,6 +9,7 @@ import { IDLE_THRESHOLD_MS, readingGraceMsFor, trackAttention, type AttentionKin
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import { allocateAndConfirm, runOutView } from "./view-flow.js";
+import { withPracticeFreeze } from "./practice-freeze-fixture.js";
 
 function page() {
   const win = new EventTarget();
@@ -129,7 +130,7 @@ describe("idle net of waits on the session (P1-8, 7 Oct 2026)", () => {
   });
 
   it("the snapshot says the participant waits while the freeze is open and while a Thinker request is pending", async () => {
-    const scenario = buildDemoScenario();
+    const scenario = withPracticeFreeze(buildDemoScenario()); // revision (bp): the built VP has no freeze; the fixture's
     let fail: ((e: Error) => void) | null = null;
     const transport = () => new Promise<never>((_, reject) => { fail = reject; });
     const o = new SessionOrchestrator(scenario, "substitutive", { thinker: { transport, wait: () => Promise.resolve() } });

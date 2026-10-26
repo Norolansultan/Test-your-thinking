@@ -24,6 +24,7 @@ import type { Audience } from "../../app/session/public-session.js";
 import type { Camera } from "../../app/render/map-frame.js";
 import type { TrainingView } from "../../app/session/training/host.js";
 import type { TrainingItem } from "../../app/session/training/spec.js";
+import type { MapLock } from "../../app/render/ui/training-lock.js";
 
 /** The live map's size in the PNG, px: the TAK shell's map at a 1440 × 900 window with GeoChat open beside it (about 984 × 680). */
 export const LIVE_MAP_PX = { width: 1000, height: 680 } as const;
@@ -49,7 +50,7 @@ export interface MapPageData {
    * Revision (bp): the training's map — its view and item (for B's overlay) and the grid's margin and step in PNG pixels; absent for a
    * session view. `cycleInfo` is then the training's scene and `extent` its square.
    */
-  readonly training?: { readonly view: TrainingView; readonly item: TrainingItem | null; readonly gridMarginPx: number; readonly gridStepPx: number };
+  readonly training?: { readonly view: TrainingView; readonly item: TrainingItem | null; readonly gridMarginPx: number; readonly gridStepPx: number; readonly lock: MapLock };
 }
 
 export type ImageRequest =

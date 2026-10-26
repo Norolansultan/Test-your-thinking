@@ -2,9 +2,9 @@
  * The play harness's images (`tools/play/`): each `ImageRequest` (`map-data.ts`) drawn in headless Chromium through Playwright and
  * written as a PNG. The live map is the app's own `MapView` (`map-page.ts`, bundled with esbuild into `<run>/.map-cache/`), served with the basemap tiles and MapLibre's worker from a local HTTP server on 127.0.0.1, so MapLibre
  * draws it exactly as the browser does (WebGL by SwiftShader). The freeze map is SVG over the same tiles. Revision (bp), 26 Oct 2026:
- * the training incident's map is the live map too, with work package B's overlay (the bundle resolves `training-overlay-shim.ts` to
- * `app/render/ui/training-overlay.ts` when that file is in the tree) and a grid in the PNG's pixels; an overlay that cannot be drawn
- * fails the image rather than drawing a bare map. Nothing here touches the session: it only draws what the harness hands it.
+ * the training incident's map is the live map too, locked to its square, with its overlay (`app/render/ui/training-overlay.ts`) and a
+ * grid in the PNG's pixels; an overlay that cannot be drawn fails the image rather than drawing a bare map. Nothing here touches the
+ * session: it only draws what the harness hands it.
  *
  * Playwright is not a dependency of the project: it is imported from `PLAY_PLAYWRIGHT` (default
  * `/opt/node22/lib/node_modules/playwright/index.mjs`) with the browser at `PLAY_CHROMIUM` (default `/opt/pw-browsers/chromium`).
@@ -19,7 +19,6 @@ import { topoTileUrl } from "../../app/i18n/place-names.js";
 import type { GeoExtent } from "../../app/engine/primitives.js";
 import { extentOutlinePx, FREEZE_GRID_STEP_PX, FREEZE_MAP_MARGIN_PX, freezeFrame, freezeTiles } from "./freeze-grid.js";
 import type { ImageRequest } from "./map-data.js";
-import { TRAINING_OVERLAY_MODULE } from "./training-overlay-shim.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const PUBLIC = join(ROOT, "app/render/ui/public");
@@ -34,15 +33,9 @@ async function mapBundle(cacheDir: string): Promise<string> {
   const out = join(cacheDir, "map-page.js");
   mkdirSync(cacheDir, { recursive: true });
   const esbuild = await import("esbuild");
-  // Revision (bp): B's training overlay in place of the stand-in, when it is in the tree.
-  const overlay = join(ROOT, TRAINING_OVERLAY_MODULE);
-  const trainingOverlay = {
-    name: "play-training-overlay",
-    setup(b: { onResolve(o: { filter: RegExp }, f: () => { path: string } | undefined): void }) { b.onResolve({ filter: /training-overlay-shim\.js$/ }, () => (existsSync(overlay) ? { path: overlay } : undefined)); },
-  };
   await esbuild.build({
     entryPoints: [join(ROOT, "tools/play/map-page.ts")], bundle: true, format: "esm", platform: "browser", target: "es2022",
-    jsx: "automatic", jsxImportSource: "preact", outfile: out, logLevel: "error", absWorkingDir: ROOT, plugins: [trainingOverlay],
+    jsx: "automatic", jsxImportSource: "preact", outfile: out, logLevel: "error", absWorkingDir: ROOT,
   });
   return out;
 }

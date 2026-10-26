@@ -1,9 +1,9 @@
 /**
  * The play harness in the training incident (revision (bp), 26 Oct 2026; SPEC/15 (bp) §bp.7 "Play harness"): its pages and its map PNG
  * in both languages and audiences, `training-answer` (letters, or x,y read off the image's own grid: play-test B12), `continue`, `haku`
- * on the S3 cards, `measure` and `map` on its live map, and the smoke's policy through every phase — on a fixture of the training's
- * content and a fake of work package B's orchestrator methods (`play-training-fixture.ts`), as neither is in this tree yet. The tour's
- * records step is still listed (`play.spec.ts` plays VP).
+ * on the S3 cards, `measure` on its live map, and the smoke's policy through every phase to `training_completed` — on the real session
+ * and the training's built content. The pure page function is also checked on a small fixture (`play-training-fixture.ts`) whose texts
+ * are tagged by language. The tour's records step is still listed (`play.spec.ts` plays VP).
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,7 +12,7 @@ import type { TrainingView } from "../../app/session/training/host.js";
 import { UI_TEXT } from "../../app/i18n/ui.js";
 import { PRACTICE_TOUR } from "../../app/render/ui/tour.js";
 import { CONFIDENCE_SCALE } from "../../app/session/confidence.js";
-import { PlayError, PlaySession } from "../../tools/play/session.js";
+import { PlaySession } from "../../tools/play/session.js";
 import { runCommand } from "../../tools/play/commands.js";
 import { dumbPolicy } from "../../tools/play/smoke.js";
 import { lngLatAt } from "../../tools/play/map-camera.js";
@@ -20,30 +20,39 @@ import { LIVE_MAP_PX } from "../../tools/play/map-data.js";
 import { gridSvg } from "../../tools/play/grid-svg.js";
 import { FREEZE_MAP_MARGIN_PX, freezeFrame } from "../../tools/play/freeze-grid.js";
 import { trainingScreen, type TrainingScreenInput } from "../../tools/play/training-pages.js";
-import { moveTrainingCamera, trainingHostOf, trainingLockBox, trainingOpening, trainingPointAt, TRAINING_GRID_MARGIN_PX, TRAINING_GRID_STEP_PX } from "../../tools/play/training-host.js";
-import { fakeHost, FIXTURE_SPEC, FIXTURE_TEXTS, snapshotOf, viewOf } from "./play-training-fixture.js";
+import { inTraining, moveTrainingCamera, trainingItemOf, trainingLockBox, trainingOpening, trainingPointAt, trainingViewOf, TRAINING_GRID_MARGIN_PX, TRAINING_GRID_STEP_PX } from "../../tools/play/training-host.js";
+import { TRAINING } from "../../app/session/training/spec-data.js";
+import { TRAINING_TEXT } from "../../app/i18n/training-texts.js";
+import { FIXTURE_SPEC, FIXTURE_TEXTS, viewOf } from "./play-training-fixture.js";
 
 const M = TRAINING_GRID_MARGIN_PX;
 const ctx = { runDir: "/nonexistent", withMap: true };
 const live: PlaySession[] = [];
 afterEach(() => { for (const s of live.splice(0)) s.dispose(); });
 
-/** A harness session on the fixture's training screen `view` (mutable through `set`), with the fake orchestrator methods. */
-async function onTraining(lang: Lang, view: TrainingView, audience: "expert" | "public" = "expert") {
+/** A real harness session played by the smoke's policy until `until` holds (the training's screens are reached on the way). */
+async function playUntil(lang: Lang, audience: "expert" | "public", until: (session: PlaySession) => boolean) {
   const session = await PlaySession.create({ audience, lang, waitStopsOnMessages: true, questionnairesPlayed: true });
   live.push(session);
-  session.trainingContent = { spec: FIXTURE_SPEC, texts: FIXTURE_TEXTS };
-  const box = { view };
-  (session as unknown as { snap: () => unknown }).snap = () => snapshotOf(box.view);
-  const fake = fakeHost();
-  Object.assign(session.o, fake.host);
-  return { session, fake, set: (v: TrainingView) => { box.view = v; } };
+  const asked = new Set<number>();
+  for (let guard = 0; guard < 300 && !until(session); guard++) {
+    const [cmd, ...args] = dumbPolicy(session, asked);
+    session.begin(null);
+    await runCommand(session, cmd, args, { runDir: "/nonexistent", withMap: false });
+  }
+  if (!until(session)) throw new Error("playUntil: never reached");
+  return session;
 }
+const phaseIs = (phase: TrainingView["phase"], itemId?: string) => (session: PlaySession) => {
+  const v = trainingViewOf(session.snap());
+  return v !== null && v.phase === phase && (itemId === undefined || v.itemId === itemId);
+};
+const look = async (session: PlaySession) => { session.begin(null); return runCommand(session, "look", [], ctx); };
 
 function input(lang: Lang, view: TrainingView, audience: "expert" | "public" = "expert"): TrainingScreenInput {
   return {
-    lang, audience, cell: "radio", view, spec: FIXTURE_SPEC, texts: FIXTURE_TEXTS[lang], secondsLeft: { cap: 600, card: 42, study: 5 },
-    logRows: ["10.12  DR8: [row]"], camera: trainingOpening(FIXTURE_SPEC), measures: [], rb: null, haku: [],
+    lang, audience, cell: "radio", view, spec: FIXTURE_SPEC, texts: FIXTURE_TEXTS[lang], secondsLeft: { cap: 600, card: 42, study: 5, demo: 0 },
+    scene: null, logRows: ["10.12  DR8: [row]"], camera: trainingOpening(FIXTURE_SPEC), measures: [], rb: null, haku: [],
   };
 }
 
@@ -136,79 +145,122 @@ describe("the training map's grid in the PNG's own pixels (play-test B12)", () =
   });
 });
 
-describe("the training's commands, on a fake of the orchestrator's training methods", () => {
-  it("refuses a training screen when the orchestrator has no training methods (work package B not in the tree)", () => {
-    expect(() => trainingHostOf({} as never)).toThrow(PlayError);
-    expect(() => trainingHostOf({} as never)).toThrow(/work package B/);
+describe("the training on the real session, through the harness's commands", () => {
+  for (const [lang, audience] of [["fi", "expert"], ["en", "public"]] as const) {
+    it(`${lang}/${audience}: the policy plays it through — every page in the session language, the training's records only — to its end`, async () => {
+      const texts = TRAINING_TEXT[lang];
+      const session = await PlaySession.create({ audience, lang, waitStopsOnMessages: true, questionnairesPlayed: true });
+      live.push(session);
+      const asked = new Set<number>();
+      const seen = new Set<string>();
+      for (let guard = 0; guard < 300 && session.snap().step !== "briefing"; guard++) {
+        const v = trainingViewOf(session.snap());
+        if (v) {
+          const text = await look(session);
+          seen.add(v.phase);
+          if (v.phase === "intro") expect(text).toContain(texts.intro.title);
+          if (v.phase === "question" || v.phase === "feedback") expect(text).toContain(texts.item(v.itemId!).stem);
+          if (v.phase === "feedback") for (const line of texts.feedback(v.itemId!, { answer: v.answer, key: trainingItemOf(v)!.key, errorM: v.errorM, timedOut: v.timedOut, source: trainingItemOf(v)!.source, numbers: trainingItemOf(v)!.feedback.numbers, ...(trainingItemOf(v)!.lesson ? { lesson: trainingItemOf(v)!.lesson! } : {}) })) expect(text).toContain(line);
+          if (v.phase === "demo") expect(text).toContain(texts.demo("radio").title);
+        }
+        const [cmd, ...args] = dumbPolicy(session, asked);
+        session.begin(null);
+        await runCommand(session, cmd, args, ctx);
+      }
+      expect([...seen].sort()).toEqual(["demo", "feedback", "intro", "question", "section", "study"]);
+      const records = await session.o.logRecords();
+      const kinds = records.map((r) => r.kind);
+      expect(kinds.filter((k) => k === "training_answer")).toHaveLength(TRAINING.items.length);
+      expect(kinds.filter((k) => k === "training_haku_asked")).toHaveLength(1); // the policy's one Search question, on the first S3 card
+      expect(records.find((r) => r.kind === "training_completed")!.detail).toMatchObject({ endReason: "completed", answeredCount: TRAINING.items.length, missingItemIds: [] });
+      const answered = records.find((r) => r.kind === "training_haku_answered")!.detail as { retrieved: { id: string }[]; retrievalMode: string; answerSource: string };
+      expect(answered.retrieved.every((x) => x.id.startsWith("trn."))).toBe(true);
+      expect(answered.retrievalMode).toBe("lexical_only");
+      expect(kinds.filter((k) => k.startsWith("ai_chat_") || k.startsWith("map_pretest_"))).toEqual([]);
+      expect(session.snap().step).toBe("briefing");
+    });
+  }
+
+  it("draws the live map PNG with the item and a grid, and the memory item's blank map of the lock box", async () => {
+    const session = await playUntil("en", "expert", phaseIs("question", "training.s1.place"));
+    session.begin(null);
+    await runCommand(session, "look", [], ctx);
+    expect(session.images).toHaveLength(1);
+    expect(session.images[0]).toMatchObject({ kind: "training", data: { lang: "en", legend: false, training: { gridMarginPx: M, item: { id: "training.s1.place" }, lock: { area: TRAINING.area.bounds } } } });
+    expect((session.images[0] as { data: { cycleInfo: unknown } }).data.cycleInfo).toBe(session.snap().renderTree.cycleInfo);
+    const memory = await playUntil("fi", "expert", phaseIs("question", "training.s4.memory"));
+    memory.begin(null);
+    await runCommand(memory, "look", [], ctx);
+    expect(memory.images).toEqual([expect.objectContaining({ kind: "freeze", lang: "fi", extent: trainingLockBox(TRAINING) })]);
   });
 
-  it("`continue` leaves the intro, a section card, the feedback and S5 through their methods", async () => {
-    const { session, fake, set } = await onTraining("fi", viewOf("intro", null));
-    for (const [view, call] of [[viewOf("intro", null), ["trainingStart"]], [viewOf("section", null, { sectionId: "s1" }), ["trainingLeaveSection"]], [viewOf("feedback", "training.s1.place"), ["leaveTrainingFeedback", "training.s1.place"]], [viewOf("demo", null), ["leaveTrainingDemo"]]] as const) {
-      set(view);
-      session.begin(null);
-      await runCommand(session, "continue", [], ctx);
-      expect(fake.calls.at(-1)).toEqual(call);
-    }
-    set(viewOf("question", "training.s1.place"));
+  it("`training-answer x,y` answers the grid's point (its error logged), `measure` notes its reading for the answer; refusals otherwise", async () => {
+    const session = await playUntil("en", "expert", phaseIs("question", "training.s1.place"));
+    const camera = trainingOpening(TRAINING);
     session.begin(null);
+    await expect(runCommand(session, "training-answer", ["a"], ctx)).rejects.toThrow(/must lie on the map/);
     await expect(runCommand(session, "continue", [], ctx)).rejects.toThrow(/answer the item first/);
+    await runCommand(session, "training-answer", [`${M + 500},${M + 340}`], ctx);
+    const answer = (await session.o.logRecords()).filter((r) => r.kind === "training_answer").at(-1)!.detail as { itemId: string; point: unknown; errorM: number };
+    const at = trainingPointAt(M + 500, M + 340, camera, TRAINING);
+    expect(answer).toMatchObject({ itemId: "training.s1.place", point: "point" in at ? at.point : null });
+    expect(answer.errorM).toBeGreaterThanOrEqual(0);
+    const measure = await playUntil("fi", "expert", phaseIs("question", "training.s1.measure"));
+    measure.begin(null);
+    await runCommand(measure, "measure", [`${M + 400},${M + 300}`, `${M + 600},${M + 300}`], ctx);
+    measure.begin(null);
+    await expect(runCommand(measure, "training-answer", ["z"], ctx)).rejects.toThrow(/options: a, b/);
+    await runCommand(measure, "training-answer", ["b"], ctx);
+    const d = (await measure.o.logRecords()).filter((r) => r.kind === "training_answer").at(-1)!.detail as { itemId: string; measures: number[]; choiceId: string };
+    expect(d.itemId).toBe("training.s1.measure");
+    expect(d.choiceId).toBe(TRAINING.items.find((i) => i.id === "training.s1.measure")!.options[1]!.id);
+    expect(d.measures).toHaveLength(1);
+    expect(d.measures[0]!).toBeGreaterThan(100);
   });
 
-  it("`training-answer`: a letter's option, a grid point's WGS84 with the R&B readings, the confidence where asked; refusals otherwise", async () => {
-    const { session, fake, set } = await onTraining("en", viewOf("question", "training.s1.measure"));
+  it("S3: `haku` on the card answers over the training's records; the card asks for the confidence; Search is closed elsewhere", async () => {
+    const session = await playUntil("fi", "expert", phaseIs("question", "training.s3.records1"));
     session.begin(null);
-    await runCommand(session, "measure", [`${M + 300},${M + 100}`, `${M + 600},${M + 100}`], ctx);
-    session.begin(null);
-    await runCommand(session, "training-answer", ["b"], ctx);
-    const [, id, answer, measures] = fake.calls.at(-1)! as [string, string, unknown, number[]];
-    expect([id, answer]).toEqual(["training.s1.measure", { choiceId: "training.s1.measure.o2" }]);
-    expect(measures).toHaveLength(1);
-    expect(measures[0]!).toBeGreaterThan(100);
-    set(viewOf("question", "training.s1.place"));
-    session.begin(null);
-    await runCommand(session, "training-answer", [`${M + 500},${M + 340}`], ctx);
-    expect(fake.calls.at(-1)).toEqual(["answerTraining", "training.s1.place", trainingPointAt(M + 500, M + 340, trainingOpening(FIXTURE_SPEC), FIXTURE_SPEC), []]);
-    expect(session.images.map((i) => i.kind)).toEqual(["training"]);
-    set(viewOf("question", "training.s3.records1"));
+    const out = await runCommand(session, "haku", ["Mitä", "DR8", "ilmoitti", "klo", "10.05?"], ctx);
+    expect(out).toContain("> Mitä DR8 ilmoitti klo 10.05?");
+    expect(out).toContain(`${UI_TEXT.fi.answer}: `);
+    expect(await look(session)).toContain(`-- ${UI_TEXT.fi.tak.paneTitle.haku} --\n> Mitä DR8 ilmoitti klo 10.05?`);
     session.begin(null);
     await expect(runCommand(session, "training-answer", ["a"], ctx)).rejects.toThrow(/confidence/);
     await runCommand(session, "training-answer", ["a", "75"], ctx);
-    expect(fake.calls.at(-1)).toEqual(["answerTraining", "training.s3.records1", { choiceId: "training.s3.records1.o1", confidence: 75 }, []]);
-    set(viewOf("question", "training.s4.memory"));
-    const f = freezeFrame(trainingLockBox(FIXTURE_SPEC));
-    session.begin(null);
-    await runCommand(session, "training-answer", [`${FREEZE_MAP_MARGIN_PX + 20},${FREEZE_MAP_MARGIN_PX + 30}`, "50"], ctx);
-    expect(fake.calls.at(-1)![2]).toMatchObject({ point: expect.any(Object), confidence: 50 });
-    expect(f.widthPx).toBeGreaterThan(100);
-    set(viewOf("study", "training.s4.memory"));
-    await expect(runCommand(session, "training-answer", ["1,1", "50"], ctx)).rejects.toThrow(/still on the map/);
+    expect((await session.o.logRecords()).filter((r) => r.kind === "training_answer").at(-1)!.detail).toMatchObject({ itemId: "training.s3.records1", confidence: 75, hakuBefore: 1 });
+    const s1 = await playUntil("en", "expert", phaseIs("question", "training.s1.measure"));
+    s1.begin(null);
+    await expect(runCommand(s1, "haku", ["x"], ctx)).rejects.toThrow(/S3 question cards/);
+    expect(inTraining(s1.snap())).toBe(true);
   });
 
-  it("`haku` on an S3 card asks through the orchestrator and prints the logged answer; refused where Search is closed", async () => {
-    const { session, fake, set } = await onTraining("fi", viewOf("question", "training.s3.records1"));
+  it("`map 1km` and `map reset` move the training's live map within its lock", async () => {
+    const session = await playUntil("en", "expert", phaseIs("question", "training.s1.place"));
     session.begin(null);
-    const out = await runCommand(session, "haku", ["Mitä", "DR8", "ilmoitti?"], ctx);
-    expect(fake.calls.at(-1)).toEqual(["askTrainingHaku", "Mitä DR8 ilmoitti?"]);
-    expect(out).toContain("TEMPLATE FALLBACK");
-    expect(out).toContain(`${UI_TEXT.fi.answer}: 1,1 ha`);
-    expect(session.trainingUi.haku).toHaveLength(1);
-    set(viewOf("question", "training.s1.measure"));
+    await runCommand(session, "map", ["1km", `center=${M + 500},${M + 340}`], ctx);
+    expect(session.trainingUi.camera!.zoom).toBeGreaterThan(trainingOpening(TRAINING).zoom);
     session.begin(null);
-    await expect(runCommand(session, "haku", ["x"], ctx)).rejects.toThrow(/S3 question cards/);
+    await runCommand(session, "map", ["reset"], ctx);
+    expect(session.trainingUi.camera).toEqual(trainingOpening(TRAINING));
   });
+});
 
-  it("the smoke's policy plays every phase: continue, wait out the unit, one Search question, answers with confidence where asked", async () => {
-    const { session, set } = await onTraining("en", viewOf("intro", null));
+describe("the smoke's policy on the training's phases (fixture views)", () => {
+  it("continue, wait out the unit, one Search question, answers with confidence where asked", async () => {
+    const session = await playUntil("en", "expert", phaseIs("intro"));
+    session.trainingContent = { spec: FIXTURE_SPEC, texts: FIXTURE_TEXTS };
+    const box: { view: TrainingView } = { view: viewOf("intro", null) };
+    const real = session.snap.bind(session);
+    (session as unknown as { snap: () => unknown }).snap = () => ({ ...real(), training: box.view, aiChatHistory: [] });
     const asked = new Set<number>();
-    const policy = (v: TrainingView) => { set(v); return dumbPolicy(session, asked); };
+    const policy = (v: TrainingView) => { box.view = v; return dumbPolicy(session, asked); };
     expect(policy(viewOf("intro", null))).toEqual(["continue"]);
-    expect(policy(viewOf("study", "training.s4.memory"))).toEqual(["wait", "5"]);
     expect(policy(viewOf("question", "training.s1.place"))).toEqual(["training-answer", `${M + LIVE_MAP_PX.width / 2},${M + LIVE_MAP_PX.height / 2}`]);
     expect(policy(viewOf("question", "training.s3.records1"))).toEqual(["haku", "What did DR8 report at 10.05?"]);
-    session.trainingUi.haku.push({ itemId: "training.s3.records1", query: "q", answer: { vastaus: "", perusteet: "", varmuus: "", muuttaisi: "" } });
-    expect(policy(viewOf("question", "training.s3.records1"))).toEqual(["training-answer", "a", "50"]);
     expect(policy(viewOf("question", "training.s4.log"))).toEqual(["training-answer", "a", "50"]);
+    const f = freezeFrame(trainingLockBox(FIXTURE_SPEC));
+    expect(policy(viewOf("question", "training.s4.memory"))).toEqual(["training-answer", `${Math.round(FREEZE_MAP_MARGIN_PX + f.widthPx / 2)},${Math.round(FREEZE_MAP_MARGIN_PX + f.heightPx / 2)}`, "50"]);
     expect(policy(viewOf("demo", null))).toEqual(["continue"]);
   });
 });

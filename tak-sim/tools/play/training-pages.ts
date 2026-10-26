@@ -18,13 +18,15 @@ import type { Audience } from "../../app/session/public-session.js";
 import type { TrainingView } from "../../app/session/training/host.js";
 import type { TrainingItem, TrainingSpec } from "../../app/session/training/spec.js";
 import type { TrainingTexts } from "../../app/i18n/training-texts-types.js";
-import { trainingLogRows } from "../../app/session/training/corpus.js";
 import { CONFIDENCE_SCALE } from "../../app/session/confidence.js";
 import { formatRange } from "../../app/render/ui/tak/RangeBearing.js";
 import type { Camera } from "../../app/render/map-frame.js";
+import type { RenderableCycle } from "../../app/boundary/render-boundary.js";
+import { trainingMapLock } from "../../app/render/ui/training-lock.js";
+import { displayAnswerText } from "../../app/session/chat-display.js";
 import type { LatLon } from "../../app/engine/primitives.js";
 import { LIVE_MAP_PX, type ImageRequest, type MapPageData } from "./map-data.js";
-import { trainingHostOf, trainingItemOf, trainingLockBox, trainingLogUntil, trainingOpening, trainingViewOf, TRAINING_GRID_MARGIN_PX, TRAINING_GRID_STEP_PX } from "./training-host.js";
+import { trainingItemOf, trainingLockBox, trainingOpening, trainingViewOf, TRAINING_GRID_MARGIN_PX, TRAINING_GRID_STEP_PX } from "./training-host.js";
 import type { PlaySession } from "./session.js";
 
 const H = (s: string) => `» ${s}`;
@@ -45,8 +47,10 @@ export interface TrainingScreenInput {
   readonly view: TrainingView;
   readonly spec: TrainingSpec;
   readonly texts: TrainingTexts;
-  /** Whole seconds: the cap's countdown, a question card's window, the memory item's exposure. */
-  readonly secondsLeft: { readonly cap: number; readonly card: number; readonly study: number };
+  /** Whole seconds: the cap's countdown, a question card's window, the memory item's exposure, S5's button. */
+  readonly secondsLeft: { readonly cap: number; readonly card: number; readonly study: number; readonly demo: number };
+  /** The live map's scene as the session gives it (the item's; the memory unit alone during its exposure), or null. */
+  readonly scene: RenderableCycle | null;
   /** The message log's rows for the section (empty when the log is closed). */
   readonly logRows: readonly string[];
   readonly camera: Camera;
@@ -58,14 +62,13 @@ export interface TrainingScreenInput {
 
 /** The training's live map, as the image request carries it (B's overlay draws the item on it). */
 export function trainingMapData(input: TrainingScreenInput, item: TrainingItem | null): MapPageData {
-  const scene = input.view.scene ?? item?.scene ?? "s1";
   const b = input.spec.area.bounds;
   return {
     lang: input.lang, audience: input.audience, currentCycle: 0, clockLabel: input.spec.now.label,
-    cycleInfo: input.spec.scenes[scene] ?? null, envelope: null, recordedPlan: null,
+    cycleInfo: input.scene, envelope: null, recordedPlan: null,
     extent: { south: b.south, north: b.north, west: b.west, east: b.east }, widthPx: LIVE_MAP_PX.width, heightPx: LIVE_MAP_PX.height,
     camera: input.camera, legend: false, rb: input.rb,
-    training: { view: input.view, item, gridMarginPx: TRAINING_GRID_MARGIN_PX, gridStepPx: TRAINING_GRID_STEP_PX },
+    training: { view: input.view, item, gridMarginPx: TRAINING_GRID_MARGIN_PX, gridStepPx: TRAINING_GRID_STEP_PX, lock: trainingMapLock(input.spec, input.lang) },
   };
 }
 
@@ -106,7 +109,7 @@ export function trainingScreen(input: TrainingScreenInput, mapPath: string | nul
       const d = texts.demo(input.cell);
       out.push(`== ${d.title} ==`, d.intro);
       d.examples.forEach((e, i) => out.push("", `${i + 1}. > ${e.question}`, ...e.answer.map((l) => `   ${l}`), e.note));
-      out.push("", `[${texts.demoLines.leave}] → \`continue\``, H("A recording, not a live query; its button is enabled after 10 s."));
+      out.push("", `[${texts.demoLines.leave}] → \`continue\``, H(`A recording, not a live query; its button is enabled after 10 s${input.secondsLeft.demo > 0 ? ` (${input.secondsLeft.demo} s left; \`continue\` waits for it)` : ""}.`));
       break;
     }
     case "ended":
@@ -152,20 +155,24 @@ function questionLines(input: TrainingScreenInput, item: TrainingItem | null): s
   return out;
 }
 
-/** The training's page from the session (null outside the training). `name` gives an image's path. */
+/**
+ * The training's page from the session (null outside the training). `name` gives an image's path. While the step is on, the snapshot's
+ * map scene, message log and Haku turns are the training's (`app/session/training/view.ts`).
+ */
 export function trainingPage(session: PlaySession, s: SessionSnapshot, name: (what: string) => string, withMap: boolean, logRow: (e: RadioLogEntry) => string): Page | null {
   const view = trainingViewOf(s);
   if (!view) return null;
-  const host = trainingHostOf(session.o);
+  const o = session.o;
   const { spec, texts } = session.trainingContent;
   const item = trainingItemOf(view, spec);
-  const until = trainingLogUntil(view, spec);
+  const d = (x: string) => displayAnswerText(x);
   const input: TrainingScreenInput = {
     lang: session.config.lang, audience: session.config.audience, cell: "radio", view, spec, texts: texts[session.config.lang],
-    secondsLeft: { cap: host.trainingSecondsLeft(), card: host.trainingCardSecondsLeft(), study: host.trainingStudySecondsLeft() },
-    logRows: until ? trainingLogRows(until).map(logRow) : [],
+    secondsLeft: { cap: o.trainingSecondsLeft(), card: o.trainingCardSecondsLeft(), study: o.trainingStudySecondsLeft(), demo: o.trainingDemoSecondsLeft() },
+    scene: s.renderTree.cycleInfo, logRows: s.radioLog.map(logRow),
     camera: session.trainingUi.camera ?? trainingOpening(spec), measures: item && session.trainingUi.itemId === item.id ? session.trainingUi.measures : [],
-    rb: item && session.trainingUi.itemId === item.id ? session.trainingUi.rb : null, haku: session.trainingUi.haku.filter((h) => h.itemId === view.itemId),
+    rb: item && session.trainingUi.itemId === item.id ? session.trainingUi.rb : null,
+    haku: s.aiChatHistory.map((turn) => ({ query: turn.query, answer: { vastaus: d(turn.answer.answerFi), perusteet: d(turn.answer.basisFi), varmuus: d(turn.answer.certaintyFi), muuttaisi: d(turn.answer.wouldChangeIfFi) } })),
   };
   return trainingScreen(input, withMap ? name("training-map") : null, withMap ? name("training-blank-map") : null);
 }

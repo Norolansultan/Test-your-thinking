@@ -35,12 +35,11 @@ import { VirtualClock } from "./virtual-clock.js";
 import { noModelHakuTransport, unavailableOpenTransport, unavailablePremiseTransport } from "./haku-transport.js";
 import type { ImageRequest } from "./map-data.js";
 import type { Camera } from "../../app/render/map-frame.js";
-import type { TrainingHakuTurn } from "./training-pages.js";
 import type { TrainingSpec } from "../../app/session/training/spec.js";
 import type { TrainingTexts } from "../../app/i18n/training-texts-types.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
 import { TRAINING_TEXT } from "../../app/i18n/training-texts.js";
-import { TRAINING_SESSION_OPTION, trainingViewOf } from "./training-host.js";
+import { trainingViewOf } from "./training-host.js";
 
 export interface PlayConfig {
   readonly audience: Audience;
@@ -91,7 +90,7 @@ export function studyOptions(config: PlayConfig, clock: VirtualClock, scenario: 
     cell: "radio", language: config.lang, audience: config.audience, participantCode: PLAY_PARTICIPANT_CODE,
     showProbeLevels: false, guidedTour: true, visibleProbes: true, studyShell: true, aiLiteracyTest: true, introVideo: "/video/intro.mp4",
     // Revision (bp): no map training and no practice feedback (retired); the training incident on, as the app sets it (work package B).
-    allowPreflightOverride: false, allowViewSkip: false, ...TRAINING_SESSION_OPTION,
+    allowPreflightOverride: false, allowViewSkip: false, trainingIncident: true,
     realClockMs: clock.now,
     thinker: { transport: noModelHakuTransport(scenario, clock.now), openTransport: unavailableOpenTransport, premiseReview: unavailablePremiseTransport },
   };
@@ -132,13 +131,13 @@ export class PlaySession {
   legendOpen = true;
   /** The Range & Bearing line the player measured in a view (`measure`): it stays on the map, as the app keeps it. */
   rb: { view: number; from: LatLon; to: LatLon } | null = null;
-  /**
-   * Revision (bp): the training's screen state: the item the readings belong to, its R&B readings (m) and line, the live map's frame, and
-   * the Search turns (by item), as `TrainingScreen` keeps them.
-   */
-  /** Revision (bp): the training's content (work package A's build); the spec gives its own fixture. */
+  /** Revision (bp): the training's content (its build, `content/training/`); the spec tests the pages on a fixture of its own. */
   trainingContent: { spec: TrainingSpec; texts: Readonly<Record<Lang, TrainingTexts>> } = { spec: TRAINING, texts: TRAINING_TEXT };
-  trainingUi: { itemId: string | null; measures: number[]; rb: { from: LatLon; to: LatLon } | null; camera: Camera | null; haku: (TrainingHakuTurn & { readonly itemId: string })[] } = { itemId: null, measures: [], rb: null, camera: null, haku: [] };
+  /**
+   * Revision (bp): the training's screen state: the item the readings belong to, its R&B readings (m) and line, and the live map's frame,
+   * as `TrainingStage` keeps them (its Haku turns are the snapshot's, `aiChatHistory`, while the step is on).
+   */
+  trainingUi: { itemId: string | null; measures: number[]; rb: { from: LatLon; to: LatLon } | null; camera: Camera | null } = { itemId: null, measures: [], rb: null, camera: null };
   /** The message-log rows seen at the last `look` (the rows after them are marked new), and the screens drawn so far. */
   seenLog = 0;
   looks = 0;

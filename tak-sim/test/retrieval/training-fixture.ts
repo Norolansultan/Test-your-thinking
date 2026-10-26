@@ -1,14 +1,13 @@
 /**
- * The training incident's corpus for the separation tests (revision (bp), SPEC/14 (bp) §bp.3; SPEC/08 (bp) §bp.6). Work package A
- * builds the real corpus (`app/session/training/corpus.ts`, from `content/training/corpus.json`); until it is in the tree that module
- * is an empty placeholder, so the tests use a FIXTURE: the twelve records of `08` (bp) §bp.6's table, built by the session's own
- * `trafficAtom` at the training's one step (−9) with `trn.r..` ids, as the build builds them. `TRAINING_FOR_TESTS` is the real corpus
- * once it has records and the fixture before, so every test runs on the real one after the merge with no change.
+ * The training incident's corpus for the separation tests (revision (bp), SPEC/14 (bp) §bp.3; SPEC/08 (bp) §bp.6). `TRAINING_FOR_TESTS`
+ * is the built corpus (`app/session/training/corpus.ts`, from `content/training/corpus.json`) as the proxy holds it. The FIXTURE — the
+ * twelve records of `08` (bp) §bp.6's table, built by the session's own `trafficAtom` at the training's one step (−9) — serves the
+ * startup check's unit tests (a corpus to break on purpose) and stays equal to the built one in ids, sources, tiers and clocks (tested).
  */
 
 import type { InfoAtom, InteractionEvent } from "../../app/scenario/types.js";
 import { trafficAtom } from "../../app/scenario/traffic-atoms.js";
-import { TRAINING_ATOMS, TRAINING_NOW_S, TRAINING_STEP } from "../../app/session/training/corpus.js";
+import { TRAINING_ATOMS, TRAINING_NOW_S, TRAINING_QUESTIONS as BUILT_QUESTIONS, TRAINING_STEP } from "../../app/session/training/corpus.js";
 import type { TrainingCorpus } from "../../server/thinker/handler.js";
 
 type Tier = InteractionEvent["tier"];
@@ -44,13 +43,13 @@ function eventOf([id, clock, actor, tier, fi]: (typeof ROWS)[number]): Interacti
 export const FIXTURE_TRAINING_ATOMS: readonly InfoAtom[] = ROWS.map((r) => trafficAtom(eventOf(r)));
 export const FIXTURE_TRAINING: TrainingCorpus = { atoms: FIXTURE_TRAINING_ATOMS, step: TRAINING_STEP, nowS: TRAINING_NOW_S };
 
-/** The real corpus once work package A's build is in the tree; the fixture before. */
-export const TRAINING_FOR_TESTS: TrainingCorpus = TRAINING_ATOMS.length > 0 ? { atoms: TRAINING_ATOMS, step: TRAINING_STEP, nowS: TRAINING_NOW_S } : FIXTURE_TRAINING;
+/** The built corpus, as the proxy serves it. */
+export const TRAINING_FOR_TESTS: TrainingCorpus = { atoms: TRAINING_ATOMS, step: TRAINING_STEP, nowS: TRAINING_NOW_S };
 
-/** The training's pre-recorded and recorded questions (`08` (bp) §bp.5–bp.6, `30` (bp) §bp.2), both languages. */
+/** The training's pre-recorded and recorded questions (`08` (bp) §bp.5–bp.6, `30` (bp) §bp.2; the build's `TRAINING_QUESTIONS`), both languages. */
 export const TRAINING_QUESTIONS: Readonly<Record<"fi" | "en", readonly string[]>> = {
-  fi: ["Mitä DR8 ilmoitti klo 10.05?", "Onko tie R6 ajettavissa?", "Kuinka suuri EK51:n miehistö on?", "Paljonko vettä EK52:lla on?", "Onko palo hallinnassa?"],
-  en: ["What did DR8 report at 10.05?", "Is road R6 passable?", "How large is EK51's crew?", "How much water does EK52 have?", "Is the fire under control?"],
+  fi: Object.values(BUILT_QUESTIONS).map((q) => q.fi),
+  en: Object.values(BUILT_QUESTIONS).map((q) => q.en),
 };
 
 /** The training's own names (`08` (bp) §bp.3): no scenario text has them. */

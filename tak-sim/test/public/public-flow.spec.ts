@@ -4,14 +4,13 @@
  * and the debrief only with `immediateProfile` (`?profiili=heti`, SPEC/36: off by default); `scope: "phaseA"` ends at the hinge
  * (after V7); the explanation layer's records; and the stimulus unchanged: between VP's start and the last view's end a public
  * session writes exactly an expert session's records, plus the layer's own.
- * Revision (bp), 26 Oct 2026: the training incident takes the map training's step, after the primer and before the intro video (its
- * records checked where the tree has it, `TRAINING_IN_TREE`; before the merge the primer leads straight to the video).
+ * Revision (bp), 26 Oct 2026: the training incident takes the map training's step, after the primer and before the intro video.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { TELEMETRY_FORMAT_VERSION, type BriefingAdvancedDetail, type CycleStartDetail } from "../../app/telemetry/record-kinds.js";
-import { APP_OPTIONS, driveSession, driveStep, kinds, newStudySession, passTraining, TRAINING_IN_TREE, wholeSession } from "./public-run.js";
+import { APP_OPTIONS, driveSession, driveStep, kinds, newStudySession, passTraining, wholeSession } from "./public-run.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -32,7 +31,7 @@ function stimulus(records: readonly LogRecord[]): string[] {
 describe("a public session (SPEC/35 §3–§5)", () => {
   it("runs the primer before the intro video and VP; with `?profiili=heti` the profile after the results step and before the debrief", async () => {
     const { o, records } = await wholeSession({ audience: "public", immediateProfile: true });
-    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: TELEMETRY_FORMAT_VERSION, immediateProfile: true, ...(TRAINING_IN_TREE ? { trainingIncident: true } : {}) });
+    expect(o.logHeader).toMatchObject({ audience: "public", scope: "full", formatVersion: TELEMETRY_FORMAT_VERSION, immediateProfile: true, trainingIncident: true });
     expect(o.logHeader).not.toHaveProperty("mapPretest");
     const at = {
       pre: index(records, (r) => r.kind === "questionnaire_submitted" && (r.detail as { questionnaireId: string }).questionnaireId === "pre"),
@@ -49,10 +48,8 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     expect(Object.values(at).every((i) => i >= 0)).toBe(true);
     expect([at.pre, at.firstPage, at.primerLeft, at.video, at.vp, at.post, at.optIn, at.profile, at.debrief, at.completed]).toEqual([...Object.values(at)].sort((a, b) => a - b));
     // Revision (bp): the training incident after the primer, before the intro video (where the map training was).
-    if (TRAINING_IN_TREE) {
-      expect(records[at.primerLeft + 1]!.kind).toBe("training_started");
-      expect(records[at.video - 1]!.kind).toBe("training_completed");
-    } else expect(at.video).toBe(at.primerLeft + 1);
+    expect(records[at.primerLeft + 1]!.kind).toBe("training_started");
+    expect(records[at.video - 1]!.kind).toBe("training_completed");
     expect(kinds(records).filter((k) => k.startsWith("map_pretest_"))).toEqual([]);
     expect(at.optIn).toBe(at.post + 1);
     expect(at.profile).toBe(at.optIn + 1);
@@ -102,7 +99,7 @@ describe("a public session (SPEC/35 §3–§5)", () => {
     await expect(o.primerCheck("q1", 1.5, true, 1)).rejects.toThrow(RangeError);
     await expect(o.primerCheck("q1", 0, true, 0)).rejects.toThrow(RangeError);
     await o.finishPrimer();
-    if (TRAINING_IN_TREE) expect(snap().step).toBe("training_incident"); // revision (bp): the training after the primer (BRIEFING still)
+    expect(snap().step).toBe("training_incident"); // revision (bp): the training after the primer (BRIEFING still)
     expect(o.engineState).toBe("BRIEFING");
     await passTraining(o, snap);
     expect(snap().step).toBe("briefing");

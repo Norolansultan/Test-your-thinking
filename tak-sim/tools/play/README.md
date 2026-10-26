@@ -91,8 +91,9 @@ too, S3's question cards also Search and the card's 60 s, S4 the freeze screen w
 out) and blank map, the feedback after every item (the app's words, `TRAINING_TEXT`), S5's recording of the group's tool (the Haku
 group's here), and the cap's countdown. Its live map is the app's `MapView` over the training's scene, locked to its square, with work
 package B's overlay (`drawTrainingOverlay`: the item's marks, the memory unit, the feedback's drawing) and a grid labelled in the PNG's
-own pixels (play-test B12: a point read off the labels is the point answered). The seams to B's orchestrator (the step, the snapshot's
-training view, the training methods) are in `training-host.ts`; before the merge a training screen is refused with that reason.
+own pixels (play-test B12: a point read off the labels is the point answered). While the training is on, the snapshot's map scene,
+message log and Haku turns are the training's; R&B readings go to the item's answer (`noteTrainingMeasure`); the training's map use is
+not logged. Not offered in the training: the glossary (its `training` surface) and the zoom of the locked map by the wheel.
 
 ## Scoring (analyst only)
 
@@ -114,7 +115,7 @@ questions. A CLI command takes about 1.2 s without a map (tsx start-up, the
 scenario's build, the replay) and about 3 s with the freeze map, about 5 s with the live map (Chromium, MapLibre, the tiles).
 Revision (bp), 26 Oct 2026: the smoke plays the training incident through (each card and feedback left, the memory unit waited out,
 each item's first option or the middle of its map, confidence 50 where asked, one Search question on the first S3 card, S5 left) and
-checks its pages in the session language; it needs work package B's orchestrator, and stops with that refusal before the merge.
+checks its pages in the session language.
 
 ## Limitations
 

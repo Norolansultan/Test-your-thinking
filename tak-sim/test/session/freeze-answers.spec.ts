@@ -2,8 +2,8 @@
  * The freeze's answers at the boundary (SPEC/15 r.12): map items (a point inside the extent), no
  * source question (withdrawn 2 Oct 2026), and the screen's drafts. Uses a fake practice freeze with a
  * `map_point` item, so it does not depend on the freeze content being rewritten in parallel.
- * Revision (bp), 26 Oct 2026: VP has no freeze in the built scenario (`hasFreeze` false); the fixture gives VP its own freeze back (the
- * items below at {@link FIXTURE_FREEZE_AT_S}), so the orchestrator's freeze is tested exactly as before.
+ * Revision (bp), 26 Oct 2026: VP has no freeze in the built scenario (`hasFreeze` false); the fixture gives VP its own freeze back
+ * (`practice-freeze-fixture.ts`), so the orchestrator's freeze is tested exactly as before.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,25 +17,13 @@ import { FREEZE_MAX_SECONDS } from "../../app/scenario/views.js";
 import type { FreezeSubmittedDetail } from "../../app/telemetry/record-kinds.js";
 import { freezeItemScores } from "../../app/telemetry/freeze-measures.js";
 import { freezeMissing, MAX_MISSING_SHARE_PER_FREEZE, viewsExcludedFromSa } from "../../app/telemetry/exclusions.js";
+import { centreOf, fixtureFreezeItems, withPracticeFreeze } from "./practice-freeze-fixture.js";
 
 const base = buildDemoScenario();
 const ext = base.extent;
-const centre = { lat: (ext.south + ext.north) / 2, lon: (ext.west + ext.east) / 2 };
-const opts = (prefix: string) => ["a", "b", "c", "d"].map((id) => ({ id, labelFi: `${prefix} ${id}`, correct: id === "a" }));
-
-const ITEMS: FreezeItem[] = [
-  { id: "t.l1", level: "L1", promptFi: "Missä EK11 on?", options: opts("L1") },
-  { id: "t.l2", level: "L2", promptFi: "Mikä uhkaa?", options: opts("L2") },
-  { id: "t.map1", level: "L1", kind: "map_point", promptFi: "Napauta EK11:n sijainti.", options: [], mapKey: { point: centre, toleranceM: 300 }, keyAtomIds: ["atom.x"] },
-  { id: "t.map3", level: "L3", kind: "map_point", promptFi: "Mihin palo on 30 min päästä edennyt pisimmälle?", options: [], mapKey: { point: centre, toleranceM: 400 } },
-];
-
-/** The fixture's freeze moment in VP (the retired practice freeze's, 69 s after the tour). */
-const FIXTURE_FREEZE_AT_S = 69;
-const scenario: ScenarioContract = {
-  ...base,
-  practice: { ...base.practice, cycle: { ...base.practice.cycle, hasFreeze: true, freezeAtSeconds: FIXTURE_FREEZE_AT_S }, freeze: { ...base.practice.freeze, items: ITEMS } },
-};
+const centre = centreOf(ext);
+const ITEMS: FreezeItem[] = fixtureFreezeItems(ext);
+const scenario: ScenarioContract = withPracticeFreeze(base, ITEMS);
 
 describe("the freeze-answer rules", () => {
   it("a draft is complete with the answer (option or point) and the confidence, at every level", () => {

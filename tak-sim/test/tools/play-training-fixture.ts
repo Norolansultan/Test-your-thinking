@@ -1,17 +1,14 @@
 /**
- * A fixture of the training incident for the play harness's tests (revision (bp), 26 Oct 2026): work package A's content
- * (`TRAINING`, `TRAINING_TEXT`) is a placeholder in this tree, so the tests give the harness a small spec of their own — the square of
+ * A fixture of the training incident for the play harness's pure page tests (revision (bp), 26 Oct 2026): a small spec of its own — the square of
  * `08` (bp) §bp.1 (basemap pixels 4 375–5 000 × 0–625, in WGS84 by the harness's own inverse of `basemapPx`), five items of the four
  * kinds (a live point and a live choice, an S3 question card, the S4 memory item and an S4 freeze choice) — and texts tagged with their
- * language, so a page can be checked to print its own language only. A fake orchestrator (`TrainingHost`) records the calls.
+ * language, so a page can be checked to print its own language only.
  */
 
 import type { Lang } from "../../app/i18n/lang.js";
-import type { SessionSnapshot } from "../../app/session/snapshot.js";
-import type { TrainingHost, TrainingView } from "../../app/session/training/host.js";
+import type { TrainingView } from "../../app/session/training/host.js";
 import type { TrainingItem, TrainingSpec } from "../../app/session/training/spec.js";
 import type { TrainingTexts } from "../../app/i18n/training-texts-types.js";
-import type { LogRecord } from "../../app/telemetry/log.js";
 import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { latLonAtBasemapPx } from "../../tools/play/freeze-grid.js";
 
@@ -68,33 +65,4 @@ export function viewOf(phase: TrainingView["phase"], itemId: string | null, extr
     scene: it?.scene ?? null, tools: { map: section !== "s4", rb: section === "s1" || section === "s3", log: section === "s2" || section === "s3", haku: it?.mode === "card" },
     answer: null, errorM: null, timedOut: false, demoId: phase === "demo" ? "haku" : null, capMs: 720_000, ...extra,
   };
-}
-
-/** The snapshot fields the harness's commands read, on the training's step. */
-export function snapshotOf(view: TrainingView): SessionSnapshot {
-  return { step: "training_incident", trainingIncident: view, currentCycle: 0, tour: null, spam: null, radioLog: [], consultPrompt: null, recordsBadge: false, minimumReached: false, secondsLeft: null, practice: false, clockLabel: "10.18" } as unknown as SessionSnapshot;
-}
-
-/** A fake of work package B's orchestrator methods: records each call; `records` is what `logRecords` returns. */
-export function fakeHost(records: LogRecord[] = []) {
-  const calls: unknown[][] = [];
-  let n = 0;
-  const host: TrainingHost & { logRecords(): Promise<LogRecord[]> } = {
-    trainingStart: () => void calls.push(["trainingStart"]),
-    trainingLeaveSection: () => void calls.push(["trainingLeaveSection"]),
-    answerTraining: (itemId, answer, measures) => void calls.push(["answerTraining", itemId, answer, measures]),
-    leaveTrainingFeedback: (itemId) => void calls.push(["leaveTrainingFeedback", itemId]),
-    askTrainingHaku: async (text) => {
-      calls.push(["askTrainingHaku", text]);
-      const queryId = `trn.${++n}`;
-      records.push({ kind: "training_haku_asked", detail: { queryId, itemId: "training.s3.records1", text, charCount: text.length, atItemMs: 0 } } as unknown as LogRecord);
-      records.push({ kind: "training_haku_answered", detail: { queryId, itemId: "training.s3.records1", retrieved: [{ id: "trn.r06", fusedScore: 1 }], retrievalMode: "lexical_only", retrievalLanguage: "fi", answerSource: "template", modelId: null, promptHash: null, fallback: true, fallbackReason: "no_api_key", latencyMs: 0, answer: { vastaus: "1,1 ha", perusteet: "DR8 klo 10.05", varmuus: "korkea", muuttaisi: "uusi kuvaus" } } } as unknown as LogRecord);
-    },
-    leaveTrainingDemo: () => void calls.push(["leaveTrainingDemo"]),
-    trainingSecondsLeft: () => 600,
-    trainingStudySecondsLeft: () => 5,
-    trainingCardSecondsLeft: () => 42,
-    logRecords: async () => records,
-  };
-  return { host, calls, records };
 }

@@ -8,8 +8,7 @@
  * (`actions.json`) and replays it from disk (`replayRun`) to check that the replay reaches the same end (the same virtual time and
  * the same log). Prints each audience's command count, virtual length, runtime, and how many views showed the consult notice and
  * how many chip questions were asked. No PNGs (the CLI draws those). Revision (bp), 26 Oct 2026: it plays the training incident through
- * (its cards, items, feedback and S5) and checks that its pages print in the session language; the training needs work package B's
- * orchestrator (`training-host.ts`), so before the merge the smoke stops with that refusal.
+ * (its cards, items, feedback and S5) and checks that its pages print in the session language.
  */
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -28,7 +27,7 @@ import { runCommand } from "./commands.js";
 import { replayRun, RUN_FORMAT, type RunFile } from "./run.js";
 import { FREEZE_MAP_MARGIN_PX, freezeFrame } from "./freeze-grid.js";
 import { LIVE_MAP_PX } from "./map-data.js";
-import { inTraining, trainingHostOf, trainingItemOf, trainingLockBox, trainingViewOf, TRAINING_GRID_MARGIN_PX } from "./training-host.js";
+import { inTraining, trainingItemOf, trainingLockBox, trainingViewOf, TRAINING_GRID_MARGIN_PX } from "./training-host.js";
 
 /** The dumb policy's next command for the screen on show. */
 export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, ...string[]] {
@@ -90,10 +89,10 @@ export function dumbPolicy(session: PlaySession, asked: Set<number>): [string, .
  */
 function trainingPolicy(session: PlaySession): [string, ...string[]] {
   const view = trainingViewOf(session.snap())!;
-  if (view.phase === "study") return ["wait", String(Math.max(1, trainingHostOf(session.o).trainingStudySecondsLeft()))];
+  if (view.phase === "study") return ["wait", String(Math.max(1, session.o.trainingStudySecondsLeft()))];
   if (view.phase !== "question") return view.phase === "ended" ? ["wait", "1"] : ["continue"];
   // One Search question on the first S3 card (the training's own records answer it), as the smoke asks Haku once a period.
-  if (view.tools.haku && session.trainingUi.haku.length === 0) return ["haku", session.config.lang === "fi" ? "Mitä DR8 ilmoitti klo 10.05?" : "What did DR8 report at 10.05?"];
+  if (view.tools.haku && session.snap().aiChatHistory.length === 0) return ["haku", session.config.lang === "fi" ? "Mitä DR8 ilmoitti klo 10.05?" : "What did DR8 report at 10.05?"];
   const spec = session.trainingContent.spec;
   const item = trainingItemOf(view, spec);
   const conf = item && item.mode !== "live" ? ["50"] : [];

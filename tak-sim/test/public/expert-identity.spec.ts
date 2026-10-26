@@ -59,15 +59,12 @@
  * every later record's offset (`identity-normalise.ts`). The pre-VP and main digests stand byte for byte. VP'S DIGEST IS RE-BASELINED,
  * once, for one reason: VP's practice freeze is gone (its `freeze_started` and `freeze_submitted` with cycle 0 — this driver submits at once —
  * are no longer written; 500 records after normalising, was 502); every other VP record is unchanged. The new VP digests were
- * taken on the package-C branch (the old orchestrator without the map training's and the practice feedback's options); the integration
- * commit re-runs this test after merging A, B and C and confirms them (SPEC/15 §bp.8). Until the merge this tree has neither the
- * training's content nor its orchestrator methods (`TRAINING_IN_TREE`): the training's own assertions then check that the session runs
- * without it.
+ * regenerated once, on the tree with A's, B's and C's packages merged (SPEC/15 §bp.8); the pre-VP and main digests are the 0.12.0 run's.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TELEMETRY_FORMAT_VERSION } from "../../app/telemetry/record-kinds.js";
-import { driveSession, newStudySession, TRAINING_IN_TREE, wholeSession } from "./public-run.js";
+import { driveSession, newStudySession, wholeSession } from "./public-run.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
 import { BK_HELD, BK_HELD_BEAT, BM_DISPLACED, BM_POINTER_PREFIX, PLAYTEST_PUSHED, segmentDigests } from "./identity-normalise.js";
 import { POINTERS } from "../../app/scenario/pointers.js";
@@ -112,8 +109,8 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       const { o, records } = await wholeSession({ cell });
       // 0.12.0's 502, SPEC/36's `results_optin`, the play-test's 3 pushed records, revision (bk)'s 2 held, revision (bm)'s 12 pointers and 7
       // displaced, VP's second practice SPAM item's 2; revision (bp): no map training (16), no practice feedback (2), no VP freeze (2); the
-      // training incident's 33 once it is in the tree (see the notes above).
-      expect(records).toHaveLength(509 + (TRAINING_IN_TREE ? TRAINING_KINDS.length : 0));
+      // training incident's 33 (see the notes above).
+      expect(records).toHaveLength(509 + TRAINING_KINDS.length);
       const optIn = records.findIndex((r) => r.kind === "results_optin");
       expect(records[optIn]!.detail).toEqual({ optedIn: false });
       expect(records[optIn - 1]).toMatchObject({ kind: "questionnaire_submitted", detail: { questionnaireId: "post" } });
@@ -122,7 +119,7 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       // records in their order; no map training, no practice feedback, no VP freeze; the second practice item still inside VP's SPAM delivery.
       const kinds = records.map((r) => r.kind);
       const pre = kinds.findIndex((k, i) => k === "questionnaire_submitted" && (records[i]!.detail as { questionnaireId: string }).questionnaireId === "pre");
-      const training = TRAINING_IN_TREE ? TRAINING_KINDS : [];
+      const training = TRAINING_KINDS;
       expect(kinds.slice(pre + 1, pre + 1 + training.length)).toEqual(training);
       expect(records[pre + 1 + training.length]).toMatchObject({ kind: "briefing_advanced", detail: { screenId: "briefing.video" } });
       expect(kinds.filter((k) => k.startsWith("training_")).length).toBe(training.length);
@@ -145,7 +142,7 @@ describe("an expert session is unchanged by the public-audience version (SPEC/35
       expect(digests.count).toBe(500); // 0.12.0's 502 without VP's practice freeze (2)
       expect({ preVp: digests.preVp, vp: digests.vp, main: digests.main }).toEqual(SEGMENTS[cell]);
       // The header's new fields are present, with the expert defaults and (revision (bp)) the training on (as the app sets it).
-      expect(o.logHeader).toMatchObject({ formatVersion: TELEMETRY_FORMAT_VERSION, audience: "expert", scope: "full", ...(TRAINING_IN_TREE ? { trainingIncident: true } : {}) });
+      expect(o.logHeader).toMatchObject({ formatVersion: TELEMETRY_FORMAT_VERSION, audience: "expert", scope: "full", trainingIncident: true });
       expect(o.logHeader).not.toHaveProperty("mapPretest");
       expect(o.logHeader).not.toHaveProperty("practiceFeedback");
       expect(records[0]!.detail).toEqual(o.logHeader);

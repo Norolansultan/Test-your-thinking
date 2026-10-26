@@ -12,16 +12,19 @@ import { buildDemoScenario } from "../../app/scenario/demo-scenario.js";
 import { SessionOrchestrator, type SessionSnapshot } from "../../app/session/orchestrator.js";
 import type { LogRecord } from "../../app/telemetry/log.js";
 import { allocateAndConfirm, answerForcedSpam, passHinge, PLAN, runOutView } from "./view-flow.js";
+import { FIXTURE_FREEZE_AT_S, withPracticeFreeze } from "./practice-freeze-fixture.js";
 
 const scenario = buildDemoScenario();
-const practiceFreezeAt = scenario.practice.cycle.freezeAtSeconds!;
+/** Revision (bp): the built VP has no freeze; the freeze tests take theirs in VP from the fixture, at the retired moment. */
+const withFreeze = withPracticeFreeze(scenario);
+const practiceFreezeAt = FIXTURE_FREEZE_AT_S;
 const practiceMin = scenario.practice.cycle.minViewSeconds; // 180 s since 11 Oct 2026
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-async function inPractice() {
-  const o = new SessionOrchestrator(scenario, "directed", { participantCode: "P-3" });
+async function inPractice(sc = scenario) {
+  const o = new SessionOrchestrator(sc, "directed", { participantCode: "P-3" });
   const box: { snap: SessionSnapshot | null } = { snap: null };
   o.subscribe((s) => (box.snap = s));
   await o.start();
@@ -145,7 +148,7 @@ describe("revising the allocation while the confirmed view waits", () => {
 
 describe("the SAGAT freeze at its pre-planned moment", () => {
   it("interrupts exploration of the open panel at freezeAtSeconds, and the participant continues there", async () => {
-    const { o, snap } = await inPractice();
+    const { o, snap } = await inPractice(withFreeze);
     await vi.advanceTimersByTimeAsync(practiceFreezeAt * 1000 - 1);
     expect(snap().step).toBe("allocation");
     await vi.advanceTimersByTimeAsync(1);
@@ -158,7 +161,7 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
   });
 
   it("logs a decision already committed, and holds the view's time still while the picture is hidden", async () => {
-    const { o, snap } = await inPractice();
+    const { o, snap } = await inPractice(withFreeze);
     await vi.advanceTimersByTimeAsync(20_000);
     await o.submitAllocation(PLAN); // the plan confirms the period; the practice view ends at its minimum
     await vi.advanceTimersByTimeAsync((practiceFreezeAt - 20) * 1000);
@@ -199,8 +202,8 @@ describe("the SAGAT freeze at its pre-planned moment", () => {
 });
 
 describe("the demonstration's skip (6 Oct 2026)", () => {
-  async function demo(allowViewSkip: boolean) {
-    const o = new SessionOrchestrator(scenario, "directed", { participantCode: "P-3", allowViewSkip });
+  async function demo(allowViewSkip: boolean, sc = scenario) {
+    const o = new SessionOrchestrator(sc, "directed", { participantCode: "P-3", allowViewSkip });
     const box: { snap: SessionSnapshot | null } = { snap: null };
     o.subscribe((s) => (box.snap = s));
     await o.start();
@@ -258,8 +261,8 @@ describe("the demonstration's skip (6 Oct 2026)", () => {
   });
 
   it("is not offered while a freeze is open (the freeze screen has its own skip: a submission with what is answered)", async () => {
-    const { o, snap } = await demo(true);
-    await vi.advanceTimersByTimeAsync(scenario.practice.cycle.freezeAtSeconds! * 1000);
+    const { o, snap } = await demo(true, withFreeze);
+    await vi.advanceTimersByTimeAsync(practiceFreezeAt * 1000);
     expect(snap()).toMatchObject({ step: "freeze", skipAvailable: false, skipAllowed: true });
     await expect(o.skipView()).rejects.toThrow(/skipView in step freeze/);
     await o.submitFreeze([]);

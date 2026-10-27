@@ -74,7 +74,7 @@ export const TRAINING_WORDS_FI: TrainingWords = {
   feedback: {
     "training.s1.place": () => ({
       answer: "Teiden R5 ja R6 risteys on vihreässä renkaassa.",
-      explain: ["Kartan nimet ja koodit – tiekoodit, järvien ja ojien nimet – sekä selite auttavat löytämään paikat, joihin ilmoitukset ja Haku viittaavat."],
+      explain: ["Kartan nimet ja koodit – tiekoodit, järvien ja ojien nimet – auttavat löytämään paikat, joihin ilmoitukset ja Haku viittaavat."],
     }),
     "training.s1.measure": ({ item }) => ({
       answer: `Lyhin matka pisteestä A tiehen ${item.feedback.numbers.road} on noin ${item.feedback.numbers.m} m (keltainen viiva).`,

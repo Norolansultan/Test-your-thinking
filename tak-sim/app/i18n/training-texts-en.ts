@@ -72,7 +72,7 @@ export const TRAINING_WORDS_EN: TrainingWords = {
   feedback: {
     "training.s1.place": () => ({
       answer: "The junction of roads R5 and R6 is at the green ring.",
-      explain: ["The map's names and codes – road codes, the names of lakes and brooks – and its legend help you find the places that reports and Search name."],
+      explain: ["The map's names and codes – road codes, the names of lakes and brooks – help you find the places that reports and Search name."],
     }),
     "training.s1.measure": ({ item }) => ({
       answer: `The shortest distance from A to road ${item.feedback.numbers.road} is about ${item.feedback.numbers.m} m (the yellow line).`,

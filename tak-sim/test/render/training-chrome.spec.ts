@@ -20,6 +20,7 @@ import type { Lang } from "../../app/i18n/lang.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
 import { trainingLogRows } from "../../app/session/training/corpus.js";
 import { trainingClockLabel, trainingSceneOf } from "../../app/session/training/view.js";
+import { memoryExposureScene } from "../../app/session/training/scenes.js";
 import type { TrainingView } from "../../app/session/training/host.js";
 import { contractPatterns, readContract } from "../../tools/review/training-contract.js";
 import { MAIN_CALL_SIGNS, MAIN_SUBJECTS } from "../training/texts-corpus.js";
@@ -28,7 +29,7 @@ const LANGS: readonly Lang[] = ["fi", "en"];
 const REFERENCE: readonly LegendRow[] = ["sector", "road", "power"];
 const NONE = { stacks: false, region: false };
 
-/** The scenes the training's live map draws: S1's, the incident's, and the memory exposure's (S1's with the memory unit alone). */
+/** The scenes the training's live map draws: S1's, the incident's, and the memory exposure's (S1's with the memory unit alone, the incident's wind). */
 function trainingScenes() {
   const memory = TRAINING.items.find((it) => it.memory)!;
   const view = (phase: TrainingView["phase"], scene: "s1" | "incident") => ({ phase, tools: { map: true, rb: false, log: false, haku: false }, scene } as unknown as TrainingView);
@@ -130,6 +131,17 @@ describe("the training's map chrome names nothing of the main scenario (findings
     expect(compact).not.toMatch(/selfCallsign|selfRole|selfSymbolSvg/);
     expect(trainingClockLabel(TRAINING)).toBe("10:18");
     expect(readFileSync("app/render/ui/components/TrainingStage.tsx", "utf8")).toMatch(/<TakInfoCard compact clockLabel=\{trainingClockLabel\(TRAINING\)\} wind=\{snapshot\.renderTree\.cycleInfo\?\.wind\} \/>/);
+  });
+
+  it("round 4 (B25): the memory exposure's info card shows the incident's wind (10.18 of the same incident), not S1's calm \"N 0 m/s\"", () => {
+    const [s1, incident, exposure] = trainingScenes().map((s) => s.cycle!);
+    expect(s1!.wind.meanMs).toBe(0); // S1's map has no fire: calm, by design (unchanged)
+    expect(incident!.wind.meanMs).toBeGreaterThan(0);
+    expect(exposure!.wind).toEqual(incident!.wind);
+    expect(exposure).toEqual(memoryExposureScene(TRAINING)); // one definition: the live map's and the harness's
+    expect(exposure!.fire).toEqual(s1!.fire); // still S1's basemap: no fire, the memory unit alone
+    expect(exposure!.perimeter).toEqual([]);
+    expect(exposure!.unitPositions).toEqual({ EK53: TRAINING.items.find((it) => it.memory)!.memory!.at });
   });
 });
 

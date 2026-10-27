@@ -10,6 +10,15 @@
  *   gone, and (bn)'s VESIHUOLTO line with it. It never says that one must search, nothing on scores, nothing on the memory checks.
  * - No step of the practice tour quotes a VP record (four-word runs against every VP record in both languages) or names a scored
  *   item's subject (the list of (bl), kept).
+ *
+ * Play-test round 4 (27 Oct 2026; `docs/audits/2026-10-23-playtest/analysis-round4.md` §12):
+ * - R27(a): (bp)'s rewrite of `hakuRecords` dropped round 3's list of record kinds and its sentence that the details of a unit's report
+ *   the command centre acknowledges on the radio are in the records; pointer follow-up fell from 7/12 and 5/12 to 0/12 and 2/12. Both
+ *   are back, word for word as round 3 had them (`6d48483`), around (bp)'s two sentences, which still refer back to the training — less
+ *   one kind: "sääennusteet" / "weather forecasts", a scored item's subject that (bp)'s rule below excludes (the forecast item, V5/V7).
+ *   The Finnish names the command centre's label "(JOKE)", as round 3 did: the one capitalised code the step may hold. Still no example.
+ * - B23: VP has one prompt with two questions (`practice-spam.ts`, `practice-measure.ts`): the `spam` step's last sentence says so.
+ * - B24: confirming the allocation ends the period only once its minimum time has passed (`recordAllocation`, `reachMinimum`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -32,9 +41,9 @@ const BP = {
     welcome: `${TOUR_SETTING_FI} Tämä on ensimmäinen katsaus varsinaiseen tilanteeseen. Harjoituksessa kokeilit työkaluja; nyt näet, missä ne ovat tässä näkymässä. Katsausta ei pisteytetä, eikä sen aika kulu tämän esittelyn aikana.`,
     log: "Sinulle välitetyt ilmoitukset tulevat tähän lähettäjän ja kellonajan kanssa, kuten harjoituksessa. Se on vain osa liikenteestä; muu on kirjauksissa.",
     haku: `Avaa Haku tästä, kuten harjoituksessa. ${TOUR_HAKU_ASK_FI} ${HAKU_CHAT_FI}`,
-    hakuRecords: "Harjoituksessa näit, mitä kirjauksista löytyy ja miten niitä kysytään: aiheen, lähteen tai kellonajan mukaan. Tässä tilanteessa kirjaukset ovat toiset, mutta kysyt niitä samalla tavalla.",
+    hakuRecords: "Viestilokin lisäksi johtopaikan kirjauksissa on ilmoituksia, joita sinulle ei lähetetä automaattisesti: droonien kartoitukset lukuineen, yksiköiden vesi- ja polttoainetilanne kysyttäessä sekä muiden viranomaisten viestit. Harjoituksessa näit, mitä kirjauksista löytyy ja miten niitä kysytään: aiheen, lähteen tai kellonajan mukaan. Tässä tilanteessa kirjaukset ovat toiset, mutta kysyt niitä samalla tavalla. Kun johtokeskus (JOKE) kuittaa radiossa yksikön ilmoituksen, yksityiskohdat löytyvät kirjauksista.",
     freeze: "Seuraavissa jaksoissa kuva piilotetaan välillä ja saat kysymyksiä tilanteesta, kuten harjoituksen muistikatkossa: vastaat muistin varassa ja arvioit varmuutesi, ja kello on pysähdyksissä katkon ajan. Tässä katsauksessa muistikatkoa ei ole.",
-    spamLast: "Tässä katsauksessa saat kokeilla yhtä.",
+    spamLast: "Tässä katsauksessa saat kokeilla yhtä kehotetta, jossa on kaksi kysymystä.",
     ready: "Katsaus alkaa, kun painat Aloita. Katso rauhassa karttaa, viestilokia ja hakua.",
     button: "Aloita katsaus",
     label: "Ensikatsaus",
@@ -44,9 +53,9 @@ const BP = {
     welcome: `${TOUR_SETTING_EN} This is a first look at the actual incident. In the training you tried the tools; now you see where they are in this view. The first look is not scored, and its time does not run during this introduction.`,
     log: "Reports passed to you arrive here with their sender and time, as in the training. This is only part of the traffic; the rest is in the records.",
     haku: `Open Search here, as in the training. ${TOUR_HAKU_ASK_EN} ${HAKU_CHAT_EN}`,
-    hakuRecords: "In the training you saw what the records hold and how to ask for it: by topic, source or time. The records here are different, and you ask for them the same way.",
+    hakuRecords: "Besides the message log, the command post's records hold reports you are not sent automatically: drone surveys and their figures, units' water and fuel status when asked, and messages from other authorities. In the training you saw what the records hold and how to ask for it: by topic, source or time. The records here are different, and you ask for them the same way. When the command centre acknowledges a unit's report on the radio, the details are in the records.",
     freeze: "In the periods that follow, the picture is hidden now and then and you get questions about the situation, as in the training's memory check: you answer from memory and rate your confidence, and the clock stands still during the check. There is no memory check in this first look.",
-    spamLast: "You will try one in this first look.",
+    spamLast: "You will try one prompt with two questions in this first look.",
     ready: "The first look starts when you press Start. Take your time with the map, the message log and the search.",
     button: "Start the first look",
     label: "First look",
@@ -104,12 +113,42 @@ describe("revision (bp): the tour's changed steps read as SPEC/15 §bp.5", () =>
   });
 });
 
+describe("round 4 (R27(a), B23, B24): what (bp) dropped is back, and the first look's and the decision's sentences are true", () => {
+  /** Round 3's text of the step (`git show 6d48483:tak-sim/app/i18n/ui.ts`), its list of record kinds and its last sentence. */
+  const ROUND3 = {
+    fi: { kinds: "Viestilokin lisäksi johtopaikan kirjauksissa on ilmoituksia, joita sinulle ei lähetetä automaattisesti: droonien kartoitukset lukuineen, sääennusteet, yksiköiden vesi- ja polttoainetilanne kysyttäessä sekä muiden viranomaisten viestit.", ack: "Kun johtokeskus (JOKE) kuittaa radiossa yksikön ilmoituksen, yksityiskohdat löytyvät kirjauksista." },
+    en: { kinds: "Besides the message log, the command post's records hold reports you are not sent automatically: drone surveys and their figures, weather forecasts, units' water and fuel status when asked, and messages from other authorities.", ack: "When the command centre acknowledges a unit's report on the radio, the details are in the records." },
+  } as const;
+  const FORECAST = { fi: "sääennusteet, ", en: "weather forecasts, " } as const;
+
+  it.each(LANGS)("%s: round 3's acknowledgement sentence ends the step, word for word; its list of kinds opens it, less the forecasts", (lang) => {
+    const body = step(lang, "hakuRecords").body;
+    expect(body.endsWith(` ${ROUND3[lang].ack}`)).toBe(true);
+    expect(body.startsWith(`${ROUND3[lang].kinds.replace(FORECAST[lang], "")} `)).toBe(true);
+    expect(ROUND3[lang].kinds).toContain(FORECAST[lang]); // the one kind left out (a scored subject, the rule below)
+    expect(body).toContain(BP[lang].hakuRecords.slice(BP[lang].hakuRecords.indexOf(lang === "fi" ? "Harjoituksessa" : "In the training")));
+    expect(body).not.toMatch(/tieilmoitu|road report/i); // (bn) had taken the road reports out of the kinds; not re-added
+  });
+
+  it("B23: the spam step says the first look has one prompt with two questions, as VP has", () => {
+    expect(UI.en.tour.steps.spam.body.endsWith("You will try one prompt with two questions in this first look.")).toBe(true);
+    expect(UI.fi.tour.steps.spam.body.endsWith("Tässä katsauksessa saat kokeilla yhtä kehotetta, jossa on kaksi kysymystä.")).toBe(true);
+    for (const lang of LANGS) expect(step(lang, "spam").body).not.toMatch(/kokeilla yhtä\.$|try one in this first look/);
+  });
+
+  it("B24: the decision step says a confirmation ends the period once its minimum time has passed; until then the clock runs and reports may come", () => {
+    expect(UI.en.tour.steps.decision.body).toContain("Confirming the allocation ends the period once its minimum time has passed; until then the clock runs on and new reports may still arrive. You can still change the allocation until the period ends.");
+    expect(UI.fi.tour.steps.decision.body).toContain("Kohdennuksen vahvistaminen päättää jakson, kun jakson vähimmäisaika on kulunut; siihen asti kello käy ja uusia ilmoituksia voi vielä tulla. Voit vielä muuttaa kohdennusta, kunnes jakso päättyy.");
+    for (const lang of LANGS) expect(step(lang, "decision").body).not.toMatch(/Confirming the allocation ends the period\. |vahvistaminen päättää jakson\. /);
+  });
+});
+
 describe("revision (bp): the records step quotes no example and teaches how, never that", () => {
   it.each(LANGS)("%s: no quoted question, no clock, no call sign, no place, no VP record's source", (lang) => {
     const body = step(lang, "hakuRecords").body;
     expect(body).not.toMatch(/[„“”"«»]/);
     expect(body).not.toMatch(/\d/);
-    expect(body).not.toMatch(/\b[A-ZÅÄÖ]{2,}\d*\b/);
+    expect(body.replace(lang === "fi" ? "(JOKE)" : "", "")).not.toMatch(/\b[A-ZÅÄÖ]{2,}\d*\b/); // round 4 (R27(a)): round 3's "(JOKE)" only
     expect(Object.keys(PLACE_NAMES_EN).filter((n) => body.includes(n.length > 6 ? n.slice(0, 6) : n))).toEqual([]);
     expect(Object.values(PLACE_NAMES_EN).filter((n) => body.includes(n))).toEqual([]);
     expect(body).not.toMatch(/Haukilamp|Pike Pond|\bW1\b|vesihuolto|water supply|sääennuste|forecast|DR1/i);

@@ -83,7 +83,8 @@ describe("the training's screen is the session's own components (SPEC/15 (bp) §
   const screen = src("components/TrainingScreen.tsx"), stage = src("components/TrainingStage.tsx");
 
   it("the live stage: MapView locked, the TAK toolbar with only the item's tools, GeoChat, R&B, Haku; S3's card is the SPAM card", () => {
-    expect(stage).toMatch(/<MapView snapshot=\{snapshot\} extent=\{orchestrator\.mapExtent\} tak=\{tak\} lock=\{lock\}>/);
+    // Round 4 (B26): each new item opens on the opening frame (MapView's `frameKey`: the item's id; its feedback keeps the item's camera).
+    expect(stage).toMatch(/<MapView snapshot=\{snapshot\} extent=\{orchestrator\.mapExtent\} tak=\{tak\} lock=\{lock\} frameKey=\{view\.itemId\}>/);
     expect(stage).toMatch(/<SpamCard spam=\{snapshot\.spam\} orchestrator=\{orchestrator\} \/>/);
     expect(stage).toMatch(/<GeoChatPane /);
     expect(stage).toMatch(/<RangeBearingPane /);

@@ -3,7 +3,8 @@
  * played with the session's real components, so the snapshot fields those components read are the training's —
  *
  * - `renderTree.cycleInfo` (the live map `MapView`): the item's scene (`TRAINING.scenes`), only while the live map is open; during the
- *   memory exposure the `s1` scene with the memory unit alone (drawn as the shell draws a friendly ground vehicle with its call sign);
+ *   memory exposure the `s1` scene with the memory unit alone (drawn as the shell draws a friendly ground vehicle with its call sign)
+ *   and the incident's wind (`memoryExposureScene`; round 4, B25);
  * - `radioLog` (the message log, GeoChat): the training's log rows (`trainingLogRows`) while the log is open — S2's to 10.12, S3's all
  *   five (to the training's "now"; SPEC/08 (bp) §bp.6);
  * - `aiChatHistory` (the Haku pane): the training's own Haku turns (`haku.ts`), never the session's;
@@ -22,6 +23,7 @@ import { EMPTY_RENDER_TREE, type RenderTree } from "../../render/render-tree.js"
 import { clockAt } from "../template-answer.js";
 import type { AiChatTurn, FreezeView, RadioLogEntry, SpamView } from "../snapshot.js";
 import { TRAINING_VIEW, trainingLogRows } from "./corpus.js";
+import { memoryExposureScene } from "./scenes.js";
 import type { TrainingView } from "./host.js";
 import type { TrainingItem, TrainingSpec } from "./spec.js";
 
@@ -58,13 +60,13 @@ export interface TrainingNow {
   readonly hakuWaiting: boolean;
 }
 
-/** The map's scene now: the item's, with the memory unit alone during its exposure; null while the live map is closed. */
+/** The map's scene now: the item's, or during the memory exposure `memoryExposureScene`; null while the live map is closed. */
 export function trainingSceneOf(spec: TrainingSpec, view: TrainingView | null, item: TrainingItem | null): RenderableCycle | null {
   if (!view || !item || !view.tools.map || view.scene === null) return null;
   const scene = spec.scenes[view.scene];
   if (!scene) return null;
   if (view.phase !== "study" || !item.memory) return scene;
-  return { ...scene, unitPositions: { [item.memory.unit]: item.memory.at }, unitWork: {}, aircraft: [], sensorFootprints: [] };
+  return memoryExposureScene(spec, item);
 }
 
 /** The message log's rows now: S2's to 10.12, S3's to the training's "now"; none while the log is closed. */

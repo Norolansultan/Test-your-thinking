@@ -146,9 +146,11 @@ export interface MapViewProps {
    * tiles meeting it load, its presets replace the zoom buttons, no reference overlay, and the legend lists no reference row.
    */
   readonly lock?: MapLock | undefined;
+  /** Play-test round 4 (B26): a new key returns the map to its opening frame, as a new view does (the training: its item's id). */
+  readonly frameKey?: string | null | undefined;
 }
 
-export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: MapViewProps) {
+export function MapView({ snapshot, extent, onMapUse, tak, children, lock, frameKey }: MapViewProps) {
   const { t, lang } = useLang();
   setMarkerLang(lang);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -392,14 +394,14 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
   }, [snapshot]);
   // Every view starts from the same place (researcher, 9 Oct 2026): when a new view opens, the map returns to the
   // opening frame above (revision (am): the 5 km box), the same for every view and every participant, whatever the
-  // participant did in the view before. It reads only that the view changed, never what the view contains.
-  const viewRef = useRef(snapshot.currentCycle);
+  // participant did in the view before. It reads only that the view changed, never what the view contains. A new `frameKey` does the same.
+  const viewRef = useRef(`${snapshot.currentCycle}|${frameKey ?? ""}`);
   useEffect(() => {
-    const map = mapRef.current;
-    if (viewRef.current === snapshot.currentCycle) return;
-    viewRef.current = snapshot.currentCycle;
+    const map = mapRef.current, key = `${snapshot.currentCycle}|${frameKey ?? ""}`;
+    if (viewRef.current === key) return;
+    viewRef.current = key;
     if (map) frameDefault(map);
-  }, [snapshot.currentCycle]);
+  }, [snapshot.currentCycle, frameKey]);
   // Each view's start is logged with the map's pixel size and the opening frame (after the reset above).
   const loggedViewRef = useRef(snapshot.currentCycle);
   useEffect(() => {

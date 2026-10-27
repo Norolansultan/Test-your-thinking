@@ -4,14 +4,14 @@
  * - `s1`: the basemap only — no fire, no units, calm; the item's marks and the road codes are drawn over it.
  * - `incident`: the fire as the live map draws a mapped edge (the burnt core, the burning zone, the red uncontained edge with its
  *   head), EK51 at the fire's tail, a light wind from the spread's reverse, the clock 10.00 (the period's start, as every session map).
- * - the memory exposure: the `s1` scene with the memory unit alone (`memoryExposureScene`).
+ * - the memory exposure: the `s1` scene with the memory unit alone and the incident's wind (`memoryExposureScene`).
  * Pure; never a main-session view (index 0, the training's own clock).
  */
 
 import { asVirtualTime, type LatLon, type Ring } from "../../engine/primitives.js";
 import type { RenderableCycle } from "../../boundary/render-boundary.js";
 import type { FireDisplay } from "../../scenario/types.js";
-import type { TrainingSpec } from "./spec.js";
+import type { TrainingItem, TrainingSpec } from "./spec.js";
 import { sortedKeys } from "../../engine/deterministic-object.js";
 
 /** 10.00 on the session's scale (13.20 = 0): the map's "as mapped" time. */
@@ -82,12 +82,14 @@ export function trainingScenes(input: TrainingFireInput): { readonly s1: Rendera
   };
 }
 
-/** S4's exposure: the `s1` scene with the memory unit alone, where the item puts it. */
-export function memoryExposureScene(spec: TrainingSpec): RenderableCycle {
-  const item = spec.items.find((it) => it.memory !== undefined);
+/**
+ * S4's exposure: the memory item's scene (`s1`: the basemap only) with the memory unit alone, where the item puts it, and the incident's
+ * wind — play-test round 4 (B25, 27 Oct 2026): the info card showed `s1`'s calm "N 0 m/s", while the exposure is at 10.18 of the same
+ * incident. The live map draws this scene (`view.ts` `trainingSceneOf`) and the play harness's PNG with it.
+ */
+export function memoryExposureScene(spec: TrainingSpec, item: TrainingItem | undefined = spec.items.find((it) => it.memory !== undefined)): RenderableCycle {
   if (!item?.memory) throw new Error("training: no memory item");
-  const s1 = spec.scenes.s1;
-  return { ...s1, unitPositions: { [item.memory.unit]: item.memory.at }, unitWork: { [item.memory.unit]: { task: "staging", vehicle: null, hoseM: null } } };
+  return { ...spec.scenes[item.scene], wind: spec.scenes.incident.wind, unitPositions: { [item.memory.unit]: item.memory.at }, unitWork: {}, aircraft: [], sensorFootprints: [] };
 }
 
 /** The scene an item shows (the memory item's question shows the blank freeze map; its exposure is `memoryExposureScene`). */

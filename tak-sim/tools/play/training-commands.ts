@@ -11,7 +11,8 @@
  * - `haku "<question>"` on an S3 card: Search over the training's own records (the harness's no-model transport answers it, as the
  *   proxy's fallback); the answer is the training's own Haku turn (the snapshot's `aiChatHistory` while the step is on).
  * - `measure x1,y1 x2,y2` and `map 2.5km|1km|reset [center=x,y]` on the training's live map. The training's map use is not logged
- *   (SPEC/07 (bp)), so nothing here writes a map record.
+ *   (SPEC/07 (bp)), so nothing here writes a map record. Each new item opens on the opening frame, as the app's map returns to it
+ *   (play-test round 4, B26: T1's 1 km zoom carried into T2 and hid its mark A); the item's feedback keeps the item's camera.
  */
 
 import type { TrainingAnswer, TrainingConfidence } from "../../app/session/training/host.js";
@@ -34,9 +35,9 @@ function viewOrRefuse(session: PlaySession) {
   return view!;
 }
 
-/** The harness's UI state for the item on screen (a new item starts with no readings and the opening frame kept). */
+/** The harness's UI state for the item on screen: a new item starts with no readings, on the opening frame (round 4, B26). */
 function uiFor(session: PlaySession, itemId: string | null) {
-  if (session.trainingUi.itemId !== itemId) session.trainingUi = { ...session.trainingUi, itemId, measures: [], rb: null };
+  if (session.trainingUi.itemId !== itemId) session.trainingUi = { itemId, measures: [], rb: null, camera: null };
   return session.trainingUi;
 }
 
@@ -80,7 +81,7 @@ export async function trainingAnswer(session: PlaySession, args: readonly string
   let answer: TrainingAnswer;
   if (item!.answer === "point") {
     const [x, y] = (arg ?? "").split(",").map(Number);
-    const at = item!.mode === "freeze" ? freezePointAt(x!, y!, trainingLockBox(spec)) : trainingPointAt(x!, y!, session.trainingUi.camera ?? trainingOpening(spec), spec);
+    const at = item!.mode === "freeze" ? freezePointAt(x!, y!, trainingLockBox(spec)) : trainingPointAt(x!, y!, uiFor(session, item!.id).camera ?? trainingOpening(spec), spec);
     need(!("error" in at), "error" in at ? at.error : "");
     answer = { point: (at as { point: { lat: number; lon: number } }).point, ...(confidence !== undefined ? { confidence } : {}) };
   } else {
@@ -121,7 +122,7 @@ export async function trainingMeasure(session: PlaySession, args: readonly strin
   const view = viewOrRefuse(session);
   need(view.phase === "question" && view.tools.rb, "the R&B tool is not open on this training screen");
   const spec = session.trainingContent.spec;
-  const camera = session.trainingUi.camera ?? trainingOpening(spec);
+  const camera = uiFor(session, view.itemId).camera ?? trainingOpening(spec);
   const pts = args.slice(0, 2).map((a) => a.split(",").map(Number));
   need(pts.length === 2 && pts.every((p) => p.length === 2), "measure <x1>,<y1> <x2>,<y2> (pixels of the training map image, its grid's labels)");
   const at = pts.map((p) => trainingPointAt(p[0]!, p[1]!, camera, spec));
@@ -145,7 +146,8 @@ export async function trainingMap(session: PlaySession, args: readonly string[],
   need(move !== undefined || centre !== undefined, `map ${TRAINING_MOVES.join("|")} [center=<x>,<y> of the last map image] (the training's zoom buttons)`);
   need(centre === undefined || (centre.length === 2 && centre.every((v) => Number.isFinite(v))), "center=<x>,<y> (pixels of the last map image)");
   const spec = session.trainingContent.spec;
-  session.trainingUi = { ...session.trainingUi, camera: moveTrainingCamera(session.trainingUi.camera ?? trainingOpening(spec), move ?? null, centre ? [centre[0]!, centre[1]!] : null, spec) };
+  const ui = uiFor(session, view.itemId);
+  session.trainingUi = { ...ui, camera: moveTrainingCamera(ui.camera ?? trainingOpening(spec), move ?? null, centre ? [centre[0]!, centre[1]!] : null, spec) };
   await session.spend(COST_S.mapMove);
   return look();
 }

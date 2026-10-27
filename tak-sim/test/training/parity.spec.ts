@@ -36,7 +36,7 @@ describe("the training's group parity (SPEC/30 (bp))", () => {
       expect(haku.examples).toHaveLength(2);
       expect(guide.examples).toHaveLength(2);
       expect(haku.examples.map((e) => e.question)).toEqual(guide.examples.map((e) => e.question));
-      expect(haku.examples.map((e) => e.question)).toEqual([TRAINING_QUESTIONS["trn.q.ek52_water"]![lang], TRAINING_QUESTIONS["trn.q.under_control"]![lang]]);
+      expect(haku.examples.map((e) => e.question)).toEqual([TRAINING_QUESTIONS["trn.q.ek52_water"]![lang], TRAINING_QUESTIONS["trn.q.contained"]![lang]]);
       expect(haku.examples.map((e) => e.note)).toEqual(guide.examples.map((e) => e.note));
       expect(haku.examples.map((e) => e.id)).toEqual(["ex1", "ex2"]);
       const incomplete = lang === "fi" ? /vajaa/ : /incomplete/;

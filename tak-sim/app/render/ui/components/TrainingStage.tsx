@@ -111,7 +111,8 @@ export function TrainingStage({ snapshot, orchestrator, view, item, lock, studyS
       <style>{TAK_MAP_CSS}</style>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-          <MapView snapshot={snapshot} extent={orchestrator.mapExtent} tak={tak} lock={lock}>
+          {/* Each new item opens on the opening frame, as each new view does (round 4, B26); its feedback keeps the item's camera. */}
+          <MapView snapshot={snapshot} extent={orchestrator.mapExtent} tak={tak} lock={lock} frameKey={view.itemId}>
             {/* Compact (the clock and the wind only), inside the locked map's top band: it covers nothing of the square (finding 3). */}
             <TakInfoCard compact clockLabel={trainingClockLabel(TRAINING)} wind={snapshot.renderTree.cycleInfo?.wind} />
             <TakCoordReadout map={handle?.map ?? null} />

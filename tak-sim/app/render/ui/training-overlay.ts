@@ -57,21 +57,49 @@ function labelElement(html: string, css: string): HTMLElement {
 
 const HALO = "text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff";
 
-/** A mark as the training draws it: a lettered red dot, the pump's star, a numbered blue fill point, a unit's symbol, a head mark. */
-function markElement(mark: TrainingMark): HTMLElement {
+/**
+ * The shapes drawn as SVG (never a text glyph, whose ink depends on the font), in their box's pixels: the head's ▲ (18 px) and the
+ * pump's ★ (22 px), each placed so that the middle of its bounding box's centre and its centroid is the box's centre (both within
+ * 1.2 px of it).
+ */
+export const MARK_SHAPES = {
+  head: { size: 18, points: "9,0.83 1,14.83 17,14.83" },
+  star: { size: 22, points: "11,1 13.47,8.1 20.99,8.26 14.99,12.8 17.17,20 11,15.7 4.83,20 7.01,12.8 1.01,8.26 8.53,8.1" },
+} as const;
+
+const shapeSvg = ({ size, points }: { size: number; points: string }, fill: string) =>
+  `<svg data-mark-glyph width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block;overflow:visible"><polygon points="${points}" fill="${fill}" stroke="#fff" stroke-width="2" stroke-linejoin="round" paint-order="stroke"/></svg>`;
+
+/**
+ * A mark as the training draws it — a lettered red dot, the pump's star, a numbered blue fill point, a unit's symbol, a head mark — as
+ * its glyph box (`size` px square) and markup. Play-test round 4 (B17, 27 Oct 2026): the marker's element IS the glyph's box, which
+ * MapLibre's default anchor ("center") centres on the point, so the glyph sits on its point; a label hangs beside it (the unit's call
+ * sign under it, as the session draws units), absolutely positioned, so it cannot move the glyph. Before, the whole label was centred
+ * on the point: "▲ 10.12"'s triangle sat about 25 px (100 m) west of the head point, the dot about 6 px left of its point, and the
+ * unit's symbol above its point.
+ */
+export function markGlyph(mark: TrainingMark): { readonly size: number; readonly html: string } {
   const label = mark.label.replace(/[<>&"]/g, "");
+  const beside = (font: string) => `<div data-mark-label style="position:absolute;left:calc(100% + 3px);top:50%;transform:translateY(-50%);font:${font};color:${TRAINING_COLOURS.mark};${HALO}">${label}</div>`;
   switch (mark.kind) {
-    case "unit":
-      return labelElement(`<div style="width:30px;height:30px">${symbolSvg(sidcOf(label), 28)}</div><div style="font:700 12px sans-serif;color:${TRAINING_COLOURS.ink};${HALO};text-align:center">${label}</div>`, "display:flex;flex-direction:column;align-items:center");
+    case "unit": // milsymbol's anchor (the frame's centre) is its SVG's centre for the training's units
+      return { size: 30, html: `<div data-mark-glyph style="width:30px;height:30px">${symbolSvg(sidcOf(label), 28)}</div><div data-mark-label style="position:absolute;top:100%;left:50%;transform:translateX(-50%);font:700 12px sans-serif;color:${TRAINING_COLOURS.ink};${HALO}">${label}</div>` };
     case "star":
-      return labelElement(`<span style="font:700 22px sans-serif;color:${TRAINING_COLOURS.mark};${HALO}">★</span>`, "");
+      return { size: MARK_SHAPES.star.size, html: shapeSvg(MARK_SHAPES.star, TRAINING_COLOURS.mark) };
     case "water":
-      return labelElement(`<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${TRAINING_COLOURS.water};border:2px solid #fff;color:#fff;font:700 12px sans-serif">${label}</span>`, "");
+      return { size: 24, html: `<div data-mark-glyph style="box-sizing:border-box;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:${TRAINING_COLOURS.water};border:2px solid #fff;color:#fff;font:700 12px/1 sans-serif">${label}</div>` };
     case "head":
-      return labelElement(`<span style="font:700 16px sans-serif;color:${TRAINING_COLOURS.mark};${HALO}">▲ ${label}</span>`, "");
+      return { size: MARK_SHAPES.head.size, html: shapeSvg(MARK_SHAPES.head, TRAINING_COLOURS.mark) + beside("700 16px sans-serif") };
     case "point":
-      return labelElement(`<span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border-radius:50%;background:${TRAINING_COLOURS.mark};border:2px solid #fff"></span><span style="font:700 15px sans-serif;color:${TRAINING_COLOURS.mark};${HALO}">${label}</span></span>`, "");
+      return { size: 14, html: `<div data-mark-glyph style="box-sizing:border-box;width:14px;height:14px;border-radius:50%;background:${TRAINING_COLOURS.mark};border:2px solid #fff"></div>${beside("700 15px sans-serif")}` };
   }
+}
+
+function markElement(mark: TrainingMark): HTMLElement {
+  const { size, html } = markGlyph(mark);
+  const el = labelElement(html, `width:${size}px;height:${size}px`);
+  el.dataset.trainingMark = `${mark.kind}:${mark.label}`; // for the browser check (B17)
+  return el;
 }
 
 function ensureSources(map: MapLibreMap): void {

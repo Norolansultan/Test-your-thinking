@@ -98,9 +98,20 @@ describe("the training's pages (pure: the spec, the texts, the view in; text and
       expect(text).toContain(`<confidence ${CONFIDENCE_SCALE.join("|")}>`);
     });
 
+    it(`${lang}: round 4 (B20) — S3's card prints no Search pane until \`haku\` is used, only a » line naming the command`, () => {
+      const text = trainingScreen(input(lang, viewOf("question", "training.s3.records1")), "/m.png", null).text;
+      const t = UI_TEXT[lang];
+      expect(text).not.toContain(`-- ${t.tak.paneTitle.haku} --`); // the app keeps Search closed (\`seek_first\`)
+      expect(text).toContain(`-- ${t.tak.paneTitle.geochat}`); // the log is open, as the app opens it
+      expect(text.split("\n").filter((l) => l.includes("`haku")).map((l) => l.slice(0, 2))).toEqual(["» "]);
+      const s1 = trainingScreen(input(lang, viewOf("question", "training.s1.measure")), "/m.png", null).text;
+      expect(s1).not.toContain("`haku");
+    });
+
     it(`${lang}: the memory item — the unit on the live map for its exposure, then the blank map of the lock box with confidence`, () => {
       const study = trainingScreen(input(lang, viewOf("study", "training.s4.memory")), "/m.png", "/b.png");
       expect(study.text).toMatch(/5 s left \(`wait 5`\)/);
+      expect(study.text).toContain("\nmemoryExposure\n» The unit is shown"); // round 4 (B21): the app's line (the fixture's texts have none)
       expect(study.images.map((i) => i.kind)).toEqual(["training"]);
       const blank = trainingScreen(input(lang, viewOf("question", "training.s4.memory")), "/m.png", "/b.png");
       expect(blank.images).toEqual([{ kind: "freeze", path: "/b.png", lang, extent: trainingLockBox(FIXTURE_SPEC) }]);
@@ -233,6 +244,32 @@ describe("the training on the real session, through the harness's commands", () 
     s1.begin(null);
     await expect(runCommand(s1, "haku", ["x"], ctx)).rejects.toThrow(/S3 question cards/);
     expect(inTraining(s1.snap())).toBe(true);
+  });
+
+  it("round 4 (B21): the exposure prints the app's own line, \"Remember where unit EK53 is.\"", async () => {
+    const session = await playUntil("en", "expert", phaseIs("study", "training.s4.memory"));
+    expect(await look(session)).toContain(`${TRAINING_TEXT.en.ui.memoryExposure}\n» The unit is shown on the map`);
+    expect(TRAINING_TEXT.en.ui.memoryExposure).toBe("Remember where unit EK53 is.");
+  });
+
+  it("round 4 (B26): each new item opens on the opening frame — T1's 1 km zoom is kept through its feedback, not into T2", async () => {
+    const session = await playUntil("en", "expert", phaseIs("question", "training.s1.place"));
+    const opening = trainingOpening(TRAINING);
+    session.begin(null);
+    await runCommand(session, "map", ["1km", `center=${M + 500},${M + 340}`], ctx);
+    const zoomed = session.trainingUi.camera!;
+    expect(zoomed.zoom).toBeGreaterThan(opening.zoom);
+    session.begin(null);
+    await runCommand(session, "training-answer", [`${M + 500},${M + 340}`], ctx);
+    expect((session.images.at(-1) as { data: { camera: unknown } }).data.camera).toEqual(zoomed); // the feedback: the item's own camera
+    session.begin(null);
+    await runCommand(session, "continue", [], ctx);
+    expect(trainingViewOf(session.snap())).toMatchObject({ phase: "question", itemId: "training.s1.measure" });
+    await look(session);
+    expect((session.images.at(-1) as { data: { camera: unknown } }).data.camera).toEqual(opening); // T2: the opening frame again
+    session.begin(null);
+    await runCommand(session, "measure", [`${M + 400},${M + 300}`, `${M + 600},${M + 300}`], ctx);
+    expect(session.trainingUi).toMatchObject({ itemId: "training.s1.measure", camera: null }); // read on the opening frame
   });
 
   it("`map 1km` and `map reset` move the training's live map within its lock", async () => {

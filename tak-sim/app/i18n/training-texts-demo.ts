@@ -6,6 +6,8 @@
  * at spaces): each example within ±10 %, the total within ±5 %, in both languages (`test/training/parity.spec.ts`). The lines after
  * the examples, the limitation's label and the button are the same in every cell. Not live: no request is sent. No claim about the
  * tool beyond what the second example shows.
+ * Play-test round 4 (B19, 27 Oct 2026): the Finnish limitation case asks "Onko palo rajattu?" (was "… hallinnassa?") in both recordings
+ * alike ("ei hallinnasta" → "ei rajaamisesta"), so the displayed words are unchanged in both cells.
  */
 
 import type { Cell } from "../scenario/types.js";
@@ -18,13 +20,13 @@ export type DemoId = "haku" | "guide";
 export const demoIdOf = (cell: Cell): DemoId => (cell === "radio" ? "haku" : "guide");
 /** The records the recordings quote (and nothing else). */
 export const DEMO_RECORD_IDS: readonly string[] = ["trn.r10", "trn.r08"];
-const QUESTIONS = ["trn.q.ek52_water", "trn.q.under_control"] as const;
+const QUESTIONS = ["trn.q.ek52_water", "trn.q.contained"] as const;
 
 /** Haku's four-part answers (VASTAUS unlabelled, then PERUSTEET, VARMUUS, MIKÄ MUUTTAISI as the Haku pane labels them). */
 const HAKU: Readonly<Record<Lang, readonly (readonly [string, string, string, string])[]>> = {
   fi: [
     ["EK52:n säiliö oli klo 10.15 noin 60 % täynnä.", "EK52 klo 10.15, kysyttäessä: ”säiliö noin 60 %, miehistö kolme.”", "Korkea. Tieto on tuore ja tulee suoraan yksiköltä.", "Uusi tilatieto EK52:lta."],
-    ["Kirjauksista ei löydy ilmoitusta siitä, onko palo hallinnassa.", "Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5. Se kertoo palon paikan, ei hallinnasta.", "Matala. Vastaus on vajaa, koska kysymykseen ei ole kirjattua vastausta.", "Ilmoitus palon tilasta tai uudempi ilmoitus."],
+    ["Kirjauksista ei löydy ilmoitusta siitä, onko palo rajattu.", "Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5. Se kertoo palon paikan, ei rajaamisesta.", "Matala. Vastaus on vajaa, koska kysymykseen ei ole kirjattua vastausta.", "Ilmoitus palon tilasta tai uudempi ilmoitus."],
   ],
   en: [
     ["EK52's tank was about 60 % full at 10.15.", "EK52 at 10.15, when asked: “tank about 60 %, crew of three.”", "High. The information is recent and comes straight from the unit.", "A new status report from EK52."],
@@ -36,7 +38,7 @@ const HAKU: Readonly<Record<Lang, readonly (readonly [string, string, string, st
 const GUIDE: Readonly<Record<Lang, readonly string[]>> = {
   fi: [
     "EK52:n säiliö oli klo 10.15 noin 60 % täynnä, kun yksikköä kysyttiin. Lähteenä on EK52:n ilmoitus. Tieto on tuore ja tulee suoraan yksiköltä, joten pidän sitä melko varmana. Sitä muuttaisi vain uusi tilatieto EK52:lta.",
-    "Kirjauksissa ei ole ilmoitusta siitä, onko palo hallinnassa, joten en voi vastata siihen. Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5, eli se kertoo palon paikan, ei hallinnasta. Vastaukseni on vajaa, ja sanon sen. Sen muuttaisi ilmoitus palon tilasta tai uudempi ilmoitus.",
+    "Kirjauksissa ei ole ilmoitusta siitä, onko palo rajattu, joten en voi vastata siihen. Uusin ilmoitus on DR8:lta klo 10.12: kärki on tiellä R5, eli se kertoo palon paikan, ei rajaamisesta. Vastaukseni on vajaa, ja sanon sen. Sen muuttaisi ilmoitus palon tilasta tai uudempi ilmoitus.",
   ],
   en: [
     "EK52's tank was about 60 % full at 10.15, when the unit was asked. It is EK52's own report. The information is recent and comes straight from the unit, so I count it fairly certain. Only a new status report from EK52 would change it.",

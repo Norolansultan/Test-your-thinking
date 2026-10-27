@@ -20,6 +20,11 @@
  * the training incident), and the practice feedback's search lesson is retired; the training's pre-recorded questions are the taught
  * questions instead. They are answered over the training's own corpus, which holds no H9 or H10 record; checked here too, as a
  * participant could ask them in the session, at every step.
+ * Play-test round 4 (B19, 27 Oct 2026): S5's Finnish "Onko palo hallinnassa?", asked again in a Finnish session, ranked H10's "L3 in
+ * hand" records (`rekindle.in_hand.log` 2nd, `rekindle.overruled` 3rd) from step 10 — records outside the exposure set above, so the
+ * check passed. The training's questions are now held to the stricter rule: every one (`TRAINING_QUESTIONS`), over the SESSION's
+ * corpus at every step a participant can ask at, in both languages, reaches no record of the H9 or H10 arcs at all (F7's four, the
+ * rekindle's five and H10's echo `t4.private_doubt`) in the top 8, whatever the step. The old question is the failing control below.
  */
 
 import { describe, expect, it } from "vitest";
@@ -54,6 +59,15 @@ const SESSION_STEPS = [PRACTICE_STEP, ...scenario.cycles.filter((c) => c.index >
 /** The chips are offered from V8 (`hakuChipOffered`, `suggestedQuestionOffered`); the consult notice in V1–V14. */
 const CHIP_STEPS = SESSION_STEPS.filter((s) => s >= firstStepOf(8));
 const MAIN_STEPS = SESSION_STEPS.filter((s) => s >= 1);
+
+/** Every record of the H9 and H10 arcs: F7's four, the rekindle's "in hand" three, its objection and its overruling, and H10's echo. */
+const H9_H10_ARCS: readonly string[] = [...H9, ...DESIGNED_EVENT_IDS.inHand, DESIGNED_EVENT_IDS.objection, DESIGNED_EVENT_IDS.overruled, LOAD_BEARING_T4_IDS[1]];
+
+/** Round 4 (B19): any record of the H9 or H10 arcs in the top 8 at `step`, whether or not its exposure counts there. */
+function arcRecords(question: string, step: number, lang: Lang): string[] {
+  const top = hybridRetrieve(question, reachableAtoms(scenario.atoms, step), null, retrievalConfigOf(lang), lang).map((r) => r.atom.id);
+  return top.flatMap((id, i) => (H9_H10_ARCS.includes(id) ? [`${id} at rank ${i + 1}, step ${step}`] : []));
+}
 
 /** The H9 and H10 records in the top 8 whose exposure counts at `step`. */
 function exposed(question: string, step: number, lang: Lang, config: HybridConfig = retrievalConfigOf(lang)): string[] {
@@ -95,18 +109,29 @@ const TAUGHT: readonly Taught[] = [
 /**
  * Revision (bp), integration 26 Oct 2026: S5's limitation question was "Is the fire under control?" in English; asked again in an
  * English session it ranked the grid operator's record (`f7.grid_record`, H9) first at steps 6–9 through "control centre". It is now
- * "Is the fire contained?", which pulls no H9 or H10 record at any step, so no training question is an exception.
+ * "Is the fire contained?". Round 4 (B19): the Finnish is "Onko palo rajattu?". No training question is an exception.
  */
-const TRAINING_REPORTED: Readonly<Record<string, readonly string[]>> = {};
+/**
+ * Round 4 (B19): the one exception, found by this check on 27 Oct 2026, REPORTED to the researcher and pinned here, so that any other
+ * reach, or any change to this one, fails. S3.1's lesson question names DR8 and 10.05, which the session's corpus does not have (its
+ * records start at 12.00); its one other word, "ilmoitti" / "report", then decides alone, and the shortest log line that says who
+ * reported ranks first: H10's in-hand log line (`rekindle.in_hand.log`, "… lohko L3 … hallinnassa, ilmoittaja KY21"), rank 1 from step
+ * 10 in both languages. Neither the retrieval engine (B18, B22) nor the lesson's question is changed here: both await the researcher.
+ */
+const ARC_REPORTED: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  ["fi|Mitä DR8 ilmoitti klo 10.05?", "en|What did DR8 report at 10.05?"].map((k) => [k, SESSION_STEPS.filter((s) => s >= 10).map((s) => `rekindle.in_hand.log at rank 1, step ${s}`)]),
+);
 
 describe("revision (bo): taught and fixed questions return no H9 or H10 record in the top 8 while its exposure counts", () => {
-  // Revision (bp): the training's pre-recorded questions (taught in its feedback and its recordings), as if asked in the session again.
+  // Revision (bp), round 4 (B19): the training's pre-recorded questions (taught in its feedback and its recordings), as if asked in the
+  // session again — every one, over the session's corpus at every step, in both languages: no record of the H9 or H10 arcs in the top 8
+  // (the one reported exception above excepted, exactly).
   for (const lang of LANGS) {
-    it(`the training's pre-recorded questions (${lang}), at every step of the session`, () => {
-      for (const q of TRAINING_QUESTIONS[lang]) {
-        const got = SESSION_STEPS.flatMap((step) => exposed(q, step, lang));
-        expect(got, `"${q}"`).toEqual(TRAINING_REPORTED[`${lang}|${q}`] ?? []);
-      }
+    it(`the training's pre-recorded questions (${lang}): no H9 or H10 record in the top 8 at any step of the session`, () => {
+      expect(TRAINING_QUESTIONS[lang]).toHaveLength(5);
+      expect(SESSION_STEPS).toEqual([PRACTICE_STEP, ...Array.from({ length: 20 }, (_, i) => i + 1)]);
+      for (const q of TRAINING_QUESTIONS[lang]) expect(SESSION_STEPS.flatMap((step) => arcRecords(q, step, lang)), `"${q}"`).toEqual(ARC_REPORTED[`${lang}|${q}`] ?? []);
+      expect(Object.keys(ARC_REPORTED).filter((k) => k.startsWith(`${lang}|`)).map((k) => k.slice(3)).every((q) => TRAINING_QUESTIONS[lang].includes(q))).toBe(true);
     });
   }
 
@@ -166,6 +191,14 @@ describe("revision (bo): the natural 'what did unit X report' forms find the ite
       });
     }
   }
+});
+
+describe("round 4's finding (B19), reproduced: the guard on the training's questions bites", () => {
+  it("S5's old Finnish question \"Onko palo hallinnassa?\" ranked H10's \"L3 in hand\" records from step 10; the new one reaches none", () => {
+    expect(arcRecords("Onko palo hallinnassa?", 10, "fi")).toEqual(["rekindle.in_hand.log at rank 2, step 10", "rekindle.overruled at rank 3, step 10", "rekindle.in_hand.ky21 at rank 5, step 10"]);
+    expect(exposed("Onko palo hallinnassa?", 10, "fi")).toEqual([]); // the exposure-window check alone did not see it
+    expect(SESSION_STEPS.flatMap((step) => arcRecords("Onko palo rajattu?", step, "fi"))).toEqual([]);
+  });
 });
 
 describe("the finding (B2), reproduced on revision (bn)'s retrieval", () => {

@@ -1,7 +1,7 @@
 /**
  * The play harness's training pages (revision (bp), 26 Oct 2026; SPEC/15 (bp) §bp.2, SPEC/08 (bp)): what `look` prints while the step is
  * `training_incident` — the intro, the section cards, an item (its stem and options in the session language, the tools open for it: the
- * live map's PNG with a grid in its own pixels, the message log, the Search pane; the card's 60 s; the freeze screen's confidence), the
+ * live map's PNG with a grid in its own pixels, the message log, the Search pane once asked; the card's 60 s; the freeze screen's confidence), the
  * memory item's exposure and blank map, the feedback after every item, S5's recording of the group's tool, and the cap's countdown —
  * with the app's own words (`TRAINING_TEXT`, `UI_TEXT`). Harness lines are in English and marked `»`.
  *
@@ -96,6 +96,8 @@ export function trainingScreen(input: TrainingScreenInput, mapPath: string | nul
       const words = texts.item(view.itemId!);
       out.push(`== ${texts.section(view.sectionId!).title} · ${view.position} / ${view.itemCount} ==${timer}`);
       if (view.phase === "study") {
+        // Round 4 (B21, 27 Oct 2026): what the app's exposure panel says ("Muista, missä yksikkö EK53 on." / "Remember where unit EK53 is.").
+        out.push(texts.ui.memoryExposure ?? "memoryExposure");
         out.push(H(`The unit is shown on the map for its exposure: ${input.secondsLeft.study} s left (\`wait ${Math.max(1, input.secondsLeft.study)}\`), then the blank memory-check map with the question (\`look\`).`));
         break;
       }
@@ -134,10 +136,11 @@ export function trainingScreen(input: TrainingScreenInput, mapPath: string | nul
     } else out.push(H("The blank map is an image, not drawn with --no-map."));
   }
   if (view.tools.log && input.logRows.length > 0 && view.phase === "question") out.push("", `-- ${t.tak.paneTitle.geochat} · ${t.tak.geochat.rooms.all} (${input.logRows.length}) --`, ...input.logRows.map((r) => `  ${r}`), t.tak.geochat.readOnly);
-  if (view.tools.haku && view.phase === "question") {
+  // Round 4 (B20, 27 Oct 2026): the app keeps Search closed on S3's cards until the participant opens it (`seek_first`), so its pane is
+  // printed only once `haku` has been used (and stays, as the app's pane stays open in the section); before that, one » line names it.
+  if (view.tools.haku && view.phase === "question" && input.haku.length > 0) {
     out.push("", `-- ${t.tak.paneTitle.haku} --`);
     for (const turn of input.haku) out.push(`> ${turn.query}`, `${t.answer}: ${turn.answer.vastaus}`, `${t.basis}: ${turn.answer.perusteet}`, `${t.certainty}: ${turn.answer.varmuus}`, `${t.wouldChange}: ${turn.answer.muuttaisi}`);
-    out.push(H("`haku \"<question>\"` asks Search (here it answers only from this training's records; the harness's template fallback, not the study's model)."));
   }
   return { text: out.join("\n"), images };
 }
@@ -148,6 +151,7 @@ function questionLines(input: TrainingScreenInput, item: TrainingItem | null): s
   const confidence = item !== null && item.mode !== "live";
   if (item?.mode === "card") out.push(H(`The question card: ${input.secondsLeft.card} s left of its window; at 0 it closes unanswered and its feedback shows.`));
   if (view.tools.rb && input.measures.length > 0) out.push(`${UI_TEXT[lang].tak.rb.range}: ${input.measures.map((m) => formatRange(m, lang)).join(", ")}`);
+  if (view.tools.haku) out.push(H("`haku \"<question>\"` opens Search and asks it (here it answers only from this training's records; the harness's template fallback, not the study's model)."));
   const conf = confidence ? ` <confidence ${CONFIDENCE_SCALE.join("|")}>` : "";
   if (item?.answer === "point") {
     out.push(item.mode === "freeze"
@@ -172,7 +176,8 @@ export function trainingPage(session: PlaySession, s: SessionSnapshot, name: (wh
     lang: session.config.lang, audience: session.config.audience, cell: "radio", view, spec, texts: texts[session.config.lang],
     secondsLeft: { cap: o.trainingSecondsLeft(), card: o.trainingCardSecondsLeft(), study: o.trainingStudySecondsLeft(), demo: o.trainingDemoSecondsLeft() },
     scene: s.renderTree.cycleInfo, logRows: s.radioLog.map(logRow),
-    camera: session.trainingUi.camera ?? trainingOpening(spec), measures: item && session.trainingUi.itemId === item.id ? session.trainingUi.measures : [],
+    // Round 4 (B26): the camera belongs to the item it was moved on; a new item opens on the opening frame.
+    camera: (item && session.trainingUi.itemId === item.id ? session.trainingUi.camera : null) ?? trainingOpening(spec), measures: item && session.trainingUi.itemId === item.id ? session.trainingUi.measures : [],
     rb: item && session.trainingUi.itemId === item.id ? session.trainingUi.rb : null,
     haku: s.aiChatHistory.map((turn) => ({ query: turn.query, answer: { vastaus: d(turn.answer.answerFi), perusteet: d(turn.answer.basisFi), varmuus: d(turn.answer.certaintyFi), muuttaisi: d(turn.answer.wouldChangeIfFi) } })),
   };

@@ -117,8 +117,10 @@ describe("the camera never moves by itself (revision (aj))", () => {
     expect(mv).toMatch(/map\.easeTo\(\{ zoom: zoomForWidth\(widthM, map\.getContainer\(\)\.clientWidth \|\| 1280, centre\.lat\), duration: 0 \}\);/);
     // The snapshot effect updates the layers and the tour's boxes, nothing else.
     expect(mv).toMatch(/updateLayers\(map, snapshot\);\s*measureRef\.current\(map\);\s*\}, \[snapshot\]\);/);
-    // A new view returns to the Palo frame (the opening frame), keyed only on the view index changing.
-    expect(mv).toMatch(/viewRef\.current = snapshot\.currentCycle;\s*if \(map\) frameDefault\(map\);\s*\}, \[snapshot\.currentCycle\]\);/);
+    // A new view returns to the Palo frame (the opening frame), keyed only on the view index changing — and, round 4 (B26), on a new
+    // `frameKey`, which only the training's stage passes (its item's id); the session's maps pass none, so they are keyed as before.
+    expect(mv).toMatch(/const map = mapRef\.current, key = `\$\{snapshot\.currentCycle\}\|\$\{frameKey \?\? ""\}`;\s*if \(viewRef\.current === key\) return;\s*viewRef\.current = key;\s*if \(map\) frameDefault\(map\);\s*\}, \[snapshot\.currentCycle, frameKey\]\);/);
+    for (const f of ["components/SessionView.tsx", "tak/TakSessionLayout.tsx"]) expect(code(f), f).not.toMatch(/frameKey/);
     // The opening frame follows the map's size only until the participant moves the map.
     expect(mv).toMatch(/map\.on\("movestart", \(e\) => \{ if \(\(e as \{ originalEvent\?: unknown \}\)\.originalEvent\) onDefaultRef\.current = false; \}\);/);
     expect(mv).toMatch(/map\.on\("resize", \(\) => \{ if \(onDefaultRef\.current\) frameDefault\(map\); \}\);/);

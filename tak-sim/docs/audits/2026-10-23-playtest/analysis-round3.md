@@ -303,3 +303,9 @@ Scored with `npm run -s play -- score`. The pointer measures come from `pointerF
 - Template Haku over lexical retrieval: "shown" here means rank 1, whereas the study model sees 8.
 - The harness costs are DRAFT; 30 s per question caps V2's 40-second window at one follow-up.
 - The verdicts in the three CSVs are DRAFT.
+
+---
+
+## 12. Round 4 on the training-incident version (27 Oct 2026)
+
+Continued in `analysis-round4.md`, with `training-round4.csv`, `items-round4.csv` and `haku-round4.csv`.

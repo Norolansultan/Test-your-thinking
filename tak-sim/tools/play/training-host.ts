@@ -17,7 +17,8 @@ import type { TrainingView } from "../../app/session/training/host.js";
 import type { TrainingItem, TrainingSpec } from "../../app/session/training/spec.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
 import { trainingLockBox } from "../../app/session/training/area.js";
-import { extentCamera, zoomForWidth, type Camera } from "../../app/render/map-frame.js";
+import { zoomForWidth, type Camera } from "../../app/render/map-frame.js";
+import { clampToBounds, LIVE_LOCK_PADS, lockLimits } from "../../app/render/ui/training-lock.js";
 import type { LatLon } from "../../app/engine/primitives.js";
 import { LIVE_MAP_PX } from "./map-data.js";
 import { lngLatAt } from "./map-camera.js";
@@ -46,24 +47,26 @@ export function trainingItemOf(view: TrainingView | null, spec: TrainingSpec = T
 /** The grid's margin around the training's live map in the PNG (the labels sit in it), as the freeze map's. */
 export const TRAINING_GRID_MARGIN_PX = 44;
 export const TRAINING_GRID_STEP_PX = 50;
-/** `MapView`'s frame padding: the locked map's opening frame fits the square inside it (`MapView`, `lockedFrame`). */
-const FRAME_PAD_PX = 16;
-
 export const TRAINING_MOVES = ["2.5km", "1km", "reset"] as const;
 
-/** The opening frame: the whole square ("2.5 km"). */
-export function trainingOpening(spec: TrainingSpec = TRAINING): Camera {
-  return extentCamera(spec.area.bounds, LIVE_MAP_PX.width, LIVE_MAP_PX.height, FRAME_PAD_PX);
+/** The locked map's limits at the PNG's size, as `MapView` sets them (`lockLimits`: the frame between the chrome's bands, `maxBounds`). */
+function trainingLimits(spec: TrainingSpec) {
+  return lockLimits({ area: spec.area.bounds }, LIVE_MAP_PX.width, LIVE_MAP_PX.height, LIVE_LOCK_PADS);
 }
 
-/** The camera after a zoom button ("2.5 km", "1 km", reset) and an optional centre (a pixel of the last PNG), kept inside the lock. */
+/** The opening frame: the whole square ("2.5 km"), clear of the map's chrome. */
+export function trainingOpening(spec: TrainingSpec = TRAINING): Camera {
+  return trainingLimits(spec).camera;
+}
+
+/** The camera after a zoom button ("2.5 km", "1 km", reset) and an optional centre (a pixel of the last PNG), kept inside the frame `MapView` locks to. */
 export function moveTrainingCamera(from: Camera, move: (typeof TRAINING_MOVES)[number] | null, atPng: readonly [number, number] | null, spec: TrainingSpec = TRAINING): Camera {
   let camera = from;
   if (atPng) { const p = trainingPointAt(atPng[0], atPng[1], camera, spec); if ("point" in p) camera = { ...camera, center: [p.point.lon, p.point.lat] }; }
-  if (move === "2.5km" || move === "reset") camera = trainingOpening(spec);
+  if (move === "2.5km" || move === "reset") return trainingOpening(spec); // the frame itself: what `maxBounds` holds
   if (move === "1km") camera = { ...camera, zoom: zoomForWidth(1_000, LIVE_MAP_PX.width, (spec.area.bounds.south + spec.area.bounds.north) / 2) };
-  const box = trainingLockBox(spec);
-  return { center: [Math.min(box.east, Math.max(box.west, camera.center[0])), Math.min(box.north, Math.max(box.south, camera.center[1]))], zoom: camera.zoom };
+  // Kept inside what the opening frame shows, as MapLibre keeps the app's map inside its `maxBounds` (review 27 Oct 2026).
+  return clampToBounds(camera, LIVE_MAP_PX.width, LIVE_MAP_PX.height, trainingLimits(spec).maxBounds);
 }
 
 /** The WGS84 point at PNG pixel (x, y) of the training's live map drawn with `camera`, or why it is not an answer. */

@@ -12,7 +12,7 @@ import type { TrainingItem, TrainingSectionId, TrainingSourceClass } from "../se
 import { clockAt, recordText } from "../session/template-answer.js";
 import type { Lang } from "./lang.js";
 import { recordIn } from "./text.js";
-import type { TrainingFeedbackContext, TrainingTexts } from "./training-texts-types.js";
+import type { TrainingFeedbackContext, TrainingTexts, TrainingUiKey } from "./training-texts-types.js";
 
 export function trainingItem(id: string): TrainingItem {
   const it = TRAINING.items.find((x) => x.id === id);
@@ -72,7 +72,8 @@ export interface TrainingWords {
   readonly noAnswer: string;
   /** The explanation after the right answer and the source line; the first element is the right answer as a sentence. */
   readonly feedback: Readonly<Record<string, (a: FeedbackArgs) => { readonly answer: string; readonly explain: readonly string[] }>>;
-  readonly ui: Readonly<Record<string, string>>;
+  /** Every interface string the screen shows (`TRAINING_UI_KEYS`). */
+  readonly ui: Readonly<Record<TrainingUiKey, string>>;
 }
 
 /** The sentence form of an option's label: capitalised, a full stop. */

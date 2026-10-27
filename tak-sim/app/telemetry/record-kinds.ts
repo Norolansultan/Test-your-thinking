@@ -40,8 +40,8 @@ import type { HelpCardOpenedDetail, PrimerCheckDetail, PrimerPageDetail, PublicG
 import type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 import type { HingeFatigueRatedDetail } from "./record-kinds-pilot2.js";
 import type {
-  TrainingAnswerDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail,
-  TrainingSectionLeftDetail, TrainingStartedDetail,
+  TrainingAnswerDetail, TrainingCapReachedDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail,
+  TrainingHakuAskedDetail, TrainingSectionLeftDetail, TrainingStartedDetail,
 } from "./record-kinds-training.js";
 
 // ---------------------------------------------------------------------------
@@ -220,8 +220,8 @@ export type { GlossarySurface, HelpCardOpenedDetail, HelpCardSection, PrimerChec
 export type { MapPretestAnswerDetail, MapPretestCompletedDetail, MapPretestEndReason, MapPretestFeedbackLeftDetail, MapPretestStartedDetail, PracticeFeedbackShownDetail } from "./record-kinds-difficulty.js";
 // Format 0.18.0 (SPEC/07 (bp)): the training incident's records, `record-kinds-training.ts`.
 export type {
-  TrainingAnswerDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail,
-  TrainingSectionLeftDetail, TrainingStartedDetail,
+  TrainingAnswerDetail, TrainingCapReachedDetail, TrainingCompletedDetail, TrainingDemoShownDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail,
+  TrainingHakuAskedDetail, TrainingSectionLeftDetail, TrainingStartedDetail,
 } from "./record-kinds-training.js";
 // Adopted before pilot 2 (0.16.0): the hinge's fatigue item and the stratum, `record-kinds-pilot2.ts`.
 export type { HingeFatigueRatedDetail, Profession, Stratum } from "./record-kinds-pilot2.js";
@@ -869,7 +869,8 @@ export type TelemetryEvent =
   | { readonly kind: "training_haku_asked"; readonly detail: TrainingHakuAskedDetail }
   | { readonly kind: "training_haku_answered"; readonly detail: TrainingHakuAnsweredDetail }
   | { readonly kind: "training_demo_shown"; readonly detail: TrainingDemoShownDetail }
-  | { readonly kind: "training_completed"; readonly detail: TrainingCompletedDetail };
+  | { readonly kind: "training_completed"; readonly detail: TrainingCompletedDetail }
+  | { readonly kind: "training_cap_reached"; readonly detail: TrainingCapReachedDetail }; // review 27 Oct 2026, format still 0.18.0
 
 // ---------------------------------------------------------------------------
 // SPEC/30 (19 Oct 2026)
@@ -1111,6 +1112,8 @@ export type RecordKind = TelemetryEvent["kind"];
  * are not `freeze_*` records and its map use is not logged. The header gains `trainingIncident` and loses `mapPretest` and
  * `practiceFeedback`; `session_resumed.resumedAt` may be `training_incident`. Retired, still typed: `map_pretest_*`,
  * `practice_feedback_shown`, `briefing_advanced` "practice.feedback", VP's cycle-0 freeze records. Every other record is unchanged.
+ * Review 27 Oct 2026 (format kept at 0.18.0: no participant data exists yet): `training_cap_reached {remainingItemIds, atItemId,
+ * activeMs}`, written when the cap ends the items, so a reload before S5 is left goes straight to S5 with `endReason` timeout.
  */
 export const TELEMETRY_FORMAT_VERSION = "0.18.0";
 
@@ -1148,5 +1151,5 @@ export const ALL_RECORD_KINDS: readonly RecordKind[] = [
   "hinge_fatigue_rated",
   "map_pretest_feedback_left",
   "training_started", "training_section_left", "training_answer", "training_feedback_left", "training_haku_asked", "training_haku_answered",
-  "training_demo_shown", "training_completed",
+  "training_demo_shown", "training_completed", "training_cap_reached",
 ];

@@ -53,7 +53,7 @@ function Page() {
   const map = h("div", { id: "play-map-root", style: { width: `${data.widthPx}px`, height: `${data.heightPx}px`, display: "flex", flexDirection: "column", position: "relative", background: "#12151a" } },
     h("style", null, TAK_MAP_CSS),
     h(MapView, { snapshot, extent: data.extent, tak, lock: data.training?.lock },
-      h(TakInfoCard, { clockLabel: data.clockLabel, wind: data.cycleInfo?.wind }),
+      h(TakInfoCard, { clockLabel: data.clockLabel, wind: data.cycleInfo?.wind, compact: data.training !== undefined }), // the training's: compact
       h(TakCoordReadout, { map: handle?.map ?? null })));
   const train = data.training;
   return h(LangContext.Provider, { value: data.lang },

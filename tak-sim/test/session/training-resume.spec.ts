@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryLogSink, type LogHeader, type LogRecord } from "../../app/telemetry/log.js";
 import { shellResumeStep } from "../../app/session/shell-resume.js";
 import { keptTrainingOf } from "../../app/session/training/resume.js";
-import type { TrainingCompletedDetail, TrainingHakuAskedDetail, TrainingStartedDetail } from "../../app/telemetry/record-kinds-training.js";
+import type { TrainingCapReachedDetail, TrainingCompletedDetail, TrainingHakuAskedDetail, TrainingStartedDetail } from "../../app/telemetry/record-kinds-training.js";
 import { TRAINING_FIXTURE } from "./training-fixture.js";
 import { driveTo, kinds, newTrainingSession, ofKind, passTraining, trainingMove } from "./training-run.js";
 import type { SessionOrchestrator, SessionSnapshot } from "../../app/session/orchestrator.js";
@@ -121,6 +121,33 @@ describe("resume in the training incident (SPEC/15 (bp) §bp.4)", () => {
     await o.leaveTrainingDemo();
     const end = ofKind<TrainingCompletedDetail>(await replaced.readAll(), "training_completed")[0]!;
     expect(end).toMatchObject({ endReason: "timeout", answeredCount: 2, missingItemIds: ITEM_IDS.slice(2), durationMs: 720_000 });
+  });
+
+  it("the cap reached, then a reload before S5 is left: S5 again with the cap's message, `endReason` timeout; the items stay closed", async () => {
+    // Review 27 Oct 2026, finding 4: before `training_cap_reached`, the logged active time alone (the time on the item on screen at the
+    // cap is in no record) re-opened the items with time left, and `training_completed` could read "completed" after a real timeout.
+    const second = spec.items[1]!;
+    const { sink, records } = await interrupted((s) => s.training?.itemId === second.id && s.training.phase === "question", async (o, snap) => {
+      await vi.advanceTimersByTimeAsync(720_000);
+      expect(snap().training).toMatchObject({ phase: "demo", sectionId: "s5", endReason: "timeout" });
+      expect(o.trainingSecondsLeft()).toBe(0);
+    });
+    const cap = ofKind<TrainingCapReachedDetail>(records, "training_cap_reached");
+    expect(cap).toEqual([{ remainingItemIds: ITEM_IDS.slice(1), atItemId: second.id, activeMs: 720_000 }]);
+    expect(keptTrainingOf(records).spentMs).toBeLessThan(720_000); // what the log held before: time left, by the active time alone
+    expect(keptTrainingOf(records).capReached).toEqual(cap[0]);
+    const { o, snap } = await resume(sink, records);
+    expect(snap().training).toMatchObject({ phase: "demo", sectionId: "s5", itemId: null, endReason: "timeout" });
+    expect(o.trainingSecondsLeft()).toBe(0);
+    const after = (await sink.readAll()).slice(records.length);
+    expect(ofKind<TrainingStartedDetail>(after, "training_started")).toEqual([expect.objectContaining({ resumed: true, remainingMs: 0, keptItemIds: [spec.items[0]!.id] })]);
+    expect(kinds(after).filter((k) => k.startsWith("training_"))).toEqual(["training_started"]); // no second cap record, no item re-opened
+    await expect(o.answerTraining(second.id, { choiceId: second.options[0]!.id })).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await o.leaveTrainingDemo();
+    const end = ofKind<TrainingCompletedDetail>(await sink.readAll(), "training_completed");
+    expect(end).toEqual([{ endReason: "timeout", answeredCount: 1, missingItemIds: ITEM_IDS.slice(1), durationMs: 720_000 }]);
+    expect(snap().step).toBe("briefing");
   });
 
   it("S5 not left: S5 again; completed: not shown again", async () => {

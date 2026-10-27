@@ -35,11 +35,13 @@ import { Glossed } from "../explain/Glossed.js";
  */
 /**
  * SPEC/08 (bp) (the training incident's S4, one item at a time with feedback between): `progress` is the item's place in the whole
- * training ("11/13") in place of the freeze's own count, and `lock` locks the blank map to the training's area (`FreezeMap`).
+ * training ("11/13") in place of the freeze's own count, `lock` locks the blank map to the training's area (`FreezeMap`), and `note`
+ * replaces the session's "the clock has stopped" (the training's cap keeps running above it; review 27 Oct 2026, finding 5).
  */
-export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSkip = false, progress, lock }: {
+export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSkip = false, progress, lock, note }: {
   readonly freeze: FreezeView; readonly orchestrator: SessionOrchestrator; readonly showLevels?: boolean; readonly allowSkip?: boolean;
   readonly progress?: { readonly position: number; readonly count: number } | undefined; readonly lock?: MapLock | undefined;
+  readonly note?: string | undefined;
 }) {
   const { t, tr } = useLang();
   const [drafts, setDrafts] = useState<Record<string, FreezeDraft>>({});
@@ -92,7 +94,7 @@ export function FreezeScreen({ freeze, orchestrator, showLevels = false, allowSk
       <div style={{ padding: "16px 28px", borderBottom: "1px solid #33383e", display: "flex", alignItems: "flex-start", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, opacity: 0.6, letterSpacing: "0.06em" }}>{t.freezeTitle}</div>
-          <div style={{ fontSize: 15, marginTop: 4 }}>{t.freezeNote}</div>
+          <div style={{ fontSize: 15, marginTop: 4 }}>{note ?? t.freezeNote}</div>
           {nowClock !== null && <div data-testid="freeze-now" style={{ fontSize: 13, marginTop: 4, opacity: 0.85 }}>{t.freezeNow(nowClock)}</div>}
         </div>
         {allowSkip && (

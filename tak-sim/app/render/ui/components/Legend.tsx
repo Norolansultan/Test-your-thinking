@@ -31,12 +31,15 @@ export type LegendRow = (typeof LEGEND_ROWS)[number];
 /**
  * Which rows the legend lists (revision (am)): only the symbols the live map draws now — the view's fire layers and
  * units, the projection once revealed, a stack badge or the region's other fires when the current camera draws them —
- * and always the static reference lines (sector boundaries, roads, the power line). Pure; reads only what the map draws.
+ * and the static reference lines (sector boundaries, roads, the power line), which name the main scenario's own features.
+ * `reference` false: a locked map (the training incident, SPEC/08 (bp) §bp.1–§bp.2, §bp.8; review 27 Oct 2026, finding 2)
+ * draws no reference overlay and names nothing of the main scenario, so it lists none of them. Pure; reads only what the map draws.
  */
 export function legendPresence(
   cycle: Pick<RenderableCycle, "fire" | "unitPositions" | "unitWork" | "aircraft"> | null | undefined,
   projection: boolean,
   camera: { readonly stacks: boolean; readonly region: boolean },
+  reference = true,
 ): ReadonlySet<LegendRow> {
   const f = cycle?.fire;
   const edges = f?.perimeter_current ?? [];
@@ -58,7 +61,7 @@ export function legendPresence(
     hose: work.some((w) => !!w.vehicle && w.hoseM != null),
     stack: camera.stacks,
     air: (cycle?.aircraft.length ?? 0) > 0,
-    sector: true, road: true, power: true,
+    sector: reference, road: reference, power: reference,
     region: camera.region,
   };
   return new Set(LEGEND_ROWS.filter((k) => on[k]));
@@ -159,6 +162,9 @@ export function Legend({ isoMinutes, drawn, onToggle, bottom = 28, symbols, embe
       </div>
     );
   }
+  // A map that draws none of the rows (the training's map before its fire, SPEC/08 (bp)) has no legend; the session's map always
+  // lists its reference rows.
+  if (rowList.length === 0) return null;
   // One compact column with only the rows drawn now; it scrolls rather than covering a short map.
   return (
     <div data-tour="legend" data-open={shown ? "1" : "0"} style={{ position: "absolute", zIndex: 20, left: 8, bottom, maxHeight: `calc(100% - ${64 + bottom}px)`, overflowY: shown ? "auto" : "hidden", background: "#f4f1eceb", color: "#1c1b19", border: "1px solid #c9c3ba", borderRadius: 5, padding: "3px 6px", fontSize: L.fontPx, lineHeight: 1.15 }}>

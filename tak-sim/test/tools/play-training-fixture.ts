@@ -63,6 +63,6 @@ export function viewOf(phase: TrainingView["phase"], itemId: string | null, extr
   return {
     phase, sectionId: phase === "intro" ? null : section, itemId, position: it?.position ?? 0, itemCount: FIXTURE_ITEMS.length,
     scene: it?.scene ?? null, tools: { map: section !== "s4", rb: section === "s1" || section === "s3", log: section === "s2" || section === "s3", haku: it?.mode === "card" },
-    answer: null, errorM: null, timedOut: false, demoId: phase === "demo" ? "haku" : null, capMs: 720_000, ...extra,
+    answer: null, errorM: null, timedOut: false, demoId: phase === "demo" ? "haku" : null, capMs: 720_000, endReason: phase === "demo" ? "completed" : null, ...extra,
   };
 }

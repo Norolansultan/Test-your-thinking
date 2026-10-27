@@ -229,12 +229,17 @@ describe("the cap (SPEC/15 (bp) §bp.3)", () => {
     await trainingMove(o, snap, spec); // the first item answered
     expect(o.trainingSecondsLeft()).toBe(720);
     await vi.advanceTimersByTimeAsync(720_000);
-    expect(snap().training).toMatchObject({ phase: "demo", sectionId: "s5" });
+    expect(snap().training).toMatchObject({ phase: "demo", sectionId: "s5", endReason: "timeout" });
     expect(o.trainingSecondsLeft()).toBe(0);
+    // Review 27 Oct 2026: the cap is logged, durable before S5 shows — the items left, the item on screen, the active time.
+    const atCap = await o.logRecords();
+    expect(atCap.at(-1)!.kind).toBe("training_cap_reached");
+    expect(atCap.at(-1)!.detail).toEqual({ remainingItemIds: ITEM_IDS.slice(1), atItemId: ITEM_IDS[0], activeMs: 720_000 });
     await vi.advanceTimersByTimeAsync(10_000);
     await o.leaveTrainingDemo();
     expect(snap().step).toBe("briefing");
     const end = ofKind<TrainingCompletedDetail>(await o.logRecords(), "training_completed")[0]!;
     expect(end).toEqual({ endReason: "timeout", answeredCount: 1, missingItemIds: ITEM_IDS.slice(1), durationMs: 720_000 });
+    expect(kinds(await o.logRecords()).filter((k) => k === "training_cap_reached")).toHaveLength(1);
   });
 });

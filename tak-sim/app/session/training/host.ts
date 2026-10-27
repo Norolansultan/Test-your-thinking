@@ -30,6 +30,8 @@ export interface TrainingView {
   /** S5's recording: `haku` in the Haku cell, `guide` in the Thinker cells. */
   readonly demoId: "haku" | "guide" | null;
   readonly capMs: number;
+  /** S5: how the items ended — `timeout` when the cap ended them (S5 says so, `ui.capEnded`); null before S5. */
+  readonly endReason: "completed" | "timeout" | null;
 }
 
 /** The orchestrator's training methods (B implements; the screen and `tools/play/` call them). */

@@ -3,6 +3,7 @@
 **Version 3.14 · 17 September 2026.** Supersedes `06_Pre_Build_Checklist.md` and `12_Consistency_Audit_and_Open_Design.md`.
 
 > **Changelog**
+> - **27 Oct 2026 (bp, after the independent review)** — §7.37 item 12: the cap's record (the reviewer's issue, fixed with `training_cap_reached`; format kept at 0.18.0) and the training's legend in S1.
 > - **26 Oct 2026 (bp)** — §7.37: the training incident — the decisions the design made for the researcher to confirm (where S5 sits, S1.4 rebuilt, the records share, the clocks, the cap, VP's name and its practice SPAM), the Finnish and domain checks, and how §7.35's log history touches the training.
 > - **25 Oct 2026** — §7.35: the message log's history (options A–D, recommendation B, this period only); deferred by the researcher, to decide before pilot 2.
 > - **25 Oct 2026 (bn)** — §7.36: after the independent review — the panel's question on V5 `reinforcements`' level (L1 recall labelled L3) and on `north_help`; the native, domain and researcher items revision (bn) leaves. See §7.35.
@@ -1127,6 +1128,7 @@ The researcher's plan is built into the spec (`08`, `15`, `07`, `09`, `30`, `35`
 9. **EK53 is the memory unit** (EK51 now works the fire).
 10. **The Thinker's recording** says "pidän sitä melko varmana" / "I count it fairly certain": a statement of this answer's certainty, not of the tool's reliability. For the panel and the ethics review.
 11. **Training Haku questions are not seeking measures;** they are a separate coded set only.
+12. **After the independent review (27 Oct 2026; `08` (bp) §bp.12).** (a) **The cap's record — fixed.** `08` (bp) §bp.11 left open that no record marked the cap, so a reload after the cap re-opened the items with time left (the logged active time leaves out the item on screen) and `training_completed.endReason` could read `completed` after a real timeout. The cap now writes `training_cap_reached {remainingItemIds, atItemId, activeMs}` before S5 shows; a resume that finds it goes straight to S5 (`15` (bp) §bp.4), and S5 says the time ran out. **The format stays 0.18.0** (no participant data exists yet); `07` (bp) is amended. Nothing to decide unless the researcher wants a version step. (b) **The legend in S1 — for the researcher and the native check.** A locked map no longer lists the sector, road and power-line rows (they name the main scenario), so S1's map, which draws no other row, has no legend; S1.1's feedback still names "selite" / "its legend" among the map's aids. Options: drop the word from the feedback, or give the training's legend its own road row (the codes R5–R7).
 
 **Native speaker:** every Finnish text of `08` (bp) §bp.5, the corpus, S5's recordings, the tour's six changed steps, "Ensikatsaus". **Domain reviewer:** S1.3's rule on a gentle slope, S1.4's fill point, S3.2's road report (a vehicle across the road), the unit statuses. **Panel:** whether S3.1's lure (the log's 0.4 ha beside the survey's 1.1 ha) is plain enough.
 

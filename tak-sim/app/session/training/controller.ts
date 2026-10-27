@@ -9,12 +9,14 @@
  *   already made stands) and its feedback shows. Its answer carries `hakuBefore`.
  * - The memory item (S4, `memory`): the unit shown for `exposureMs` (phase `study`), then the blank map (phase `question`); `rtMs` is
  *   from the blank map's appearance, `memoryMs` the exposure.
- * - The cap (`capMs`, 12 min) runs from the intro's appearance to S4's end; at the cap the unanswered items are missing
- *   (`endReason: "timeout"`) and S5 is still shown. S5 (phase `demo`, outside the cap) is left no sooner than `demoMinDwellMs`:
+ * - The cap (`capMs`, 12 min) runs from the intro's appearance to S4's end; at the cap `training_cap_reached` is logged (review 27 Oct
+ *   2026: the items left, the item on screen, the active time), the unanswered items are missing (`endReason: "timeout"`) and S5 is
+ *   still shown, with a line saying the time ran out. S5 (phase `demo`, outside the cap) is left no sooner than `demoMinDwellMs`:
  *   `training_demo_shown`, then `training_completed` (`durationMs` the active time from the intro to S4's end), then the host moves on.
  * - Resume (§bp.4): `start(kept, true)` re-opens at the first item whose feedback was not left — its feedback again when its answer is
  *   logged, else its question (a card with a fresh window; the memory exposure in full again); a section card is not shown again once
- *   one of its items is logged; the cap is what is left after the active time already logged.
+ *   one of its items is logged; the cap is what is left after the active time already logged. A logged `training_cap_reached` sends
+ *   the participant straight to S5 (`endReason` timeout; `durationMs` the active time it logged).
  *
  * Every operation is serialised (`enqueue`), so a timer (the cap, the card's window, the exposure) never interleaves with a write.
  */
@@ -98,7 +100,7 @@ export class TrainingController {
       this.done = new Set(kept.done);
       this.hakuAsked = new Map(kept.hakuAskedByItem);
       this.spentBeforeMs = Math.min(this.spec.capMs, Math.max(0, Math.round(kept.spentMs)));
-      const remainingMs = this.spec.capMs - this.spentBeforeMs;
+      const remainingMs = kept.capReached ? 0 : this.spec.capMs - this.spentBeforeMs;
       this.state = "items";
       this.startedMs = this.shownMs = this.host.realMs();
       this.deadlineMs = this.startedMs + remainingMs;
@@ -106,6 +108,7 @@ export class TrainingController {
         version: this.spec.version, sectionIds: sectionIdsOf(this.spec), itemIds: this.spec.items.map((it) => it.id), capMs: this.spec.capMs,
         remainingMs, resumed, keptItemIds: this.spec.items.filter((it) => this.done.has(it.id)).map((it) => it.id),
       } });
+      if (kept.capReached) return this.toDemo("timeout", kept.capReached.activeMs); // the cap ended the items before the reload
       const first = this.nextIndex(-1);
       if (first === -1) return this.endItems("completed");
       if (remainingMs === 0) return this.endItems("timeout");
@@ -237,6 +240,7 @@ export class TrainingController {
       timedOut: logged?.timedOut ?? false,
       demoId: this.state === "demo" ? this.demo().demoId : null,
       capMs: this.spec.capMs,
+      endReason: this.state === "demo" ? this.endReason : null,
     };
   }
 
@@ -368,13 +372,31 @@ export class TrainingController {
     this.host.notify();
   }
 
-  /** S4 has ended (every feedback left, or the cap): S5 shows; the cap stops and the training's active time is fixed. */
+  /**
+   * S4 has ended (every feedback left, or the cap): S5 shows; the cap stops and the training's active time is fixed. At the cap,
+   * `training_cap_reached` is durable first (review 27 Oct 2026), so a reload before S5 is left cannot re-open the items.
+   */
   private async endItems(reason: "completed" | "timeout"): Promise<void> {
     if (this.state !== "items") return;
     this.dispose();
+    const activeMs = this.spentBeforeMs + this.since(this.startedMs);
+    try {
+      if (reason === "timeout") {
+        const remainingItemIds = this.spec.items.filter((it) => !this.answers.has(it.id)).map((it) => it.id);
+        const atItemId = this.phase === "intro" ? null : this.item()?.id ?? null;
+        await this.host.event({ kind: "training_cap_reached", detail: { remainingItemIds, atItemId, activeMs } });
+      }
+    } finally {
+      this.toDemo(reason, activeMs); // a failed write still ends the items: the cap is the cap
+    }
+  }
+
+  /** S5 on the screen: the training's end reason and active time fixed. */
+  private toDemo(reason: "completed" | "timeout", durationMs: number): void {
+    this.dispose();
     this.state = "demo";
     this.endReason = reason;
-    this.durationMs = this.spentBeforeMs + this.since(this.startedMs);
+    this.durationMs = durationMs;
     this.phase = "demo";
     this.cardChoice = null;
     this.shownMs = this.host.realMs();

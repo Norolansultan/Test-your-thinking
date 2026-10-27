@@ -17,6 +17,8 @@ import type { LatLon } from "../../../engine/primitives.js";
 import type { TakPaneId } from "../../../telemetry/record-kinds.js";
 import type { TrainingView } from "../../../session/training/host.js";
 import type { TrainingItem } from "../../../session/training/spec.js";
+import { TRAINING } from "../../../session/training/spec-data.js";
+import { trainingClockLabel } from "../../../session/training/view.js";
 import { insideBox } from "../../../session/training/area.js";
 import { sidcOf } from "../../../tak/symbols.js";
 import { MapView, type TakMapHandle, type TakMapOptions } from "./MapView.js";
@@ -110,10 +112,11 @@ export function TrainingStage({ snapshot, orchestrator, view, item, lock, studyS
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
           <MapView snapshot={snapshot} extent={orchestrator.mapExtent} tak={tak} lock={lock}>
-            <TakInfoCard clockLabel={snapshot.clockLabel} wind={snapshot.renderTree.cycleInfo?.wind} />
+            {/* Compact (the clock and the wind only), inside the locked map's top band: it covers nothing of the square (finding 3). */}
+            <TakInfoCard compact clockLabel={trainingClockLabel(TRAINING)} wind={snapshot.renderTree.cycleInfo?.wind} />
             <TakCoordReadout map={handle?.map ?? null} />
           </MapView>
-          {view.phase === "study" && <TrainingStudyPanel item={item} secondsLeft={studySecondsLeft} />}
+          {view.phase === "study" && <TrainingStudyPanel secondsLeft={studySecondsLeft} />}
           {asking && <TrainingQuestionPanel item={item} choice={choice} onChoose={setChoice} marked={mark !== null} onAnswer={answer} busy={busy} />}
           {view.phase === "question" && item.mode === "card" && snapshot.spam && <SpamCard spam={snapshot.spam} orchestrator={orchestrator} />}
           {view.phase === "feedback" && <TrainingFeedbackPanel view={view} item={item} last={last} page={false} onLeave={() => orchestrator.leaveTrainingFeedback(item.id)} />}

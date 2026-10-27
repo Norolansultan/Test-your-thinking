@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 import { contractPatterns, readContract } from "../../tools/review/training-contract.js";
-import { grams, OVERLAP_ALLOW, scenarioStrings, trainingStrings } from "./texts-corpus.js";
+import { grams, MAIN_CALL_SIGNS, MAIN_SUBJECTS, OVERLAP_ALLOW, scenarioStrings, trainingStrings } from "./texts-corpus.js";
 
 const TRAINING = trainingStrings();
 const SCENARIO = scenarioStrings();
@@ -32,12 +32,10 @@ describe("the training against the scenario's texts (SPEC/08 (bp) §bp.8)", () =
   });
 
   it("no training text names a call sign, contract place or feature, road code or scored subject of the scenario", () => {
-    const callSigns = /\b(EK1\d|KY|VPK|PP1|VOL1|SPOT|UGV1|VD1|OUT|HELI|P1|P2|JOKE|R1|R2|R3|W1|W2|DR[1-7])\b/;
-    const subjects = /20 kV|sähkölinj|voimajoh|power line|yhtiö|company|poliisi|police|mökk|cabin|cottage|kylä|village|evaku|evacuat|silta|sillan|bridge|maantie|main road|metsäautotie|forest road|turvetie|peat road|uudelleensyt|rekindl|lentokone|helikopter|aircraft|helicopter|ennuste|forecast/i;
     const patterns = contractPatterns(readContract("."));
     for (const t of TRAINING) {
-      expect(t.text, t.where).not.toMatch(callSigns);
-      expect(t.text, t.where).not.toMatch(subjects);
+      expect(t.text, t.where).not.toMatch(MAIN_CALL_SIGNS);
+      expect(t.text, t.where).not.toMatch(MAIN_SUBJECTS);
       for (const p of patterns) expect(p.re.test(t.text), `${t.where}: ${p.id}`).toBe(false);
     }
   });

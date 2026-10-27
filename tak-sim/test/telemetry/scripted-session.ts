@@ -179,6 +179,7 @@ const EVENTS: readonly TelemetryEvent[] = [
   { kind: "training_haku_answered", detail: { queryId: "trn.1", itemId: "training.s3.records1", retrieved: [{ id: "trn.r06", fusedScore: 2 }], retrievalMode: "lexical_only", retrievalLanguage: "fi", answerSource: "template", modelId: null, promptHash: null, fallback: true, fallbackReason: "network_error", latencyMs: 2_500, answer: { vastaus: "v", perusteet: "p", varmuus: "m", muuttaisi: "u" } } },
   { kind: "training_demo_shown", detail: { demoId: "haku", exampleIds: ["ex1", "ex2"], dwellMs: 61_000 } },
   { kind: "training_completed", detail: { endReason: "completed", answeredCount: 13, missingItemIds: [], durationMs: 540_000 } },
+  { kind: "training_cap_reached", detail: { remainingItemIds: ["training.s4.records"], atItemId: "training.s4.map", activeMs: 720_000 } },
   // Adopted before pilot 2 (0.16.0): the hinge's optional fatigue item
   { kind: "hinge_fatigue_rated", detail: { itemId: "fatigue.hinge", value: 4 } },
   // The AI literacy test (9 Oct 2026, revision (ac))

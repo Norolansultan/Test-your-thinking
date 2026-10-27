@@ -5,8 +5,10 @@
  * before answering), none ties a score to searching, and none claims reliability beyond the demonstrated limitation.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TRAINING_TEXT } from "../../app/i18n/training-texts.js";
+import { TRAINING_UI_KEYS } from "../../app/i18n/training-texts-types.js";
 import { TRAINING } from "../../app/session/training/spec-data.js";
 import { LANGS, trainingStrings } from "./texts-corpus.js";
 
@@ -112,5 +114,39 @@ describe("the training's texts (fi DRAFT, en)", () => {
     }
     expect(TRAINING_TEXT.fi.item("training.s3.records1").stem).not.toMatch(/1,1/);
     expect(TRAINING_TEXT.en.item("training.s3.records2").stem).not.toMatch(/four/);
+  });
+
+  it("every interface string the screen shows is here, in both languages, and none is left unused (review 27 Oct 2026, finding 8)", () => {
+    const screen = ["TrainingScreen.tsx", "TrainingStage.tsx", "TrainingPanels.tsx"].map((f) => readFileSync(`app/render/ui/components/${f}`, "utf8")).join("\n");
+    expect(screen).not.toMatch(/UI_FALLBACK/);
+    for (const lang of LANGS) expect(Object.keys(TRAINING_TEXT[lang].ui).sort(), lang).toEqual([...TRAINING_UI_KEYS].sort());
+    // Each key is shown by the screen (a `trainingUi` call names it), and the screen names no key the texts lack.
+    for (const key of TRAINING_UI_KEYS) expect(screen, key).toMatch(new RegExp(`"${key}"`));
+    const named = [...screen.matchAll(/trainingUi\(lang, ([^)]*)\)/g)].flatMap((m) => [...m[1]!.matchAll(/"(\w+)"/g)].map((x) => x[1]!));
+    expect(named.length).toBeGreaterThan(15);
+    for (const k of named) expect(TRAINING_UI_KEYS as readonly string[], k).toContain(k);
+    // The slots keep their names.
+    for (const lang of LANGS) {
+      const ui = TRAINING_TEXT[lang].ui;
+      expect(ui.progress).toMatch(/\{n\}.*\{of\}/);
+      expect(ui.timeLeft).toMatch(/\{t\}/);
+      expect(ui.studyLeft).toMatch(/\{s\}/);
+      expect(ui.demoWait).toMatch(/\{s\}/);
+    }
+  });
+
+  it("S4's note says the training's time keeps running; the memory exposure says what to remember; the cap's end is said on S5", () => {
+    expect(TRAINING_TEXT.fi.ui.freezeNote).toBe("Vastaa muistin varassa. Harjoituksen aika kuluu.");
+    expect(TRAINING_TEXT.en.ui.freezeNote).toBe("Answer from memory. The training's time keeps running.");
+    for (const lang of LANGS) expect(TRAINING_TEXT[lang].ui.freezeNote, lang).not.toMatch(/pysäht|stopped|seis/i);
+    expect(TRAINING_TEXT.fi.ui.memoryExposure).toBe("Muista, missä yksikkö EK53 on.");
+    expect(TRAINING_TEXT.en.ui.memoryExposure).toBe("Remember where unit EK53 is.");
+    const memory = TRAINING.items.find((it) => it.memory)!;
+    for (const lang of LANGS) {
+      expect(TRAINING_TEXT[lang].ui.memoryExposure, lang).toContain(memory.memory!.unit);
+      expect(TRAINING_TEXT[lang].ui.memoryExposure, lang).not.toBe(TRAINING_TEXT[lang].item(memory.id).stem);
+    }
+    expect(TRAINING_TEXT.fi.ui.capEnded).toMatch(/aika päättyi/);
+    expect(TRAINING_TEXT.en.ui.capEnded).toMatch(/time is up/);
   });
 });

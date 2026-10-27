@@ -1,14 +1,15 @@
 /**
  * The training incident's own panels (SPEC/08 (bp) §bp.5, SPEC/30 (bp) §bp.2): the intro, a section card, a live item's question
- * panel (under the live map, where the session's decision strip sits), an item's feedback, and S5's recording. The words are
- * `TRAINING_TEXT` (work package A's); the few interface strings it may not hold have DRAFT fallbacks here (`trainingUi`). Texts carry
- * the glossary's marks in a public session (surface `training`, SPEC/35 (bp)). No key reaches a panel before its item's feedback.
+ * panel (under the live map, where the session's decision strip sits), an item's feedback, and S5's recording. Every word is
+ * `TRAINING_TEXT`'s, the interface strings too (`ui`, read by `trainingUi`; review 27 Oct 2026: no string lives in a component). Texts
+ * carry the glossary's marks in a public session (surface `training`, SPEC/35 (bp)). No key reaches a panel before its item's feedback.
  */
 
 import { useEffect, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import type { Lang } from "../../../i18n/lang.js";
 import { TRAINING_TEXT } from "../../../i18n/training-texts.js";
+import type { TrainingUiKey } from "../../../i18n/training-texts-types.js";
 import type { Cell } from "../../../scenario/types.js";
 import type { TrainingView } from "../../../session/training/host.js";
 import type { TrainingItem, TrainingSectionId } from "../../../session/training/spec.js";
@@ -16,25 +17,9 @@ import { Glossed } from "../explain/Glossed.js";
 import { useLang } from "../i18n.js";
 import { TRAINING_COLOURS } from "../training-overlay.js";
 
-/** DRAFT fallbacks (fi native check) for the interface strings `TRAINING_TEXT[lang].ui` may not hold; its own win. */
-const UI_FALLBACK: Readonly<Record<Lang, Readonly<Record<string, string>>>> = {
-  fi: {
-    title: "Harjoitus", progress: "Tehtävä {n}/{of}", timeLeft: "Aikaa jäljellä {t}", answer: "Vastaa", next: "Seuraava", done: "Valmis",
-    markHint: "Merkitse paikka napauttamalla karttaa.", marked: "Merkitty. Uusi napautus siirtää merkkiä.", chooseFirst: "Valitse vastaus.",
-    studyLeft: "Kartta piilotetaan {s} s kuluttua.", yourAnswer: "Vastauksesi", rightAnswer: "Oikea vastaus", noAnswer: "Ei vastausta: aika loppui.",
-    demoWait: "Painike on käytössä {s} s kuluttua.", recorded: "Nauhoitettu", question: "Kysymys",
-  },
-  en: {
-    title: "Training", progress: "Task {n}/{of}", timeLeft: "Time left {t}", answer: "Answer", next: "Next", done: "Done",
-    markHint: "Mark the place by tapping the map.", marked: "Marked. Another tap moves the mark.", chooseFirst: "Choose an answer.",
-    studyLeft: "The map is hidden in {s} s.", yourAnswer: "Your answer", rightAnswer: "The right answer", noAnswer: "No answer: the time ran out.",
-    demoWait: "The button is enabled in {s} s.", recorded: "Recorded", question: "Question",
-  },
-};
-
-/** An interface string of the training, its placeholders ({n}, {of}, {s}, {t}) filled in. */
-export function trainingUi(lang: Lang, key: string, fill: Readonly<Record<string, string | number>> = {}): string {
-  const raw = TRAINING_TEXT[lang].ui[key] ?? UI_FALLBACK[lang][key] ?? key;
+/** An interface string of the training (`TRAINING_TEXT[lang].ui`), its placeholders ({n}, {of}, {s}, {t}) filled in. */
+export function trainingUi(lang: Lang, key: TrainingUiKey, fill: Readonly<Record<string, string | number>> = {}): string {
+  const raw = TRAINING_TEXT[lang].ui[key] ?? key;
   return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in fill ? String(fill[k]) : m));
 }
 
@@ -69,9 +54,9 @@ export function TrainingIntro({ onStart }: { readonly onStart: () => Promise<unk
   const [busy, act] = useBusy(null);
   return (
     <Page testId="training-intro">
-      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{intro.title || trainingUi(lang, "title")}</h1>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{intro.title}</h1>
       {intro.body.map((p, i) => <p key={i} style={para}><Glossed text={p} surface="training" /></p>)}
-      <button type="button" data-testid="training-start" disabled={busy} onClick={() => act(onStart)} style={{ ...trainingButton(busy), alignSelf: "flex-end" }}>{intro.start || trainingUi(lang, "next")}</button>
+      <button type="button" data-testid="training-start" disabled={busy} onClick={() => act(onStart)} style={{ ...trainingButton(busy), alignSelf: "flex-end" }}>{intro.start}</button>
     </Page>
   );
 }
@@ -84,7 +69,7 @@ export function TrainingSectionCard({ sectionId, onGo }: { readonly sectionId: T
     <Page testId={`training-section-${sectionId}`}>
       <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600 }}>{s.title}</h1>
       {s.body.map((p, i) => <p key={i} style={para}><Glossed text={p} surface="training" /></p>)}
-      <button type="button" data-testid="training-section-go" disabled={busy} onClick={() => act(onGo)} style={{ ...trainingButton(busy), alignSelf: "flex-end" }}>{s.go || trainingUi(lang, "next")}</button>
+      <button type="button" data-testid="training-section-go" disabled={busy} onClick={() => act(onGo)} style={{ ...trainingButton(busy), alignSelf: "flex-end" }}>{s.go}</button>
     </Page>
   );
 }
@@ -121,12 +106,15 @@ export function TrainingQuestionPanel({ item, choice, onChoose, marked, onAnswer
   );
 }
 
-/** The memory item's exposure: what to remember and how long the unit stays on the map. */
-export function TrainingStudyPanel({ item, secondsLeft }: { readonly item: TrainingItem; readonly secondsLeft: number }) {
+/**
+ * The memory item's exposure: what to remember ("Muista, missä yksikkö EK53 on.", `ui.memoryExposure`; review 27 Oct 2026, finding 6:
+ * the stem, which asks to mark the place on the blank map, comes with the blank map) and how long the unit stays on the map.
+ */
+export function TrainingStudyPanel({ secondsLeft }: { readonly secondsLeft: number }) {
   const { lang } = useLang();
   return (
     <section data-testid="training-study" role="status" style={{ padding: "12px 16px", borderTop: `3px solid ${AMBER}`, background: "#262a30", display: "flex", gap: 16, alignItems: "baseline", flexShrink: 0 }}>
-      <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}><Glossed text={TRAINING_TEXT[lang].item(item.id).stem} surface="training" /></p>
+      <p data-testid="training-study-text" style={{ margin: 0, fontSize: 15, fontWeight: 600 }}><Glossed text={trainingUi(lang, "memoryExposure")} surface="training" /></p>
       <span style={{ marginLeft: "auto", fontSize: 14, color: AMBER, fontVariantNumeric: "tabular-nums" }}>{trainingUi(lang, "studyLeft", { s: secondsLeft })}</span>
     </section>
   );
@@ -175,9 +163,9 @@ export function TrainingFeedbackPanel({ view, item, last, onLeave, page }: {
 /**
  * S5 (SPEC/30 (bp)): the cell's recorded demonstration — Haku's in the Haku cell, the guide's in the Thinker cells — two examples, the
  * second a limitation case, each followed by its shared line; the button ("Valmis") enabled after `demoMinDwellMs` (10 s). Recorded:
- * nothing is sent.
+ * nothing is sent. `capEnded`: the cap ended the items (review 27 Oct 2026, finding 4), and the page says so first (`ui.capEnded`).
  */
-export function TrainingDemoPage({ cell, secondsLeft, onLeave }: { readonly cell: Cell; readonly secondsLeft: number; readonly onLeave: () => Promise<unknown> }) {
+export function TrainingDemoPage({ cell, secondsLeft, onLeave, capEnded = false }: { readonly cell: Cell; readonly secondsLeft: number; readonly onLeave: () => Promise<unknown>; readonly capEnded?: boolean }) {
   const { lang } = useLang();
   const texts = TRAINING_TEXT[lang];
   const demo = texts.demo(cell);
@@ -185,6 +173,7 @@ export function TrainingDemoPage({ cell, secondsLeft, onLeave }: { readonly cell
   const waiting = secondsLeft > 0;
   return (
     <Page testId={`training-demo-${cell === "radio" ? "haku" : "guide"}`}>
+      {capEnded && <p data-testid="training-cap-ended" role="status" style={{ ...para, padding: "10px 14px", borderRadius: 8, border: `1px solid ${AMBER}`, color: AMBER }}>{trainingUi(lang, "capEnded")}</p>}
       <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600 }}>{demo.title}</h1>
       <p style={para}><Glossed text={demo.intro} surface="training" /></p>
       {demo.examples.map((ex, i) => (
@@ -203,7 +192,7 @@ export function TrainingDemoPage({ cell, secondsLeft, onLeave }: { readonly cell
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {waiting && <span data-testid="training-demo-wait" style={{ fontSize: 13, opacity: 0.75 }}>{trainingUi(lang, "demoWait", { s: secondsLeft })}</span>}
         <span style={{ flex: 1 }} />
-        <button type="button" data-testid="training-demo-done" disabled={waiting || busy} onClick={() => act(onLeave)} style={trainingButton(waiting || busy)}>{texts.demoLines.leave || trainingUi(lang, "done")}</button>
+        <button type="button" data-testid="training-demo-done" disabled={waiting || busy} onClick={() => act(onLeave)} style={trainingButton(waiting || busy)}>{texts.demoLines.leave}</button>
       </div>
     </Page>
   );

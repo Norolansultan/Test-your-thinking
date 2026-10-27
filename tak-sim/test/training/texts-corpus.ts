@@ -102,6 +102,14 @@ export const OVERLAP_ALLOW: readonly string[] = [
   "the r b tool", "the junction of roads", "the shortest distance from", "the road the water", "on the map the",
 ];
 
+/**
+ * The main scenario's names a training text may not hold (SPEC/08 (bp) §bp.8): its call signs, the road codes R1–R3, the water points
+ * W1 and W2, and the scored items' subjects by stem (the 20 kV line, the company, police, cabins, a village, evacuation, a bridge, a
+ * road by name, rekindle, an aircraft, the forecast). The contract's places and features are `contractPatterns`.
+ */
+export const MAIN_CALL_SIGNS = /\b(EK1\d|KY|VPK|PP1|VOL1|SPOT|UGV1|VD1|OUT|HELI|P1|P2|JOKE|R1|R2|R3|W1|W2|DR[1-7])\b/;
+export const MAIN_SUBJECTS = /20 kV|sähkölinj|voimajoh|power line|yhtiö|company|poliisi|police|mökk|cabin|cottage|kylä|village|evaku|evacuat|silta|sillan|bridge|maantie|main road|metsäautotie|forest road|turvetie|peat road|uudelleensyt|rekindl|lentokone|helikopter|aircraft|helicopter|ennuste|forecast/i;
+
 /** Words as the overlap rule reads them: lower case, letters and digits. */
 export const words = (s: string): string[] => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w !== "");
 export function grams(s: string, n = 4): string[] {

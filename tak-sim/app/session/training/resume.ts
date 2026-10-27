@@ -9,11 +9,15 @@
  *   is charged with. (The intro's and S5's time are not logged: S5 is outside the cap.)
  * - S3's Haku turns: each `training_haku_answered` joined to its `training_haku_asked` by `queryId`; a question with no answer logged
  *   (interrupted mid-request) is not restored. The number of questions asked, so `queryId` continues ("trn.N").
+ * - The cap reached (`training_cap_reached`, review 27 Oct 2026): the items stay closed and S5 shows, `endReason` timeout. Without it
+ *   the logged active time alone would re-open the items with time left, since the time spent on the item on screen at the cap is in
+ *   no record.
  */
 
 import type { LogRecord } from "../../telemetry/log.js";
 import type {
-  TrainingAnswerDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail, TrainingSectionLeftDetail,
+  TrainingAnswerDetail, TrainingCapReachedDetail, TrainingFeedbackLeftDetail, TrainingHakuAnsweredDetail, TrainingHakuAskedDetail,
+  TrainingSectionLeftDetail,
 } from "../../telemetry/record-kinds-training.js";
 import type { AiChatTurn } from "../snapshot.js";
 import type { TrainingAnswer } from "./host.js";
@@ -37,10 +41,12 @@ export interface KeptTraining {
   readonly hakuTurns: readonly AiChatTurn[];
   /** The highest N of "trn.N" asked so far. */
   readonly hakuCount: number;
+  /** The cap's record, if the cap ended the items: S5 shows again and the training ends as a timeout. */
+  readonly capReached: TrainingCapReachedDetail | null;
 }
 
 export const NOTHING_KEPT: KeptTraining = {
-  answers: new Map(), done: new Set(), spentMs: 0, pastIntro: false, hakuAskedByItem: new Map(), hakuTurns: [], hakuCount: 0,
+  answers: new Map(), done: new Set(), spentMs: 0, pastIntro: false, hakuAskedByItem: new Map(), hakuTurns: [], hakuCount: 0, capReached: null,
 };
 
 /** The answer a `training_answer` record stands for (null: a card that timed out with no choice). */
@@ -58,6 +64,7 @@ export function keptTrainingOf(records: readonly LogRecord[]): KeptTraining {
   const asked = new Map<string, TrainingHakuAskedDetail>();
   const hakuTurns: AiChatTurn[] = [];
   let spentMs = 0, pastIntro = false, hakuCount = 0;
+  let capReached: TrainingCapReachedDetail | null = null;
   for (const r of records) {
     switch (r.kind) {
       case "training_section_left": {
@@ -92,10 +99,14 @@ export function keptTrainingOf(records: readonly LogRecord[]): KeptTraining {
         if (q) hakuTurns.push({ query: q.text, answer: { answerFi: d.answer.vastaus, basisFi: d.answer.perusteet, certaintyFi: d.answer.varmuus, wouldChangeIfFi: d.answer.muuttaisi } });
         break;
       }
+      case "training_cap_reached": {
+        capReached ??= r.detail as TrainingCapReachedDetail;
+        break;
+      }
       default: break;
     }
   }
-  return { answers, done, spentMs, pastIntro, hakuAskedByItem, hakuTurns, hakuCount };
+  return { answers, done, spentMs, pastIntro, hakuAskedByItem, hakuTurns, hakuCount, capReached };
 }
 
 /** The training has ended in this log (S5 left): a resume does not show it again. */

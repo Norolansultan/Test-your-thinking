@@ -159,6 +159,7 @@ const EXPECTED_KINDS: readonly RecordKind[] = (() => {
       case "training_haku_answered":
       case "training_demo_shown":
       case "training_completed":
+      case "training_cap_reached":
         return;
       default:
         assertExhaustive(kind);
@@ -185,14 +186,14 @@ describe("RecordKind enumeration", () => {
 describe("format 0.18.0: the training incident's kinds (SPEC/07 (bp))", () => {
   const TRAINING_KINDS = [
     "training_started", "training_section_left", "training_answer", "training_feedback_left", "training_haku_asked", "training_haku_answered",
-    "training_demo_shown", "training_completed",
+    "training_demo_shown", "training_completed", "training_cap_reached",
   ] as const;
 
   it("the format version is 0.18.0", () => {
     expect(TELEMETRY_FORMAT_VERSION).toBe("0.18.0");
   });
 
-  it("registers the eight training_* kinds, and they are the only kinds with that prefix", () => {
+  it("registers the nine training_* kinds (the cap's since the review of 27 Oct 2026), and they are the only kinds with that prefix", () => {
     for (const k of TRAINING_KINDS) expect(ALL_RECORD_KINDS).toContain(k);
     expect(ALL_RECORD_KINDS.filter((k) => k.startsWith("training_")).sort()).toEqual([...TRAINING_KINDS].sort());
   });

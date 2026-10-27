@@ -20,7 +20,7 @@ import { Legend, legendPresence } from "./Legend.js";
 import { extentCamera, openingCamera, panBounds, zoomForWidth } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
 import { assetUrl } from "../../../session/asset-url.js";
-import { lockMaxBounds, tilesMeeting, type MapLock } from "../training-lock.js";
+import { LIVE_LOCK_PADS, lockLimits, tilesMeeting, type MapLock } from "../training-lock.js";
 
 // Own formations and the participant's own marks. The fire and projection layers take all their
 // styling from fire-theme.json (fire-layers.ts, SPEC/12 revision 24 Sep (c)): no blue or purple
@@ -142,7 +142,8 @@ export interface MapViewProps {
   readonly children?: ComponentChildren;
   /**
    * SPEC/08 (bp) §bp.1 (the training incident; fixed for the map's life): the map locked to an area — the opening frame and lowest
-   * zoom fit it, `maxBounds` is its lock, only the tiles meeting it load, its presets replace the zoom buttons, no reference overlay.
+   * zoom fit it between the chrome's bands, `maxBounds` is what that frame shows (`lockLimits`, following the map's size), only the
+   * tiles meeting it load, its presets replace the zoom buttons, no reference overlay, and the legend lists no reference row.
    */
   readonly lock?: MapLock | undefined;
 }
@@ -193,15 +194,16 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
     if (!containerRef.current) return;
     const width = containerRef.current.clientWidth || 1280;
     const opening = openingCamera(extent, width, containerRef.current.clientHeight || 720, FRAME_PAD_PX);
-    const first = lock ? extentCamera(lock.area, width, containerRef.current.clientHeight || 720, FRAME_PAD_PX) : opening; // locked: the whole area
+    const limits = lock ? lockLimits(lock, width, containerRef.current.clientHeight || 720, LIVE_LOCK_PADS) : null; // locked: clear of the chrome
+    const first = limits ? limits.camera : opening;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: OFFLINE_STYLE,
       center: [...first.center],
       zoom: first.zoom,
-      minZoom: lock ? first.zoom : zoomForWidth(24_000, width, centre.lat), // locked: the lowest zoom is the frame of the whole area
+      minZoom: limits ? first.zoom : zoomForWidth(24_000, width, centre.lat), // locked: the lowest zoom is the frame of the whole area
       maxZoom: zoomForWidth(400, width, centre.lat),
-      maxBounds: lock ? lockMaxBounds(lock) : panBounds(extent, PAN_LIMIT_M),
+      maxBounds: limits ? limits.maxBounds : panBounds(extent, PAN_LIMIT_M), // locked: what that frame shows (review 27 Oct 2026)
       // Trackpad/wheel/pinch zoom is on, clamped by minZoom/maxZoom above; the three ZOOM_LEVELS buttons jump to
       // fixed levels. Researcher decision, 10 Oct 2026 (SPEC/12 revision (al)): free zoom stays on and every camera change is
       // logged as `viewport_changed` (throttled while moving, one record when settled, `viewport-log.ts`), so the
@@ -261,6 +263,12 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
     // after it opens (the decision strip, a situation question, the tour closing), and the whole study area stays in
     // view through that. Once the participant has moved the map, nothing moves it but the participant.
     map.on("movestart", (e) => { if ((e as { originalEvent?: unknown }).originalEvent) onDefaultRef.current = false; });
+    // A locked map at its lowest zoom shows exactly its frame, whatever the participant tried: refitted when its size changes (the
+    // listener below); zoomed in, it keeps its camera and gets its limits at the new size.
+    if (lock) {
+      map.on("moveend", () => { atLockFrameRef.current = map.getZoom() <= map.getMinZoom() + 1e-6; });
+      map.on("resize", () => { if (atLockFrameRef.current) onDefaultRef.current = true; else if (!onDefaultRef.current) applyLock(map, lock); });
+    }
     map.on("resize", () => { if (onDefaultRef.current) frameDefault(map); });
     map.on("load", () => {
       (lock ? tilesMeeting(TOPO_TILES, lock.bounds) : TOPO_TILES).forEach((tile, i) => { // locked: only the tiles meeting the lock
@@ -348,17 +356,21 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
   // contradiction — in the frame. The frame depends only on the map's size, so it is identical for every participant
   // at a given window size.
   const onDefaultRef = useRef(true); // the map shows the opening frame, untouched since
-  /** A locked map's frame (SPEC/08 (bp)): its whole area, fitted inside the map; it is also the lowest zoom. */
-  const lockedFrame = (map: MapLibreMap, lockNow: MapLock) => {
+  const atLockFrameRef = useRef(true); // a locked map at its lowest zoom: its frame (SPEC/08 (bp); review 27 Oct 2026)
+  /** A locked map's frame (SPEC/08 (bp)) at its size now, also its lowest zoom; `maxBounds` is what it shows (`lockLimits`). */
+  const applyLock = (map: MapLibreMap, lockNow: MapLock) => {
     const el = map.getContainer();
-    return extentCamera(lockNow.area, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
+    const { camera, maxBounds } = lockLimits(lockNow, el.clientWidth || 1280, el.clientHeight || 720, LIVE_LOCK_PADS);
+    map.setMaxBounds(null);
+    map.setMinZoom(camera.zoom);
+    map.setMaxBounds(maxBounds);
+    return camera;
   };
   const frameDefault = (map: MapLibreMap) => {
     const el = map.getContainer();
     const { center, zoom } = openingCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
-    const at = lockRef.current ? lockedFrame(map, lockRef.current) : { center, zoom };
+    const at = lockRef.current ? applyLock(map, lockRef.current) : { center, zoom };
     setLevel(null);
-    if (lockRef.current) map.setMinZoom(at.zoom);
     map.jumpTo({ center: [...at.center], zoom: at.zoom });
     onDefaultRef.current = true;
   };
@@ -366,7 +378,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
   const frameWhole = (map: MapLibreMap) => {
     const el = map.getContainer();
     const { center, zoom } = extentCamera(extent, el.clientWidth || 1280, el.clientHeight || 720, FRAME_PAD_PX);
-    const at = lockRef.current ? lockedFrame(map, lockRef.current) : { center, zoom };
+    const at = lockRef.current ? applyLock(map, lockRef.current) : { center, zoom };
     map.jumpTo({ center: [...at.center], zoom: at.zoom });
   };
   useEffect(() => {
@@ -447,7 +459,7 @@ export function MapView({ snapshot, extent, onMapUse, tak, children, lock }: Map
       {/* The TAK shell shows the same wind reading in its info card (top-left). */}
       {wind && !isTak && <WindIndicator wind={wind} />}
       <Legend isoMinutes={snapshot.currentEnvelope?.isochrones.map((i) => i.minutes) ?? []}
-        drawn={legendPresence(snapshot.renderTree.cycleInfo, snapshot.currentEnvelope !== null, drawn)}
+        drawn={legendPresence(snapshot.renderTree.cycleInfo, snapshot.currentEnvelope !== null, drawn, lock === undefined)}
         onToggle={(open) => log({ kind: "layer_toggled", detail: { layerId: "legend", newState: open } })}
         bottom={isTak ? 74 : 28} symbols={tak?.legendSymbols} />
       {children}

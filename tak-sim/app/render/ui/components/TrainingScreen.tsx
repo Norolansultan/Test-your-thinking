@@ -7,7 +7,9 @@
  *   the TAK toolbar with the item's tools, the item under the map); S4 on the session's freeze screen (`FreezeScreen`, one item at a
  *   time, its progress in the whole training, its blank map locked to the area), the memory item first shown for 8 s on the live map;
  *   S4's feedback under the map for a map item, else a full page; S5 the cell's recording (`TrainingDemoPage`).
- * - The countdown is the training's cap (12 min, to S4's end), polled from the session as every countdown is; S5 has none.
+ * - The countdown is the training's cap (12 min, to S4's end), polled from the session as every countdown is; S5 has none. S4's
+ *   freeze screen says that this time keeps running (`ui.freezeNote`, in place of the session's "the clock has stopped"; review 27 Oct
+ *   2026, finding 5), and S5 says when the cap ended the items (`ui.capEnded`, finding 4).
  * - The Thinker pane is never shown. Nothing on this screen logs; the session writes `training_*` records only.
  */
 
@@ -41,7 +43,7 @@ export function TrainingScreen({ snapshot, orchestrator }: { readonly snapshot: 
     switch (view.phase) {
       case "intro": return <TrainingIntro onStart={() => orchestrator.trainingStart()} />;
       case "section": return view.sectionId ? <TrainingSectionCard key={view.sectionId} sectionId={view.sectionId} onGo={() => orchestrator.trainingLeaveSection()} /> : null;
-      case "demo": return <TrainingDemoPage cell={orchestrator.logHeader.cell} secondsLeft={left.demo} onLeave={() => orchestrator.leaveTrainingDemo()} />;
+      case "demo": return <TrainingDemoPage cell={orchestrator.logHeader.cell} secondsLeft={left.demo} capEnded={view.endReason === "timeout"} onLeave={() => orchestrator.leaveTrainingDemo()} />;
       case "ended": return null;
       default: break;
     }
@@ -49,7 +51,7 @@ export function TrainingScreen({ snapshot, orchestrator }: { readonly snapshot: 
     if (view.phase === "question" && item.mode === "freeze" && snapshot.freeze) {
       return (
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-          <FreezeScreen key={item.id} freeze={snapshot.freeze} orchestrator={orchestrator} showLevels={false} progress={{ position: view.position, count: view.itemCount }} lock={lock} />
+          <FreezeScreen key={item.id} freeze={snapshot.freeze} orchestrator={orchestrator} showLevels={false} progress={{ position: view.position, count: view.itemCount }} lock={lock} note={trainingUi(lang, "freezeNote")} />
         </div>
       );
     }
@@ -62,7 +64,7 @@ export function TrainingScreen({ snapshot, orchestrator }: { readonly snapshot: 
   return (
     <div data-testid="training" data-phase={view.phase} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <header style={{ display: "flex", alignItems: "baseline", gap: 14, padding: "8px 16px", borderBottom: "1px solid #33383e", background: "#15181c", flexShrink: 0 }}>
-        <strong style={{ fontSize: 14 }}>{TRAINING_TEXT[lang].intro.title || trainingUi(lang, "title")}</strong>
+        <strong style={{ fontSize: 14 }}>{TRAINING_TEXT[lang].intro.title}</strong>
         {view.position > 0 && view.phase !== "section" && view.phase !== "demo" && (
           <span data-testid="training-progress" style={{ fontSize: 13, opacity: 0.75 }}>{trainingUi(lang, "progress", { n: view.position, of: view.itemCount })}</span>
         )}

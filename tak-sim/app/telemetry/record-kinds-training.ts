@@ -88,6 +88,18 @@ export interface TrainingDemoShownDetail {
   readonly dwellMs: number;
 }
 
+/**
+ * The cap reached (review 27 Oct 2026; SPEC/07 (bp), `15` (bp) §bp.3–§bp.4): written once, when the 12 minutes run out before S4's
+ * end, durable before S5 shows. `remainingItemIds`: the items with no answer logged (`training_completed.missingItemIds`); `atItemId`:
+ * the item on screen (its question, exposure, feedback or section card; null on the intro); `activeMs`: the training's active time at
+ * the cap (the cap, or more on a resume that found none left). A resume that finds it goes straight to S5 (`endReason` timeout).
+ */
+export interface TrainingCapReachedDetail {
+  readonly remainingItemIds: readonly string[];
+  readonly atItemId: string | null;
+  readonly activeMs: number;
+}
+
 /** S5 left: the training's end. `durationMs` from S1 to S4's end (S5 excluded). */
 export interface TrainingCompletedDetail {
   readonly endReason: "completed" | "timeout";

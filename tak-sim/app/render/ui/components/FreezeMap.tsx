@@ -8,7 +8,7 @@ import { topoTileUrl } from "../../../i18n/place-names.js";
 import { extentCamera, openingCamera } from "../../map-frame.js";
 import { useLang } from "../i18n.js";
 import { assetUrl } from "../../../session/asset-url.js";
-import { lockMaxBounds, tilesMeeting, type MapLock } from "../training-lock.js";
+import { FREEZE_LOCK_PADS, lockLimits, tilesMeeting, type MapLock } from "../training-lock.js";
 
 /**
  * A `map_point` freeze item's map (SPEC/15 r.12): the generated topographic basemap and nothing
@@ -58,7 +58,8 @@ export interface PickCamera { readonly zoom: number; readonly centre: LatLon; re
 
 /**
  * `lock` (SPEC/08 (bp) §bp.1, the training incident's memory check): the blank map is locked as the training's live map is — it opens
- * on the whole area, cannot zoom out past it or pan beyond its lock, and loads only the tiles meeting the lock.
+ * on the whole area, fitted clear of its zoom buttons and scale bar (`FREEZE_LOCK_PADS`), cannot zoom out past that frame or pan beyond
+ * what it shows (`lockLimits`, set again on every resize; review 27 Oct 2026), and loads only the tiles meeting the lock.
  */
 export function FreezeMap({ extent, point, onPick, lock }: { readonly extent: Extent; readonly point: LatLon | null; readonly onPick: (point: LatLon, camera: PickCamera) => void; readonly lock?: MapLock | undefined }) {
   const { t, lang } = useLang();
@@ -78,8 +79,9 @@ export function FreezeMap({ extent, point, onPick, lock }: { readonly extent: Ex
   useEffect(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
-    const frame = () => (lock ? extentCamera(lock.area, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX) : openingCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX));
-    const outermostZoom = () => extentCamera(lock?.area ?? extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX).zoom;
+    const limits = () => (lock ? lockLimits(lock, el.clientWidth || 600, el.clientHeight || 600, FREEZE_LOCK_PADS) : null);
+    const frame = () => limits()?.camera ?? openingCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX);
+    const outermostZoom = () => limits()?.camera.zoom ?? extentCamera(extent, el.clientWidth || 600, el.clientHeight || 600, FRAME_PAD_PX).zoom;
     const opening = frame();
     const map = new maplibregl.Map({
       container: el,
@@ -95,7 +97,6 @@ export function FreezeMap({ extent, point, onPick, lock }: { readonly extent: Ex
       attributionControl: false,
     });
     mapRef.current = map;
-    if (lock) map.setMaxBounds(lockMaxBounds(lock)); // SPEC/08 (bp): the training's memory check stays inside its area's lock
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
     map.on("click", (e: MapMouseEvent) => {
@@ -107,13 +108,31 @@ export function FreezeMap({ extent, point, onPick, lock }: { readonly extent: Ex
     // The opening frame follows the box's size until the participant moves the map; the outermost view is the
     // whole study area.
     const onDefault = { current: true };
+    // A locked map's limits follow its size: `maxBounds` is what its frame shows, its lowest zoom that frame (SPEC/08 (bp)).
+    const relimit = () => {
+      const l = limits();
+      if (!l) return;
+      map.setMaxBounds(null);
+      map.setMinZoom(l.camera.zoom);
+      map.setMaxBounds(l.maxBounds);
+    };
     const refit = () => {
       const { center, zoom } = frame();
+      if (lock) map.setMaxBounds(null);
       map.setMinZoom(null);
       map.jumpTo({ center: [...center], zoom });
       map.setMinZoom(Math.min(zoom, outermostZoom()));
+      relimit();
     };
     map.on("movestart", (e) => { if ((e as { originalEvent?: unknown }).originalEvent) onDefault.current = false; });
+    relimit(); // locked: the frame's limits from the start
+    // A locked map at its lowest zoom shows exactly its frame: it is fitted again when its size changes (the listener below); zoomed
+    // in, it keeps its camera and gets its limits at the new size (SPEC/08 (bp)).
+    if (lock) {
+      const atFrame = { current: true };
+      map.on("moveend", () => { atFrame.current = map.getZoom() <= map.getMinZoom() + 1e-6; });
+      map.on("resize", () => { if (atFrame.current) onDefault.current = true; else if (!onDefault.current) relimit(); });
+    }
     map.on("resize", () => { if (onDefault.current) refit(); });
     map.on("load", () => {
       (lock ? tilesMeeting(TOPO_TILES, lock.bounds) : TOPO_TILES).forEach((tile, i) => {

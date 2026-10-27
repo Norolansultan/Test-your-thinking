@@ -23,6 +23,7 @@ import { formatRange } from "../../app/render/ui/tak/RangeBearing.js";
 import type { Camera } from "../../app/render/map-frame.js";
 import type { RenderableCycle } from "../../app/boundary/render-boundary.js";
 import { trainingMapLock } from "../../app/render/ui/training-lock.js";
+import { trainingClockLabel } from "../../app/session/training/view.js";
 import { displayAnswerText } from "../../app/session/chat-display.js";
 import type { LatLon } from "../../app/engine/primitives.js";
 import { LIVE_MAP_PX, type ImageRequest, type MapPageData } from "./map-data.js";
@@ -64,7 +65,7 @@ export interface TrainingScreenInput {
 export function trainingMapData(input: TrainingScreenInput, item: TrainingItem | null): MapPageData {
   const b = input.spec.area.bounds;
   return {
-    lang: input.lang, audience: input.audience, currentCycle: 0, clockLabel: input.spec.now.label,
+    lang: input.lang, audience: input.audience, currentCycle: 0, clockLabel: trainingClockLabel(input.spec),
     cycleInfo: input.scene, envelope: null, recordedPlan: null,
     extent: { south: b.south, north: b.north, west: b.west, east: b.east }, widthPx: LIVE_MAP_PX.width, heightPx: LIVE_MAP_PX.height,
     camera: input.camera, legend: false, rb: input.rb,
@@ -107,6 +108,7 @@ export function trainingScreen(input: TrainingScreenInput, mapPath: string | nul
     }
     case "demo": {
       const d = texts.demo(input.cell);
+      if (view.endReason === "timeout") out.push(texts.ui.capEnded ?? "capEnded", ""); // the cap ended the items (review 27 Oct 2026)
       out.push(`== ${d.title} ==`, d.intro);
       d.examples.forEach((e, i) => out.push("", `${i + 1}. > ${e.question}`, ...e.answer.map((l) => `   ${l}`), e.note));
       out.push("", `[${texts.demoLines.leave}] → \`continue\``, H(`A recording, not a live query; its button is enabled after 10 s${input.secondsLeft.demo > 0 ? ` (${input.secondsLeft.demo} s left; \`continue\` waits for it)` : ""}.`));

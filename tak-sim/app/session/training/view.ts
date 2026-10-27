@@ -73,6 +73,14 @@ export function trainingLogNow(spec: TrainingSpec, view: TrainingView | null): R
   return trainingLogRows(view.sectionId === "s2" ? TRAINING_S2_LOG_UNTIL : spec.now.label);
 }
 
+/**
+ * The live map's info card clock: the training's "now" as the TAK clock writes a time ("10:18"; review 27 Oct 2026, finding 3). The
+ * scene's own label is the fire's mapped time (10.00), which the fire's label on the map carries.
+ */
+export function trainingClockLabel(spec: Pick<TrainingSpec, "now">): string {
+  return spec.now.label.replace(".", ":");
+}
+
 /** The freeze screen's header: the training's span to its "now" ("10.00–10.18"). */
 export function trainingFreezeNowLabel(spec: TrainingSpec): string {
   return `${clockAt(TRAINING_VIEW.startsAtVirtual)}–${spec.now.label}`;

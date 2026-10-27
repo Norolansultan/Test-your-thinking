@@ -22,25 +22,39 @@ import { TAK } from "./theme.js";
 
 const card = { background: "#0d1114e8", border: `1px solid ${TAK.panelBorder}`, borderRadius: TAK.radius, color: TAK.text, boxShadow: "0 2px 10px #0008" };
 
-export function TakInfoCard({ clockLabel, wind }: { readonly clockLabel: string; readonly wind: CycleWind | null | undefined }) {
+/**
+ * `compact` (the training incident, SPEC/08 (bp); review 27 Oct 2026, finding 3): one row — the clock and the wind — with no call sign
+ * or role, so the card stays inside the locked map's top band (`LIVE_LOCK_PADS`, `training-lock.ts`) and covers nothing of the square.
+ */
+export function TakInfoCard({ clockLabel, wind, compact = false }: { readonly clockLabel: string; readonly wind: CycleWind | null | undefined; readonly compact?: boolean }) {
   const { t } = useLang();
   return (
     <div style={{ position: "absolute", zIndex: 21, top: 8, left: 8, display: "flex", flexDirection: "column", gap: 6, maxWidth: 330, pointerEvents: "none" }}>
-      <div data-map-chrome data-testid="tak-info-card" style={{ ...card, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6, pointerEvents: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* The self symbol (2525C, milsymbol): static markup. */}
-          <span style={{ width: 30, height: 22, flex: "none", display: "block" }} dangerouslySetInnerHTML={{ __html: selfSymbolSvg() }} />
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <span style={{ fontFamily: TAK.mono, fontWeight: 700, fontSize: 14, color: TAK.accent }}>{t.tak.selfCallsign}</span>
-            <span style={{ fontSize: 11, color: TAK.textDim, whiteSpace: "nowrap" }}>{t.tak.selfRole}</span>
-          </div>
-          <div style={{ marginLeft: "auto", paddingLeft: 12, textAlign: "right" }}>
+      {compact ? (
+        <div data-map-chrome data-testid="tak-info-card" data-compact="1" style={{ ...card, padding: "4px 10px", display: "flex", alignItems: "center", gap: 12, pointerEvents: "auto" }}>
+          <div>
             <div style={{ fontSize: 10, color: TAK.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.tak.scenarioTime}</div>
-            <div data-testid="tak-clock" style={{ fontFamily: TAK.mono, fontSize: 18, fontWeight: 700 }}>{clockLabel}</div>
+            <div data-testid="tak-clock" style={{ fontFamily: TAK.mono, fontSize: 16, fontWeight: 700 }}>{clockLabel}</div>
           </div>
+          {wind && <div style={{ borderLeft: `1px solid ${TAK.panelBorder}`, paddingLeft: 10 }}><WindIndicator wind={wind} inline /></div>}
         </div>
-        {wind && <div style={{ borderTop: `1px solid ${TAK.panelBorder}`, paddingTop: 5 }}><WindIndicator wind={wind} inline /></div>}
-      </div>
+      ) : (
+        <div data-map-chrome data-testid="tak-info-card" style={{ ...card, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6, pointerEvents: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* The self symbol (2525C, milsymbol): static markup. */}
+            <span style={{ width: 30, height: 22, flex: "none", display: "block" }} dangerouslySetInnerHTML={{ __html: selfSymbolSvg() }} />
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <span style={{ fontFamily: TAK.mono, fontWeight: 700, fontSize: 14, color: TAK.accent }}>{t.tak.selfCallsign}</span>
+              <span style={{ fontSize: 11, color: TAK.textDim, whiteSpace: "nowrap" }}>{t.tak.selfRole}</span>
+            </div>
+            <div style={{ marginLeft: "auto", paddingLeft: 12, textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: TAK.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.tak.scenarioTime}</div>
+              <div data-testid="tak-clock" style={{ fontFamily: TAK.mono, fontSize: 18, fontWeight: 700 }}>{clockLabel}</div>
+            </div>
+          </div>
+          {wind && <div style={{ borderTop: `1px solid ${TAK.panelBorder}`, paddingTop: 5 }}><WindIndicator wind={wind} inline /></div>}
+        </div>
+      )}
     </div>
   );
 }

@@ -17,6 +17,16 @@ export interface TrainingFeedbackContext {
   readonly lesson?: { readonly questionId: string; readonly recordIds: readonly string[] };
 }
 
+/**
+ * Every interface string the training's screen shows (`trainingUi`; review 27 Oct 2026, finding 8: all of them here, none in the
+ * components). `{n}`, `{of}`, `{s}` and `{t}` are filled by the screen.
+ */
+export const TRAINING_UI_KEYS = [
+  "progress", "timeLeft", "answer", "markHint", "marked", "chooseFirst", "memoryExposure", "studyLeft", "freezeNote",
+  "yourAnswer", "noAnswer", "next", "done", "capEnded", "question", "recorded", "demoWait",
+] as const;
+export type TrainingUiKey = (typeof TRAINING_UI_KEYS)[number];
+
 export interface TrainingTexts {
   readonly intro: { readonly title: string; readonly body: readonly string[]; readonly start: string };
   section(id: TrainingSectionId): { readonly title: string; readonly body: readonly string[]; readonly go: string };
@@ -25,5 +35,6 @@ export interface TrainingTexts {
   /** S5: the cell's recording (`radio` → Haku's, a Thinker cell → the guide's). */
   demo(cell: Cell): { readonly title: string; readonly intro: string; readonly examples: readonly { readonly id: string; readonly question: string; readonly answer: readonly string[]; readonly note: string }[] };
   readonly demoLines: { readonly limitation: string; readonly leave: string };
-  readonly ui: Readonly<Record<string, string>>;
+  /** The interface strings (a language's words hold every key; a test fixture may hold none, and the screen then shows the key). */
+  readonly ui: Readonly<Partial<Record<TrainingUiKey, string>>>;
 }

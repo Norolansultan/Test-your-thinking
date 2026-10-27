@@ -429,7 +429,7 @@ const FI: UiText = {
   continue: "Jatka",
   skipView: "Ohita jakso ▸",
   skipFreeze: "Ohita muistikatko ▸",
-  allocationHint: "Kirjaa kohdennuksesi lohkoittain. Vahvistus päättää jakson.",
+  allocationHint: "Kirjaa kohdennuksesi lohkoittain. Vahvistus päättää jakson, kun sen vähimmäisaika on kulunut.",
   mainEffortLabel: "Miehistöjen painopiste",
   postureLabel: "Painopisteen toimintatapa",
   postures: { direct_attack: "Suora hyökkäys palon reunaan", barrier_line: "Puolustuslinja tien tai vesistön varaan", protect_values: "Asutuksen suojaus" }, // review round 2 (4 Oct 2026, DEFAULT): one term each, no lexical pull
@@ -638,7 +638,7 @@ const EN: UiText = {
   continue: "Continue",
   skipView: "Skip period ▸",
   skipFreeze: "Skip memory check ▸",
-  allocationHint: "Record your allocation by sector. Confirming it ends the period.",
+  allocationHint: "Record your allocation by sector. Confirming it ends the period once its minimum time has passed.",
   mainEffortLabel: "Crews' main effort",
   postureLabel: "Main effort posture",
   // R12 (25 Oct 2026, SPEC/35 (bi)): the two "line" choices said apart — a new line ahead of the fire (the posture) against an existing
